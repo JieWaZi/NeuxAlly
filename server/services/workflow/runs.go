@@ -243,7 +243,7 @@ func (s *Service) StartRun(ctx context.Context, command StartRunCommand) (models
 		if err = s.store.CreateReceipt(ctx, models.WorkflowCommandReceipt{AggregateID: definition.ID, RequestID: command.RequestID, Kind: "run", PayloadDigest: digest, Result: map[string]any{"runId": id}}); err != nil {
 			return err
 		}
-		if err := agentcommand.Commit(ctx, map[string]any{"runId": id, "definitionId": definition.ID, "revisionId": revision.ID}); err != nil {
+		if err := agentcommand.Commit(ctx, map[string]any{"runId": id, "definitionId": definition.ID, "revisionId": revision.ID, "name": revision.Manifest.Meta.Title}); err != nil {
 			return err
 		}
 		_, err = s.store.AppendEvent(ctx, models.WorkflowEvent{StreamID: definition.ID, EventID: util.New(), Type: constants.WorkflowRunCreatedEvent, EntityID: id, Payload: map[string]any{"runId": id, "revisionId": revision.ID}})

@@ -83,7 +83,7 @@ func TestConsumerCLIScopesReplayActualDefaultsAndRevocation(t *testing.T) {
 	if err != nil || again.ExecutionID != bound.ExecutionID || len(again.Options.ToolCapabilities[0].Bindings) != len(bound.Options.ToolCapabilities[0].Bindings) {
 		t.Fatalf("capability replay changed identity: %+v %v", again, err)
 	}
-	if _, err := s.BindConsumer(ctx, intent, []string{definition.ID, other.ID}); !errors.Is(err, status_error.WorkflowRequestConflict) {
+	if _, err := s.BindConsumer(ctx, intent, []string{definition.ID, other.ID}); !errors.Is(err, status_error.BadRequest) {
 		t.Fatalf("replay expanded whitelist: %v", err)
 	}
 	queries.actual = models.Execution{ID: lease.ID, ChatID: lease.ChatID, Status: constants.ExecutionStatusRunning, RuntimeID: "actual-runtime", AccountID: "actual-account", Model: "actual-model", Reasoning: "actual-reasoning", PermissionLevel: constants.PermissionLevelDefault, WorkspaceReadOnly: true}
@@ -167,6 +167,9 @@ func TestConsumerCLIScopesReplayActualDefaultsAndRevocation(t *testing.T) {
 	first := call(start, false)["data"].(map[string]any)
 	second := call(start, false)["data"].(map[string]any)
 	runID, _ := first["runId"].(string)
+	if first["definitionId"] != definition.ID || first["revisionId"] != definition.CurrentRevisionID || first["name"] != "纯计算验收" || second["name"] != first["name"] {
+		t.Fatalf("启动回执缺少不可变运行身份: first=%+v replay=%+v", first, second)
+	}
 	if runID == "" || runID != second["runId"] {
 		t.Fatal("duplicate consumer start created a second run")
 	}
@@ -190,4 +193,44 @@ func TestConsumerCLIScopesReplayActualDefaultsAndRevocation(t *testing.T) {
 	queries.actual.Status = constants.ExecutionStatusCompleted
 	call(map[string]any{"action": "run.get", "runId": runID}, true)
 	call(map[string]any{"action": constants.WorkflowActionQuery, "type": constants.WorkflowQueryCapabilities}, true)
+}
+
+// 本测试捕获绑定丢失定义快照、上下文或接受多个定义的行为回归。
+func TestConsumerBindsOneWorkflowReferenceAndInstructions(t *testing.T) {
+	ctx := context.Background()
+	s, _ := workflowTestService(t)
+	definition := savedTestWorkflow(t, s, workflowTestSource(t))
+	definition, _ = s.store.GetDefinition(ctx, definition.ID)
+	s.executions = consumerExecutionBoundary{}
+	s.chats = &consumerChatBoundary{}
+	s.state.AgentBindings = s.AgentBindings
+	intent := execution.WorkIntent{ClientRequestID: "reference", Chat: execution.ChatTarget{Create: &execution.CreateChatSpec{WakerID: "fixture", WorkingDirectory: t.TempDir()}}, Input: execution.WorkInput{Content: "评审本次改动"}, Options: execution.WorkOptions{RuntimeID: "runtime", PermissionLevel: constants.PermissionLevelDefault}}
+	t.Run("真实定义引用和执行上下文", func(t *testing.T) {
+		bound, err := s.BindConsumer(ctx, intent, []string{definition.ID})
+		if err != nil {
+			t.Fatal(err)
+		}
+		encoded, _ := json.Marshal(bound.Input)
+		var input map[string]any
+		if err := json.Unmarshal(encoded, &input); err != nil {
+			t.Fatal(err)
+		}
+		refs, _ := input["workflows"].([]any)
+		if len(refs) != 1 || refs[0].(map[string]any)["id"] != definition.ID || refs[0].(map[string]any)["name"] != definition.Title {
+			t.Fatalf("绑定输入缺少真实工作流快照: %s", encoded)
+		}
+		if len(bound.Input.ContextInstructions) == 0 {
+			t.Fatal("选中工作流未提供读取契约并通过 CLI 启动等待的执行上下文")
+		}
+		if bound.Input.Content != "评审本次改动" {
+			t.Fatal("工作流执行上下文污染用户正文")
+		}
+	})
+	t.Run("拒绝两个定义", func(t *testing.T) {
+		other := savedTestWorkflow(t, s, strings.Replace(workflowTestSource(t), "纯计算验收", "第二个流程", 1))
+		intent.ClientRequestID = "two-definitions"
+		if _, err := s.BindConsumer(ctx, intent, []string{definition.ID, other.ID}); err == nil {
+			t.Fatal("单条聊天消息接受了两个工作流")
+		}
+	})
 }

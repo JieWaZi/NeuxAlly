@@ -540,3 +540,55 @@ func TestCommandFactsKeepLiveAndDurableToolCaptionsEqual(t *testing.T) {
 		t.Fatalf("live/durable diverged: live=%+v durable=%+v", lastLive, messages)
 	}
 }
+
+// 本测试捕获命令记录丢失可信 Core 回执或实时快照与日志重放不同步。
+func TestWorkflowCommandFactsKeepLiveAndDurableReferencesEqual(t *testing.T) {
+	store, err := eventlog.NewStore(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	chatID := "98989898989898989898989898989898"
+	if _, err := store.Create(chatID, activeChatInputs()); err != nil {
+		t.Fatal(err)
+	}
+	sink, live := newRuntimeEventSinkForTest(store, chatID)
+	sink.agentFacts = &agentCommandFacts{}
+	send := func(text string) {
+		t.Helper()
+		if err := sink.acceptInvocation(context.Background(), "invocation-1", runtimes.Event{Type: runtimes.EventTypeTextDelta, Data: marshalData(map[string]any{"text": text})}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	send("正在启动")
+	<-live
+	op, _ := contract.Find("workflow.runs.start")
+	result := agentcapability.Result{CommandID: "start-receipt", Data: map[string]any{"runId": "actual-run", "definitionId": "definition", "revisionId": "revision", "name": "代码评审"}}
+	if err := sink.agentFacts.record(context.Background(), sink.journal, chatID, "execution-1", op, result); err != nil {
+		t.Fatal(err)
+	}
+	send("等待结果")
+	snapshot := (<-live).Message
+	if err := sink.Flush(); err != nil {
+		t.Fatal(err)
+	}
+	records, err := store.ReadAll(chatID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	messages, err := messageview.ReplayMessages(records)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, message := range []*messageview.Message{snapshot, &messages[0]} {
+		encoded, _ := json.Marshal(message)
+		var public map[string]any
+		_ = json.Unmarshal(encoded, &public)
+		refs, _ := public["workflowRuns"].([]any)
+		if len(refs) != 1 || refs[0].(map[string]any)["runId"] != "actual-run" {
+			t.Fatalf("Core运行事实未进入实时/持久消息: %s", encoded)
+		}
+	}
+	if messages[0].Revision != snapshot.Revision {
+		t.Fatalf("实时和重放消息修订不一致: %d != %d", messages[0].Revision, snapshot.Revision)
+	}
+}

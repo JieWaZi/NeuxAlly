@@ -40,6 +40,8 @@ type userMessage struct {
 	ConnectorIDs []string
 	// CodeReferences 是用户从工作范围内选择的有序整文件或代码片段引用。
 	CodeReferences []CodeReferenceInput
+	// Workflows 是本轮受信入口冻结的工作流选择。
+	Workflows []eventlog.MessageWorkflowReference
 }
 
 // CodeReferenceInput 是跨入口共享的待校验内容引用。
@@ -145,6 +147,7 @@ func normalizePendingMessage(input pendingMessage) pendingMessage {
 		[]runtimes.Instruction(nil),
 		input.supplementalInstructions...,
 	)
+	input.message.Workflows = append([]eventlog.MessageWorkflowReference(nil), input.message.Workflows...)
 	input.message.SkillIDs = append([]string(nil), input.message.SkillIDs...)
 	input.message.ConnectorIDs = append([]string(nil), input.message.ConnectorIDs...)
 	input.message.CodeReferences = append([]CodeReferenceInput(nil), input.message.CodeReferences...)
@@ -614,6 +617,7 @@ func createRequestContent(request pendingMessage) []interface{} {
 		request.message.SkillIDs,
 		request.message.ConnectorIDs,
 		request.message.CodeReferences,
+		request.message.Workflows,
 		request.runtime.ConfigurationResolved,
 		request.runtime.AccountID,
 		request.runtime.RuntimeID,
@@ -1325,6 +1329,7 @@ func startedMessageEvents(
 				Attachments:    attachments,
 				Skills:         skills,
 				Connectors:     connectors,
+				Workflows:      append([]eventlog.MessageWorkflowReference(nil), request.message.Workflows...),
 				CodeReferences: codeReferences,
 			}),
 		},

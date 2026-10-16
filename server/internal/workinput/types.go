@@ -1,6 +1,8 @@
 // Package workinput 定义需要跨执行与持久队列边界保真的中立工作输入。
 package workinput
 
+import "github.com/JieWaZi/NeuxAlly/server/internal/chat/eventlog"
+
 // Input 保存一次工作输入和有序能力引用。
 type Input struct {
 	// SubmissionID 是耐久调用者稳定复用的本次输入身份，空值不启用续发去重。
@@ -17,6 +19,8 @@ type Input struct {
 	SkillIDs []string `json:"skillIds,omitempty"`
 	// ConnectorIDs 是本轮明确选择的连接器标识。
 	ConnectorIDs []string `json:"connectorIds,omitempty"`
+	// Workflows 是受信入口从真实定义补齐的选择快照，不接受外部 API 自填。
+	Workflows []eventlog.MessageWorkflowReference `json:"workflows,omitempty"`
 	// ContextInstructions 是入口冻结的执行说明，随耐久队列保真，不进入用户消息或标题。
 	ContextInstructions []Instruction `json:"contextInstructions,omitempty"`
 }

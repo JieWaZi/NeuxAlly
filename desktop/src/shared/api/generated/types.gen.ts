@@ -3869,6 +3869,42 @@ export type GithubComJieWaZiNeuxAllyServerInternalChatEventlogMessageSkillRefere
 };
 
 /**
+ * 工作流引用
+ */
+export type GithubComJieWaZiNeuxAllyServerInternalChatEventlogMessageWorkflowReference = {
+    /**
+     * 工作流标识
+     */
+    id?: string;
+    /**
+     * 工作流名称
+     */
+    name?: string;
+};
+
+/**
+ * 工作流运行引用
+ */
+export type GithubComJieWaZiNeuxAllyServerInternalChatEventlogWorkflowRunReference = {
+    /**
+     * 工作流名称
+     */
+    name?: string;
+    /**
+     * 版本标识
+     */
+    revisionId?: string;
+    /**
+     * 运行标识
+     */
+    runId?: string;
+    /**
+     * 工作流标识
+     */
+    workflowId?: string;
+};
+
+/**
  * Message 是从权威事件重放出的聊天消息视图。
  */
 export type GithubComJieWaZiNeuxAllyServerInternalChatMessageviewMessage = {
@@ -3877,7 +3913,7 @@ export type GithubComJieWaZiNeuxAllyServerInternalChatMessageviewMessage = {
      */
     actor?: string;
     /**
-     * Attachments 是用户消息携带的有序附件引用。
+     * Attachments 是用户输入或 Core 确认交付的有序附件引用。
      */
     attachments?: Array<GithubComJieWaZiNeuxAllyServerInternalChatEventlogAttachmentReference>;
     /**
@@ -3955,6 +3991,14 @@ export type GithubComJieWaZiNeuxAllyServerInternalChatMessageviewMessage = {
      * UpdatedAt 是消息最近收到持久化事件时的 Unix 毫秒时间。
      */
     updatedAt?: number;
+    /**
+     * 工作流运行
+     */
+    workflowRuns?: Array<GithubComJieWaZiNeuxAllyServerInternalChatEventlogWorkflowRunReference>;
+    /**
+     * 工作流引用
+     */
+    workflows?: Array<GithubComJieWaZiNeuxAllyServerInternalChatEventlogMessageWorkflowReference>;
 };
 
 /**

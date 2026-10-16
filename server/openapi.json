@@ -21856,7 +21856,7 @@
             "description": "工作流列表",
             "x-go-field-name": "WorkflowIDs",
             "x-tag-json": "workflowIds,omitempty",
-            "x-tag-validate": "max=100,dive,max=32"
+            "x-tag-validate": "max=1,dive,max=32"
           }
         },
         "required": [
@@ -27112,6 +27112,52 @@
         "x-go-struct-name": "GithubComJieWaZiNeuxAllyServerInternalChatEventlogMessageSkillReference",
         "x-go-vendor-type": "github.com/JieWaZi/NeuxAlly/server/internal/chat/eventlog.MessageSkillReference"
       },
+      "GithubComJieWaZiNeuxAllyServerInternalChatEventlogMessageWorkflowReference": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "工作流标识",
+            "x-go-field-name": "ID"
+          },
+          "name": {
+            "type": "string",
+            "description": "工作流名称",
+            "x-go-field-name": "Name"
+          }
+        },
+        "description": "工作流引用",
+        "x-go-struct-name": "GithubComJieWaZiNeuxAllyServerInternalChatEventlogMessageWorkflowReference",
+        "x-go-vendor-type": "github.com/JieWaZi/NeuxAlly/server/internal/chat/eventlog.MessageWorkflowReference"
+      },
+      "GithubComJieWaZiNeuxAllyServerInternalChatEventlogWorkflowRunReference": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "工作流名称",
+            "x-go-field-name": "Name"
+          },
+          "revisionId": {
+            "type": "string",
+            "description": "版本标识",
+            "x-go-field-name": "RevisionID"
+          },
+          "runId": {
+            "type": "string",
+            "description": "运行标识",
+            "x-go-field-name": "RunID"
+          },
+          "workflowId": {
+            "type": "string",
+            "description": "工作流标识",
+            "x-go-field-name": "WorkflowID"
+          }
+        },
+        "description": "工作流运行引用",
+        "x-go-struct-name": "GithubComJieWaZiNeuxAllyServerInternalChatEventlogWorkflowRunReference",
+        "x-go-vendor-type": "github.com/JieWaZi/NeuxAlly/server/internal/chat/eventlog.WorkflowRunReference"
+      },
       "GithubComJieWaZiNeuxAllyServerInternalChatMessageviewMessage": {
         "type": "object",
         "properties": {
@@ -27126,7 +27172,7 @@
             "items": {
               "$ref": "#/components/schemas/GithubComJieWaZiNeuxAllyServerInternalChatEventlogAttachmentReference"
             },
-            "description": "Attachments 是用户消息携带的有序附件引用。",
+            "description": "Attachments 是用户输入或 Core 确认交付的有序附件引用。",
             "x-go-field-name": "Attachments",
             "x-tag-json": "attachments,omitempty"
           },
@@ -27286,6 +27332,24 @@
             "format": "int64",
             "description": "UpdatedAt 是消息最近收到持久化事件时的 Unix 毫秒时间。",
             "x-go-field-name": "UpdatedAt"
+          },
+          "workflowRuns": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GithubComJieWaZiNeuxAllyServerInternalChatEventlogWorkflowRunReference"
+            },
+            "description": "工作流运行",
+            "x-go-field-name": "WorkflowRuns",
+            "x-tag-json": "workflowRuns,omitempty"
+          },
+          "workflows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GithubComJieWaZiNeuxAllyServerInternalChatEventlogMessageWorkflowReference"
+            },
+            "description": "工作流引用",
+            "x-go-field-name": "Workflows",
+            "x-tag-json": "workflows,omitempty"
           }
         },
         "description": "Message 是从权威事件重放出的聊天消息视图。",

@@ -1826,3 +1826,37 @@ func TestForkContinuationNeverSuppliesInheritedPrompt(t *testing.T) {
 		t.Fatal("missing native session fell back to history")
 	}
 }
+
+// 本测试捕获工作流快照在输入转换、持久化和首发幂等摘要中的遗漏。
+func TestWorkflowSelectionSurvivesAdmissionAndChangesRequestIdentity(t *testing.T) {
+	manager := newMessageTestService(t, t.TempDir(), &fakeRuntime{})
+	var input WorkInput
+	if err := json.Unmarshal([]byte(`{"actor":"user","content":"评审改动","workflows":[{"id":"workflow","name":"代码评审"}]}`), &input); err != nil {
+		t.Fatal(err)
+	}
+	intent := WorkIntent{ClientRequestID: "workflow-reference", ExecutionID: util.New(), Chat: ChatTarget{Create: &CreateChatSpec{WakerID: "waker-1"}}, Input: input, Options: WorkOptions{RuntimeID: runtimes.RuntimeIDCodex, PermissionLevel: constants.PermissionLevelAuto}, Admission: constants.ExecutionAdmissionCommitBeforeDispatch}
+	accepted, err := manager.execution.Start(context.Background(), intent)
+	if err != nil {
+		t.Fatal(err)
+	}
+	waitForChatTerminal(t, manager, accepted.Chat.ID)
+	records, err := manager.execution.(*service).journal.ReadRecords(accepted.Chat.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	messages, err := messageview.ReplayMessages(records)
+	if err != nil {
+		t.Fatal(err)
+	}
+	encoded, _ := json.Marshal(messages[0])
+	var message map[string]any
+	_ = json.Unmarshal(encoded, &message)
+	refs, _ := message["workflows"].([]any)
+	if len(refs) != 1 || refs[0].(map[string]any)["id"] != "workflow" || refs[0].(map[string]any)["name"] != "代码评审" {
+		t.Fatalf("持久化丢失选中工作流: %s", encoded)
+	}
+	_ = json.Unmarshal([]byte(`{"actor":"user","content":"评审改动","workflows":[{"id":"other","name":"其他流程"}]}`), &intent.Input)
+	if _, err := manager.execution.Start(context.Background(), intent); !errors.Is(err, status_error.CreateRequestConflict) {
+		t.Fatalf("更换工作流未改变接纳摘要: %v", err)
+	}
+}

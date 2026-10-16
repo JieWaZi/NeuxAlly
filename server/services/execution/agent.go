@@ -31,7 +31,19 @@ type agentCommandFacts struct {
 }
 
 func (f *agentCommandFacts) record(ctx context.Context, journal chatservice.Journal, chatID, executionID string, op contract.Operation, result agentcapability.Result) error {
-	records, err := journal.AppendExecutionFacts(ctx, chatID, []eventlog.AppendInput{{Type: constants.ChatEventTypeAgentCommandCommitted, ExecutionID: executionID, Data: marshalData(eventlog.AgentCommandData{CommandID: result.CommandID, Operation: op.ID, Completion: op.Completion})}})
+	command := eventlog.AgentCommandData{CommandID: result.CommandID, Operation: op.ID, Completion: op.Completion}
+	// result 只来自授权领域操作及其持久回执，原生工具 stdout 不经过此入口。
+	if op.ID == "workflow.runs.start" {
+		data, _ := result.Data.(map[string]any)
+		runID, _ := data["runId"].(string)
+		definitionID, _ := data["definitionId"].(string)
+		revisionID, _ := data["revisionId"].(string)
+		name, _ := data["name"].(string)
+		if runID != "" && definitionID != "" && revisionID != "" && name != "" {
+			command.WorkflowRun = &eventlog.WorkflowRunReference{WorkflowID: definitionID, RunID: runID, RevisionID: revisionID, Name: name}
+		}
+	}
+	records, err := journal.AppendExecutionFacts(ctx, chatID, []eventlog.AppendInput{{Type: constants.ChatEventTypeAgentCommandCommitted, ExecutionID: executionID, Data: marshalData(command)}})
 	if err == nil && f != nil {
 		f.mutex.Lock()
 		f.pending = append(f.pending, records...)
