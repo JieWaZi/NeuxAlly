@@ -116,6 +116,11 @@ func (d *DeleteWaker) Output(ctx *gin.Context) (interface{}, error) {
 			); err != nil {
 				return err
 			}
+			if global.PluginControllerManager != nil {
+				if err := global.PluginControllerManager.DeleteByWaker(transactionContext, d.WakerID); err != nil {
+					return err
+				}
+			}
 			return global.WakerControllerManager.Delete(transactionContext, d.WakerID)
 		},
 	)

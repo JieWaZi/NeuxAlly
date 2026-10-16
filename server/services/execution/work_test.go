@@ -285,6 +285,8 @@ func (r *gatedRuntime) Run(
 
 // trackingSkillController 是提交测试用于确认聊天选择只读技能关系的替身。
 type trackingSkillController struct {
+	// SkillController 仅补齐消息执行未使用的其他仓储端口。
+	controllers.SkillController
 	// enabled 是伙伴当前已经持久启用的技能快照。
 	enabled []models.SkillWithState
 	// upsertCalls 记录是否错误地通过聊天选择修改了持久启停关系。
@@ -1726,6 +1728,7 @@ func newMessageTestService(
 		Profiles:            profiles,
 		Projects:            projects,
 		Skills:              selectedOptions.skills,
+		Plugins:             selectedOptions.plugins,
 		RuntimeEnvironments: runtimeEnvironments,
 		SkillDataDirectory:  selectedOptions.skillDataDirectory,
 		StorageDirectory:    logDirectory,
@@ -1797,6 +1800,8 @@ func readyTestModel(id string) runtimes.ModelOption {
 
 // messageTestOptions 保存仅部分消息测试需要的可选技能依赖。
 type messageTestOptions struct {
+	// plugins 提供安装快照的只读端口。
+	plugins controllers.PluginController
 	// skills 提供伙伴已启用技能的只读快照。
 	skills controllers.SkillController
 	// skillDataDirectory 是断言权威技能版本绝对路径时使用的数据目录。

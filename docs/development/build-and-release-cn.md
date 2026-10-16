@@ -10,11 +10,13 @@
 
 品牌标志的矢量母版为 `desktop/public/ally-logo.svg`。在 macOS 运行 `pnpm icon:generate`，通过系统 `sips` 与 `iconutil` 统一生成浅暗标志、应用 PNG、macOS ICNS、Windows 多分辨率 ICO 和托盘图标；派生资源不手工修改。默认安装图标使用浅色底板，暗色应用图标另存为 `desktop/resources/app-icon-dark.png`。
 
-Core 使用 CGO_ENABLED=0、-trimpath 和 -s -w。Renderer 由 Vite 编译，主进程与 preload 由 esbuild 编译，node-pty 保留原生运行依赖。系统技能、Pi Bridge、工作流 SDK 和呈现目录必须与生成源一致。
+Core 使用 CGO_ENABLED=0、-trimpath 和 -s -w。Renderer 由 Vite 编译，主进程与 preload 由 esbuild 编译，node-pty 保留原生运行依赖。系统技能、Pi Bridge、工作流 SDK、呈现目录与固定插件源必须和生成源一致。
+
+`pnpm plugins:prepare` 从独立 Git 快照生成标准插件 ZIP，并获取当前目标平台的固定飞书 CLI；sidecar 构建会选择并仅保留对应目标平台的 provider 程序。`pnpm plugins:check` 离线核对固定源与目录生成，不执行第三方 CLI。来源、更新和缓存用法见 [固定插件源](../../plugin-sources/README.md)。Electron 从安装包 plugins 目录装配；开发 Core 通过显式 ALLY_PLUGIN_RESOURCES_DIR 使用本地生成产物。
 
 已由 Vite 或 esbuild 打包的 JavaScript 依赖放在开发依赖中，安装包仅额外携带 node-pty 及其必要依赖。node-pty 只保留当前平台与架构的预编译文件；本机编译目录仅保留 Release 的原生模块、动态库、可执行文件及 ConPTY 运行文件，排除调试符号、静态库、对象目录和构建元数据。node-addon-api 只保留包信息与许可，不携带编译期头文件和工具。electron-builder 固定使用 `--publish never`，产物由独立发布任务统一上传，打包任务无需 GitHub 发布令牌。
 
-首屏静态 JS 预算为 500,000 bytes。打包检查安装包 150 MiB、安装文件 450 MiB、Resources 125 MiB 的体积上限，输出机器可读报告。Resources 包含 Core、CLI、前端产物及必要原生模块；预算涵盖约 72 MiB 的 Core/CLI 和约 40 MiB 的前端及运行资源。Windows 即使超限也输出三项实测体积及最大的 30 个文件，失败构建的报告由发布工作流单独保存。实际文件名与默认平台以打包脚本为准。
+首屏静态 JS 预算为 500,000 bytes。打包检查安装包 150 MiB、安装文件 450 MiB、Resources 175 MiB 的体积上限，输出机器可读报告。Resources 包含 Core、CLI、前端产物及必要原生模块；预算涵盖约 72 MiB 的 Core/CLI、约 40 MiB 的前端及运行资源，以及约 47 MiB 的固定飞书原生程序与完整技能。macOS arm64 实测 Resources 约 158.5 MiB，其他平台以各自原生构建报告为准。Windows 即使超限也输出三项实测体积及最大的 30 个文件，失败构建的报告由发布工作流单独保存。实际文件名与默认平台以打包脚本为准。
 
 发布矩阵在原生 runner 上分别构建 macOS arm64、macOS x64（amd64）与 Windows x64，并校验构建机架构。GitHub Release 直接提供用户可安装的 NeuxAlly-mac-arm64.dmg、NeuxAlly-mac-x64.dmg 和 NeuxAlly-windows-x64.exe，附带分架构体积报告及 SHA256SUMS。Actions 中以 NeuxAlly 命名的 artifact 仅用于 CI 暂存与跨任务传输，用户下载入口为 Release 中的 DMG 或 EXE。代码签名、公证及签名密钥由发布环境管理；本地签名不表示完成发行签名与公证。
 

@@ -1,7 +1,7 @@
 import { Card, CardFooter } from "@/shared/ui/card";
 import { Cable, Trash2, Wrench } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 import type { ConnectorSummary } from "../model/types";
 import { runtimeDisplayName } from "@/shared/lib/runtime-display-name";
@@ -12,6 +12,7 @@ import { Checkbox } from "@/shared/ui/checkbox";
 import { Switch } from "@/shared/ui/switch";
 
 type Props = {
+  onInstall?: () => void;
   connector: ConnectorSummary;
   selected?: boolean;
   onSelectedChange?: (selected: boolean) => void;
@@ -26,10 +27,12 @@ export function ConnectorCard({
   selected = false,
   onSelectedChange,
   disabled,
+  onInstall,
   onDelete,
   onEnabledChange,
   wakerId,
 }: Props) {
+  const location = useLocation();
   const { t } = useTranslation("connector");
   const visibleCompatibility = connector.compatibility.slice(0, 5);
   const hiddenCompatibilityCount = Math.max(
@@ -46,7 +49,12 @@ export function ConnectorCard({
       <article>
         <div className="hover:bg-surface-subtle h-connector-card-content relative shrink-0 overflow-hidden transition-colors">
           <Link
-            to={`/wakers/${wakerId}/connectors/${connector.id}`}
+            state={{ resourceBack: location.pathname + location.search }}
+            to={
+              wakerId
+                ? `/wakers/${wakerId}/connectors/${connector.id}`
+                : `/resources/connectors/${connector.id}`
+            }
             className="focus-visible:ring-ring absolute inset-0 z-10 rounded-t-xl outline-none focus-visible:ring-2 focus-visible:ring-inset"
             aria-label={t("card.view", { name: connector.name })}
             title={[connector.name, connector.description]
@@ -145,7 +153,7 @@ export function ConnectorCard({
               <span className="text-muted-foreground type-caption">
                 {t("systemManaged")}
               </span>
-            ) : (
+            ) : wakerId ? (
               <Switch
                 hitArea="comfortable"
                 checked={connector.enabled}
@@ -158,7 +166,11 @@ export function ConnectorCard({
                 )}
                 onClick={() => onEnabledChange(!connector.enabled)}
               />
-            )}
+            ) : onInstall ? (
+              <Button size="sm" variant="secondary" onClick={onInstall}>
+                {t("plugin:install")}
+              </Button>
+            ) : null}
           </div>
         </CardFooter>
       </article>

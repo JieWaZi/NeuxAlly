@@ -22,6 +22,13 @@ export type ChatSendSelection = {
     name: string;
     version?: string;
   }>;
+  pluginIds?: string[];
+  selectedPlugins?: Array<{
+    id: string;
+    name: string;
+    version?: string;
+    versionId?: string;
+  }>;
   connectorIds?: string[];
   workflowIds?: string[];
   selectedConnectors?: Array<{

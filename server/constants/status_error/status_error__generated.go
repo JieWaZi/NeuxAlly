@@ -105,6 +105,12 @@ func (v StatusError) Key() string {
 		return "IMConfigurationInvalid"
 	case IMFileInvalid:
 		return "IMFileInvalid"
+	case PluginManifestInvalid:
+		return "PluginManifestInvalid"
+	case PluginContentInvalid:
+		return "PluginContentInvalid"
+	case PluginContentLimitExceeded:
+		return "PluginContentLimitExceeded"
 	case AgentInputInvalid:
 		return "AgentInputInvalid"
 	case Unauthorized:
@@ -123,6 +129,8 @@ func (v StatusError) Key() string {
 		return "IMWorkflowDeliveryNotAllowed"
 	case IMTargetNotAuthorized:
 		return "IMTargetNotAuthorized"
+	case PluginForbidden:
+		return "PluginForbidden"
 	case AgentOperationForbidden:
 		return "AgentOperationForbidden"
 	case WakerNotFound:
@@ -171,6 +179,8 @@ func (v StatusError) Key() string {
 		return "IMResourceNotFound"
 	case IMTargetUnavailable:
 		return "IMTargetUnavailable"
+	case PluginNotFound:
+		return "PluginNotFound"
 	case AgentReceiptNotFound:
 		return "AgentReceiptNotFound"
 	case OperationCanceled:
@@ -279,6 +289,16 @@ func (v StatusError) Key() string {
 		return "IMConnectionHasWorkflowDependencies"
 	case IMConnectionDisabled:
 		return "IMConnectionDisabled"
+	case PluginVersionConflict:
+		return "PluginVersionConflict"
+	case PluginConfigurationConflict:
+		return "PluginConfigurationConflict"
+	case PluginNotReady:
+		return "PluginNotReady"
+	case PluginSkillConflict:
+		return "PluginSkillConflict"
+	case PluginBusy:
+		return "PluginBusy"
 	case AgentCommandOutcomeUnknown:
 		return "AgentCommandOutcomeUnknown"
 	case AgentCommandRequestConflict:
@@ -405,6 +425,8 @@ func (v StatusError) Key() string {
 		return "WorkflowFileStorageError"
 	case IMCredentialError:
 		return "IMCredentialError"
+	case PluginStorageError:
+		return "PluginStorageError"
 	case AgentContextStorageError:
 		return "AgentContextStorageError"
 	case MemoryEmbeddingUnavailable:
@@ -419,6 +441,8 @@ func (v StatusError) Key() string {
 		return "IMPlatformUnavailable"
 	case IMProtocolInvalid:
 		return "IMProtocolInvalid"
+	case PluginAuthorizationFailed:
+		return "PluginAuthorizationFailed"
 	case DatabaseBusy:
 		return "DatabaseBusy"
 	case IMServiceUnavailable:
@@ -488,6 +512,9 @@ func GetStatusErrorMap() map[string]map[StatusError]string {
 			WorkflowIMTargetNotDeclared:          "delivery target is not declared as a workflow dependency; optimize the workflow to declare its target scope",
 			IMConfigurationInvalid:               "im configuration is invalid",
 			IMFileInvalid:                        "im file is missing, outside scope, or too large",
+			PluginManifestInvalid:                "plugin manifest is invalid or its format version is unsupported",
+			PluginContentInvalid:                 "plugin content or package path is invalid",
+			PluginContentLimitExceeded:           "plugin content exceeds import limits",
 			AgentInputInvalid:                    "command input does not satisfy the operation contract",
 			Unauthorized:                         "invalid local access token",
 			MemoryContextUnauthorized:            "memory invocation context is invalid or expired",
@@ -497,6 +524,7 @@ func GetStatusErrorMap() map[string]map[StatusError]string {
 			IMChatNotAuthorized:                  "im chat is not authorized",
 			IMWorkflowDeliveryNotAllowed:         "workflow delivery is disabled for this chat; enable it in the chat configuration",
 			IMTargetNotAuthorized:                "chat is not authorized or authorization was revoked; authorize it in the chat configuration",
+			PluginForbidden:                      "plugin is outside the current partner scope",
 			AgentOperationForbidden:              "operation is not authorized for the current execution",
 			WakerNotFound:                        "waker not found: {{.WakerID}}",
 			RolePresetNotFound:                   "role preset not found: {{.RolePresetID}}",
@@ -521,6 +549,7 @@ func GetStatusErrorMap() map[string]map[StatusError]string {
 			WorkflowFileNotFound:                 "workflow file was not found within the allowed scope",
 			IMResourceNotFound:                   "im resource was not found",
 			IMTargetUnavailable:                  "delivery target no longer exists; optimize the workflow and select an approved chat",
+			PluginNotFound:                       "plugin or version was not found",
 			AgentReceiptNotFound:                 "command acceptance receipt was not found in the current scope",
 			OperationCanceled:                    "operation canceled",
 			OperationTimeout:                     "operation timed out",
@@ -575,6 +604,11 @@ func GetStatusErrorMap() map[string]map[StatusError]string {
 			IMConnectionInUse:                    "connection is used by active workflows or pending deliveries; wait or stop the related work",
 			IMConnectionHasWorkflowDependencies:  "saved workflows reference this connection; review the affected workflows and confirm deletion again if dependencies change",
 			IMConnectionDisabled:                 "delivery connection is disabled; enable it in connection settings and retry",
+			PluginVersionConflict:                "plugin version or content changed; confirm the operation again",
+			PluginConfigurationConflict:          "plugin shared configuration changed or is incompatible",
+			PluginNotReady:                       "complete required plugin configuration, authentication and dependencies first",
+			PluginSkillConflict:                  "skills with the same declared name have different content",
+			PluginBusy:                           "shared account is in use by work or authorization; try again after it exits",
 			AgentCommandOutcomeUnknown:           "command outcome is uncertain; inspect the original request receipt",
 			AgentCommandRequestConflict:          "command request identifier was already used with different content",
 			AutomaticTaskRateLimited:             "automatic task request rate exceeds the per-minute limit",
@@ -638,6 +672,7 @@ func GetStatusErrorMap() map[string]map[StatusError]string {
 			WorkflowStateInvalid:                 "workflow execution state is corrupt",
 			WorkflowFileStorageError:             "workflow file storage failed",
 			IMCredentialError:                    "failed to read or save im credentials",
+			PluginStorageError:                   "plugin files could not be safely prepared or read",
 			AgentContextStorageError:             "capability context file could not be safely prepared or read",
 			MemoryEmbeddingUnavailable:           "embedding service is unavailable",
 			MCPConnectorProtocolInvalid:          "mcp connector returned an invalid protocol response",
@@ -645,6 +680,7 @@ func GetStatusErrorMap() map[string]map[StatusError]string {
 			AIAccountModelsResponseInvalid:       "model catalog response is invalid",
 			IMPlatformUnavailable:                "im platform is unavailable",
 			IMProtocolInvalid:                    "im platform returned an invalid protocol response",
+			PluginAuthorizationFailed:            "plugin authentication did not complete or external authorization expired",
 			DatabaseBusy:                         "processing other data; please try again later",
 			IMServiceUnavailable:                 "im integration service is unavailable",
 			AgentConnectionUnavailable:           "capability connection is unavailable or its protocol does not match",
@@ -683,6 +719,9 @@ func GetStatusErrorMap() map[string]map[StatusError]string {
 			WorkflowIMTargetNotDeclared:          "发送目标未声明为工作流依赖，请通过优化工作流补充发送目标范围",
 			IMConfigurationInvalid:               "IM 配置不完整或执行目标不可用",
 			IMFileInvalid:                        "IM 文件不存在、超出范围或过大",
+			PluginManifestInvalid:                "插件清单无效或格式版本不受支持",
+			PluginContentInvalid:                 "插件内容或路径不合法",
+			PluginContentLimitExceeded:           "插件内容超过导入限制",
 			AgentInputInvalid:                    "软件能力命令参数不符合契约",
 			Unauthorized:                         "本地访问令牌无效",
 			MemoryContextUnauthorized:            "记忆调用上下文无效或已过期",
@@ -692,6 +731,7 @@ func GetStatusErrorMap() map[string]map[StatusError]string {
 			IMChatNotAuthorized:                  "此 IM 聊天尚未获准接入",
 			IMWorkflowDeliveryNotAllowed:         "此聊天未允许工作流发送，请在聊天配置中开启工作流发送",
 			IMTargetNotAuthorized:                "此聊天尚未授权或授权已撤销，请在聊天配置中授权",
+			PluginForbidden:                      "此插件不属于当前伙伴可用范围",
 			AgentOperationForbidden:              "当前执行未获准使用此软件能力",
 			WakerNotFound:                        "伙伴不存在：{{.WakerID}}",
 			RolePresetNotFound:                   "角色预设不存在：{{.RolePresetID}}",
@@ -716,6 +756,7 @@ func GetStatusErrorMap() map[string]map[StatusError]string {
 			WorkflowFileNotFound:                 "工作流文件不存在或不在允许范围内",
 			IMResourceNotFound:                   "IM 连接、聊天或投递记录不存在",
 			IMTargetUnavailable:                  "发送目标已不存在，请优化工作流并重新选择获准聊天",
+			PluginNotFound:                       "插件或版本不存在",
 			AgentReceiptNotFound:                 "当前范围内尚无该命令的接纳回执",
 			OperationCanceled:                    "操作已取消",
 			OperationTimeout:                     "操作等待超时",
@@ -770,6 +811,11 @@ func GetStatusErrorMap() map[string]map[StatusError]string {
 			IMConnectionInUse:                    "连接仍被运行中的工作流或待发送消息使用，请等待完成或先停止相关任务",
 			IMConnectionHasWorkflowDependencies:  "连接被已保存工作流引用，请查看受影响流程并确认删除；依赖变化后需重新确认",
 			IMConnectionDisabled:                 "发送连接已停用，请在连接设置中启用后重试",
+			PluginVersionConflict:                "插件版本或内容已变化，请重新确认",
+			PluginConfigurationConflict:          "插件共享配置已变化或不兼容，请重新确认",
+			PluginNotReady:                       "请先完成插件所需配置、认证和程序准备",
+			PluginSkillConflict:                  "技能声明名称相同但内容不同，请调整已启用的技能或插件",
+			PluginBusy:                           "认证进程或工作仍在使用共享账号，请稍后重试",
 			AgentCommandOutcomeUnknown:           "软件能力命令提交结果尚不确定，请查询原请求回执",
 			AgentCommandRequestConflict:          "同一命令请求标识不能用于不同内容",
 			AutomaticTaskRateLimited:             "自动任务触发频率超过每分钟上限，请稍后重试",
@@ -833,6 +879,7 @@ func GetStatusErrorMap() map[string]map[StatusError]string {
 			WorkflowStateInvalid:                 "工作流内部执行状态损坏",
 			WorkflowFileStorageError:             "工作流文件存储失败",
 			IMCredentialError:                    "无法读取或保存 IM 凭据",
+			PluginStorageError:                   "插件文件无法安全准备或读取",
 			AgentContextStorageError:             "软件能力连接文件无法安全准备或读取",
 			MemoryEmbeddingUnavailable:           "Embedding 服务当前不可用",
 			MCPConnectorProtocolInvalid:          "MCP 连接器返回了不合法的协议响应",
@@ -840,6 +887,7 @@ func GetStatusErrorMap() map[string]map[StatusError]string {
 			AIAccountModelsResponseInvalid:       "模型目录响应不合法",
 			IMPlatformUnavailable:                "IM 平台暂时不可用",
 			IMProtocolInvalid:                    "IM 平台响应不符合当前协议",
+			PluginAuthorizationFailed:            "插件认证未完成或外部授权失效",
 			DatabaseBusy:                         "正在处理其他数据，请稍后重试",
 			IMServiceUnavailable:                 "IM 集成服务当前不可用",
 			AgentConnectionUnavailable:           "软件能力连接不可用或协议不匹配",

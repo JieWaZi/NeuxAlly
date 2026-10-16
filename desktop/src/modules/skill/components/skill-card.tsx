@@ -1,7 +1,7 @@
 import { Card, CardFooter } from "@/shared/ui/card";
 import { GitBranch, Package, Trash2, Upload } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 import { SkillIcon } from "./skill-icon";
 import type { SkillSummary } from "../model/types";
@@ -10,6 +10,7 @@ import { Checkbox } from "@/shared/ui/checkbox";
 import { Switch } from "@/shared/ui/switch";
 
 type Props = {
+  onInstall?: () => void;
   disabled?: boolean;
   onDelete?: () => void;
   skill: SkillSummary;
@@ -27,6 +28,7 @@ const sourceIcons = {
 
 export function SkillCard({
   disabled,
+  onInstall,
   onDelete,
   onEnabledChange,
   onSelectedChange,
@@ -34,6 +36,7 @@ export function SkillCard({
   skill,
   wakerId,
 }: Props) {
+  const location = useLocation();
   const { t } = useTranslation("skill");
   const SourceIcon = sourceIcons[skill.source];
 
@@ -46,7 +49,12 @@ export function SkillCard({
       <article>
         <div className="hover:bg-surface-subtle relative transition-colors">
           <Link
-            to={`/wakers/${wakerId}/skills/${skill.id}`}
+            state={{ resourceBack: location.pathname + location.search }}
+            to={
+              wakerId
+                ? `/wakers/${wakerId}/skills/${skill.id}`
+                : `/resources/skills/${skill.id}`
+            }
             className="focus-visible:ring-ring absolute inset-0 z-10 rounded-t-xl outline-none focus-visible:ring-2 focus-visible:ring-inset"
             aria-label={t("card.view", { name: skill.name })}
             title={[skill.name, skill.description].filter(Boolean).join("\n")}
@@ -104,15 +112,21 @@ export function SkillCard({
                 <Trash2 />
               </Button>
             ) : null}
-            <Switch
-              hitArea="comfortable"
-              checked={skill.enabled}
-              disabled={disabled}
-              aria-label={t(skill.enabled ? "card.disable" : "card.enable", {
-                name: skill.name,
-              })}
-              onClick={() => onEnabledChange(!skill.enabled)}
-            />
+            {wakerId ? (
+              <Switch
+                hitArea="comfortable"
+                checked={skill.enabled}
+                disabled={disabled}
+                aria-label={t(skill.enabled ? "card.disable" : "card.enable", {
+                  name: skill.name,
+                })}
+                onClick={() => onEnabledChange(!skill.enabled)}
+              />
+            ) : onInstall ? (
+              <Button size="sm" variant="secondary" onClick={onInstall}>
+                {t("plugin:install")}
+              </Button>
+            ) : null}
           </div>
         </CardFooter>
       </article>

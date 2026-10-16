@@ -269,3 +269,33 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
+
+## 飞书办公插件与官方 CLI
+
+适用范围：`plugin-sources/neuxally-plugins.bundle` 内固定插件源与构建产物 `plugins/`。技能和原生程序来源于 [larksuite/cli](https://github.com/larksuite/cli)，固定版本 `v1.0.98`，源码提交 `ac81f5056ab88f37d581d25916f3dab85abfca76`。发布资产 URL、SHA-256、平台和来源提交由 [来源锁](plugin-sources/source.lock.json) 固定，生成的包和程序同时分发原始许可证与 provenance。
+
+原作者为 Lark Suite CLI contributors；NeuxAlly contributors 维护插件清单、共享授权适配和本地分发，不代表飞书官方。官方技能目录、相对引用、脚本和规则保持原样；本插件的首版主要验收路径是文档、多维表格、日程和任务，完整官方辅助技能用于保留引用依赖。
+
+```text
+MIT License
+
+Copyright (c) 2026 Lark Technologies Pte. Ltd.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```

@@ -37,13 +37,15 @@ type MCPToolSummary struct {
 type MCPConnector struct {
 	// ID 是 32 位无连字符 UUID，仅用于 NeuxAlly 内部关联连接器。
 	ID string `gorm:"column:id;type:varchar(32);primaryKey" json:"id"`
-	// Name 是 NeuxAlly 内全局唯一的连接器显示名称。
-	Name string `gorm:"column:name;type:varchar(120);not null;uniqueIndex" json:"name"`
+	// Name 是连接器显示名称，不参与资源身份判断。
+	Name string `gorm:"column:name;type:varchar(120);not null" json:"name"`
 	// RuntimeKey 是创建时生成并持久化的 Runtime 注入名称，后续不随显示名称变化。
 	RuntimeKey string `gorm:"column:runtime_key;type:varchar(64);not null;uniqueIndex" json:"-"`
 	// Description 是连接器的简短用途说明。
 	Description string `gorm:"column:description;type:text;not null;default:''" json:"description"`
-	// Scope 是连接器的内置或公开范围。
+	// OwnerWakerID 是自有连接器所属伙伴，全局资源为空。
+	OwnerWakerID string `gorm:"column:owner_waker_id;not null;default:'';index" json:"ownerWakerId,omitempty"`
+	// Scope 是连接器的内置、全局或伙伴自有范围。
 	Scope constants.MCPConnectorScope `gorm:"column:scope;type:varchar(16);not null;index" json:"scope"`
 	// Transport 是连接器使用的 MCP 传输方式。
 	Transport constants.MCPTransport `gorm:"column:transport;type:varchar(32);not null;index" json:"transport"`

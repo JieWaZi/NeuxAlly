@@ -5,8 +5,8 @@ import { fileURLToPath } from "node:url";
 const mib = 1024 * 1024;
 const budgets = {
   application: 450 * mib,
-  // 与 macOS 共用包含 Core/CLI、前端和必要原生模块的资源预算。
-  resources: 125 * mib,
+  // 与 macOS 共用资源预算，包含固定飞书原生程序与完整官方技能。
+  resources: 175 * mib,
   installer: 150 * mib,
 };
 

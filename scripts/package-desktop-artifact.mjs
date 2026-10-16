@@ -23,8 +23,8 @@ const bundle = path.join(
 const mib = 1024 * 1024;
 const budgets = {
   application: 450 * mib,
-  // 包含约 72 MiB 的 Core/CLI 与约 40 MiB 的前端和运行资源。
-  resources: 125 * mib,
+  // 原有 Core/CLI 与前端预算外，增加约 47 MiB 的固定飞书程序和完整技能；保留约 16 MiB 余量。
+  resources: 175 * mib,
   installer: 150 * mib,
 };
 

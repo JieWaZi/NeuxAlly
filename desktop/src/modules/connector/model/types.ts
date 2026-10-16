@@ -6,7 +6,7 @@ import type {
 } from "@/shared/api/generated/types.gen";
 
 export type ConnectorTransport = "stdio" | "streamable_http" | "sse";
-export type ConnectorScope = "built_in" | "public";
+export type ConnectorScope = "built_in" | "public" | "private";
 export type ConnectorTestStatus = "untested" | "succeeded" | "failed";
 export type ConnectorActivationPolicy =
   "per_execution" | "team_context" | "workflow_context";

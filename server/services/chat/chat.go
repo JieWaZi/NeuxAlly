@@ -454,6 +454,7 @@ func replayChatState(records []eventlog.Record) (chatState, error) {
 				ID:                record.ExecutionID,
 				ChatID:            record.ChatID,
 				UserMessageID:     executionData.UserMessageID,
+				PluginResources:   executionData.PluginResources,
 				SubmissionID:      executionData.SubmissionID,
 				SubmissionHash:    executionData.SubmissionHash,
 				ParentExecutionID: executionData.ParentExecutionID,

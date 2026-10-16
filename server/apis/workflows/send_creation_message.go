@@ -67,6 +67,8 @@ type SendCreationMessageCommand struct {
 	// 引用技能
 	SkillIDs []string `json:"skillIds,omitempty"`
 	// 引用连接器
+	PluginIDs []string `json:"pluginIds,omitempty" validate:"max=100,dive,max=32"`
+	// 连接器列表
 	ConnectorIDs []string `json:"connectorIds,omitempty"`
 	// 新建原生会话
 	StartNewSession bool `json:"startNewSession"`
@@ -245,7 +247,7 @@ func sendCreationMessage(ctx context.Context, d *workflowDependencies, command S
 		Input: execution.WorkInput{
 			Actor: string(constants.ChannelMessageActorUser), Content: session.Content,
 			Attachments: command.Attachments, CodeReferences: command.CodeReferences,
-			SkillIDs: command.SkillIDs, ConnectorIDs: command.ConnectorIDs,
+			SkillIDs: command.SkillIDs, ConnectorIDs: command.ConnectorIDs, PluginIDs: command.PluginIDs,
 		},
 		Options: execution.WorkOptions{
 			RuntimeID: session.Defaults.RuntimeID, AccountID: session.Defaults.AccountID,

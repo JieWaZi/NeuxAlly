@@ -1,3 +1,5 @@
+import { useRouteSceneActive } from "@/shared/workspace/app-scene-workspace";
+import { useQueryEvents } from "@/shared/api/use-query-events";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   localApiErrorMessage,
@@ -7,7 +9,7 @@ import {
 import { Cable, Pencil, Play, Terminal, Trash2, Wrench } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 
 import {
   getWakerConnectorOptions,
@@ -35,14 +37,28 @@ export function ConnectorDetailPage() {
   const { t } = useTranslation("connector");
   const { connectorId = "", wakerId = "" } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const active = useRouteSceneActive();
+  const back =
+    (location.state as { resourceBack?: string } | null)?.resourceBack ??
+    (wakerId
+      ? `/wakers/${wakerId}/resources?category=connectors`
+      : "/resources?category=connectors");
   const queryClient = useQueryClient();
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const detailOptions = getWakerConnectorOptions(
+    withLocalErrorSurface({ path: { connectorId, wakerId } }),
+  );
   const detailQuery = useQuery({
-    ...getWakerConnectorOptions(
-      withLocalErrorSurface({ path: { connectorId, wakerId } }),
-    ),
-    enabled: Boolean(connectorId && wakerId),
+    ...detailOptions,
+    enabled: active && Boolean(connectorId),
+  });
+  useQueryEvents({
+    topic: "resources",
+    resource: { kind: "global" },
+    queryKeys: [detailOptions.queryKey],
+    active,
   });
   const refresh = () => invalidateVisibleConnectorQueries(queryClient);
   const toggleConnector = useMutation({
@@ -98,7 +114,7 @@ export function ConnectorDetailPage() {
           layout="detail"
           backAction={{
             label: t("common:backToList"),
-            onClick: () => navigate(`/wakers/${wakerId}/connectors`),
+            onClick: () => navigate(back),
           }}
           title={
             <span className="inline-flex max-w-full flex-wrap items-center gap-2">
@@ -145,7 +161,7 @@ export function ConnectorDetailPage() {
                     <Trash2 />
                   </PageAction>
                 ) : null}
-                {!systemManaged ? (
+                {wakerId && !systemManaged ? (
                   <Switch
                     checked={detailQuery.data?.enabled ?? false}
                     disabled={!connector || toggleConnector.isPending}
@@ -165,7 +181,7 @@ export function ConnectorDetailPage() {
                     }
                   />
                 ) : null}
-                {connector ? (
+                {connector && wakerId ? (
                   <span className="text-content-secondary type-body">
                     {systemManaged
                       ? t("systemManaged")
@@ -445,7 +461,7 @@ export function ConnectorDetailPage() {
           name={connector.name ?? ""}
           wakerId={wakerId}
           onOpenChange={setDeleteOpen}
-          onDeleted={() => navigate(`/wakers/${wakerId}/connectors`)}
+          onDeleted={() => navigate(back)}
         />
       ) : null}
     </WakerDetailLayout>

@@ -13,6 +13,8 @@ export const globalEventTopics = [
   "team",
   "workflow",
   "account-login",
+  "plugins",
+  "resources",
 ] as const;
 export type GlobalEventTopic = (typeof globalEventTopics)[number];
 export type GlobalEventState =
@@ -103,6 +105,13 @@ function validGlobalEventResource(
     );
   if (!resource.id) return false;
   switch (topic) {
+    case "resources":
+      return (
+        ["skill", "connector", "waker"].includes(resource.kind) &&
+        !resource.parentId
+      );
+    case "plugins":
+      return resource.kind === "plugin" && !resource.parentId;
     case "chat":
       return resource.kind === "chat" && !resource.parentId;
     case "team":

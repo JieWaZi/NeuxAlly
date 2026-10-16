@@ -14,6 +14,8 @@ import (
 	eventlog "github.com/JieWaZi/NeuxAlly/server/internal/chat/eventlog"
 	"github.com/JieWaZi/NeuxAlly/server/internal/chatstorage"
 	"github.com/JieWaZi/NeuxAlly/server/internal/notification/events"
+	"github.com/JieWaZi/NeuxAlly/server/internal/plugins"
+	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/feishu"
 	"github.com/JieWaZi/NeuxAlly/server/internal/projectsource"
 	"github.com/JieWaZi/NeuxAlly/server/internal/runtimes"
 	"github.com/JieWaZi/NeuxAlly/server/repositories/controllers"
@@ -116,6 +118,14 @@ type service struct {
 	skillController controllers.SkillController
 	// connectorController 读取伙伴当前启用并已解密的连接器。
 	connectorController controllers.MCPConnectorController
+	// pluginContents 保留进行中执行使用的内容目录。
+	pluginContents *plugins.ContentStore
+	// pluginController 读取插件安装的原子资源快照。
+	pluginController controllers.PluginController
+	// pluginAuthorizer 保护共享飞书身份的使用期间。
+	pluginAuthorizer *feishu.Authorizer
+	// pluginLauncher 是受管 Core 可执行文件的绝对位置。
+	pluginLauncher string
 	// runtimeEnvironments 读取已经启用且探测可用的 Runtime 条目。
 	runtimeEnvironments runtimeEnvironmentReader
 	// skillDataDirectory 是技能版本文件的根目录。
@@ -166,6 +176,14 @@ type Config struct {
 	Skills controllers.SkillController
 	// Connectors 读取伙伴当前启用并已解密的连接器。
 	Connectors controllers.MCPConnectorController
+	// PluginContents 保护受管内容使用与延迟回收。
+	PluginContents *plugins.ContentStore
+	// Plugins 读取插件资源和安装。
+	Plugins controllers.PluginController
+	// PluginAuthorizer 提供共享飞书账号租约。
+	PluginAuthorizer *feishu.Authorizer
+	// PluginLauncher 提供保持 MCP 工作目录的 Core 程序。
+	PluginLauncher string
 	// RuntimeEnvironments 读取执行准备使用的 Runtime 探测快照。
 	RuntimeEnvironments runtimeEnvironmentReader
 	// SkillDataDirectory 是 NeuxAlly 受管技能版本所在的应用数据目录。
@@ -247,14 +265,16 @@ func New(config Config) (Core, error) {
 		profileController:    config.Profiles,
 		projectController:    config.Projects,
 		skillController:      config.Skills,
-		connectorController:  config.Connectors,
-		runtimeEnvironments:  config.RuntimeEnvironments,
-		skillDataDirectory:   strings.TrimSpace(config.SkillDataDirectory),
-		storage:              storage,
-		executions:           newExecutionRegistry(),
-		createRequests:       newCreateRequestRegistry(),
-		approvals:            newApprovalCoordinator(config.Journal),
-		elicitations:         newElicitationCoordinator(config.Journal, config.Events),
+		pluginContents:       config.PluginContents,
+		pluginController:     config.Plugins, pluginAuthorizer: config.PluginAuthorizer, pluginLauncher: config.PluginLauncher,
+		connectorController: config.Connectors,
+		runtimeEnvironments: config.RuntimeEnvironments,
+		skillDataDirectory:  strings.TrimSpace(config.SkillDataDirectory),
+		storage:             storage,
+		executions:          newExecutionRegistry(),
+		createRequests:      newCreateRequestRegistry(),
+		approvals:           newApprovalCoordinator(config.Journal),
+		elicitations:        newElicitationCoordinator(config.Journal, config.Events),
 	}, nil
 }
 

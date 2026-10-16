@@ -727,3 +727,21 @@ describe("chat projection", () => {
     });
   });
 });
+
+it("历史插件引用保留原始版本和修订，不从当前资源覆盖", () => {
+  const frozen = {
+    id: "plugin-office",
+    name: "飞书办公",
+    versionId: "version-old",
+    version: "1.0.0",
+    configurationRevision: 2,
+    componentIds: ["component"],
+  };
+  const projected = toThreadMessage({
+    id: "message",
+    role: "user",
+    content: "整理文档",
+    plugins: [frozen],
+  });
+  expect(projected.metadata?.custom?.plugins).toEqual([frozen]);
+});

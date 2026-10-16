@@ -43,6 +43,12 @@ const {
   themeState: { resolvedTheme: "light" as "dark" | "light" },
 }));
 
+vi.mock("@/shared/workspace/app-scene-workspace", () => ({
+  useRouteSceneActive: () => true,
+}));
+vi.mock("@/shared/api/use-query-events", () => ({
+  useQueryEvents: () => undefined,
+}));
 vi.mock("@/modules/waker", () => ({
   WakerDetailLayout: ({ children }: { children: ReactNode }) => children,
 }));
@@ -203,7 +209,7 @@ function renderPage() {
             element={<SkillDetailPage />}
           />
           <Route
-            path="/wakers/:wakerId/skills"
+            path="/wakers/:wakerId/resources"
             element={<div>技能列表页</div>}
           />
         </Routes>

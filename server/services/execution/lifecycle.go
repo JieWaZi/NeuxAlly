@@ -11,6 +11,7 @@ import (
 	"github.com/JieWaZi/NeuxAlly/server/constants/status_error"
 	eventlog "github.com/JieWaZi/NeuxAlly/server/internal/chat/eventlog"
 	"github.com/JieWaZi/NeuxAlly/server/internal/logx"
+	"github.com/JieWaZi/NeuxAlly/server/internal/plugins"
 	"github.com/JieWaZi/NeuxAlly/server/internal/runtimes"
 	"github.com/JieWaZi/NeuxAlly/server/repositories/models"
 	chatservice "github.com/JieWaZi/NeuxAlly/server/services/chat"
@@ -189,6 +190,10 @@ type messageExecution struct {
 	capabilityRelease func()
 	// accountRelease 在 Runtime 进程结束后释放账号使用租约。
 	accountRelease func()
+	// pluginRelease 释放本轮冻结共享授权的使用租约。
+	pluginRelease func()
+	// plugins 是消息明确选择的插件展示快照。
+	plugins []plugins.Snapshot
 	// request 是本次调用交给 Runtime 的结构化输入。
 	request runtimes.RunRequest
 	// state 是首事件提交前仍未进入权威日志的对话状态。
@@ -223,6 +228,9 @@ type executionStartResult struct {
 func (m *service) runExecution(ctx context.Context, plan messageExecution) {
 	if plan.precommitted && plan.agentActivate != nil {
 		plan.agentActivate()
+	}
+	if plan.pluginRelease != nil {
+		defer plan.pluginRelease()
 	}
 	if plan.capabilityRelease != nil {
 		defer plan.capabilityRelease()
@@ -413,6 +421,7 @@ func (m *service) commitStartedExecution(
 		plan.files.codeReferences,
 		plan.skills,
 		plan.connectors,
+		plan.plugins,
 	)
 	inputs = append(inputs, eventlog.AppendInput{
 		Type:         constants.ChatEventTypeExecutionStarted,
@@ -444,6 +453,7 @@ func (m *service) commitAcceptedExecution(
 		plan.files.codeReferences,
 		plan.skills,
 		plan.connectors,
+		plan.plugins,
 	)
 	return m.journal.CommitAcceptedTurn(context.Background(), chatservice.StartedTurn{
 		NewChat:   plan.state.isNew,

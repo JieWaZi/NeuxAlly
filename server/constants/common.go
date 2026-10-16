@@ -570,3 +570,28 @@ const (
 	// WorkflowQueryResultSchema 查询当前节点要求的结果格式。
 	WorkflowQueryResultSchema = "result_schema"
 )
+
+const (
+	// PluginManifestSchema 是本地支持的通用插件清单版本。
+	PluginManifestSchema = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
+	// PluginMCPSchema 是本地支持的插件 MCP 配置版本。
+	PluginMCPSchema = "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json"
+	// PluginFormatPortable 表示通用插件包。
+	PluginFormatPortable = "agent-plugins"
+	// PluginFormatClaude 表示仅导入可支持组件的 Claude 插件包。
+	PluginFormatClaude = "claude"
+	// PluginExtensionNamespace 是客户端扩展空间。
+	PluginExtensionNamespace = "com.ally"
+)
+
+const (
+	// PluginProviderFeishu 表示固定飞书官方 CLI 适配。
+	PluginProviderFeishu = "feishu"
+	// PluginEventTopic 是插件资源唯一状态事件主题。
+	PluginEventTopic = "plugins"
+	// FeishuCLIVersion 是首批固定飞书程序版本。
+	FeishuCLIVersion = "1.0.98"
+)
+
+// PluginStdioMode 是 Core 内部的原生 MCP 工作目录子进程模式。
+const PluginStdioMode = "plugin-stdio"

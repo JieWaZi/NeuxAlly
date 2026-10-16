@@ -12,4 +12,6 @@ const (
 	MCPConnectorScopeBuiltIn MCPConnectorScope = "built_in"
 	// MCPConnectorScopePublic 表示全部伙伴可见的用户连接器。
 	MCPConnectorScopePublic MCPConnectorScope = "public"
+	// MCPConnectorScopePrivate 表示只属于一个伙伴的连接器。
+	MCPConnectorScopePrivate MCPConnectorScope = "private"
 )

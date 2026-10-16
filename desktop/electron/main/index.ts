@@ -172,6 +172,9 @@ else {
         dataDir,
         env: {
           ...process.env,
+          ALLY_PLUGIN_RESOURCES_DIR: app.isPackaged
+            ? path.join(process.resourcesPath, "plugins")
+            : path.join(__dirname, "../resources/plugins"),
           PI_MCP_MODULE_PATH: app.isPackaged
             ? path.join(process.resourcesPath, "pi-bridge", "bridge.mjs")
             : path.join(__dirname, "../resources/pi-bridge/bridge.mjs"),

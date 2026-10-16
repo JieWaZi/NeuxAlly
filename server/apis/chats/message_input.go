@@ -36,6 +36,8 @@ type MessageRequest struct {
 	// 技能列表
 	SkillIDs []string `json:"skillIds" validate:"max=100,dive,max=32"`
 	// 连接器列表
+	PluginIDs []string `json:"pluginIds,omitempty" validate:"max=100,dive,max=32"`
+	// 连接器列表
 	ConnectorIDs []string `json:"connectorIds" validate:"max=100,dive,max=32"`
 	// 工作流列表
 	WorkflowIDs []string `json:"workflowIds,omitempty" validate:"max=100,dive,max=32"`
@@ -87,6 +89,7 @@ func (r MessageRequest) workInput() (execution.WorkInput, execution.WorkOptions)
 			Attachments:    attachments,
 			SkillIDs:       append([]string(nil), r.SkillIDs...),
 			ConnectorIDs:   append([]string(nil), r.ConnectorIDs...),
+			PluginIDs:      append([]string(nil), r.PluginIDs...),
 			CodeReferences: references,
 		}, execution.WorkOptions{
 			AccountID: strings.TrimSpace(r.AccountID),

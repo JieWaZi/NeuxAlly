@@ -3,8 +3,8 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { answerWorkflowHuman, answerWorkflowOperation, cancelAiAccountLogin, cancelChatExecution, cancelImLogin, cancelWorkflowRun, clearNotificationUnread, clearWorkResults, command, createAiAccount, createAutomaticTask, createChannel, createChannelTask, createChannelThread, createChat, createImConnection, createMemory, createProject, createRolePreset, createSkillVersion, createWaker, createWakerConnector, createWorkflow, createWorkflowAnnotation, createWorkflowAutomaticTask, deleteAiAccount, deleteAutomaticTask, deleteChannel, deleteChannelThread, deleteChat, deleteImConnection, deleteMemory, deleteProject, deleteRolePreset, deleteWaker, deleteWakerConnector, deleteWorkflow, deleteWorkflowRevision, deleteWorkflowRun, dismissNotification, downloadWorkflowFile, editWorkflowConfiguration, exportProfileTemplate, exportRolePreset, exportWakerProfile, followUpChannelTask, forkChat, getAiAccountCredential, getAiAccountLogin, getAiAccountNativeModels, getAiAccountThinking, getAutomaticTask, getAutomaticTaskApi, getChannel, getChannelThread, getChat, getChatForkTargets, getChatMessageFileChange, getGlobalAutomaticTask, getHealth, getImConnectionDependencies, getImLogin, getImStatus, getMemorySettings, getMemoryStatus, getNotification, getNotificationSnapshot, getProject, getRolePreset, getSkillVersion, getSkillVersionFile, getVersion, getWaker, getWakerConnector, getWakerDocument, getWakerSkill, getWakerWorkRecord, getWorkBoardSummary, getWorkflow, getWorkflowArtifact, getWorkflowChatResults, getWorkflowInstance, getWorkflowNodeResult, getWorkflowRun, getWorkflowSdk, getWorkflowSource, getWorkflowTriggers, getWorkResult, importWakerSkill, listAiAccounts, listAutomaticRuns, listAutomaticTaskAttention, listAutomaticTasks, listChannelEvents, listChannels, listChannelThreads, listChannelTimeline, listChatEvents, listChatMessages, listChats, listGlobalAutomaticTasks, listImBindings, listImConnections, listImConversations, listMemories, listNotifications, listProjects, listRolePresetDocuments, listRolePresets, listRuntimes, listSkillVersions, listTimeline, listWakerChats, listWakerConnectors, listWakerDocuments, listWakers, listWakerSkills, listWorkBoard, listWorkBoardExecutors, listWorkflowEvents, listWorkflowNodeResults, listWorkflowRevisions, listWorkflowRuns, listWorkflows, type Options, previewAiAccountModels, previewAutomaticSchedule, previewGlobalAutomaticSchedule, pullSkillUpdate, read, refreshAiAccountModels, refreshRuntime, refreshRuntimes, reindexMemoryIndex, resolveApproval, resolveElicitation, restoreSkillVersion, restoreWorkflowRevision, retryChatExecution, retryWorkflowRun, reviewChannelTask, rotateAutomaticTaskToken, saveWorkflowSource, saveWorkflowTriggers, scanWakerSkillImport, selectImConversation, sendChannelMessage, sendMessage, sendWorkflowCreationMessage, setAutomaticTaskApi, setAutomaticTaskEnabled, setAutomaticTaskSuspended, setWakerConnectorEnabled, setWakerSkillEnabled, skipWorkflowWorker, startAiAccountLogin, startImLogin, startWorkflowRun, stopChannelTask, stopChannelWork, streamEvents, testMemoryEmbedding, testWakerConnector, triggerAutomaticTask, uninstallSkill, updateAiAccount, updateAutomaticTask, updateChannel, updateChannelThreadMemberConfigs, updateChat, updateImBinding, updateImConnection, updateMemory, updateMemorySettings, updateProject, updateRolePreset, updateRuntimeEnvironment, updateWaker, updateWakerConnector, updateWakerDocument, updateWakerSkill, updateWorkflowAutomaticTask, uploadWorkflowFile, validateWorkflowSource, verifyImLogin, viewNotification, viewWorkResult } from '../sdk.gen';
-import type { AnswerWorkflowHumanData, AnswerWorkflowHumanError, AnswerWorkflowHumanResponse, AnswerWorkflowOperationData, AnswerWorkflowOperationError, AnswerWorkflowOperationResponse, CancelAiAccountLoginData, CancelAiAccountLoginError, CancelAiAccountLoginResponse, CancelChatExecutionData, CancelChatExecutionResponse, CancelImLoginData, CancelImLoginError, CancelImLoginResponse, CancelWorkflowRunData, CancelWorkflowRunError, CancelWorkflowRunResponse, ClearNotificationUnreadData, ClearNotificationUnreadResponse, ClearWorkResultsData, ClearWorkResultsResponse, CommandData, CommandError, CommandResponse, CreateAiAccountData, CreateAiAccountResponse, CreateAutomaticTaskData, CreateAutomaticTaskError, CreateAutomaticTaskResponse, CreateChannelData, CreateChannelError, CreateChannelResponse, CreateChannelTaskData, CreateChannelTaskError, CreateChannelTaskResponse, CreateChannelThreadData, CreateChannelThreadResponse, CreateChatData, CreateChatError, CreateChatResponse, CreateImConnectionData, CreateImConnectionError, CreateImConnectionResponse, CreateMemoryData, CreateMemoryError, CreateMemoryResponse, CreateProjectData, CreateProjectError, CreateProjectResponse, CreateRolePresetData, CreateRolePresetError, CreateRolePresetResponse, CreateSkillVersionData, CreateSkillVersionError, CreateSkillVersionResponse, CreateWakerConnectorData, CreateWakerConnectorError, CreateWakerConnectorResponse, CreateWakerData, CreateWakerError, CreateWakerResponse, CreateWorkflowAnnotationData, CreateWorkflowAnnotationError, CreateWorkflowAnnotationResponse, CreateWorkflowAutomaticTaskData, CreateWorkflowAutomaticTaskError, CreateWorkflowAutomaticTaskResponse, CreateWorkflowData, CreateWorkflowError, CreateWorkflowResponse, DeleteAiAccountData, DeleteAiAccountError, DeleteAiAccountResponse, DeleteAutomaticTaskData, DeleteAutomaticTaskError, DeleteAutomaticTaskResponse, DeleteChannelData, DeleteChannelError, DeleteChannelResponse, DeleteChannelThreadData, DeleteChannelThreadError, DeleteChannelThreadResponse, DeleteChatData, DeleteChatError, DeleteChatResponse, DeleteImConnectionData, DeleteImConnectionError, DeleteImConnectionResponse, DeleteMemoryData, DeleteMemoryError, DeleteMemoryResponse, DeleteProjectData, DeleteProjectError, DeleteProjectResponse, DeleteRolePresetData, DeleteRolePresetError, DeleteRolePresetResponse, DeleteWakerConnectorData, DeleteWakerConnectorError, DeleteWakerConnectorResponse, DeleteWakerData, DeleteWakerError, DeleteWakerResponse, DeleteWorkflowData, DeleteWorkflowError, DeleteWorkflowResponse, DeleteWorkflowRevisionData, DeleteWorkflowRevisionError, DeleteWorkflowRevisionResponse, DeleteWorkflowRunData, DeleteWorkflowRunError, DeleteWorkflowRunResponse, DismissNotificationData, DismissNotificationResponse, DownloadWorkflowFileData, DownloadWorkflowFileError, DownloadWorkflowFileResponse, EditWorkflowConfigurationData, EditWorkflowConfigurationError, EditWorkflowConfigurationResponse, ExportProfileTemplateData, ExportProfileTemplateError, ExportProfileTemplateResponse, ExportRolePresetData, ExportRolePresetError, ExportRolePresetResponse, ExportWakerProfileData, ExportWakerProfileError, ExportWakerProfileResponse, FollowUpChannelTaskData, FollowUpChannelTaskError, FollowUpChannelTaskResponse, ForkChatData, ForkChatResponse, GetAiAccountCredentialData, GetAiAccountCredentialError, GetAiAccountCredentialResponse, GetAiAccountLoginData, GetAiAccountLoginError, GetAiAccountLoginResponse, GetAiAccountNativeModelsData, GetAiAccountNativeModelsError, GetAiAccountNativeModelsResponse, GetAiAccountThinkingData, GetAiAccountThinkingError, GetAiAccountThinkingResponse, GetAutomaticTaskApiData, GetAutomaticTaskApiResponse, GetAutomaticTaskData, GetAutomaticTaskError, GetAutomaticTaskResponse, GetChannelData, GetChannelError, GetChannelResponse, GetChannelThreadData, GetChannelThreadError, GetChannelThreadResponse, GetChatData, GetChatForkTargetsData, GetChatForkTargetsResponse, GetChatMessageFileChangeData, GetChatMessageFileChangeError, GetChatMessageFileChangeResponse, GetChatResponse, GetGlobalAutomaticTaskData, GetGlobalAutomaticTaskError, GetGlobalAutomaticTaskResponse, GetHealthData, GetHealthResponse, GetImConnectionDependenciesData, GetImConnectionDependenciesResponse, GetImLoginData, GetImLoginError, GetImLoginResponse, GetImStatusData, GetImStatusResponse, GetMemorySettingsData, GetMemorySettingsError, GetMemorySettingsResponse, GetMemoryStatusData, GetMemoryStatusError, GetMemoryStatusResponse, GetNotificationData, GetNotificationResponse, GetNotificationSnapshotData, GetNotificationSnapshotError, GetNotificationSnapshotResponse, GetProjectData, GetProjectError, GetProjectResponse, GetRolePresetData, GetRolePresetResponse, GetSkillVersionData, GetSkillVersionError, GetSkillVersionFileData, GetSkillVersionFileError, GetSkillVersionFileResponse, GetSkillVersionResponse, GetVersionData, GetVersionResponse, GetWakerConnectorData, GetWakerConnectorError, GetWakerConnectorResponse, GetWakerData, GetWakerDocumentData, GetWakerDocumentError, GetWakerDocumentResponse, GetWakerResponse, GetWakerSkillData, GetWakerSkillError, GetWakerSkillResponse, GetWakerWorkRecordData, GetWakerWorkRecordResponse, GetWorkBoardSummaryData, GetWorkBoardSummaryResponse, GetWorkflowArtifactData, GetWorkflowArtifactError, GetWorkflowArtifactResponse, GetWorkflowChatResultsData, GetWorkflowChatResultsResponse, GetWorkflowData, GetWorkflowInstanceData, GetWorkflowInstanceError, GetWorkflowInstanceResponse, GetWorkflowNodeResultData, GetWorkflowNodeResultError, GetWorkflowNodeResultResponse, GetWorkflowResponse, GetWorkflowRunData, GetWorkflowRunError, GetWorkflowRunResponse, GetWorkflowSdkData, GetWorkflowSdkResponse, GetWorkflowSourceData, GetWorkflowSourceError, GetWorkflowSourceResponse, GetWorkflowTriggersData, GetWorkflowTriggersResponse, GetWorkResultData, GetWorkResultResponse, ImportWakerSkillData, ImportWakerSkillError, ImportWakerSkillResponse, ListAiAccountsData, ListAiAccountsResponse, ListAutomaticRunsData, ListAutomaticRunsError, ListAutomaticRunsResponse, ListAutomaticTaskAttentionData, ListAutomaticTaskAttentionError, ListAutomaticTaskAttentionResponse, ListAutomaticTasksData, ListAutomaticTasksError, ListAutomaticTasksResponse, ListChannelEventsData, ListChannelEventsError, ListChannelEventsResponse, ListChannelsData, ListChannelsResponse, ListChannelThreadsData, ListChannelThreadsError, ListChannelThreadsResponse, ListChannelTimelineData, ListChannelTimelineError, ListChannelTimelineResponse, ListChatEventsData, ListChatEventsError, ListChatEventsResponse, ListChatMessagesData, ListChatMessagesError, ListChatMessagesResponse, ListChatsData, ListChatsResponse, ListGlobalAutomaticTasksData, ListGlobalAutomaticTasksError, ListGlobalAutomaticTasksResponse, ListImBindingsData, ListImBindingsResponse, ListImConnectionsData, ListImConnectionsResponse, ListImConversationsData, ListImConversationsError, ListImConversationsResponse, ListMemoriesData, ListMemoriesError, ListMemoriesResponse, ListNotificationsData, ListNotificationsError, ListNotificationsResponse, ListProjectsData, ListProjectsError, ListProjectsResponse, ListRolePresetDocumentsData, ListRolePresetDocumentsError, ListRolePresetDocumentsResponse, ListRolePresetsData, ListRolePresetsResponse, ListRuntimesData, ListRuntimesResponse, ListSkillVersionsData, ListSkillVersionsError, ListSkillVersionsResponse, ListTimelineData, ListTimelineError, ListTimelineResponse, ListWakerChatsData, ListWakerChatsResponse, ListWakerConnectorsData, ListWakerConnectorsError, ListWakerConnectorsResponse, ListWakerDocumentsData, ListWakerDocumentsError, ListWakerDocumentsResponse, ListWakersData, ListWakerSkillsData, ListWakerSkillsResponse, ListWakersResponse, ListWorkBoardData, ListWorkBoardError, ListWorkBoardExecutorsData, ListWorkBoardExecutorsResponse, ListWorkBoardResponse, ListWorkflowEventsData, ListWorkflowEventsError, ListWorkflowEventsResponse, ListWorkflowNodeResultsData, ListWorkflowNodeResultsError, ListWorkflowNodeResultsResponse, ListWorkflowRevisionsData, ListWorkflowRevisionsResponse, ListWorkflowRunsData, ListWorkflowRunsResponse, ListWorkflowsData, ListWorkflowsResponse, PreviewAiAccountModelsData, PreviewAiAccountModelsError, PreviewAiAccountModelsResponse, PreviewAutomaticScheduleData, PreviewAutomaticScheduleError, PreviewAutomaticScheduleResponse, PreviewGlobalAutomaticScheduleData, PreviewGlobalAutomaticScheduleError, PreviewGlobalAutomaticScheduleResponse, PullSkillUpdateData, PullSkillUpdateError, PullSkillUpdateResponse, ReadData, ReadError, ReadResponse, RefreshAiAccountModelsData, RefreshAiAccountModelsError, RefreshAiAccountModelsResponse, RefreshRuntimeData, RefreshRuntimeResponse, RefreshRuntimesData, RefreshRuntimesResponse, ReindexMemoryIndexData, ReindexMemoryIndexError, ReindexMemoryIndexResponse, ResolveApprovalData, ResolveApprovalResponse, ResolveElicitationData, ResolveElicitationResponse, RestoreSkillVersionData, RestoreSkillVersionError, RestoreSkillVersionResponse, RestoreWorkflowRevisionData, RestoreWorkflowRevisionError, RestoreWorkflowRevisionResponse, RetryChatExecutionData, RetryChatExecutionResponse, RetryWorkflowRunData, RetryWorkflowRunError, RetryWorkflowRunResponse, ReviewChannelTaskData, ReviewChannelTaskError, ReviewChannelTaskResponse, RotateAutomaticTaskTokenData, RotateAutomaticTaskTokenError, RotateAutomaticTaskTokenResponse, SaveWorkflowSourceData, SaveWorkflowSourceError, SaveWorkflowSourceResponse, SaveWorkflowTriggersData, SaveWorkflowTriggersError, SaveWorkflowTriggersResponse, ScanWakerSkillImportData, ScanWakerSkillImportError, ScanWakerSkillImportResponse, SelectImConversationData, SelectImConversationError, SelectImConversationResponse, SendChannelMessageData, SendChannelMessageError, SendChannelMessageResponse, SendMessageData, SendMessageError, SendMessageResponse, SendWorkflowCreationMessageData, SendWorkflowCreationMessageError, SendWorkflowCreationMessageResponse, SetAutomaticTaskApiData, SetAutomaticTaskApiError, SetAutomaticTaskApiResponse, SetAutomaticTaskEnabledData, SetAutomaticTaskEnabledError, SetAutomaticTaskEnabledResponse, SetAutomaticTaskSuspendedData, SetAutomaticTaskSuspendedError, SetAutomaticTaskSuspendedResponse, SetWakerConnectorEnabledData, SetWakerConnectorEnabledError, SetWakerConnectorEnabledResponse, SetWakerSkillEnabledData, SetWakerSkillEnabledError, SetWakerSkillEnabledResponse, SkipWorkflowWorkerData, SkipWorkflowWorkerError, SkipWorkflowWorkerResponse, StartAiAccountLoginData, StartAiAccountLoginError, StartAiAccountLoginResponse, StartImLoginData, StartImLoginError, StartImLoginResponse, StartWorkflowRunData, StartWorkflowRunError, StartWorkflowRunResponse, StopChannelTaskData, StopChannelTaskError, StopChannelTaskResponse, StopChannelWorkData, StopChannelWorkResponse, StreamEventsData, StreamEventsError, StreamEventsResponse, TestMemoryEmbeddingData, TestMemoryEmbeddingError, TestMemoryEmbeddingResponse, TestWakerConnectorData, TestWakerConnectorError, TestWakerConnectorResponse, TriggerAutomaticTaskData, TriggerAutomaticTaskError, TriggerAutomaticTaskResponse, UninstallSkillData, UninstallSkillError, UninstallSkillResponse, UpdateAiAccountData, UpdateAiAccountError, UpdateAiAccountResponse, UpdateAutomaticTaskData, UpdateAutomaticTaskError, UpdateAutomaticTaskResponse, UpdateChannelData, UpdateChannelError, UpdateChannelResponse, UpdateChannelThreadMemberConfigsData, UpdateChannelThreadMemberConfigsError, UpdateChannelThreadMemberConfigsResponse, UpdateChatData, UpdateChatError, UpdateChatResponse, UpdateImBindingData, UpdateImBindingError, UpdateImBindingResponse, UpdateImConnectionData, UpdateImConnectionError, UpdateImConnectionResponse, UpdateMemoryData, UpdateMemoryError, UpdateMemoryResponse, UpdateMemorySettingsData, UpdateMemorySettingsError, UpdateMemorySettingsResponse, UpdateProjectData, UpdateProjectError, UpdateProjectResponse, UpdateRolePresetData, UpdateRolePresetError, UpdateRolePresetResponse, UpdateRuntimeEnvironmentData, UpdateRuntimeEnvironmentError, UpdateRuntimeEnvironmentResponse, UpdateWakerConnectorData, UpdateWakerConnectorError, UpdateWakerConnectorResponse, UpdateWakerData, UpdateWakerDocumentData, UpdateWakerDocumentError, UpdateWakerDocumentResponse, UpdateWakerError, UpdateWakerResponse, UpdateWakerSkillData, UpdateWakerSkillError, UpdateWakerSkillResponse, UpdateWorkflowAutomaticTaskData, UpdateWorkflowAutomaticTaskError, UpdateWorkflowAutomaticTaskResponse, UploadWorkflowFileData, UploadWorkflowFileError, UploadWorkflowFileResponse, ValidateWorkflowSourceData, ValidateWorkflowSourceError, ValidateWorkflowSourceResponse, VerifyImLoginData, VerifyImLoginError, VerifyImLoginResponse, ViewNotificationData, ViewNotificationError, ViewNotificationResponse, ViewWorkResultData, ViewWorkResultError, ViewWorkResultResponse } from '../types.gen';
+import { answerWorkflowHuman, answerWorkflowOperation, cancelAiAccountLogin, cancelChatExecution, cancelImLogin, cancelPluginAuthorization, cancelWorkflowRun, clearNotificationUnread, clearWorkResults, command, configurePluginAuthorization, createAiAccount, createAutomaticTask, createChannel, createChannelTask, createChannelThread, createChat, createImConnection, createLibraryConnector, createLibrarySkillVersion, createMemory, createProject, createRolePreset, createSkillVersion, createWaker, createWakerConnector, createWorkflow, createWorkflowAnnotation, createWorkflowAutomaticTask, deleteAiAccount, deleteAutomaticTask, deleteChannel, deleteChannelThread, deleteChat, deleteImConnection, deleteLibraryConnector, deleteLibrarySkill, deleteMemory, deletePlugin, deleteProject, deleteRolePreset, deleteWaker, deleteWakerConnector, deleteWorkflow, deleteWorkflowRevision, deleteWorkflowRun, dismissNotification, downloadWorkflowFile, editWorkflowConfiguration, exportProfileTemplate, exportRolePreset, exportWakerProfile, followUpChannelTask, forkChat, getAiAccountCredential, getAiAccountLogin, getAiAccountNativeModels, getAiAccountThinking, getAutomaticTask, getAutomaticTaskApi, getChannel, getChannelThread, getChat, getChatForkTargets, getChatMessageFileChange, getGlobalAutomaticTask, getHealth, getImConnectionDependencies, getImLogin, getImStatus, getLibraryConnector, getLibrarySkill, getLibrarySkillVersion, getLibrarySkillVersionFile, getMemorySettings, getMemoryStatus, getNotification, getNotificationSnapshot, getPlugin, getPluginAuthorization, getProject, getRolePreset, getSkillVersion, getSkillVersionFile, getVersion, getWaker, getWakerConnector, getWakerDocument, getWakerSkill, getWakerWorkRecord, getWorkBoardSummary, getWorkflow, getWorkflowArtifact, getWorkflowChatResults, getWorkflowInstance, getWorkflowNodeResult, getWorkflowRun, getWorkflowSdk, getWorkflowSource, getWorkflowTriggers, getWorkResult, importLibrarySkills, importWakerSkill, installLibraryConnector, installLibrarySkill, installPlugin, listAiAccounts, listAutomaticRuns, listAutomaticTaskAttention, listAutomaticTasks, listChannelEvents, listChannels, listChannelThreads, listChannelTimeline, listChatEvents, listChatMessages, listChats, listGlobalAutomaticTasks, listImBindings, listImConnections, listImConversations, listLibraryConnectors, listLibrarySkills, listLibrarySkillVersions, listMemories, listNotifications, listPluginCatalog, listPlugins, listProjects, listRolePresetDocuments, listRolePresets, listRuntimes, listSkillVersions, listTimeline, listWakerChats, listWakerConnectors, listWakerDocuments, listWakerPlugins, listWakers, listWakerSkills, listWorkBoard, listWorkBoardExecutors, listWorkflowEvents, listWorkflowNodeResults, listWorkflowRevisions, listWorkflowRuns, listWorkflows, logoutPluginAuthorization, type Options, prepareCatalogPlugin, preparePlugin, previewAiAccountModels, previewAutomaticSchedule, previewGlobalAutomaticSchedule, pullLibrarySkillUpdate, pullSkillUpdate, read, refreshAiAccountModels, refreshRuntime, refreshRuntimes, reindexMemoryIndex, resolveApproval, resolveElicitation, restoreLibrarySkillVersion, restoreSkillVersion, restoreWorkflowRevision, retryChatExecution, retryWorkflowRun, reviewChannelTask, rotateAutomaticTaskToken, saveWorkflowSource, saveWorkflowTriggers, scanLibrarySkillImport, scanPlugin, scanWakerSkillImport, selectImConversation, sendChannelMessage, sendMessage, sendWorkflowCreationMessage, setAutomaticTaskApi, setAutomaticTaskEnabled, setAutomaticTaskSuspended, setWakerConnectorEnabled, setWakerPluginEnabled, setWakerSkillEnabled, skipWorkflowWorker, startAiAccountLogin, startImLogin, startPluginAuthorization, startWorkflowRun, stopChannelTask, stopChannelWork, streamEvents, testLibraryConnector, testMemoryEmbedding, testWakerConnector, triggerAutomaticTask, uninstallSkill, uninstallWakerPlugin, updateAiAccount, updateAutomaticTask, updateChannel, updateChannelThreadMemberConfigs, updateChat, updateImBinding, updateImConnection, updateLibraryConnector, updateLibrarySkill, updateMemory, updateMemorySettings, updatePlugin, updatePluginConfiguration, updateProject, updateRolePreset, updateRuntimeEnvironment, updateWaker, updateWakerConnector, updateWakerDocument, updateWakerSkill, updateWorkflowAutomaticTask, uploadWorkflowFile, validateWorkflowSource, verifyImLogin, viewNotification, viewWorkResult } from '../sdk.gen';
+import type { AnswerWorkflowHumanData, AnswerWorkflowHumanError, AnswerWorkflowHumanResponse, AnswerWorkflowOperationData, AnswerWorkflowOperationError, AnswerWorkflowOperationResponse, CancelAiAccountLoginData, CancelAiAccountLoginError, CancelAiAccountLoginResponse, CancelChatExecutionData, CancelChatExecutionResponse, CancelImLoginData, CancelImLoginError, CancelImLoginResponse, CancelPluginAuthorizationData, CancelPluginAuthorizationError, CancelPluginAuthorizationResponse, CancelWorkflowRunData, CancelWorkflowRunError, CancelWorkflowRunResponse, ClearNotificationUnreadData, ClearNotificationUnreadResponse, ClearWorkResultsData, ClearWorkResultsResponse, CommandData, CommandError, CommandResponse, ConfigurePluginAuthorizationData, ConfigurePluginAuthorizationError, ConfigurePluginAuthorizationResponse, CreateAiAccountData, CreateAiAccountResponse, CreateAutomaticTaskData, CreateAutomaticTaskError, CreateAutomaticTaskResponse, CreateChannelData, CreateChannelError, CreateChannelResponse, CreateChannelTaskData, CreateChannelTaskError, CreateChannelTaskResponse, CreateChannelThreadData, CreateChannelThreadResponse, CreateChatData, CreateChatError, CreateChatResponse, CreateImConnectionData, CreateImConnectionError, CreateImConnectionResponse, CreateLibraryConnectorData, CreateLibraryConnectorError, CreateLibraryConnectorResponse, CreateLibrarySkillVersionData, CreateLibrarySkillVersionError, CreateLibrarySkillVersionResponse, CreateMemoryData, CreateMemoryError, CreateMemoryResponse, CreateProjectData, CreateProjectError, CreateProjectResponse, CreateRolePresetData, CreateRolePresetError, CreateRolePresetResponse, CreateSkillVersionData, CreateSkillVersionError, CreateSkillVersionResponse, CreateWakerConnectorData, CreateWakerConnectorError, CreateWakerConnectorResponse, CreateWakerData, CreateWakerError, CreateWakerResponse, CreateWorkflowAnnotationData, CreateWorkflowAnnotationError, CreateWorkflowAnnotationResponse, CreateWorkflowAutomaticTaskData, CreateWorkflowAutomaticTaskError, CreateWorkflowAutomaticTaskResponse, CreateWorkflowData, CreateWorkflowError, CreateWorkflowResponse, DeleteAiAccountData, DeleteAiAccountError, DeleteAiAccountResponse, DeleteAutomaticTaskData, DeleteAutomaticTaskError, DeleteAutomaticTaskResponse, DeleteChannelData, DeleteChannelError, DeleteChannelResponse, DeleteChannelThreadData, DeleteChannelThreadError, DeleteChannelThreadResponse, DeleteChatData, DeleteChatError, DeleteChatResponse, DeleteImConnectionData, DeleteImConnectionError, DeleteImConnectionResponse, DeleteLibraryConnectorData, DeleteLibraryConnectorError, DeleteLibraryConnectorResponse, DeleteLibrarySkillData, DeleteLibrarySkillError, DeleteLibrarySkillResponse, DeleteMemoryData, DeleteMemoryError, DeleteMemoryResponse, DeletePluginData, DeletePluginError, DeletePluginResponse, DeleteProjectData, DeleteProjectError, DeleteProjectResponse, DeleteRolePresetData, DeleteRolePresetError, DeleteRolePresetResponse, DeleteWakerConnectorData, DeleteWakerConnectorError, DeleteWakerConnectorResponse, DeleteWakerData, DeleteWakerError, DeleteWakerResponse, DeleteWorkflowData, DeleteWorkflowError, DeleteWorkflowResponse, DeleteWorkflowRevisionData, DeleteWorkflowRevisionError, DeleteWorkflowRevisionResponse, DeleteWorkflowRunData, DeleteWorkflowRunError, DeleteWorkflowRunResponse, DismissNotificationData, DismissNotificationResponse, DownloadWorkflowFileData, DownloadWorkflowFileError, DownloadWorkflowFileResponse, EditWorkflowConfigurationData, EditWorkflowConfigurationError, EditWorkflowConfigurationResponse, ExportProfileTemplateData, ExportProfileTemplateError, ExportProfileTemplateResponse, ExportRolePresetData, ExportRolePresetError, ExportRolePresetResponse, ExportWakerProfileData, ExportWakerProfileError, ExportWakerProfileResponse, FollowUpChannelTaskData, FollowUpChannelTaskError, FollowUpChannelTaskResponse, ForkChatData, ForkChatResponse, GetAiAccountCredentialData, GetAiAccountCredentialError, GetAiAccountCredentialResponse, GetAiAccountLoginData, GetAiAccountLoginError, GetAiAccountLoginResponse, GetAiAccountNativeModelsData, GetAiAccountNativeModelsError, GetAiAccountNativeModelsResponse, GetAiAccountThinkingData, GetAiAccountThinkingError, GetAiAccountThinkingResponse, GetAutomaticTaskApiData, GetAutomaticTaskApiResponse, GetAutomaticTaskData, GetAutomaticTaskError, GetAutomaticTaskResponse, GetChannelData, GetChannelError, GetChannelResponse, GetChannelThreadData, GetChannelThreadError, GetChannelThreadResponse, GetChatData, GetChatForkTargetsData, GetChatForkTargetsResponse, GetChatMessageFileChangeData, GetChatMessageFileChangeError, GetChatMessageFileChangeResponse, GetChatResponse, GetGlobalAutomaticTaskData, GetGlobalAutomaticTaskError, GetGlobalAutomaticTaskResponse, GetHealthData, GetHealthResponse, GetImConnectionDependenciesData, GetImConnectionDependenciesResponse, GetImLoginData, GetImLoginError, GetImLoginResponse, GetImStatusData, GetImStatusResponse, GetLibraryConnectorData, GetLibraryConnectorError, GetLibraryConnectorResponse, GetLibrarySkillData, GetLibrarySkillError, GetLibrarySkillResponse, GetLibrarySkillVersionData, GetLibrarySkillVersionError, GetLibrarySkillVersionFileData, GetLibrarySkillVersionFileError, GetLibrarySkillVersionFileResponse, GetLibrarySkillVersionResponse, GetMemorySettingsData, GetMemorySettingsError, GetMemorySettingsResponse, GetMemoryStatusData, GetMemoryStatusError, GetMemoryStatusResponse, GetNotificationData, GetNotificationResponse, GetNotificationSnapshotData, GetNotificationSnapshotError, GetNotificationSnapshotResponse, GetPluginAuthorizationData, GetPluginAuthorizationError, GetPluginAuthorizationResponse, GetPluginData, GetPluginError, GetPluginResponse, GetProjectData, GetProjectError, GetProjectResponse, GetRolePresetData, GetRolePresetResponse, GetSkillVersionData, GetSkillVersionError, GetSkillVersionFileData, GetSkillVersionFileError, GetSkillVersionFileResponse, GetSkillVersionResponse, GetVersionData, GetVersionResponse, GetWakerConnectorData, GetWakerConnectorError, GetWakerConnectorResponse, GetWakerData, GetWakerDocumentData, GetWakerDocumentError, GetWakerDocumentResponse, GetWakerResponse, GetWakerSkillData, GetWakerSkillError, GetWakerSkillResponse, GetWakerWorkRecordData, GetWakerWorkRecordResponse, GetWorkBoardSummaryData, GetWorkBoardSummaryResponse, GetWorkflowArtifactData, GetWorkflowArtifactError, GetWorkflowArtifactResponse, GetWorkflowChatResultsData, GetWorkflowChatResultsResponse, GetWorkflowData, GetWorkflowInstanceData, GetWorkflowInstanceError, GetWorkflowInstanceResponse, GetWorkflowNodeResultData, GetWorkflowNodeResultError, GetWorkflowNodeResultResponse, GetWorkflowResponse, GetWorkflowRunData, GetWorkflowRunError, GetWorkflowRunResponse, GetWorkflowSdkData, GetWorkflowSdkResponse, GetWorkflowSourceData, GetWorkflowSourceError, GetWorkflowSourceResponse, GetWorkflowTriggersData, GetWorkflowTriggersResponse, GetWorkResultData, GetWorkResultResponse, ImportLibrarySkillsData, ImportLibrarySkillsError, ImportLibrarySkillsResponse, ImportWakerSkillData, ImportWakerSkillError, ImportWakerSkillResponse, InstallLibraryConnectorData, InstallLibraryConnectorError, InstallLibraryConnectorResponse, InstallLibrarySkillData, InstallLibrarySkillError, InstallLibrarySkillResponse, InstallPluginData, InstallPluginError, InstallPluginResponse, ListAiAccountsData, ListAiAccountsResponse, ListAutomaticRunsData, ListAutomaticRunsError, ListAutomaticRunsResponse, ListAutomaticTaskAttentionData, ListAutomaticTaskAttentionError, ListAutomaticTaskAttentionResponse, ListAutomaticTasksData, ListAutomaticTasksError, ListAutomaticTasksResponse, ListChannelEventsData, ListChannelEventsError, ListChannelEventsResponse, ListChannelsData, ListChannelsResponse, ListChannelThreadsData, ListChannelThreadsError, ListChannelThreadsResponse, ListChannelTimelineData, ListChannelTimelineError, ListChannelTimelineResponse, ListChatEventsData, ListChatEventsError, ListChatEventsResponse, ListChatMessagesData, ListChatMessagesError, ListChatMessagesResponse, ListChatsData, ListChatsResponse, ListGlobalAutomaticTasksData, ListGlobalAutomaticTasksError, ListGlobalAutomaticTasksResponse, ListImBindingsData, ListImBindingsResponse, ListImConnectionsData, ListImConnectionsResponse, ListImConversationsData, ListImConversationsError, ListImConversationsResponse, ListLibraryConnectorsData, ListLibraryConnectorsError, ListLibraryConnectorsResponse, ListLibrarySkillsData, ListLibrarySkillsResponse, ListLibrarySkillVersionsData, ListLibrarySkillVersionsError, ListLibrarySkillVersionsResponse, ListMemoriesData, ListMemoriesError, ListMemoriesResponse, ListNotificationsData, ListNotificationsError, ListNotificationsResponse, ListPluginCatalogData, ListPluginCatalogError, ListPluginCatalogResponse, ListPluginsData, ListPluginsError, ListPluginsResponse, ListProjectsData, ListProjectsError, ListProjectsResponse, ListRolePresetDocumentsData, ListRolePresetDocumentsError, ListRolePresetDocumentsResponse, ListRolePresetsData, ListRolePresetsResponse, ListRuntimesData, ListRuntimesResponse, ListSkillVersionsData, ListSkillVersionsError, ListSkillVersionsResponse, ListTimelineData, ListTimelineError, ListTimelineResponse, ListWakerChatsData, ListWakerChatsResponse, ListWakerConnectorsData, ListWakerConnectorsError, ListWakerConnectorsResponse, ListWakerDocumentsData, ListWakerDocumentsError, ListWakerDocumentsResponse, ListWakerPluginsData, ListWakerPluginsError, ListWakerPluginsResponse, ListWakersData, ListWakerSkillsData, ListWakerSkillsResponse, ListWakersResponse, ListWorkBoardData, ListWorkBoardError, ListWorkBoardExecutorsData, ListWorkBoardExecutorsResponse, ListWorkBoardResponse, ListWorkflowEventsData, ListWorkflowEventsError, ListWorkflowEventsResponse, ListWorkflowNodeResultsData, ListWorkflowNodeResultsError, ListWorkflowNodeResultsResponse, ListWorkflowRevisionsData, ListWorkflowRevisionsResponse, ListWorkflowRunsData, ListWorkflowRunsResponse, ListWorkflowsData, ListWorkflowsResponse, LogoutPluginAuthorizationData, LogoutPluginAuthorizationError, LogoutPluginAuthorizationResponse, PrepareCatalogPluginData, PrepareCatalogPluginError, PrepareCatalogPluginResponse, PreparePluginData, PreparePluginError, PreparePluginResponse, PreviewAiAccountModelsData, PreviewAiAccountModelsError, PreviewAiAccountModelsResponse, PreviewAutomaticScheduleData, PreviewAutomaticScheduleError, PreviewAutomaticScheduleResponse, PreviewGlobalAutomaticScheduleData, PreviewGlobalAutomaticScheduleError, PreviewGlobalAutomaticScheduleResponse, PullLibrarySkillUpdateData, PullLibrarySkillUpdateError, PullLibrarySkillUpdateResponse, PullSkillUpdateData, PullSkillUpdateError, PullSkillUpdateResponse, ReadData, ReadError, ReadResponse, RefreshAiAccountModelsData, RefreshAiAccountModelsError, RefreshAiAccountModelsResponse, RefreshRuntimeData, RefreshRuntimeResponse, RefreshRuntimesData, RefreshRuntimesResponse, ReindexMemoryIndexData, ReindexMemoryIndexError, ReindexMemoryIndexResponse, ResolveApprovalData, ResolveApprovalResponse, ResolveElicitationData, ResolveElicitationResponse, RestoreLibrarySkillVersionData, RestoreLibrarySkillVersionError, RestoreLibrarySkillVersionResponse, RestoreSkillVersionData, RestoreSkillVersionError, RestoreSkillVersionResponse, RestoreWorkflowRevisionData, RestoreWorkflowRevisionError, RestoreWorkflowRevisionResponse, RetryChatExecutionData, RetryChatExecutionResponse, RetryWorkflowRunData, RetryWorkflowRunError, RetryWorkflowRunResponse, ReviewChannelTaskData, ReviewChannelTaskError, ReviewChannelTaskResponse, RotateAutomaticTaskTokenData, RotateAutomaticTaskTokenError, RotateAutomaticTaskTokenResponse, SaveWorkflowSourceData, SaveWorkflowSourceError, SaveWorkflowSourceResponse, SaveWorkflowTriggersData, SaveWorkflowTriggersError, SaveWorkflowTriggersResponse, ScanLibrarySkillImportData, ScanLibrarySkillImportError, ScanLibrarySkillImportResponse, ScanPluginData, ScanPluginError, ScanPluginResponse, ScanWakerSkillImportData, ScanWakerSkillImportError, ScanWakerSkillImportResponse, SelectImConversationData, SelectImConversationError, SelectImConversationResponse, SendChannelMessageData, SendChannelMessageError, SendChannelMessageResponse, SendMessageData, SendMessageError, SendMessageResponse, SendWorkflowCreationMessageData, SendWorkflowCreationMessageError, SendWorkflowCreationMessageResponse, SetAutomaticTaskApiData, SetAutomaticTaskApiError, SetAutomaticTaskApiResponse, SetAutomaticTaskEnabledData, SetAutomaticTaskEnabledError, SetAutomaticTaskEnabledResponse, SetAutomaticTaskSuspendedData, SetAutomaticTaskSuspendedError, SetAutomaticTaskSuspendedResponse, SetWakerConnectorEnabledData, SetWakerConnectorEnabledError, SetWakerConnectorEnabledResponse, SetWakerPluginEnabledData, SetWakerPluginEnabledError, SetWakerPluginEnabledResponse, SetWakerSkillEnabledData, SetWakerSkillEnabledError, SetWakerSkillEnabledResponse, SkipWorkflowWorkerData, SkipWorkflowWorkerError, SkipWorkflowWorkerResponse, StartAiAccountLoginData, StartAiAccountLoginError, StartAiAccountLoginResponse, StartImLoginData, StartImLoginError, StartImLoginResponse, StartPluginAuthorizationData, StartPluginAuthorizationError, StartPluginAuthorizationResponse, StartWorkflowRunData, StartWorkflowRunError, StartWorkflowRunResponse, StopChannelTaskData, StopChannelTaskError, StopChannelTaskResponse, StopChannelWorkData, StopChannelWorkResponse, StreamEventsData, StreamEventsError, StreamEventsResponse, TestLibraryConnectorData, TestLibraryConnectorError, TestLibraryConnectorResponse, TestMemoryEmbeddingData, TestMemoryEmbeddingError, TestMemoryEmbeddingResponse, TestWakerConnectorData, TestWakerConnectorError, TestWakerConnectorResponse, TriggerAutomaticTaskData, TriggerAutomaticTaskError, TriggerAutomaticTaskResponse, UninstallSkillData, UninstallSkillError, UninstallSkillResponse, UninstallWakerPluginData, UninstallWakerPluginError, UninstallWakerPluginResponse, UpdateAiAccountData, UpdateAiAccountError, UpdateAiAccountResponse, UpdateAutomaticTaskData, UpdateAutomaticTaskError, UpdateAutomaticTaskResponse, UpdateChannelData, UpdateChannelError, UpdateChannelResponse, UpdateChannelThreadMemberConfigsData, UpdateChannelThreadMemberConfigsError, UpdateChannelThreadMemberConfigsResponse, UpdateChatData, UpdateChatError, UpdateChatResponse, UpdateImBindingData, UpdateImBindingError, UpdateImBindingResponse, UpdateImConnectionData, UpdateImConnectionError, UpdateImConnectionResponse, UpdateLibraryConnectorData, UpdateLibraryConnectorError, UpdateLibraryConnectorResponse, UpdateLibrarySkillData, UpdateLibrarySkillError, UpdateLibrarySkillResponse, UpdateMemoryData, UpdateMemoryError, UpdateMemoryResponse, UpdateMemorySettingsData, UpdateMemorySettingsError, UpdateMemorySettingsResponse, UpdatePluginConfigurationData, UpdatePluginConfigurationError, UpdatePluginConfigurationResponse, UpdatePluginData, UpdatePluginError, UpdatePluginResponse, UpdateProjectData, UpdateProjectError, UpdateProjectResponse, UpdateRolePresetData, UpdateRolePresetError, UpdateRolePresetResponse, UpdateRuntimeEnvironmentData, UpdateRuntimeEnvironmentError, UpdateRuntimeEnvironmentResponse, UpdateWakerConnectorData, UpdateWakerConnectorError, UpdateWakerConnectorResponse, UpdateWakerData, UpdateWakerDocumentData, UpdateWakerDocumentError, UpdateWakerDocumentResponse, UpdateWakerError, UpdateWakerResponse, UpdateWakerSkillData, UpdateWakerSkillError, UpdateWakerSkillResponse, UpdateWorkflowAutomaticTaskData, UpdateWorkflowAutomaticTaskError, UpdateWorkflowAutomaticTaskResponse, UploadWorkflowFileData, UploadWorkflowFileError, UploadWorkflowFileResponse, ValidateWorkflowSourceData, ValidateWorkflowSourceError, ValidateWorkflowSourceResponse, VerifyImLoginData, VerifyImLoginError, VerifyImLoginResponse, ViewNotificationData, ViewNotificationError, ViewNotificationResponse, ViewWorkResultData, ViewWorkResultError, ViewWorkResultResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -1092,6 +1092,127 @@ export const getChatMessageFileChangeOptions = (options: Options<GetChatMessageF
     queryKey: getChatMessageFileChangeQueryKey(options)
 });
 
+export const listLibraryConnectorsQueryKey = (options?: Options<ListLibraryConnectorsData>) => createQueryKey('listLibraryConnectors', options);
+
+/**
+ * ListLibraryConnectors 分页查询全局资源。
+ */
+export const listLibraryConnectorsOptions = (options?: Options<ListLibraryConnectorsData>) => queryOptions<ListLibraryConnectorsResponse, ListLibraryConnectorsError, ListLibraryConnectorsResponse, ReturnType<typeof listLibraryConnectorsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await listLibraryConnectors({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listLibraryConnectorsQueryKey(options)
+});
+
+/**
+ * CreateLibraryConnector 管理全局库资源。
+ */
+export const createLibraryConnectorMutation = (options?: Partial<Options<CreateLibraryConnectorData>>): UseMutationOptions<CreateLibraryConnectorResponse, CreateLibraryConnectorError, Options<CreateLibraryConnectorData>> => {
+    const mutationOptions: UseMutationOptions<CreateLibraryConnectorResponse, CreateLibraryConnectorError, Options<CreateLibraryConnectorData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await createLibraryConnector({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * DeleteLibraryConnector 管理全局库资源。
+ */
+export const deleteLibraryConnectorMutation = (options?: Partial<Options<DeleteLibraryConnectorData>>): UseMutationOptions<DeleteLibraryConnectorResponse, DeleteLibraryConnectorError, Options<DeleteLibraryConnectorData>> => {
+    const mutationOptions: UseMutationOptions<DeleteLibraryConnectorResponse, DeleteLibraryConnectorError, Options<DeleteLibraryConnectorData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await deleteLibraryConnector({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getLibraryConnectorQueryKey = (options: Options<GetLibraryConnectorData>) => createQueryKey('getLibraryConnector', options);
+
+/**
+ * GetLibraryConnector 管理全局库资源。
+ */
+export const getLibraryConnectorOptions = (options: Options<GetLibraryConnectorData>) => queryOptions<GetLibraryConnectorResponse, GetLibraryConnectorError, GetLibraryConnectorResponse, ReturnType<typeof getLibraryConnectorQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getLibraryConnector({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getLibraryConnectorQueryKey(options)
+});
+
+/**
+ * UpdateLibraryConnector 管理全局库资源。
+ */
+export const updateLibraryConnectorMutation = (options?: Partial<Options<UpdateLibraryConnectorData>>): UseMutationOptions<UpdateLibraryConnectorResponse, UpdateLibraryConnectorError, Options<UpdateLibraryConnectorData>> => {
+    const mutationOptions: UseMutationOptions<UpdateLibraryConnectorResponse, UpdateLibraryConnectorError, Options<UpdateLibraryConnectorData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await updateLibraryConnector({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * InstallLibraryConnector 只建立全局资源安装关系。
+ */
+export const installLibraryConnectorMutation = (options?: Partial<Options<InstallLibraryConnectorData>>): UseMutationOptions<InstallLibraryConnectorResponse, InstallLibraryConnectorError, Options<InstallLibraryConnectorData>> => {
+    const mutationOptions: UseMutationOptions<InstallLibraryConnectorResponse, InstallLibraryConnectorError, Options<InstallLibraryConnectorData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await installLibraryConnector({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * TestLibraryConnector 管理全局库资源。
+ */
+export const testLibraryConnectorMutation = (options?: Partial<Options<TestLibraryConnectorData>>): UseMutationOptions<TestLibraryConnectorResponse, TestLibraryConnectorError, Options<TestLibraryConnectorData>> => {
+    const mutationOptions: UseMutationOptions<TestLibraryConnectorResponse, TestLibraryConnectorError, Options<TestLibraryConnectorData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await testLibraryConnector({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
 export const streamEventsQueryKey = (options?: Options<StreamEventsData>) => createQueryKey('streamEvents', options);
 
 /**
@@ -1693,6 +1814,265 @@ export const viewNotificationMutation = (options?: Partial<Options<ViewNotificat
     return mutationOptions;
 };
 
+export const listPluginsQueryKey = (options?: Options<ListPluginsData>) => createQueryKey('listPlugins', options);
+
+/**
+ * 插件列表
+ */
+export const listPluginsOptions = (options?: Options<ListPluginsData>) => queryOptions<ListPluginsResponse, ListPluginsError, ListPluginsResponse, ReturnType<typeof listPluginsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await listPlugins({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listPluginsQueryKey(options)
+});
+
+export const listPluginCatalogQueryKey = (options?: Options<ListPluginCatalogData>) => createQueryKey('listPluginCatalog', options);
+
+/**
+ * 本地插件目录
+ */
+export const listPluginCatalogOptions = (options?: Options<ListPluginCatalogData>) => queryOptions<ListPluginCatalogResponse, ListPluginCatalogError, ListPluginCatalogResponse, ReturnType<typeof listPluginCatalogQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await listPluginCatalog({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listPluginCatalogQueryKey(options)
+});
+
+/**
+ * 准备目录插件
+ */
+export const prepareCatalogPluginMutation = (options?: Partial<Options<PrepareCatalogPluginData>>): UseMutationOptions<PrepareCatalogPluginResponse, PrepareCatalogPluginError, Options<PrepareCatalogPluginData>> => {
+    const mutationOptions: UseMutationOptions<PrepareCatalogPluginResponse, PrepareCatalogPluginError, Options<PrepareCatalogPluginData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await prepareCatalogPlugin({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * 准备插件
+ */
+export const preparePluginMutation = (options?: Partial<Options<PreparePluginData>>): UseMutationOptions<PreparePluginResponse, PreparePluginError, Options<PreparePluginData>> => {
+    const mutationOptions: UseMutationOptions<PreparePluginResponse, PreparePluginError, Options<PreparePluginData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await preparePlugin({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * 扫描插件
+ */
+export const scanPluginMutation = (options?: Partial<Options<ScanPluginData>>): UseMutationOptions<ScanPluginResponse, ScanPluginError, Options<ScanPluginData>> => {
+    const mutationOptions: UseMutationOptions<ScanPluginResponse, ScanPluginError, Options<ScanPluginData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await scanPlugin({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * 删除插件
+ */
+export const deletePluginMutation = (options?: Partial<Options<DeletePluginData>>): UseMutationOptions<DeletePluginResponse, DeletePluginError, Options<DeletePluginData>> => {
+    const mutationOptions: UseMutationOptions<DeletePluginResponse, DeletePluginError, Options<DeletePluginData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await deletePlugin({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getPluginQueryKey = (options: Options<GetPluginData>) => createQueryKey('getPlugin', options);
+
+/**
+ * 插件详情
+ */
+export const getPluginOptions = (options: Options<GetPluginData>) => queryOptions<GetPluginResponse, GetPluginError, GetPluginResponse, ReturnType<typeof getPluginQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getPlugin({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getPluginQueryKey(options)
+});
+
+/**
+ * 修改插件资料
+ */
+export const updatePluginMutation = (options?: Partial<Options<UpdatePluginData>>): UseMutationOptions<UpdatePluginResponse, UpdatePluginError, Options<UpdatePluginData>> => {
+    const mutationOptions: UseMutationOptions<UpdatePluginResponse, UpdatePluginError, Options<UpdatePluginData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await updatePlugin({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * 退出共享账号
+ */
+export const logoutPluginAuthorizationMutation = (options?: Partial<Options<LogoutPluginAuthorizationData>>): UseMutationOptions<LogoutPluginAuthorizationResponse, LogoutPluginAuthorizationError, Options<LogoutPluginAuthorizationData>> => {
+    const mutationOptions: UseMutationOptions<LogoutPluginAuthorizationResponse, LogoutPluginAuthorizationError, Options<LogoutPluginAuthorizationData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await logoutPluginAuthorization({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getPluginAuthorizationQueryKey = (options: Options<GetPluginAuthorizationData>) => createQueryKey('getPluginAuthorization', options);
+
+/**
+ * 插件授权状态
+ */
+export const getPluginAuthorizationOptions = (options: Options<GetPluginAuthorizationData>) => queryOptions<GetPluginAuthorizationResponse, GetPluginAuthorizationError, GetPluginAuthorizationResponse, ReturnType<typeof getPluginAuthorizationQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getPluginAuthorization({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getPluginAuthorizationQueryKey(options)
+});
+
+/**
+ * 发起插件授权
+ */
+export const startPluginAuthorizationMutation = (options?: Partial<Options<StartPluginAuthorizationData>>): UseMutationOptions<StartPluginAuthorizationResponse, StartPluginAuthorizationError, Options<StartPluginAuthorizationData>> => {
+    const mutationOptions: UseMutationOptions<StartPluginAuthorizationResponse, StartPluginAuthorizationError, Options<StartPluginAuthorizationData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await startPluginAuthorization({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * 配置飞书应用
+ */
+export const configurePluginAuthorizationMutation = (options?: Partial<Options<ConfigurePluginAuthorizationData>>): UseMutationOptions<ConfigurePluginAuthorizationResponse, ConfigurePluginAuthorizationError, Options<ConfigurePluginAuthorizationData>> => {
+    const mutationOptions: UseMutationOptions<ConfigurePluginAuthorizationResponse, ConfigurePluginAuthorizationError, Options<ConfigurePluginAuthorizationData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await configurePluginAuthorization({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * 取消插件授权
+ */
+export const cancelPluginAuthorizationMutation = (options?: Partial<Options<CancelPluginAuthorizationData>>): UseMutationOptions<CancelPluginAuthorizationResponse, CancelPluginAuthorizationError, Options<CancelPluginAuthorizationData>> => {
+    const mutationOptions: UseMutationOptions<CancelPluginAuthorizationResponse, CancelPluginAuthorizationError, Options<CancelPluginAuthorizationData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await cancelPluginAuthorization({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * 保存插件配置
+ */
+export const updatePluginConfigurationMutation = (options?: Partial<Options<UpdatePluginConfigurationData>>): UseMutationOptions<UpdatePluginConfigurationResponse, UpdatePluginConfigurationError, Options<UpdatePluginConfigurationData>> => {
+    const mutationOptions: UseMutationOptions<UpdatePluginConfigurationResponse, UpdatePluginConfigurationError, Options<UpdatePluginConfigurationData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await updatePluginConfiguration({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * 安装插件
+ */
+export const installPluginMutation = (options?: Partial<Options<InstallPluginData>>): UseMutationOptions<InstallPluginResponse, InstallPluginError, Options<InstallPluginData>> => {
+    const mutationOptions: UseMutationOptions<InstallPluginResponse, InstallPluginError, Options<InstallPluginData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await installPlugin({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
 export const listRolePresetsQueryKey = (options?: Options<ListRolePresetsData>) => createQueryKey('listRolePresets', options);
 
 /**
@@ -1893,6 +2273,232 @@ export const refreshRuntimeMutation = (options?: Partial<Options<RefreshRuntimeD
     const mutationOptions: UseMutationOptions<RefreshRuntimeResponse, DefaultError, Options<RefreshRuntimeData>> = {
         mutationFn: async (fnOptions) => {
             const { data } = await refreshRuntime({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const listLibrarySkillsQueryKey = (options?: Options<ListLibrarySkillsData>) => createQueryKey('listLibrarySkills', options);
+
+/**
+ * ListLibrarySkills 分页查询全局资源。
+ */
+export const listLibrarySkillsOptions = (options?: Options<ListLibrarySkillsData>) => queryOptions<ListLibrarySkillsResponse, DefaultError, ListLibrarySkillsResponse, ReturnType<typeof listLibrarySkillsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await listLibrarySkills({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listLibrarySkillsQueryKey(options)
+});
+
+/**
+ * ImportLibrarySkills 管理全局库资源。
+ */
+export const importLibrarySkillsMutation = (options?: Partial<Options<ImportLibrarySkillsData>>): UseMutationOptions<ImportLibrarySkillsResponse, ImportLibrarySkillsError, Options<ImportLibrarySkillsData>> => {
+    const mutationOptions: UseMutationOptions<ImportLibrarySkillsResponse, ImportLibrarySkillsError, Options<ImportLibrarySkillsData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await importLibrarySkills({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * ScanLibrarySkillImport 管理全局库资源。
+ */
+export const scanLibrarySkillImportMutation = (options?: Partial<Options<ScanLibrarySkillImportData>>): UseMutationOptions<ScanLibrarySkillImportResponse, ScanLibrarySkillImportError, Options<ScanLibrarySkillImportData>> => {
+    const mutationOptions: UseMutationOptions<ScanLibrarySkillImportResponse, ScanLibrarySkillImportError, Options<ScanLibrarySkillImportData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await scanLibrarySkillImport({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * DeleteLibrarySkill 管理全局库资源。
+ */
+export const deleteLibrarySkillMutation = (options?: Partial<Options<DeleteLibrarySkillData>>): UseMutationOptions<DeleteLibrarySkillResponse, DeleteLibrarySkillError, Options<DeleteLibrarySkillData>> => {
+    const mutationOptions: UseMutationOptions<DeleteLibrarySkillResponse, DeleteLibrarySkillError, Options<DeleteLibrarySkillData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await deleteLibrarySkill({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getLibrarySkillQueryKey = (options: Options<GetLibrarySkillData>) => createQueryKey('getLibrarySkill', options);
+
+/**
+ * GetLibrarySkill 管理全局库资源。
+ */
+export const getLibrarySkillOptions = (options: Options<GetLibrarySkillData>) => queryOptions<GetLibrarySkillResponse, GetLibrarySkillError, GetLibrarySkillResponse, ReturnType<typeof getLibrarySkillQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getLibrarySkill({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getLibrarySkillQueryKey(options)
+});
+
+/**
+ * UpdateLibrarySkill 管理全局库资源。
+ */
+export const updateLibrarySkillMutation = (options?: Partial<Options<UpdateLibrarySkillData>>): UseMutationOptions<UpdateLibrarySkillResponse, UpdateLibrarySkillError, Options<UpdateLibrarySkillData>> => {
+    const mutationOptions: UseMutationOptions<UpdateLibrarySkillResponse, UpdateLibrarySkillError, Options<UpdateLibrarySkillData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await updateLibrarySkill({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * InstallLibrarySkill 只建立全局资源安装关系。
+ */
+export const installLibrarySkillMutation = (options?: Partial<Options<InstallLibrarySkillData>>): UseMutationOptions<InstallLibrarySkillResponse, InstallLibrarySkillError, Options<InstallLibrarySkillData>> => {
+    const mutationOptions: UseMutationOptions<InstallLibrarySkillResponse, InstallLibrarySkillError, Options<InstallLibrarySkillData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await installLibrarySkill({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * PullLibrarySkillUpdate 管理全局库资源。
+ */
+export const pullLibrarySkillUpdateMutation = (options?: Partial<Options<PullLibrarySkillUpdateData>>): UseMutationOptions<PullLibrarySkillUpdateResponse, PullLibrarySkillUpdateError, Options<PullLibrarySkillUpdateData>> => {
+    const mutationOptions: UseMutationOptions<PullLibrarySkillUpdateResponse, PullLibrarySkillUpdateError, Options<PullLibrarySkillUpdateData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await pullLibrarySkillUpdate({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const listLibrarySkillVersionsQueryKey = (options: Options<ListLibrarySkillVersionsData>) => createQueryKey('listLibrarySkillVersions', options);
+
+/**
+ * ListLibrarySkillVersions 管理全局库资源。
+ */
+export const listLibrarySkillVersionsOptions = (options: Options<ListLibrarySkillVersionsData>) => queryOptions<ListLibrarySkillVersionsResponse, ListLibrarySkillVersionsError, ListLibrarySkillVersionsResponse, ReturnType<typeof listLibrarySkillVersionsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await listLibrarySkillVersions({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listLibrarySkillVersionsQueryKey(options)
+});
+
+/**
+ * CreateLibrarySkillVersion 管理全局库资源。
+ */
+export const createLibrarySkillVersionMutation = (options?: Partial<Options<CreateLibrarySkillVersionData>>): UseMutationOptions<CreateLibrarySkillVersionResponse, CreateLibrarySkillVersionError, Options<CreateLibrarySkillVersionData>> => {
+    const mutationOptions: UseMutationOptions<CreateLibrarySkillVersionResponse, CreateLibrarySkillVersionError, Options<CreateLibrarySkillVersionData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await createLibrarySkillVersion({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getLibrarySkillVersionQueryKey = (options: Options<GetLibrarySkillVersionData>) => createQueryKey('getLibrarySkillVersion', options);
+
+/**
+ * GetLibrarySkillVersion 管理全局库资源。
+ */
+export const getLibrarySkillVersionOptions = (options: Options<GetLibrarySkillVersionData>) => queryOptions<GetLibrarySkillVersionResponse, GetLibrarySkillVersionError, GetLibrarySkillVersionResponse, ReturnType<typeof getLibrarySkillVersionQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getLibrarySkillVersion({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getLibrarySkillVersionQueryKey(options)
+});
+
+export const getLibrarySkillVersionFileQueryKey = (options: Options<GetLibrarySkillVersionFileData>) => createQueryKey('getLibrarySkillVersionFile', options);
+
+/**
+ * GetLibrarySkillVersionFile 管理全局库资源。
+ */
+export const getLibrarySkillVersionFileOptions = (options: Options<GetLibrarySkillVersionFileData>) => queryOptions<GetLibrarySkillVersionFileResponse, GetLibrarySkillVersionFileError, GetLibrarySkillVersionFileResponse, ReturnType<typeof getLibrarySkillVersionFileQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getLibrarySkillVersionFile({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getLibrarySkillVersionFileQueryKey(options)
+});
+
+/**
+ * RestoreLibrarySkillVersion 管理全局库资源。
+ */
+export const restoreLibrarySkillVersionMutation = (options?: Partial<Options<RestoreLibrarySkillVersionData>>): UseMutationOptions<RestoreLibrarySkillVersionResponse, RestoreLibrarySkillVersionError, Options<RestoreLibrarySkillVersionData>> => {
+    const mutationOptions: UseMutationOptions<RestoreLibrarySkillVersionResponse, RestoreLibrarySkillVersionError, Options<RestoreLibrarySkillVersionData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await restoreLibrarySkillVersion({
                 ...options,
                 ...fnOptions,
                 throwOnError: true
@@ -2451,6 +3057,58 @@ export const updateWakerDocumentMutation = (options?: Partial<Options<UpdateWake
     const mutationOptions: UseMutationOptions<UpdateWakerDocumentResponse, UpdateWakerDocumentError, Options<UpdateWakerDocumentData>> = {
         mutationFn: async (fnOptions) => {
             const { data } = await updateWakerDocument({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const listWakerPluginsQueryKey = (options: Options<ListWakerPluginsData>) => createQueryKey('listWakerPlugins', options);
+
+/**
+ * 伙伴插件列表
+ */
+export const listWakerPluginsOptions = (options: Options<ListWakerPluginsData>) => queryOptions<ListWakerPluginsResponse, ListWakerPluginsError, ListWakerPluginsResponse, ReturnType<typeof listWakerPluginsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await listWakerPlugins({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listWakerPluginsQueryKey(options)
+});
+
+/**
+ * 卸载伙伴插件
+ */
+export const uninstallWakerPluginMutation = (options?: Partial<Options<UninstallWakerPluginData>>): UseMutationOptions<UninstallWakerPluginResponse, UninstallWakerPluginError, Options<UninstallWakerPluginData>> => {
+    const mutationOptions: UseMutationOptions<UninstallWakerPluginResponse, UninstallWakerPluginError, Options<UninstallWakerPluginData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await uninstallWakerPlugin({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * 启停伙伴插件
+ */
+export const setWakerPluginEnabledMutation = (options?: Partial<Options<SetWakerPluginEnabledData>>): UseMutationOptions<SetWakerPluginEnabledResponse, SetWakerPluginEnabledError, Options<SetWakerPluginEnabledData>> => {
+    const mutationOptions: UseMutationOptions<SetWakerPluginEnabledResponse, SetWakerPluginEnabledError, Options<SetWakerPluginEnabledData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await setWakerPluginEnabled({
                 ...options,
                 ...fnOptions,
                 throwOnError: true

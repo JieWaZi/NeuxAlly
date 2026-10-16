@@ -1,3 +1,4 @@
+import { pluginZh, pluginEn } from "./plugin";
 import i18n from "i18next";
 import { notificationZh, notificationEn } from "./notification";
 import { initReactI18next } from "react-i18next";
@@ -10,6 +11,7 @@ import { workBoardZh, workBoardEn } from "./work-board";
 
 const resources = {
   "zh-CN": {
+    plugin: pluginZh,
     notification: notificationZh,
     im: imZh,
     workBoard: workBoardZh,
@@ -303,6 +305,7 @@ const resources = {
         entityMenu: "“{{name}}”操作",
         openEntityDetail: "打开{{name}}详情",
         sections: {
+          resources: "资源",
           overview: "概览",
           projects: "项目",
           chats: "对话任务",
@@ -684,13 +687,14 @@ const resources = {
       systemManaged: "由系统按场景启用",
       count: "{{count}} 个连接器",
       emptyTitle: "没有匹配的连接器",
-      emptyDescription: "调整筛选条件，或新建一个公开连接器。",
+      emptyDescription: "调整筛选条件，或添加连接器。",
       loadError: "连接器暂时无法载入",
       toggleFailed: "连接器启停失败，请稍后重试。",
       noDescription: "暂无说明",
       scope: {
         built_in: "内置",
-        public: "公开",
+        public: "全局",
+        private: "伙伴自有",
       },
       transport: {
         stdio: "STDIO",
@@ -2099,6 +2103,7 @@ const resources = {
     },
   },
   "en-US": {
+    plugin: pluginEn,
     notification: notificationEn,
     im: imEn,
     workBoard: workBoardEn,

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"runtime"
 	"slices"
@@ -16,6 +17,8 @@ import (
 	"github.com/JieWaZi/NeuxAlly/server/internal/chat/messageview"
 	"github.com/JieWaZi/NeuxAlly/server/internal/chatstorage"
 	"github.com/JieWaZi/NeuxAlly/server/internal/logx"
+	"github.com/JieWaZi/NeuxAlly/server/internal/plugins"
+	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/feishu"
 	"github.com/JieWaZi/NeuxAlly/server/internal/projectsource"
 	"github.com/JieWaZi/NeuxAlly/server/internal/requestidempotency"
 	"github.com/JieWaZi/NeuxAlly/server/internal/runtimes"
@@ -36,6 +39,8 @@ type userMessage struct {
 	Attachments []AttachmentInput
 	// SkillIDs 是用户在本轮消息中明确选择调用的技能标识。
 	SkillIDs []string
+	// PluginIDs 是本轮明确引用的稳定插件身份。
+	PluginIDs []string
 	// ConnectorIDs 是用户在本轮消息中明确选择使用的 MCP 连接器标识。
 	ConnectorIDs []string
 	// CodeReferences 是用户从工作范围内选择的有序整文件或代码片段引用。
@@ -114,6 +119,8 @@ type pendingMessage struct {
 	parentExecutionID string
 	// retry 表示用户要求重放固定父执行，取得聊天占位后必须重新核对最新资格。
 	retry bool
+	// pluginSnapshots 在失败重试时限制为原执行冻结的插件资源。
+	pluginSnapshots []plugins.Snapshot
 	// admission 决定首批事实在 Runtime 调度前还是接受后提交。
 	admission constants.ExecutionAdmission
 	// toolCapabilities 保存上层入口为本次执行签发的短期内部能力。
@@ -145,6 +152,10 @@ func normalizePendingMessage(input pendingMessage) pendingMessage {
 		[]runtimes.Instruction(nil),
 		input.supplementalInstructions...,
 	)
+	input.message.PluginIDs = append([]string(nil), input.message.PluginIDs...)
+	for index := range input.message.PluginIDs {
+		input.message.PluginIDs[index] = strings.TrimSpace(input.message.PluginIDs[index])
+	}
 	input.message.SkillIDs = append([]string(nil), input.message.SkillIDs...)
 	input.message.ConnectorIDs = append([]string(nil), input.message.ConnectorIDs...)
 	input.message.CodeReferences = append([]CodeReferenceInput(nil), input.message.CodeReferences...)
@@ -463,6 +474,16 @@ func (m *service) startMessage(
 			return AcceptedExecution{}, err
 		}
 	}
+	pluginResources, err := m.preparePlugins(ctx, state.chat.WakerID, request, runtimeEnvironment.Detection, feishu.Usage{ChatID: state.chat.ID, ExecutionID: executionID, WakerID: state.chat.WakerID, Title: state.chat.Title})
+	if err != nil {
+		return AcceptedExecution{}, err
+	}
+	defer func() {
+		if releaseReservation {
+			pluginResources.release()
+		}
+	}()
+	enabledConnectors = append(enabledConnectors, pluginResources.connectors...)
 	runtimeConnectors := enabledConnectors
 	runtimeConnectors, err = restrictConnectors(runtimeConnectors, request.allowedConnectorIDs)
 	if err != nil {
@@ -506,6 +527,30 @@ func (m *service) startMessage(
 		runRequest.Policy.Model = request.runtime.Model
 	}
 
+	runRequest.Skills, err = mergePluginSkills(runRequest.Skills, pluginResources.skills)
+	if err != nil {
+		return AcceptedExecution{}, err
+	}
+	if len(pluginResources.environment) > 0 {
+		if runRequest.Target.Environment == nil {
+			runRequest.Target.Environment = map[string]string{}
+		}
+		for key, value := range pluginResources.environment {
+			if key == "PATH" {
+				base := runRequest.Target.Environment["PATH"]
+				if base == "" {
+					base = os.Getenv("PATH")
+				}
+				value += string(os.PathListSeparator) + base
+			}
+			runRequest.Target.Environment[key] = value
+		}
+	}
+	if profile := pluginResources.environment["LARKSUITE_CLI_CONFIG_DIR"]; profile != "" {
+		runRequest.Target.Environment = feishu.ManagedEnvironment(profile, runRequest.Target.Environment)
+		runRequest.Instructions = append(runRequest.Instructions, runtimes.Instruction{Name: "shared-feishu-profile.md", Content: "飞书插件使用资源库管理的共享账号。认证、退出和更换应用或用户身份由资源库完成。业务执行中不要运行 config init、auth login、auth logout，也不要更换 LARKSUITE_CLI_CONFIG_DIR 或读取其他 CLI profile。遇到身份或权限错误时保留原始业务错误，并提示用户在资源库的插件详情中处理共享认证。"})
+	}
+	runRequest.Message.Text += pluginSelectionHint(pluginResources.selected)
 	agentFacts := &agentCommandFacts{}
 	agentActivate, capabilityRelease, agentSettle, err := m.prepareAgent(&runRequest, state.chat, executionID, request.toolCapabilities, request.allowedAgentDomains, agentFacts)
 	if err != nil {
@@ -524,8 +569,11 @@ func (m *service) startMessage(
 		executionID,
 		userMessageID,
 	)
+	execution.PluginResources = pluginResources.snapshots
 	started := make(chan executionStartResult, 1)
 	plan := messageExecution{
+		pluginRelease:     pluginResources.release,
+		plugins:           pluginResources.selected,
 		agentFacts:        agentFacts,
 		agentActivate:     agentActivate,
 		agentSettle:       agentSettle,
@@ -613,6 +661,7 @@ func createRequestContent(request pendingMessage) []interface{} {
 		request.message.Attachments,
 		request.message.SkillIDs,
 		request.message.ConnectorIDs,
+		request.message.PluginIDs,
 		request.message.CodeReferences,
 		request.runtime.ConfigurationResolved,
 		request.runtime.AccountID,
@@ -1292,7 +1341,12 @@ func startedMessageEvents(
 	codeReferences []eventlog.CodeReference,
 	skills []eventlog.MessageSkillReference,
 	connectors []eventlog.MessageConnectorReference,
+	pluginReferences ...[]plugins.Snapshot,
 ) []eventlog.AppendInput {
+	var selectedPlugins []plugins.Snapshot
+	if len(pluginReferences) > 0 {
+		selectedPlugins = pluginReferences[0]
+	}
 	inputs := make([]eventlog.AppendInput, 0, 3)
 	if state.isNew {
 		inputs = append(inputs, eventlog.AppendInput{
@@ -1323,6 +1377,7 @@ func startedMessageEvents(
 				Actor:          request.message.Actor,
 				Content:        request.message.Text,
 				Attachments:    attachments,
+				Plugins:        selectedPlugins,
 				Skills:         skills,
 				Connectors:     connectors,
 				CodeReferences: codeReferences,
@@ -1333,6 +1388,7 @@ func startedMessageEvents(
 			ExecutionID:  execution.ID,
 			InvocationID: invocationID,
 			Data: marshalData(eventlog.ExecutionCreatedData{
+				PluginResources:   execution.PluginResources,
 				UserMessageID:     execution.UserMessageID,
 				SubmissionID:      execution.SubmissionID,
 				SubmissionHash:    execution.SubmissionHash,

@@ -59,5 +59,6 @@ func (s *SetWakerConnectorEnabled) Output(ctx *gin.Context) (interface{}, error)
 	); err != nil {
 		return nil, ginx.WithStack(err)
 	}
+	notifyResourceChanged(ctx, s.ConnectorID)
 	return ginx.CommonSuccessResponse(), nil
 }
