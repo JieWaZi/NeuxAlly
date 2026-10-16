@@ -46,7 +46,7 @@
 ### Task 1: 聊天工作流引用与受信运行事实
 
 **Files:**
-* Modify: 上表 Task 1 文件，必要的 `server/services/chat/journal.go`、`server/internal/chat/eventstream/live_adapter.go`、`server/apis/chats/{create_chat,send_message,message_input}.go`。
+* Modify: `server/internal/workinput/types.go`、`server/internal/chat/eventlog/types.go`、`server/internal/chat/messageview/{types,message_view,agent_command}.go`、`server/services/execution/{work,agent}.go`、`server/services/workflow/{capabilities,runs}.go`、`server/apis/chats/{create_chat,send_message,message_input}.go`；必要的既有职责文件为 `server/services/chat/journal.go`、`server/internal/chat/eventstream/live_adapter.go`。
 * Test: `server/services/workflow/consumer_test.go`、`server/internal/chat/messageview/agent_command_test.go`、`server/services/execution/work_test.go`、`server/services/execution/runtime_events_test.go`，以及聊天 API 相邻测试。
 
 **Interfaces:**
@@ -64,7 +64,7 @@
 ### Task 2: 用户停止传播与最终文件交付
 
 **Files:**
-* Modify: Task 2 文件，`server/internal/agentcapability/contract/{catalog,output,display}.go`、`server/services/execution/agent.go`，必要的已有文件安全能力。
+* Modify: `server/services/workflow/{agent,capabilities,runs}.go`、`server/repositories/models/{workflow_run,workflow_consumer}.go`、`server/repositories/controllers/{workflow_run_controller,workflow_consumer_controller}.go`、`server/apis/chats/cancel_chat_execution.go`、`server/apis/workflows/cancel_run.go`、`server/internal/agentcapability/contract/{catalog,output,display}.go`、`server/services/execution/agent.go`，必要的已有文件安全能力。
 * Test: `server/services/workflow/{consumer,agent,retry,terminal_receipt}_test.go`、`server/apis/workflows/files_test.go`、`server/internal/chat/messageview/agent_command_test.go`、Repository 相邻真实 SQLite 测试。
 
 **Interfaces:**
