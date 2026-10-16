@@ -74,18 +74,18 @@
 - [x] 独立子代理以 base `4fb33f8` 与内容快照 tree `6f8d724` 完成审查；SPEC 无重要缺口，代码审查发现 3 个 Important、无 Critical，审查只读且不继承作者会话。
 - [x] 三项重要问题均经回归测试先失败再修复通过，SPEC 与计划已同步；不采纳理由及真实平台验收边界记录于本文。
 - [x] 最终代码再次运行 `NODE_OPTIONS=--no-experimental-webstorage pnpm check`，退出码 0；前端 253 个文件、1599 项测试，Electron 89 项测试及全部 Go 检查通过。生成内容与锁文件无额外修改，完整分支空白检查通过。
-- [ ] `git push -u origin codex/software-update`，使用中文标题和说明创建目标为 main 的 PR，附到当前任务；不合并 PR。
+- [x] `git push -u origin codex/software-update` 成功；已创建目标为 main 的 [PR #1](https://github.com/JieWaZi/NeuxAlly/pull/1) 并附到当前任务，未合并 PR。
 
 ## 实施与验证结果
 
 | 项目 | 状态与证据 |
 | --- | --- |
-| 实现提交 | 主进程与 Bridge：`17acee0`；设置、Shell 与共享状态：`9df1181`；发行与文档：`6f04aef`；审查修复及同步文档随本次修复提交。 |
+| 实现提交 | 主进程与 Bridge：`17acee0`；设置、Shell 与共享状态：`9df1181`；发行与文档：`6f04aef`；三项审查修复及同步文档：`3ff3b8a`。 |
 | 需求与设计 | 已收敛为未正式签名发行、手动覆盖安装，代码核对后补齐本 SPEC 与计划。 |
 | 自动化验证 | 修复后定向主进程与 Bridge 26/26、前端 13/13；最终完整检查退出码 0，前端 253 个文件、1599 项测试、Electron 89 项测试及全部 Go 检查通过；文档、完整分支空白和 5 个发布脚本语法检查通过。 |
 | 独立审查 | SPEC 无重要缺口；正式代码审查发现 3 个 Important，无 Critical，结论为需修复后再合入。三项均以回归测试先失败后通过完成修复，最终完整复验通过；未另行声称已做第二轮独立审查。 |
 | 真实平台与视觉 | 未执行；缺少运行中应用操作授权，Windows 真机覆盖安装也未验收。 |
-| 推送与 PR | 验证及审查修复已完成，等待推送功能分支并创建目标为 main 的 PR；不合并。 |
+| 推送与 PR | 功能分支 `codex/software-update` 已推送；[PR #1](https://github.com/JieWaZi/NeuxAlly/pull/1) 目标为 main，已附到当前任务，保持未合并。GitHub CI 状态以 PR 当前检查结果为准，本表的通过记录来自本地完整检查。 |
 
 首次定向测试因独立 worktree 未安装依赖而在加载阶段退出；按现有锁文件安装后复验通过，未改依赖版本或锁文件。已有测试未补记为测试先失败开发；审查修复的回归验证另行记录。
 
