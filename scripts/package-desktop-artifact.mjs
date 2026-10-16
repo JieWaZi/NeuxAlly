@@ -23,8 +23,8 @@ const bundle = path.join(
 const mib = 1024 * 1024;
 const budgets = {
   application: 450 * mib,
-  // 原有 Core/CLI 与前端预算外，增加约 47 MiB 的固定飞书程序和完整技能；保留约 16 MiB 余量。
-  resources: 175 * mib,
+  // 固定飞书约 47 MiB、GitHub CLI 约 38 MiB；macOS arm64 Resources 实测 196.3 MiB，保留约 18 MiB 余量。
+  resources: 215 * mib,
   installer: 150 * mib,
 };
 

@@ -2,7 +2,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
-import { QRCodeSVG } from "qrcode.react";
+import {
+  AuthorizationCode,
+  PluginAuthorizationDialog,
+} from "./plugin-authorization-dialog";
 import { openExternalURL } from "@/shared/desktop";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
@@ -87,6 +90,7 @@ export function PluginAuthPanel({
     },
     onSuccess: refresh,
   });
+  const github = status.data?.provider === "github";
   const account = status.data?.account;
   const activeUses = status.data?.activeUses ?? [];
   const session = status.data?.session;
@@ -112,7 +116,7 @@ export function PluginAuthPanel({
       <div>
         <h3 className="type-label font-medium">{t("authentication")}</h3>
         <p className="type-body text-muted-foreground mt-1">
-          {t("accountHelp")}
+          {t(github ? "githubAccountHelp" : "accountHelp")}
         </p>
       </div>
       {status.isPending || status.isError ? (
@@ -123,12 +127,16 @@ export function PluginAuthPanel({
         />
       ) : (
         <>
-          {(!account?.configured || editingApp) && (
+          {!github && (!account?.configured || editingApp) && (
             <div className="space-y-3">
+              <p className="type-caption text-muted-foreground">
+                {t("appCredentialsHelp")}
+              </p>
               <label className="type-body grid gap-2">
                 {t("appId")}
                 <Input
                   value={appId}
+                  placeholder={t("appIdExample")}
                   autoComplete="off"
                   onChange={(event) => setAppId(event.target.value)}
                 />
@@ -138,6 +146,7 @@ export function PluginAuthPanel({
                 <Input
                   type="password"
                   value={appSecret}
+                  placeholder={t("appSecretHelp")}
                   autoComplete="new-password"
                   onChange={(event) => setAppSecret(event.target.value)}
                 />
@@ -179,34 +188,38 @@ export function PluginAuthPanel({
             </p>
           ) : (
             <p className="type-body text-muted-foreground" role="status">
-              {waiting ? t("authWaiting") : message}
+              {waiting ? t(github ? "githubWaiting" : "authWaiting") : message}
             </p>
           )}
           {waiting && session?.verificationUrl && (
             <div className="space-y-3">
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  setOpenError("");
-                  void openExternalURL(verificationURL).catch(() =>
-                    setOpenError(t("failed")),
-                  );
-                }}
-              >
-                {t("openAuth")}
-              </Button>
-              <div className="rounded-control w-fit p-4">
-                <QRCodeSVG
-                  value={verificationURL}
-                  size={192}
-                  marginSize={4}
-                  level="M"
-                  title={t("login")}
+              {session.userCode && (
+                <AuthorizationCode
+                  key={session.userCode}
+                  code={session.userCode}
                 />
+              )}
+              <div className="flex flex-wrap gap-2">
+                <PluginAuthorizationDialog
+                  key={session.id}
+                  url={verificationURL}
+                  code={session.userCode}
+                />
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setOpenError("");
+                    void openExternalURL(verificationURL).catch(() =>
+                      setOpenError(t("failed")),
+                    );
+                  }}
+                >
+                  {t("openAuth")}
+                </Button>
               </div>
               {session.expiresAt && (
                 <p className="type-caption text-muted-foreground">
-                  {t("expires", {
+                  {t(github ? "localWaitUntil" : "expires", {
                     time: new Date(session.expiresAt).toLocaleTimeString(),
                   })}
                 </p>
@@ -216,8 +229,12 @@ export function PluginAuthPanel({
           {account?.configured && !waiting && (
             <label className="type-body grid gap-2">
               {t("additionalScopes")}
+              <span className="type-caption text-muted-foreground">
+                {t("additionalScopesHelp")}
+              </span>
               <Input
                 value={additionalScopes}
+                aria-label={t("additionalScopes")}
                 disabled={pending}
                 placeholder={t("additionalScopesHelp")}
                 onChange={(event) => setAdditionalScopes(event.target.value)}
@@ -262,7 +279,7 @@ export function PluginAuthPanel({
                 {t("cancelAuth")}
               </Button>
             )}
-            {account?.configured && !waiting && !editingApp && (
+            {!github && account?.configured && !waiting && !editingApp && (
               <Button
                 variant="ghost"
                 disabled={pending || activeUses.length > 0}
@@ -310,7 +327,9 @@ export function PluginAuthPanel({
               ))}
             </section>
           )}
-          <p className="type-caption text-muted-foreground">{t("scopeHelp")}</p>
+          <p className="type-caption text-muted-foreground">
+            {t(github ? "githubScopeHelp" : "scopeHelp")}
+          </p>
         </>
       )}
       {(error || openError) && (

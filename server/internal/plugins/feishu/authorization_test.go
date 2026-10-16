@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/authorization"
 	"os"
 	"path/filepath"
 	"strings"
@@ -21,10 +22,10 @@ func TestAuthorizationReusesPendingSessionAndVerifiesFinalIdentity(t *testing.T)
 		t.Fatal(err)
 	}
 	completed := make(chan struct{})
-	changed := make(chan Session, 8)
+	changed := make(chan authorization.Session, 8)
 	var starts atomic.Int32
 	var ready atomic.Bool
-	auth := New(Config{ProfileDirectory: profile, Scopes: []string{"docx:document"}, Changed: func(s Session) { changed <- s }, Run: func(ctx context.Context, args []string, stdin string) ([]byte, error) {
+	auth := New(Config{ProfileDirectory: profile, Scopes: []string{"docx:document"}, Changed: func(s authorization.Session) { changed <- s }, Run: func(ctx context.Context, args []string, stdin string) ([]byte, error) {
 		joined := strings.Join(args, " ")
 		if strings.Contains(joined, "--no-wait") {
 			starts.Add(1)
@@ -41,7 +42,7 @@ func TestAuthorizationReusesPendingSessionAndVerifiesFinalIdentity(t *testing.T)
 		}
 		if strings.HasPrefix(joined, "auth status") {
 			if ready.Load() {
-				return []byte(`{"appId":"app","identities":{"user":{"available":true,"verified":true,"openId":"user","userName":"测试用户","scope":"docx:document"}}}`), nil
+				return []byte(`{"appId":"app","identities":{"user":{"available":true,"verified":true,"openId":"user","userName":"测试用户","scope":"offline_access docx:document"}}}`), nil
 			}
 			return []byte(`{"appId":"app","identities":{"user":{"available":false}}}`), nil
 		}
@@ -134,7 +135,7 @@ func TestAuthorizationAccountChangesAreExclusiveWithActiveWorkAndCancelStopsWait
 
 func TestActiveUsageIsVisibleAndReleasedWithExecution(t *testing.T) {
 	auth := New(Config{})
-	release, err := auth.Acquire(Usage{ChatID: "chat", ExecutionID: "execution", WakerID: "partner", Title: "整理文档"})
+	release, err := auth.Acquire(authorization.Usage{ChatID: "chat", ExecutionID: "execution", WakerID: "partner", Title: "整理文档"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -212,7 +213,7 @@ func TestCancelledDeviceProcessKeepsIdentityExclusiveUntilExit(t *testing.T) {
 	}
 	close(finish)
 	finished = true
-	auth.workers.Wait()
+	auth.Close()
 	release, err := auth.Acquire()
 	if err != nil {
 		t.Fatal("identity remained busy after old process exited", err)

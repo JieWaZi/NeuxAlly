@@ -2,7 +2,7 @@ package plugins
 
 import (
 	packageplugin "github.com/JieWaZi/NeuxAlly/server/internal/plugins"
-	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/feishu"
+	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/authorization"
 	"github.com/JieWaZi/NeuxAlly/server/repositories/models"
 )
 
@@ -33,7 +33,7 @@ type PluginDetailResponse struct {
 	// 阻塞原因
 	Blockers []string `json:"blockers"`
 	// 共享身份
-	Account feishu.Account `json:"account"`
+	Account authorization.Account `json:"account"`
 }
 
 // 插件列表响应
@@ -128,16 +128,18 @@ type UpdateConfigurationRequest struct {
 
 // 插件授权响应
 type PluginAuthorizationResponse struct {
+	// 授权提供者
+	Provider string `json:"provider"`
 	// 所需权限
 	RequiredScopes []string `json:"requiredScopes"`
 	// 缺少权限
 	MissingScopes []string `json:"missingScopes"`
 	// 占用工作
-	ActiveUses []feishu.Usage `json:"activeUses"`
+	ActiveUses []authorization.Usage `json:"activeUses"`
 	// 共享身份
-	Account feishu.Account `json:"account"`
+	Account authorization.Account `json:"account"`
 	// 设备等待
-	Session feishu.Session `json:"session"`
+	Session authorization.Session `json:"session"`
 }
 
 // 插件资料请求

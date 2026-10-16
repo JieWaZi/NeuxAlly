@@ -299,3 +299,33 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
+
+## GitHub 插件与官方 CLI
+
+GitHub 官方 CLI 来源于 [cli/cli](https://github.com/cli/cli)，固定版本 `v2.102.0`，源码提交 `fc4b137cdef0a6bd28fd461b7cf9c84a5812a8cd`。程序按固定源码归档和 Go 1.27.1 工具链构建。NeuxAlly 在底层钥匙串 Set/Get/Delete 的 service 加 neuxally: 前缀，隔离官方配置及迁移对机器原有 gh 身份的访问，构建版本为 2.102.0-neuxally.1。该程序是官方源码的隔离构建，不是未修改的官方发布二进制。归档、补丁和隔离回归的 SHA-256 由 [来源锁](plugin-sources/source.lock.json) 固定；原始许可证随程序和插件源分发。
+
+GitHub MCP 使用 [github/github-mcp-server](https://github.com/github/github-mcp-server) 提供的官方远程服务 `https://api.githubcopilot.com/mcp/`，本项目不复制该服务程序，也不固定其远端部署版本。插件清单与共享认证适配由 NeuxAlly contributors 编写，操作能力直接来自官方 MCP。
+
+```text
+MIT License
+
+Copyright (c) 2019 GitHub Inc.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```

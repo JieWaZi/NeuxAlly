@@ -180,7 +180,7 @@ function Installation({
             <p role="status" className="type-body">
               {t("notReady")}
             </p>
-            {provider === "feishu" && (
+            {(provider === "feishu" || provider === "github") && (
               <PluginAuthPanel
                 pluginId={pluginId}
                 wakerId={wakerId}

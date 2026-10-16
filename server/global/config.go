@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/authorization"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -23,6 +24,7 @@ import (
 	"github.com/JieWaZi/NeuxAlly/server/internal/notification/events"
 	"github.com/JieWaZi/NeuxAlly/server/internal/plugins"
 	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/feishu"
+	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/github"
 	"github.com/JieWaZi/NeuxAlly/server/internal/runtimes"
 	managedskills "github.com/JieWaZi/NeuxAlly/server/internal/skills"
 	builtinskills "github.com/JieWaZi/NeuxAlly/server/internal/skills/builtin"
@@ -106,8 +108,8 @@ var (
 	ChannelThreadControllerManager controllers.ChannelThreadController
 	// ChannelTaskControllerManager 提供全局团队任务板和投递队列接口。
 	ChannelTaskControllerManager controllers.ChannelTaskController
-	// FeishuAuthorization 拥有飞书官方 CLI 的共享身份、授权等待与执行占用。
-	FeishuAuthorization *feishu.Authorizer
+	// PluginAuthorizations 是各提供者唯一的共享身份、授权等待与工作占用装配。
+	PluginAuthorizations map[string]*authorization.Authorizer
 	// PluginControllerManager 保存插件资源、版本、共享配置和伙伴安装。
 	PluginControllerManager controllers.PluginController
 	// SkillControllerManager 提供全局技能包、版本和伙伴关系持久化接口。
@@ -327,16 +329,26 @@ func loadDB(ctx context.Context, configuration *Configuration) error {
 		}
 	})
 	PluginContents = plugins.NewContentStore(configuration.DataDirectory, func() ([]string, error) { return PluginControllerManager.ContentReferences(context.Background()) })
-	providerBinary := "lark-cli"
-	if runtime.GOOS == "windows" {
-		providerBinary += ".exe"
-	}
-	FeishuAuthorization = feishu.New(feishu.Config{Binary: filepath.Join(configuration.PluginResourcesDirectory, "providers", constants.PluginProviderFeishu, constants.FeishuCLIVersion, runtime.GOOS+"-"+runtime.GOARCH, providerBinary), ProfileDirectory: filepath.Join(configuration.DataDirectory, "plugins", "providers", constants.PluginProviderFeishu), Changed: func(feishu.Session) {
-		if EventHub != nil {
-			_ = events.Emit(EventHub, constants.PluginEventTopic, "plugins.changed", events.Resource{Kind: "global"}, map[string]string{"provider": constants.PluginProviderFeishu})
+	providerPath := func(provider, version, binary string) string {
+		if runtime.GOOS == "windows" {
+			binary += ".exe"
 		}
-	}})
-	FeishuAuthorization.Open(ctx)
+		return filepath.Join(configuration.PluginResourcesDirectory, "providers", provider, version, runtime.GOOS+"-"+runtime.GOARCH, binary)
+	}
+	changed := func(provider string) func(authorization.Session) {
+		return func(authorization.Session) {
+			if EventHub != nil {
+				_ = events.Emit(EventHub, constants.PluginEventTopic, "plugins.changed", events.Resource{Kind: "global"}, map[string]string{"provider": provider})
+			}
+		}
+	}
+	PluginAuthorizations = map[string]*authorization.Authorizer{
+		constants.PluginProviderFeishu: feishu.New(feishu.Config{Binary: providerPath(constants.PluginProviderFeishu, constants.FeishuCLIVersion, "lark-cli"), ProfileDirectory: filepath.Join(configuration.DataDirectory, "plugins", "providers", constants.PluginProviderFeishu), Changed: changed(constants.PluginProviderFeishu)}),
+		constants.PluginProviderGitHub: github.New(github.Config{Binary: providerPath(constants.PluginProviderGitHub, constants.GitHubCLIVersion, "gh"), ProfileDirectory: filepath.Join(configuration.DataDirectory, "plugins", "providers", constants.PluginProviderGitHub), Changed: changed(constants.PluginProviderGitHub)}),
+	}
+	for _, auth := range PluginAuthorizations {
+		auth.Open(ctx)
+	}
 
 	SkillControllerManager = controllers.NewSkillController(DB)
 	MCPConnectorControllerManager = controllers.NewMCPConnectorController(DB)
@@ -495,7 +507,7 @@ func loadChat(ctx context.Context, configuration *Configuration, handlerFactory 
 		Profiles:       ProfileDocumentControllerManager,
 		Projects:       ProjectControllerManager,
 		Skills:         SkillControllerManager,
-		PluginContents: PluginContents, Plugins: PluginControllerManager, PluginAuthorizer: FeishuAuthorization, PluginLauncher: coreExecutablePath(),
+		PluginContents: PluginContents, Plugins: PluginControllerManager, PluginAuthorizers: PluginAuthorizations, PluginLauncher: coreExecutablePath(),
 		Connectors:          MCPConnectorControllerManager,
 		RuntimeEnvironments: RuntimeEnvironmentControllerManager,
 		SkillDataDirectory:  configuration.DataDirectory,
@@ -618,10 +630,10 @@ func Close() error {
 		ExecutionService.Close()
 		ExecutionService = nil
 	}
-	if FeishuAuthorization != nil {
-		FeishuAuthorization.Close()
-		FeishuAuthorization = nil
+	for _, auth := range PluginAuthorizations {
+		auth.Close()
 	}
+	PluginAuthorizations = nil
 	if ChatService != nil {
 		ChatService.Close()
 		ChatService = nil

@@ -2,6 +2,7 @@ package execution
 
 import (
 	"context"
+	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/authorization"
 	"os"
 	"path/filepath"
 	"slices"
@@ -12,7 +13,6 @@ import (
 	"github.com/JieWaZi/NeuxAlly/server/constants/status_error"
 	"github.com/JieWaZi/NeuxAlly/server/internal/packagefiles"
 	"github.com/JieWaZi/NeuxAlly/server/internal/plugins"
-	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/feishu"
 	"github.com/JieWaZi/NeuxAlly/server/internal/runtimes"
 	"github.com/JieWaZi/NeuxAlly/server/repositories/models"
 )
@@ -34,7 +34,7 @@ type preparedPlugins struct {
 }
 
 // preparePlugins 在接纳前冻结资源，不向 Runtime 传递未就绪组件。
-func (m *service) preparePlugins(ctx context.Context, waker string, request pendingMessage, detection runtimes.DetectionResult, usage ...feishu.Usage) (preparedPlugins, error) {
+func (m *service) preparePlugins(ctx context.Context, waker string, request pendingMessage, detection runtimes.DetectionResult, usage ...authorization.Usage) (preparedPlugins, error) {
 	result := preparedPlugins{environment: map[string]string{}, release: func() {}}
 	selected := map[string]bool{}
 	for _, id := range request.message.PluginIDs {
@@ -54,10 +54,13 @@ func (m *service) preparePlugins(ctx context.Context, waker string, request pend
 	for _, item := range request.pluginSnapshots {
 		wanted[item.ID] = item
 	}
-	var providerAccount feishu.Account
-	var providerStatusErr error
-	providerChecked := false
-	var providerRelease func()
+	// 每个提供者在本轮中只验证一次，凭据始终留在当前内存投射。
+	providerAccounts := map[string]authorization.Account{}
+	providerErrors := map[string]error{}
+	providerChecked := map[string]bool{}
+	providerHeaders := map[string]map[string]string{}
+	providerReleases := map[string]func(){}
+	providerUsed := map[string]bool{}
 	found := map[string]bool{}
 	releases := []func(){}
 	var once sync.Once
@@ -117,8 +120,12 @@ func (m *service) preparePlugins(ctx context.Context, waker string, request pend
 		if len(version.Package.Servers) > 0 && version.TrustedAt == 0 {
 			readyErr = status_error.MCPConnectorTrustRequired
 		}
-		if extension.Provider != "" && request.allowedConnectorIDs != nil {
+		if extension.Provider == constants.PluginProviderFeishu && request.allowedConnectorIDs != nil {
 			readyErr = status_error.PluginForbidden
+		}
+
+		if readyErr == nil {
+			readyErr = plugins.ValidateProviderServers(extension, version.Package)
 		}
 		if readyErr != nil {
 			if required {
@@ -163,6 +170,45 @@ func (m *service) preparePlugins(ctx context.Context, waker string, request pend
 			values[key] = value
 		}
 		snapshot := plugins.Snapshot{ID: id, Name: state.Plugin.Name, VersionID: version.ID, Version: version.Version, ConfigurationRevision: state.Configuration.Revision, ComponentIDs: []string{}}
+
+		if extension.Provider != "" {
+			auth := m.pluginAuthorizers[extension.Provider]
+			statusErr := error(nil)
+			if auth == nil {
+				statusErr = status_error.PluginNotReady
+			} else {
+				if !providerChecked[extension.Provider] {
+					providerChecked[extension.Provider] = true
+					retained, leaseErr := auth.Acquire(usage...)
+					if leaseErr != nil {
+						providerErrors[extension.Provider] = leaseErr
+					} else {
+						releases = append(releases, retained)
+						providerReleases[extension.Provider] = retained
+						providerAccounts[extension.Provider], providerErrors[extension.Provider] = auth.Status(ctx, true)
+					}
+				}
+				account := providerAccounts[extension.Provider]
+				statusErr = providerErrors[extension.Provider]
+				if statusErr == nil && !account.Available {
+					statusErr = status_error.PluginNotReady
+				}
+				for _, scope := range extension.Scopes {
+					if !auth.ScopeGranted(account.Scopes, scope) {
+						statusErr = status_error.PluginNotReady
+					}
+				}
+				if statusErr == nil && isRetryResource && prior.ProviderAccountID != account.ID {
+					statusErr = status_error.PluginConfigurationConflict
+				}
+			}
+			if statusErr != nil {
+				if required {
+					return result, statusErr
+				}
+				continue
+			}
+		}
 		candidateSkills := []runtimes.Skill{}
 		candidateConnectors := []models.MCPConnector{}
 		available := map[string]bool{}
@@ -192,7 +238,7 @@ func (m *service) preparePlugins(ctx context.Context, waker string, request pend
 				}
 				continue
 			}
-			connector := models.MCPConnector{ID: componentID, Name: server.Key, RuntimeKey: "plugin_" + componentID, Transport: constants.MCPTransport(transport), Command: resolved.Server.Command, Arguments: resolved.Server.Args, URL: resolved.Server.URL, TimeoutMS: 30000}
+			connector := models.MCPConnector{ID: componentID, Name: server.Key, RuntimeKey: "ally_plugin_" + componentID, Transport: constants.MCPTransport(transport), Command: resolved.Server.Command, Arguments: resolved.Server.Args, URL: resolved.Server.URL, TimeoutMS: 30000}
 			if transport == constants.RuntimeConnectorTransportStdio {
 				if m.pluginLauncher == "" {
 					if required {
@@ -203,8 +249,36 @@ func (m *service) preparePlugins(ctx context.Context, waker string, request pend
 				connector.Command = m.pluginLauncher
 				connector.Arguments = append([]string{constants.PluginStdioMode, "--cwd", resolved.WorkingDirectory, "--", resolved.Server.Command}, resolved.Server.Args...)
 			}
-			for name, value := range resolved.Server.Env {
-				connector.Environment = append(connector.Environment, models.MCPSecretDefinition{Name: name, Value: value, Configured: true})
+			if transport == constants.RuntimeConnectorTransportStdio {
+				for name, value := range resolved.Server.Env {
+					connector.Environment = append(connector.Environment, models.MCPSecretDefinition{Name: name, Value: value, Configured: true})
+				}
+			}
+
+			if extension.Provider == constants.PluginProviderGitHub {
+				headers, checked := providerHeaders[extension.Provider]
+				if !checked {
+					headers, err = m.pluginAuthorizers[extension.Provider].AuthorizeServer(ctx, resolved.Server.URL)
+					if err != nil {
+						if required {
+							return result, err
+						}
+						continue
+					}
+					providerHeaders[extension.Provider] = headers
+				}
+				if resolved.Server.Headers == nil {
+					resolved.Server.Headers = map[string]string{}
+				}
+				for key := range resolved.Server.Headers {
+					if strings.EqualFold(key, "Authorization") || strings.HasPrefix(strings.ToLower(key), "x-mcp-") {
+						delete(resolved.Server.Headers, key)
+					}
+				}
+				for key, value := range headers {
+					resolved.Server.Headers[key] = value
+				}
+				resolved.Server.Headers["X-MCP-Toolsets"] = constants.GitHubMCPToolsets
 			}
 			for name, value := range resolved.Server.Headers {
 				connector.Headers = append(connector.Headers, models.MCPSecretDefinition{Name: name, Value: value, Configured: true})
@@ -228,51 +302,28 @@ func (m *service) preparePlugins(ctx context.Context, waker string, request pend
 		if isRetryResource && !slices.Equal(snapshot.ComponentIDs, prior.ComponentIDs) {
 			return result, status_error.PluginNotReady
 		}
+
 		if extension.Provider != "" {
-			if extension.Provider != constants.PluginProviderFeishu || m.pluginAuthorizer == nil {
-				if required {
-					return result, status_error.PluginNotReady
-				}
-				continue
-			}
-			if !providerChecked {
-				var leaseErr error
-				providerRelease, leaseErr = m.pluginAuthorizer.Acquire(usage...)
-				if leaseErr != nil {
-					if required {
-						return result, leaseErr
-					}
-					continue
-				}
-				releases = append(releases, providerRelease)
-				providerAccount, providerStatusErr = m.pluginAuthorizer.Status(ctx, true)
-				providerChecked = true
-			}
-			account, statusErr := providerAccount, providerStatusErr
-			if statusErr == nil && !account.Available {
-				statusErr = status_error.PluginNotReady
-			}
-			for _, scope := range extension.Scopes {
-				if !slices.Contains(account.Scopes, scope) {
-					statusErr = status_error.PluginNotReady
-				}
-			}
-			if statusErr == nil && isRetryResource && prior.ProviderAccountID != account.ID {
-				statusErr = status_error.PluginConfigurationConflict
-			}
-			if statusErr != nil {
-				if required {
-					return result, statusErr
-				}
-				continue
-			}
+			auth := m.pluginAuthorizers[extension.Provider]
+			account := providerAccounts[extension.Provider]
 			snapshot.ProviderAccountID = account.ID
-			for key, value := range m.pluginAuthorizer.Environment() {
-				result.environment[key] = value
+			providerUsed[extension.Provider] = true
+			if extension.Provider != constants.PluginProviderGitHub {
+				for key, value := range auth.Environment() {
+					result.environment[key] = value
+				}
 			}
-			result.environment["NEUXALLY_FEISHU_IDENTITY"] = account.AppID + ":" + account.ID
-			result.environment["PATH"] = filepath.Dir(m.pluginAuthorizer.Binary())
+			result.environment["NEUXALLY_"+strings.ToUpper(extension.Provider)+"_IDENTITY"] = account.AppID + ":" + account.ID
+			if extension.Provider != constants.PluginProviderGitHub {
+				directory := filepath.Dir(auth.Binary())
+				if result.environment["PATH"] == "" {
+					result.environment["PATH"] = directory
+				} else if !slices.Contains(filepath.SplitList(result.environment["PATH"]), directory) {
+					result.environment["PATH"] += string(os.PathListSeparator) + directory
+				}
+			}
 		}
+
 		result.skills = append(result.skills, candidateSkills...)
 		result.connectors = append(result.connectors, candidateConnectors...)
 		result.snapshots = append(result.snapshots, snapshot)
@@ -291,8 +342,10 @@ func (m *service) preparePlugins(ctx context.Context, waker string, request pend
 			return result, status_error.PluginNotReady
 		}
 	}
-	if providerRelease != nil && result.environment["LARKSUITE_CLI_CONFIG_DIR"] == "" {
-		providerRelease()
+	for provider, release := range providerReleases {
+		if !providerUsed[provider] {
+			release()
+		}
 	}
 	succeeded = true
 	return result, nil

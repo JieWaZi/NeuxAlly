@@ -281,7 +281,7 @@ export function PluginDetailPage() {
                   detail={detail}
                   wakerId={wakerId}
                 />
-                {pluginProvider(version) === "feishu" && (
+                {["feishu", "github"].includes(pluginProvider(version)) && (
                   <PluginAuthPanel
                     pluginId={pluginId}
                     wakerId={wakerId}

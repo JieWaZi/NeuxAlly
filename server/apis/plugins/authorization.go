@@ -2,16 +2,16 @@ package plugins
 
 import (
 	"context"
+	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/authorization"
 
 	"github.com/JieWaZi/NeuxAlly/server/constants"
 	"github.com/JieWaZi/NeuxAlly/server/constants/status_error"
 	"github.com/JieWaZi/NeuxAlly/server/global"
 	"github.com/JieWaZi/NeuxAlly/server/internal/notification/events"
 	packageplugin "github.com/JieWaZi/NeuxAlly/server/internal/plugins"
-	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/feishu"
 )
 
-func pluginAuthorizer(ctx context.Context, id, waker string, selectedVersion ...string) (*feishu.Authorizer, packageplugin.Extension, error) {
+func pluginAuthorizer(ctx context.Context, id, waker string, selectedVersion ...string) (*authorization.Authorizer, packageplugin.Extension, error) {
 	resource, err := visiblePlugin(ctx, id, waker)
 	if err != nil {
 		return nil, packageplugin.Extension{}, err
@@ -41,13 +41,13 @@ func pluginAuthorizer(ctx context.Context, id, waker string, selectedVersion ...
 	if err != nil {
 		return nil, extension, err
 	}
-	if extension.Provider != constants.PluginProviderFeishu || global.FeishuAuthorization == nil {
+	if global.PluginAuthorizations[extension.Provider] == nil {
 		return nil, extension, status_error.PluginNotReady
 	}
-	return global.FeishuAuthorization, extension, nil
+	return global.PluginAuthorizations[extension.Provider], extension, nil
 }
-func publishProviderChange() {
+func publishProviderChange(provider string) {
 	if global.EventHub != nil {
-		_ = events.Emit(global.EventHub, constants.PluginEventTopic, "plugins.changed", events.Resource{Kind: "global"}, map[string]string{"provider": constants.PluginProviderFeishu})
+		_ = events.Emit(global.EventHub, constants.PluginEventTopic, "plugins.changed", events.Resource{Kind: "global"}, map[string]string{"provider": provider})
 	}
 }

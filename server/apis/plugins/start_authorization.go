@@ -29,7 +29,7 @@ func (o *StartPluginAuthorization) Output(ctx *gin.Context) (interface{}, error)
 	if err != nil {
 		return nil, ginx.WithStack(err)
 	}
-	scopes := append([]string{"offline_access"}, extension.Scopes...)
+	scopes := auth.RequiredScopes(extension.Scopes...)
 	scopes = append(scopes, o.Body.AdditionalScopes...)
 	result, err := auth.Login(ctx, scopes...)
 	if err != nil {

@@ -3,7 +3,6 @@ package plugins
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/shrewx/ginx"
-	"slices"
 )
 
 // 插件授权状态
@@ -32,20 +31,15 @@ func (o *GetPluginAuthorization) Output(ctx *gin.Context) (interface{}, error) {
 	if err != nil {
 		return nil, ginx.WithStack(err)
 	}
-	required := []string{"offline_access"}
-	for _, scope := range extension.Scopes {
-		if !slices.Contains(required, scope) {
-			required = append(required, scope)
-		}
-	}
+	required := auth.RequiredScopes(extension.Scopes...)
 	missing := []string{}
 	for _, scope := range required {
-		if !slices.Contains(account.Scopes, scope) {
+		if !auth.ScopeGranted(account.Scopes, scope) {
 			missing = append(missing, scope)
 		}
 	}
 	if len(missing) > 0 {
 		account.Available = false
 	}
-	return PluginAuthorizationResponse{RequiredScopes: required, MissingScopes: missing, ActiveUses: auth.Usages(), Account: account, Session: auth.Snapshot()}, nil
+	return PluginAuthorizationResponse{Provider: extension.Provider, RequiredScopes: required, MissingScopes: missing, ActiveUses: auth.Usages(), Account: account, Session: auth.Snapshot()}, nil
 }

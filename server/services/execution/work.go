@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/authorization"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -474,7 +475,7 @@ func (m *service) startMessage(
 			return AcceptedExecution{}, err
 		}
 	}
-	pluginResources, err := m.preparePlugins(ctx, state.chat.WakerID, request, runtimeEnvironment.Detection, feishu.Usage{ChatID: state.chat.ID, ExecutionID: executionID, WakerID: state.chat.WakerID, Title: state.chat.Title})
+	pluginResources, err := m.preparePlugins(ctx, state.chat.WakerID, request, runtimeEnvironment.Detection, authorization.Usage{ChatID: state.chat.ID, ExecutionID: executionID, WakerID: state.chat.WakerID, Title: state.chat.Title})
 	if err != nil {
 		return AcceptedExecution{}, err
 	}
@@ -549,6 +550,9 @@ func (m *service) startMessage(
 	if profile := pluginResources.environment["LARKSUITE_CLI_CONFIG_DIR"]; profile != "" {
 		runRequest.Target.Environment = feishu.ManagedEnvironment(profile, runRequest.Target.Environment)
 		runRequest.Instructions = append(runRequest.Instructions, runtimes.Instruction{Name: "shared-feishu-profile.md", Content: "飞书插件使用资源库管理的共享账号。认证、退出和更换应用或用户身份由资源库完成。业务执行中不要运行 config init、auth login、auth logout，也不要更换 LARKSUITE_CLI_CONFIG_DIR 或读取其他 CLI profile。遇到身份或权限错误时保留原始业务错误，并提示用户在资源库的插件详情中处理共享认证。"})
+	}
+	if pluginResources.environment["NEUXALLY_GITHUB_IDENTITY"] != "" {
+		runRequest.Instructions = append(runRequest.Instructions, runtimes.Instruction{Name: "shared-github-account.md", Content: "GitHub 插件通过官方 MCP 使用资源库管理的共享账号。身份或权限错误应保留原始错误，并提示用户在资源库的插件详情中处理共享认证；账号变更由资源库完成。"})
 	}
 	runRequest.Message.Text += pluginSelectionHint(pluginResources.selected)
 	agentFacts := &agentCommandFacts{}

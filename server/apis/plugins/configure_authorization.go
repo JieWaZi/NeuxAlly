@@ -23,13 +23,13 @@ func (*ConfigurePluginAuthorization) Path() string { return "/:pluginId/authoriz
 
 // Output 通过官方 CLI 配置应用，密钥只在命令 stdin 中使用。
 func (o *ConfigurePluginAuthorization) Output(ctx *gin.Context) (interface{}, error) {
-	auth, _, err := pluginAuthorizer(ctx, o.PluginID, o.WakerID, o.VersionID)
+	auth, extension, err := pluginAuthorizer(ctx, o.PluginID, o.WakerID, o.VersionID)
 	if err != nil {
 		return nil, ginx.WithStack(err)
 	}
 	if err := auth.Configure(ctx, o.Body.AppID, o.Body.AppSecret); err != nil {
 		return nil, ginx.WithStack(err)
 	}
-	publishProviderChange()
+	publishProviderChange(extension.Provider)
 	return ginx.CommonSuccessResponse(), nil
 }

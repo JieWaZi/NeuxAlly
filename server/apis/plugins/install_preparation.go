@@ -5,7 +5,6 @@ import (
 	"maps"
 	"slices"
 
-	"github.com/JieWaZi/NeuxAlly/server/constants"
 	"github.com/JieWaZi/NeuxAlly/server/global"
 	packageplugin "github.com/JieWaZi/NeuxAlly/server/internal/plugins"
 	"github.com/JieWaZi/NeuxAlly/server/repositories/models"
@@ -26,7 +25,7 @@ func prepareInstallationVersions(ctx context.Context, versions []models.PluginVe
 			release()
 		}
 	}()
-	providerNeeded := false
+	providers := map[string]bool{}
 	for _, version := range versions {
 		root, err := packageplugin.ContentPath(global.Config.DataDirectory, version.ContentPath)
 		if err != nil {
@@ -46,19 +45,23 @@ func prepareInstallationVersions(ctx context.Context, versions []models.PluginVe
 		if err != nil {
 			return nil, err
 		}
-		providerNeeded = providerNeeded || extension.Provider == constants.PluginProviderFeishu
+		if extension.Provider != "" {
+			providers[extension.Provider] = true
+		}
 	}
-	if providerNeeded && global.FeishuAuthorization != nil {
-		retained, err := global.FeishuAuthorization.Acquire()
-		if err != nil {
-			return nil, err
+	for provider := range providers {
+		if auth := global.PluginAuthorizations[provider]; auth != nil {
+			retained, err := auth.Acquire()
+			if err != nil {
+				return nil, err
+			}
+			releases = append(releases, retained)
+			account, err := auth.Status(ctx, true)
+			if err != nil {
+				return nil, err
+			}
+			ctx = context.WithValue(ctx, providerSnapshotKey{Provider: provider}, providerSnapshot{Account: account})
 		}
-		releases = append(releases, retained)
-		account, err := global.FeishuAuthorization.Status(ctx, true)
-		if err != nil {
-			return nil, err
-		}
-		ctx = context.WithValue(ctx, providerSnapshotKey{}, providerSnapshot{Account: account})
 	}
 	for _, version := range versions {
 		if _, err := readiness(ctx, version, config, false); err != nil {

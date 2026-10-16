@@ -11420,32 +11420,6 @@
               "[PluginNotReady][40900006503]",
               "[PluginVersionConflict][40900006501]"
             ]
-          },
-          "500": {
-            "description": ">\n* `[PluginStorageError][50000006501]`\n",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
-                }
-              }
-            },
-            "x-status-errors": [
-              "[PluginStorageError][50000006501]"
-            ]
-          },
-          "502": {
-            "description": ">\n* `[PluginAuthorizationFailed][50200006501]`\n",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
-                }
-              }
-            },
-            "x-status-errors": [
-              "[PluginAuthorizationFailed][50200006501]"
-            ]
           }
         }
       },
@@ -11520,7 +11494,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GithubComJieWaZiNeuxAllyServerInternalPluginsFeishuSession"
+                  "$ref": "#/components/schemas/GithubComJieWaZiNeuxAllyServerInternalPluginsAuthorizationSession"
                 }
               }
             }
@@ -11577,19 +11551,6 @@
               "[PluginBusy][40900006505]",
               "[PluginNotReady][40900006503]",
               "[PluginVersionConflict][40900006501]"
-            ]
-          },
-          "500": {
-            "description": ">\n* `[PluginStorageError][50000006501]`\n",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
-                }
-              }
-            },
-            "x-status-errors": [
-              "[PluginStorageError][50000006501]"
             ]
           },
           "502": {
@@ -11737,19 +11698,6 @@
               "[PluginBusy][40900006505]",
               "[PluginNotReady][40900006503]",
               "[PluginVersionConflict][40900006501]"
-            ]
-          },
-          "500": {
-            "description": ">\n* `[PluginStorageError][50000006501]`\n",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
-                }
-              }
-            },
-            "x-status-errors": [
-              "[PluginStorageError][50000006501]"
             ]
           }
         }
@@ -12016,19 +11964,6 @@
             },
             "x-status-errors": [
               "[PluginStorageError][50000006501]"
-            ]
-          },
-          "502": {
-            "description": ">\n* `[PluginAuthorizationFailed][50200006501]`\n",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
-                }
-              }
-            },
-            "x-status-errors": [
-              "[PluginAuthorizationFailed][50200006501]"
             ]
           }
         }
@@ -28834,7 +28769,7 @@
           "account": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/GithubComJieWaZiNeuxAllyServerInternalPluginsFeishuAccount"
+                "$ref": "#/components/schemas/GithubComJieWaZiNeuxAllyServerInternalPluginsAuthorizationAccount"
               },
               {
                 "description": "共享身份",
@@ -28845,7 +28780,7 @@
           "activeUses": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/GithubComJieWaZiNeuxAllyServerInternalPluginsFeishuUsage"
+              "$ref": "#/components/schemas/GithubComJieWaZiNeuxAllyServerInternalPluginsAuthorizationUsage"
             },
             "description": "占用工作",
             "x-go-field-name": "ActiveUses"
@@ -28858,6 +28793,11 @@
             "description": "缺少权限",
             "x-go-field-name": "MissingScopes"
           },
+          "provider": {
+            "type": "string",
+            "description": "授权提供者",
+            "x-go-field-name": "Provider"
+          },
           "requiredScopes": {
             "type": "array",
             "items": {
@@ -28869,7 +28809,7 @@
           "session": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/GithubComJieWaZiNeuxAllyServerInternalPluginsFeishuSession"
+                "$ref": "#/components/schemas/GithubComJieWaZiNeuxAllyServerInternalPluginsAuthorizationSession"
               },
               {
                 "description": "设备等待",
@@ -28888,7 +28828,7 @@
           "account": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/GithubComJieWaZiNeuxAllyServerInternalPluginsFeishuAccount"
+                "$ref": "#/components/schemas/GithubComJieWaZiNeuxAllyServerInternalPluginsAuthorizationAccount"
               },
               {
                 "description": "共享身份",
@@ -33983,6 +33923,137 @@
         "x-go-struct-name": "GithubComJieWaZiNeuxAllyServerInternalPluginsAuthor",
         "x-go-vendor-type": "github.com/JieWaZi/NeuxAlly/server/internal/plugins.Author"
       },
+      "GithubComJieWaZiNeuxAllyServerInternalPluginsAuthorizationAccount": {
+        "type": "object",
+        "properties": {
+          "appId": {
+            "type": "string",
+            "description": "AppID 是当前应用身份。",
+            "x-go-field-name": "AppID",
+            "x-tag-json": "appId,omitempty"
+          },
+          "available": {
+            "type": "boolean",
+            "description": "Available 表示用户身份与所需权限当前可用。",
+            "x-go-field-name": "Available"
+          },
+          "configured": {
+            "type": "boolean",
+            "description": "Configured 表示官方 profile 已完成应用配置。",
+            "x-go-field-name": "Configured"
+          },
+          "id": {
+            "type": "string",
+            "description": "ID 是操作者公开标识。",
+            "x-go-field-name": "ID",
+            "x-tag-json": "id,omitempty"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name 是操作者显示名称。",
+            "x-go-field-name": "Name",
+            "x-tag-json": "name,omitempty"
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Scopes 是官方返回的实际权限摘要。",
+            "x-go-field-name": "Scopes"
+          }
+        },
+        "description": "Account 是可显示的共享身份摘要，不保存或返回登录 token。",
+        "x-go-struct-name": "GithubComJieWaZiNeuxAllyServerInternalPluginsAuthorizationAccount",
+        "x-go-vendor-type": "github.com/JieWaZi/NeuxAlly/server/internal/plugins/authorization.Account"
+      },
+      "GithubComJieWaZiNeuxAllyServerInternalPluginsAuthorizationSession": {
+        "type": "object",
+        "properties": {
+          "account": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GithubComJieWaZiNeuxAllyServerInternalPluginsAuthorizationAccount"
+              },
+              {
+                "description": "Account 是最终确认的共享身份。",
+                "x-go-field-name": "Account"
+              }
+            ]
+          },
+          "errorCode": {
+            "type": "string",
+            "description": "ErrorCode 是不含敏感输出的稳定错误标识。",
+            "x-go-field-name": "ErrorCode",
+            "x-tag-json": "errorCode,omitempty"
+          },
+          "expiresAt": {
+            "type": "integer",
+            "format": "int64",
+            "description": "ExpiresAt 是本机等待上限的 Unix 毫秒值。",
+            "x-go-field-name": "ExpiresAt"
+          },
+          "id": {
+            "type": "string",
+            "description": "ID 是本次等待身份。",
+            "x-go-field-name": "ID"
+          },
+          "state": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GithubComJieWaZiNeuxAllyServerConstantsPluginAuthorizationState"
+              },
+              {
+                "description": "State 是经过验证的授权阶段。",
+                "x-go-field-name": "State"
+              }
+            ]
+          },
+          "userCode": {
+            "type": "string",
+            "description": "UserCode 是需用户在官方页面输入的一次性验证码。",
+            "x-go-field-name": "UserCode",
+            "x-tag-json": "userCode,omitempty"
+          },
+          "verificationUrl": {
+            "type": "string",
+            "description": "VerificationURL 是官方原样返回的短时确认链接。",
+            "x-go-field-name": "VerificationURL",
+            "x-tag-json": "verificationUrl,omitempty"
+          }
+        },
+        "description": "Session 是本机授权等待的安全投影。",
+        "x-go-struct-name": "GithubComJieWaZiNeuxAllyServerInternalPluginsAuthorizationSession",
+        "x-go-vendor-type": "github.com/JieWaZi/NeuxAlly/server/internal/plugins/authorization.Session"
+      },
+      "GithubComJieWaZiNeuxAllyServerInternalPluginsAuthorizationUsage": {
+        "type": "object",
+        "properties": {
+          "chatId": {
+            "type": "string",
+            "description": "ChatID 是关联对话标识。",
+            "x-go-field-name": "ChatID"
+          },
+          "executionId": {
+            "type": "string",
+            "description": "ExecutionID 是本轮执行标识。",
+            "x-go-field-name": "ExecutionID"
+          },
+          "title": {
+            "type": "string",
+            "description": "Title 是接纳时的工作标题。",
+            "x-go-field-name": "Title"
+          },
+          "wakerId": {
+            "type": "string",
+            "description": "WakerID 是工作所属伙伴。",
+            "x-go-field-name": "WakerID"
+          }
+        },
+        "description": "Usage 是一个正在使用共享身份的工作引用，不保存输入或凭据。",
+        "x-go-struct-name": "GithubComJieWaZiNeuxAllyServerInternalPluginsAuthorizationUsage",
+        "x-go-vendor-type": "github.com/JieWaZi/NeuxAlly/server/internal/plugins/authorization.Usage"
+      },
       "GithubComJieWaZiNeuxAllyServerInternalPluginsCatalogEntry": {
         "type": "object",
         "properties": {
@@ -34069,131 +34140,6 @@
         "description": "Diagnostic 保存组件局部失败和未支持能力，不含凭据。",
         "x-go-struct-name": "GithubComJieWaZiNeuxAllyServerInternalPluginsDiagnostic",
         "x-go-vendor-type": "github.com/JieWaZi/NeuxAlly/server/internal/plugins.Diagnostic"
-      },
-      "GithubComJieWaZiNeuxAllyServerInternalPluginsFeishuAccount": {
-        "type": "object",
-        "properties": {
-          "appId": {
-            "type": "string",
-            "description": "AppID 是当前应用身份。",
-            "x-go-field-name": "AppID",
-            "x-tag-json": "appId,omitempty"
-          },
-          "available": {
-            "type": "boolean",
-            "description": "Available 表示用户身份与所需权限当前可用。",
-            "x-go-field-name": "Available"
-          },
-          "configured": {
-            "type": "boolean",
-            "description": "Configured 表示官方 profile 已完成应用配置。",
-            "x-go-field-name": "Configured"
-          },
-          "id": {
-            "type": "string",
-            "description": "ID 是操作者公开标识。",
-            "x-go-field-name": "ID",
-            "x-tag-json": "id,omitempty"
-          },
-          "name": {
-            "type": "string",
-            "description": "Name 是操作者显示名称。",
-            "x-go-field-name": "Name",
-            "x-tag-json": "name,omitempty"
-          },
-          "scopes": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "Scopes 是官方返回的实际权限摘要。",
-            "x-go-field-name": "Scopes"
-          }
-        },
-        "description": "Account 是可显示的共享身份摘要，不保存或返回登录 token。",
-        "x-go-struct-name": "GithubComJieWaZiNeuxAllyServerInternalPluginsFeishuAccount",
-        "x-go-vendor-type": "github.com/JieWaZi/NeuxAlly/server/internal/plugins/feishu.Account"
-      },
-      "GithubComJieWaZiNeuxAllyServerInternalPluginsFeishuSession": {
-        "type": "object",
-        "properties": {
-          "account": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/GithubComJieWaZiNeuxAllyServerInternalPluginsFeishuAccount"
-              },
-              {
-                "description": "Account 是最终确认的共享身份。",
-                "x-go-field-name": "Account"
-              }
-            ]
-          },
-          "errorCode": {
-            "type": "string",
-            "description": "ErrorCode 是不含敏感输出的稳定错误标识。",
-            "x-go-field-name": "ErrorCode",
-            "x-tag-json": "errorCode,omitempty"
-          },
-          "expiresAt": {
-            "type": "integer",
-            "format": "int64",
-            "description": "ExpiresAt 是等待期限的 Unix 毫秒值。",
-            "x-go-field-name": "ExpiresAt"
-          },
-          "id": {
-            "type": "string",
-            "description": "ID 是本次等待身份。",
-            "x-go-field-name": "ID"
-          },
-          "state": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/GithubComJieWaZiNeuxAllyServerConstantsPluginAuthorizationState"
-              },
-              {
-                "description": "State 是经过验证的授权阶段。",
-                "x-go-field-name": "State"
-              }
-            ]
-          },
-          "verificationUrl": {
-            "type": "string",
-            "description": "VerificationURL 是官方原样返回的短时确认链接。",
-            "x-go-field-name": "VerificationURL",
-            "x-tag-json": "verificationUrl,omitempty"
-          }
-        },
-        "description": "Session 是本机授权等待的安全投影。",
-        "x-go-struct-name": "GithubComJieWaZiNeuxAllyServerInternalPluginsFeishuSession",
-        "x-go-vendor-type": "github.com/JieWaZi/NeuxAlly/server/internal/plugins/feishu.Session"
-      },
-      "GithubComJieWaZiNeuxAllyServerInternalPluginsFeishuUsage": {
-        "type": "object",
-        "properties": {
-          "chatId": {
-            "type": "string",
-            "description": "ChatID 是关联对话标识。",
-            "x-go-field-name": "ChatID"
-          },
-          "executionId": {
-            "type": "string",
-            "description": "ExecutionID 是本轮执行标识。",
-            "x-go-field-name": "ExecutionID"
-          },
-          "title": {
-            "type": "string",
-            "description": "Title 是接纳时的工作标题。",
-            "x-go-field-name": "Title"
-          },
-          "wakerId": {
-            "type": "string",
-            "description": "WakerID 是工作所属伙伴。",
-            "x-go-field-name": "WakerID"
-          }
-        },
-        "description": "Usage 是一个正在使用共享身份的工作引用，不保存输入或凭据。",
-        "x-go-struct-name": "GithubComJieWaZiNeuxAllyServerInternalPluginsFeishuUsage",
-        "x-go-vendor-type": "github.com/JieWaZi/NeuxAlly/server/internal/plugins/feishu.Usage"
       },
       "GithubComJieWaZiNeuxAllyServerInternalPluginsManifest": {
         "type": "object",

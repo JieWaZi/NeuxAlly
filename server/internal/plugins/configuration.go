@@ -233,3 +233,16 @@ func validClientExtension(value json.RawMessage) bool {
 	}
 	return true
 }
+
+// ValidateProviderServers 限制受管身份可交付的服务，安装和执行采用同一规则。
+func ValidateProviderServers(extension Extension, pkg Package) error {
+	if extension.Provider != constants.PluginProviderGitHub {
+		return nil
+	}
+	for _, server := range pkg.Servers {
+		if server.Type != "streamable-http" || server.URL != constants.GitHubMCPURL {
+			return status_error.PluginForbidden
+		}
+	}
+	return nil
+}

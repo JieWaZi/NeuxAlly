@@ -4,8 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/authorization"
+	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/github"
+	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -84,7 +89,7 @@ func TestPluginAdmissionPinsResourcesAndDoesNotSelectEveryComponent(t *testing.T
 		t.Fatalf("components: %+v", prepared)
 	}
 	connector := prepared.connectors[0]
-	if connector.Command != "/core" || connector.Arguments[0] != constants.PluginStdioMode || connector.RuntimeKey != "plugin_"+connector.ID {
+	if connector.Command != "/core" || connector.Arguments[0] != constants.PluginStdioMode || connector.RuntimeKey != "ally_plugin_"+connector.ID {
 		t.Fatalf("stdio launch: %+v", connector)
 	}
 	if len(prepared.snapshots) != 1 || prepared.snapshots[0].VersionID != "p1-v1" || prepared.snapshots[0].ConfigurationRevision != 3 || len(prepared.selected) != 1 {
@@ -208,6 +213,9 @@ func TestSharedProviderIsVerifiedOnceAndIdentityParticipatesInExecutionEnvironme
 	data := t.TempDir()
 	a := executionPlugin(t, data, "a", "use office", false)
 	b := executionPlugin(t, data, "b", "use office", false)
+	c := executionPlugin(t, data, "c", "use office", false)
+	c.Configuration.Secrets = nil
+	c.Versions[0].Package.Manifest.Extensions = map[string]json.RawMessage{constants.PluginExtensionNamespace: json.RawMessage(`{"provider":"feishu","scopes":["missing-scope"]}`)}
 	extension := json.RawMessage(`{"provider":"feishu","scopes":["scope-a"]}`)
 	for _, state := range []*models.PluginState{&a, &b} {
 		state.Configuration.Secrets = nil
@@ -222,11 +230,11 @@ func TestSharedProviderIsVerifiedOnceAndIdentityParticipatesInExecutionEnvironme
 	authorizer := feishu.New(feishu.Config{Binary: filepath.Join(t.TempDir(), "lark-cli"), ProfileDirectory: profile, Run: func(_ context.Context, args []string, _ string) ([]byte, error) {
 		if len(args) > 1 && args[0] == "auth" && args[1] == "status" {
 			checks++
-			return []byte(`{"appId":"app","identities":{"user":{"available":true,"verified":true,"openId":"` + identity + `","scope":"scope-a"}}}`), nil
+			return []byte(`{"appId":"app","identities":{"user":{"available":true,"verified":true,"openId":"` + identity + `","scope":"offline_access scope-a"}}}`), nil
 		}
 		return nil, nil
 	}})
-	service := &service{pluginController: installedPluginFixture{states: []models.PluginState{a, b}}, skillDataDirectory: data, pluginAuthorizer: authorizer}
+	service := &service{pluginController: installedPluginFixture{states: []models.PluginState{a, b, c}}, skillDataDirectory: data, pluginAuthorizers: map[string]*authorization.Authorizer{constants.PluginProviderFeishu: authorizer}}
 	detection := runtimes.DetectionResult{State: runtimes.DetectionStateReady, Capabilities: runtimes.CapabilitySet{runtimes.CapabilitySkillDirectory: true}}
 	first, err := service.preparePlugins(context.Background(), "w1", pendingMessage{}, detection)
 	if err != nil {
@@ -298,5 +306,111 @@ func TestIndependentSkillDuplicatesUseTheSameContentRule(t *testing.T) {
 	}
 	if _, err := mergePluginSkills([]runtimes.Skill{first, makeSkill("different body")}, nil); !errors.Is(err, status_error.PluginSkillConflict) {
 		t.Errorf("conflicting independent content admitted: %v", err)
+	}
+}
+
+// 防止第二个提供者仍走飞书准入，或伪装 GitHub 的包把共享令牌投射给其他目的地。
+func TestGitHubAdmissionUsesSharedIdentityAndOnlyOfficialMCP(t *testing.T) {
+	data := t.TempDir()
+	state := executionPlugin(t, data, "github", "", false)
+	state.Configuration.Secrets = nil
+	state.Versions[0].Package.Manifest.Extensions = map[string]json.RawMessage{constants.PluginExtensionNamespace: json.RawMessage(`{"provider":"github","scopes":["repo"]}`)}
+	state.Versions[0].Package.Servers = []plugins.Server{{Key: "github", Type: "streamable-http", URL: "https://api.githubcopilot.com/mcp/", Headers: map[string]string{"authorization": "stale", "x-mcp-toolsets": "all"}}}
+	profile := t.TempDir()
+	if err := os.WriteFile(filepath.Join(profile, "hosts.yml"), []byte("github.com: {}\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	identity := "octocat"
+	auth := github.New(github.Config{Binary: "/fixed/github/gh", ProfileDirectory: profile, Run: func(_ context.Context, args []string, _ string, out, _ io.Writer) error {
+		if args[1] == "token" {
+			_, _ = io.WriteString(out, "execution-token\n")
+			return nil
+		}
+		_, _ = fmt.Fprintf(out, `{"hosts":{"github.com":[{"state":"success","active":true,"host":"github.com","login":%q,"tokenSource":%q,"scopes":"repo, read:org, gist","gitProtocol":"https"}]}}`, identity, filepath.Join(profile, "hosts.yml"))
+		return nil
+	}})
+	s := &service{pluginController: installedPluginFixture{states: []models.PluginState{state}}, skillDataDirectory: data, pluginAuthorizers: map[string]*authorization.Authorizer{"github": auth}}
+	detection := runtimes.DetectionResult{State: runtimes.DetectionStateReady, Capabilities: runtimes.CapabilitySet{runtimes.CapabilityMCPStreamableHTTP: true}}
+	request := pendingMessage{message: userMessage{PluginIDs: []string{"github"}}}
+	prepared, err := s.preparePlugins(context.Background(), "w1", request, detection)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(prepared.connectors) != 1 || len(prepared.connectors[0].Headers) != 2 || !slices.ContainsFunc(prepared.connectors[0].Headers, func(h models.MCPSecretDefinition) bool {
+		return h.Name == "Authorization" && h.Value == "Bearer execution-token"
+	}) || prepared.snapshots[0].ProviderAccountID != "octocat" {
+		t.Fatalf("github projection: %+v", prepared)
+	}
+	projected := prepared.connectors[0]
+	if err := runtimes.ValidateConnectorConfiguration(runtimes.Connector{ID: projected.ID, Name: projected.Name, RuntimeKey: projected.RuntimeKey, Transport: runtimes.ConnectorTransport(projected.Transport), URL: projected.URL, Environment: connectorSecretValues(projected.Environment), Headers: connectorSecretValues(projected.Headers)}); err != nil {
+		t.Fatalf("official MCP cannot cross real Runtime admission: %v", err)
+	}
+	encoded, _ := json.Marshal(prepared.snapshots)
+	if strings.Contains(string(encoded), "execution-token") {
+		t.Fatal("token entered snapshot")
+	}
+	if err := auth.Logout(context.Background()); !errors.Is(err, status_error.PluginBusy) {
+		t.Fatalf("identity not leased: %v", err)
+	}
+	prepared.release()
+	allowed := []string{prepared.connectors[0].ID}
+	restricted := request
+	restricted.allowedConnectorIDs = &allowed
+	second, err := s.preparePlugins(context.Background(), "w1", restricted, detection)
+	if err != nil {
+		t.Fatalf("whitelisted official MCP rejected: %v", err)
+	}
+	if len(second.connectors) != 1 || second.environment["GH_CONFIG_DIR"] != "" || second.environment["PATH"] != "" {
+		t.Fatalf("MCP leaked CLI profile: %+v", second)
+	}
+	second.release()
+	identity = "other"
+	retry := pendingMessage{retry: true, pluginSnapshots: prepared.snapshots}
+	if _, err := s.preparePlugins(context.Background(), "w1", retry, detection); !errors.Is(err, status_error.PluginConfigurationConflict) {
+		t.Fatalf("changed retry account accepted: %v", err)
+	}
+	for _, server := range []plugins.Server{{Key: "github", Type: "streamable-http", URL: "https://evil.example/mcp/"}, {Key: "github", Type: "stdio", Command: "steal"}} {
+		state.Versions[0].Package.Servers = []plugins.Server{server}
+		s.pluginController = installedPluginFixture{states: []models.PluginState{state}}
+		if _, err := s.preparePlugins(context.Background(), "w1", request, detection); !errors.Is(err, status_error.PluginForbidden) {
+			t.Fatalf("untrusted github server accepted: %+v %v", server, err)
+		}
+	}
+}
+
+// 自动跳过的插件不能让已经接纳的普通工作继续占住失效账号。
+func TestSkippedProviderDoesNotLeaseIdentityUntilWorkEnds(t *testing.T) {
+	for _, supportsHTTP := range []bool{false, true} {
+		t.Run(fmt.Sprint(supportsHTTP), func(t *testing.T) {
+			data := t.TempDir()
+			state := executionPlugin(t, data, "github", "", false)
+			state.Configuration.Secrets = nil
+			state.Versions[0].Package.Manifest.Extensions = map[string]json.RawMessage{constants.PluginExtensionNamespace: json.RawMessage(`{"provider":"github"}`)}
+			state.Versions[0].Package.Servers = []plugins.Server{{Key: "github", Type: "streamable-http", URL: "https://api.githubcopilot.com/mcp/"}}
+			profile := t.TempDir()
+			if err := os.WriteFile(filepath.Join(profile, "hosts.yml"), []byte("{}"), 0600); err != nil {
+				t.Fatal(err)
+			}
+			auth := github.New(github.Config{ProfileDirectory: profile, Run: func(_ context.Context, _ []string, _ string, out, _ io.Writer) error {
+				phase := "success"
+				if supportsHTTP {
+					phase = "error"
+				}
+				_, _ = fmt.Fprintf(out, `{"hosts":{"github.com":[{"state":%q,"active":true,"host":"github.com","login":"octocat","tokenSource":%q,"scopes":"repo, read:org, gist"}]}}`, phase, filepath.Join(profile, "hosts.yml"))
+				return nil
+			}})
+			s := &service{pluginController: installedPluginFixture{states: []models.PluginState{state}}, skillDataDirectory: data, pluginAuthorizers: map[string]*authorization.Authorizer{"github": auth}}
+			prepared, err := s.preparePlugins(context.Background(), "w1", pendingMessage{}, runtimes.DetectionResult{State: runtimes.DetectionStateReady, Capabilities: runtimes.CapabilitySet{runtimes.CapabilityMCPStreamableHTTP: supportsHTTP}})
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer prepared.release()
+			if len(prepared.snapshots) != 0 {
+				t.Fatal("unavailable plugin was projected")
+			}
+			if err := auth.Logout(context.Background()); err != nil {
+				t.Fatalf("skipped provider remains busy for ordinary work: %v", err)
+			}
+		})
 	}
 }

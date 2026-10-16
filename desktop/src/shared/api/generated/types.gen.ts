@@ -1657,27 +1657,31 @@ export type GithubComJieWaZiNeuxAllyServerApisPluginsPartnerInstallResult = {
  * 插件授权响应
  */
 export type GithubComJieWaZiNeuxAllyServerApisPluginsPluginAuthorizationResponse = {
-    account?: GithubComJieWaZiNeuxAllyServerInternalPluginsFeishuAccount & unknown;
+    account?: GithubComJieWaZiNeuxAllyServerInternalPluginsAuthorizationAccount & unknown;
     /**
      * 占用工作
      */
-    activeUses?: Array<GithubComJieWaZiNeuxAllyServerInternalPluginsFeishuUsage>;
+    activeUses?: Array<GithubComJieWaZiNeuxAllyServerInternalPluginsAuthorizationUsage>;
     /**
      * 缺少权限
      */
     missingScopes?: Array<string>;
     /**
+     * 授权提供者
+     */
+    provider?: string;
+    /**
      * 所需权限
      */
     requiredScopes?: Array<string>;
-    session?: GithubComJieWaZiNeuxAllyServerInternalPluginsFeishuSession & unknown;
+    session?: GithubComJieWaZiNeuxAllyServerInternalPluginsAuthorizationSession & unknown;
 };
 
 /**
  * 插件详情
  */
 export type GithubComJieWaZiNeuxAllyServerApisPluginsPluginDetailResponse = {
-    account?: GithubComJieWaZiNeuxAllyServerInternalPluginsFeishuAccount & unknown;
+    account?: GithubComJieWaZiNeuxAllyServerInternalPluginsAuthorizationAccount & unknown;
     /**
      * 阻塞原因
      */
@@ -4567,6 +4571,86 @@ export type GithubComJieWaZiNeuxAllyServerInternalPluginsAuthor = {
 };
 
 /**
+ * Account 是可显示的共享身份摘要，不保存或返回登录 token。
+ */
+export type GithubComJieWaZiNeuxAllyServerInternalPluginsAuthorizationAccount = {
+    /**
+     * AppID 是当前应用身份。
+     */
+    appId?: string;
+    /**
+     * Available 表示用户身份与所需权限当前可用。
+     */
+    available?: boolean;
+    /**
+     * Configured 表示官方 profile 已完成应用配置。
+     */
+    configured?: boolean;
+    /**
+     * ID 是操作者公开标识。
+     */
+    id?: string;
+    /**
+     * Name 是操作者显示名称。
+     */
+    name?: string;
+    /**
+     * Scopes 是官方返回的实际权限摘要。
+     */
+    scopes?: Array<string>;
+};
+
+/**
+ * Session 是本机授权等待的安全投影。
+ */
+export type GithubComJieWaZiNeuxAllyServerInternalPluginsAuthorizationSession = {
+    account?: GithubComJieWaZiNeuxAllyServerInternalPluginsAuthorizationAccount & unknown;
+    /**
+     * ErrorCode 是不含敏感输出的稳定错误标识。
+     */
+    errorCode?: string;
+    /**
+     * ExpiresAt 是本机等待上限的 Unix 毫秒值。
+     */
+    expiresAt?: number;
+    /**
+     * ID 是本次等待身份。
+     */
+    id?: string;
+    state?: GithubComJieWaZiNeuxAllyServerConstantsPluginAuthorizationState & unknown;
+    /**
+     * UserCode 是需用户在官方页面输入的一次性验证码。
+     */
+    userCode?: string;
+    /**
+     * VerificationURL 是官方原样返回的短时确认链接。
+     */
+    verificationUrl?: string;
+};
+
+/**
+ * Usage 是一个正在使用共享身份的工作引用，不保存输入或凭据。
+ */
+export type GithubComJieWaZiNeuxAllyServerInternalPluginsAuthorizationUsage = {
+    /**
+     * ChatID 是关联对话标识。
+     */
+    chatId?: string;
+    /**
+     * ExecutionID 是本轮执行标识。
+     */
+    executionId?: string;
+    /**
+     * Title 是接纳时的工作标题。
+     */
+    title?: string;
+    /**
+     * WakerID 是工作所属伙伴。
+     */
+    wakerId?: string;
+};
+
+/**
  * Entry 描述一个本地目录项及其不可变来源。
  */
 export type GithubComJieWaZiNeuxAllyServerInternalPluginsCatalogEntry = {
@@ -4623,82 +4707,6 @@ export type GithubComJieWaZiNeuxAllyServerInternalPluginsDiagnostic = {
      * Component 是包内组件或字段身份。
      */
     component?: string;
-};
-
-/**
- * Account 是可显示的共享身份摘要，不保存或返回登录 token。
- */
-export type GithubComJieWaZiNeuxAllyServerInternalPluginsFeishuAccount = {
-    /**
-     * AppID 是当前应用身份。
-     */
-    appId?: string;
-    /**
-     * Available 表示用户身份与所需权限当前可用。
-     */
-    available?: boolean;
-    /**
-     * Configured 表示官方 profile 已完成应用配置。
-     */
-    configured?: boolean;
-    /**
-     * ID 是操作者公开标识。
-     */
-    id?: string;
-    /**
-     * Name 是操作者显示名称。
-     */
-    name?: string;
-    /**
-     * Scopes 是官方返回的实际权限摘要。
-     */
-    scopes?: Array<string>;
-};
-
-/**
- * Session 是本机授权等待的安全投影。
- */
-export type GithubComJieWaZiNeuxAllyServerInternalPluginsFeishuSession = {
-    account?: GithubComJieWaZiNeuxAllyServerInternalPluginsFeishuAccount & unknown;
-    /**
-     * ErrorCode 是不含敏感输出的稳定错误标识。
-     */
-    errorCode?: string;
-    /**
-     * ExpiresAt 是等待期限的 Unix 毫秒值。
-     */
-    expiresAt?: number;
-    /**
-     * ID 是本次等待身份。
-     */
-    id?: string;
-    state?: GithubComJieWaZiNeuxAllyServerConstantsPluginAuthorizationState & unknown;
-    /**
-     * VerificationURL 是官方原样返回的短时确认链接。
-     */
-    verificationUrl?: string;
-};
-
-/**
- * Usage 是一个正在使用共享身份的工作引用，不保存输入或凭据。
- */
-export type GithubComJieWaZiNeuxAllyServerInternalPluginsFeishuUsage = {
-    /**
-     * ChatID 是关联对话标识。
-     */
-    chatId?: string;
-    /**
-     * ExecutionID 是本轮执行标识。
-     */
-    executionId?: string;
-    /**
-     * Title 是接纳时的工作标题。
-     */
-    title?: string;
-    /**
-     * WakerID 是工作所属伙伴。
-     */
-    wakerId?: string;
 };
 
 /**
@@ -15491,18 +15499,6 @@ export type GetPluginAuthorizationErrors = {
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
-    /**
-     * >
-     * * `[PluginStorageError][50000006501]`
-     *
-     */
-    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
-    /**
-     * >
-     * * `[PluginAuthorizationFailed][50200006501]`
-     *
-     */
-    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
 };
 
 export type GetPluginAuthorizationError = GetPluginAuthorizationErrors[keyof GetPluginAuthorizationErrors];
@@ -15563,12 +15559,6 @@ export type StartPluginAuthorizationErrors = {
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
-     * * `[PluginStorageError][50000006501]`
-     *
-     */
-    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
-    /**
-     * >
      * * `[PluginAuthorizationFailed][50200006501]`
      *
      */
@@ -15578,7 +15568,7 @@ export type StartPluginAuthorizationErrors = {
 export type StartPluginAuthorizationError = StartPluginAuthorizationErrors[keyof StartPluginAuthorizationErrors];
 
 export type StartPluginAuthorizationResponses = {
-    200: GithubComJieWaZiNeuxAllyServerInternalPluginsFeishuSession;
+    200: GithubComJieWaZiNeuxAllyServerInternalPluginsAuthorizationSession;
 };
 
 export type StartPluginAuthorizationResponse = StartPluginAuthorizationResponses[keyof StartPluginAuthorizationResponses];
@@ -15631,12 +15621,6 @@ export type ConfigurePluginAuthorizationErrors = {
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
-    /**
-     * >
-     * * `[PluginStorageError][50000006501]`
-     *
-     */
-    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
 };
 
 export type ConfigurePluginAuthorizationError = ConfigurePluginAuthorizationErrors[keyof ConfigurePluginAuthorizationErrors];
@@ -15761,12 +15745,6 @@ export type UpdatePluginConfigurationErrors = {
      *
      */
     500: GithubComShrewxGinxPkgStatuserrorStatusErr;
-    /**
-     * >
-     * * `[PluginAuthorizationFailed][50200006501]`
-     *
-     */
-    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
 };
 
 export type UpdatePluginConfigurationError = UpdatePluginConfigurationErrors[keyof UpdatePluginConfigurationErrors];

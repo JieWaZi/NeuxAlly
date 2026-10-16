@@ -40,7 +40,14 @@ test("independent Git bundle builds catalog completely offline", async () => {
   const output = await mkdtemp(path.join(os.tmpdir(), "plugin-catalog-"));
   try {
     const catalog = await prepareCatalog(output);
-    assert.equal(catalog.entries.length, 1);
+    assert.equal(catalog.entries.length, 2);
+    const github = catalog.entries.find((entry) => entry.key === "github");
+    assert.ok(github);
+    assert.equal(
+      github.package.servers[0].url,
+      "https://api.githubcopilot.com/mcp/",
+    );
+    assert.equal(github.package.skills.length, 0);
     const entry = catalog.entries[0];
     assert.equal(entry.key, "feishu-office");
     const files = requireDesktop("fflate").unzipSync(
@@ -66,4 +73,32 @@ test("independent Git bundle builds catalog completely offline", async () => {
   } finally {
     await rm(output, { recursive: true, force: true });
   }
+});
+
+test("both providers use pinned assets for all six desktop targets", async () => {
+  const lock = await loadLock();
+  for (const target of [
+    "darwin-amd64",
+    "darwin-arm64",
+    "windows-amd64",
+    "windows-arm64",
+    "linux-amd64",
+    "linux-arm64",
+  ]) {
+    const asset = selectAsset(lock, target, "github");
+    assert.equal(asset.target, target);
+    assert.equal(
+      asset.file,
+      "github-cli-fc4b137cdef0a6bd28fd461b7cf9c84a5812a8cd.tar.gz",
+    );
+    assert.equal(
+      asset.url,
+      "https://github.com/cli/cli/archive/fc4b137cdef0a6bd28fd461b7cf9c84a5812a8cd.tar.gz",
+    );
+  }
+  const incomplete = structuredClone(lock);
+  incomplete.providers = incomplete.providers.filter(
+    (p) => p.name !== "github",
+  );
+  await assert.rejects(() => loadLock(incomplete), /来源/);
 });

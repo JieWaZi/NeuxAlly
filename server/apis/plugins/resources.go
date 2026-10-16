@@ -5,16 +5,15 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/authorization"
 	"github.com/JieWaZi/NeuxAlly/server/internal/util"
 	"os"
 	"path/filepath"
 	"time"
 
-	"github.com/JieWaZi/NeuxAlly/server/constants"
 	"github.com/JieWaZi/NeuxAlly/server/constants/status_error"
 	"github.com/JieWaZi/NeuxAlly/server/global"
 	packageplugin "github.com/JieWaZi/NeuxAlly/server/internal/plugins"
-	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/feishu"
 	"github.com/JieWaZi/NeuxAlly/server/repositories/models"
 )
 
@@ -37,8 +36,8 @@ func secretValues(config models.PluginConfiguration) map[string]string {
 	}
 	return values
 }
-func readiness(ctx context.Context, version models.PluginVersion, config models.PluginConfiguration, verify bool) (feishu.Account, error) {
-	account := feishu.Account{Scopes: []string{}}
+func readiness(ctx context.Context, version models.PluginVersion, config models.PluginConfiguration, verify bool) (authorization.Account, error) {
+	account := authorization.Account{Scopes: []string{}}
 	if len(version.Package.Servers) > 0 && version.TrustedAt == 0 {
 		return account, status_error.MCPConnectorTrustRequired
 	}
@@ -47,6 +46,9 @@ func readiness(ctx context.Context, version models.PluginVersion, config models.
 	}
 	extension, err := packageplugin.ClientExtension(version.Package)
 	if err != nil {
+		return account, err
+	}
+	if err := packageplugin.ValidateProviderServers(extension, version.Package); err != nil {
 		return account, err
 	}
 	available := map[string]bool{}
@@ -62,16 +64,16 @@ func readiness(ctx context.Context, version models.PluginVersion, config models.
 		}
 	}
 	if extension.Provider != "" {
-		if extension.Provider != constants.PluginProviderFeishu || global.FeishuAuthorization == nil {
+		if global.PluginAuthorizations[extension.Provider] == nil {
 			return account, status_error.PluginNotReady
 		}
-		if _, err := os.Stat(global.FeishuAuthorization.Binary()); err != nil {
+		if _, err := os.Stat(global.PluginAuthorizations[extension.Provider].Binary()); err != nil {
 			return account, status_error.PluginNotReady
 		}
-		if snapshot, ok := ctx.Value(providerSnapshotKey{}).(providerSnapshot); ok && !verify {
+		if snapshot, ok := ctx.Value(providerSnapshotKey{Provider: extension.Provider}).(providerSnapshot); ok && !verify {
 			account, err = snapshot.Account, snapshot.Err
 		} else {
-			account, err = global.FeishuAuthorization.Status(ctx, verify)
+			account, err = global.PluginAuthorizations[extension.Provider].Status(ctx, verify)
 		}
 		if err != nil {
 			return account, err
@@ -79,20 +81,17 @@ func readiness(ctx context.Context, version models.PluginVersion, config models.
 		if !account.Available {
 			return account, status_error.PluginNotReady
 		}
-		granted := map[string]bool{}
-		for _, scope := range account.Scopes {
-			granted[scope] = true
-		}
 		for _, scope := range extension.Scopes {
-			if !granted[scope] {
+			if !global.PluginAuthorizations[extension.Provider].ScopeGranted(account.Scopes, scope) {
 				return account, status_error.PluginNotReady
 			}
 		}
+
 	}
 	return account, nil
 }
 func pluginDetail(ctx context.Context, resource models.Plugin, selectedVersion ...string) (PluginDetailResponse, error) {
-	result := PluginDetailResponse{Plugin: resource, Versions: []models.PluginVersion{}, Installations: []models.WakerPlugin{}, Values: map[string]string{}, Fields: []packageplugin.ConfigurationField{}, ConfiguredSecrets: []string{}, Blockers: []string{}, Account: feishu.Account{Scopes: []string{}}}
+	result := PluginDetailResponse{Plugin: resource, Versions: []models.PluginVersion{}, Installations: []models.WakerPlugin{}, Values: map[string]string{}, Fields: []packageplugin.ConfigurationField{}, ConfiguredSecrets: []string{}, Blockers: []string{}, Account: authorization.Account{Scopes: []string{}}}
 	states, err := global.PluginControllerManager.ReadStates(ctx, []string{resource.ID})
 	if err != nil {
 		return result, err
@@ -100,7 +99,7 @@ func pluginDetail(ctx context.Context, resource models.Plugin, selectedVersion .
 	return detailFromState(ctx, resource, states[resource.ID], selectedVersion...)
 }
 func detailFromState(ctx context.Context, resource models.Plugin, state models.PluginState, selectedVersion ...string) (PluginDetailResponse, error) {
-	result := PluginDetailResponse{Plugin: resource, PartnerNames: state.PartnerNames, Versions: state.Versions, Installations: state.Installations, Values: map[string]string{}, Fields: []packageplugin.ConfigurationField{}, ConfiguredSecrets: []string{}, Blockers: []string{}, Account: feishu.Account{Scopes: []string{}}}
+	result := PluginDetailResponse{Plugin: resource, PartnerNames: state.PartnerNames, Versions: state.Versions, Installations: state.Installations, Values: map[string]string{}, Fields: []packageplugin.ConfigurationField{}, ConfiguredSecrets: []string{}, Blockers: []string{}, Account: authorization.Account{Scopes: []string{}}}
 	config := state.Configuration
 
 	result.Values = config.Values
@@ -242,12 +241,15 @@ func prepareResource(ctx context.Context, stage packageplugin.StagedPackage, own
 }
 
 // providerSnapshotKey 只在一次列表查询内复用官方身份结果。
-type providerSnapshotKey struct{}
+type providerSnapshotKey struct {
+	// Provider 区分同一请求中的官方身份来源。
+	Provider string
+}
 
 // providerSnapshot 不跨请求缓存授权事实。
 type providerSnapshot struct {
 	// Account 是本次查询的官方身份摘要。
-	Account feishu.Account
+	Account authorization.Account
 	// Err 是同一次边界查询的稳定失败。
 	Err error
 }
@@ -287,22 +289,20 @@ func listPluginResources(ctx context.Context, waker, query string, page, size in
 		return ListPluginsResponse{}, err
 	}
 
-	providerNeeded := false
+	providers := map[string]bool{}
 	for _, state := range states {
 		for _, version := range state.Versions {
 			extension, err := packageplugin.ClientExtension(version.Package)
-			if err == nil && extension.Provider == constants.PluginProviderFeishu {
-				providerNeeded = true
-				break
+			if err == nil && extension.Provider != "" {
+				providers[extension.Provider] = true
 			}
 		}
-		if providerNeeded {
-			break
-		}
 	}
-	if providerNeeded && global.FeishuAuthorization != nil {
-		account, err := global.FeishuAuthorization.Status(ctx, false)
-		ctx = context.WithValue(ctx, providerSnapshotKey{}, providerSnapshot{Account: account, Err: err})
+	for provider := range providers {
+		if auth := global.PluginAuthorizations[provider]; auth != nil {
+			account, err := auth.Status(ctx, false)
+			ctx = context.WithValue(ctx, providerSnapshotKey{Provider: provider}, providerSnapshot{Account: account, Err: err})
+		}
 	}
 	result := ListPluginsResponse{Resources: []PluginDetailResponse{}, TotalSize: total, PageNum: page, PageSize: size}
 	for _, resource := range resources {
