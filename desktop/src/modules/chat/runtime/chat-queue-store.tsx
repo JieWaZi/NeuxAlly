@@ -1,3 +1,4 @@
+import type { JSONContent } from "@tiptap/core";
 import type { AppendMessage } from "@assistant-ui/react";
 import {
   createContext,
@@ -9,6 +10,52 @@ import {
 
 import type { AllyChatMessage } from "./chat-projection";
 import type { PermissionLevel } from "@/shared/lib/runtime-permissions";
+
+type RunConfig = NonNullable<AppendMessage["runConfig"]>;
+
+/** 仅供本地失败恢复的编辑器快照，不进入 Core 消息请求。 */
+export type ChatComposerDraft = { document: JSONContent };
+export type ChatComposerRunConfig = RunConfig & {
+  custom?: Record<string, unknown> & { chatComposerDraft?: ChatComposerDraft };
+};
+
+/** 快照由真实输入组件产生，只读取对应发送项的类型化文档。 */
+export function chatComposerDraftOf(
+  config?: RunConfig,
+): ChatComposerDraft | undefined {
+  const value = config?.custom?.chatComposerDraft;
+  if (!value || typeof value !== "object" || !("document" in value))
+    return undefined;
+  const document = value.document;
+  if (
+    !document ||
+    typeof document !== "object" ||
+    !("type" in document) ||
+    document.type !== "doc"
+  )
+    return undefined;
+  return { document: { ...document, type: "doc" } };
+}
+
+/** 入队和直接发送都冻结自己的文档，后续输入不能改写旧项。 */
+export function snapshotComposerMessage(message: AppendMessage): AppendMessage {
+  const draft = chatComposerDraftOf(message.runConfig);
+  if (!draft) return message;
+  const runConfig: ChatComposerRunConfig = {
+    ...message.runConfig,
+    custom: {
+      ...message.runConfig?.custom,
+      chatComposerDraft: structuredClone(draft),
+    },
+  };
+  return { ...message, runConfig };
+}
+
+/** 拒绝恢复的数据固定来自该发送项，页面只负责把它交还输入。 */
+export type ChatComposerRecovery = { text: string; runConfig?: RunConfig };
+export type RejectedChatSelection = ChatSendSelection & {
+  composerRecovery: ChatComposerRecovery;
+};
 
 export type ChatSendSelection = {
   accountId?: string;

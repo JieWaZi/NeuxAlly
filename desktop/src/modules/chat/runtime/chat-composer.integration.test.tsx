@@ -40,6 +40,7 @@ import { useChatRuntime } from "./use-chat-runtime";
 import {
   ChatQueueProvider,
   type ChatCodeReference,
+  type ChatComposerRecovery,
   type ChatSendSelection,
 } from "./chat-queue-store";
 import type { GithubComJieWaZiNeuxAllyServerServicesExecutionAcceptedExecution as MessageResult } from "@/shared/api/generated/types.gen";
@@ -152,11 +153,13 @@ function ComposerControls({
   onCodeReferencesChange,
   clearRevision,
   restoreRevision,
+  restoreDraft,
 }: {
   codeReferenceRequest?: ChatCodeReference;
   onCodeReferencesChange?: (references: ChatCodeReference[]) => void;
   clearRevision?: number;
   restoreRevision?: number;
+  restoreDraft?: ChatComposerRecovery;
 } = {}) {
   const [, refreshComposer] = useReducer((revision: number) => revision + 1, 0);
   return (
@@ -169,6 +172,7 @@ function ComposerControls({
         onCodeReferencesChange={onCodeReferencesChange}
         clearRevision={clearRevision}
         restoreRevision={restoreRevision}
+        restoreDraft={restoreDraft}
       />
       <ComposerPrimitive.Send>send</ComposerPrimitive.Send>
     </ComposerPrimitive.Root>
@@ -281,6 +285,25 @@ function WorkflowComposerHarness() {
   );
 }
 
+function MissingSnapshotRecoveryHarness() {
+  const [clearRevision, clear] = useReducer((n: number) => n + 1, 0);
+  const [restoreRevision, restore] = useReducer((n: number) => n + 1, 0);
+  return (
+    <>
+      <ChatComposerInput
+        ariaLabel="message"
+        placeholder="输入消息"
+        workflows={[{ id: "flow-b", name: "工作流乙", description: "乙用途" }]}
+        clearRevision={clearRevision}
+        restoreRevision={restoreRevision}
+        restoreDraft={{ text: "甲的无快照正文" }}
+      />
+      <button onClick={clear}>清空乙</button>
+      <button onClick={restore}>恢复甲</button>
+    </>
+  );
+}
+
 function MemberMentionComposerHarness({
   onMemberMentionChange,
 }: {
@@ -340,6 +363,7 @@ function ComposerHarness({
     (revision: number) => revision + 1,
     0,
   );
+  const [restoreDraft, setRestoreDraft] = useState<ChatComposerRecovery>();
   const { runtime } = useChatRuntime({
     conversationKey: conversationKeyOf("scope:chat-1", "chat-1"),
     queueKey: "chat-1",
@@ -359,6 +383,7 @@ function ComposerHarness({
       onMessageAccepted?.();
     },
     onMessageRejected: (rejectedSelection) => {
+      setRestoreDraft(rejectedSelection.composerRecovery);
       restoreComposer();
       onMessageRejected?.(rejectedSelection);
     },
@@ -384,6 +409,7 @@ function ComposerHarness({
             onCodeReferencesChange={onCodeReferencesChange}
             clearRevision={clearRevision}
             restoreRevision={restoreRevision}
+            restoreDraft={restoreDraft}
           />
         )}
       </ThreadPrimitive.Root>
@@ -608,6 +634,26 @@ function ChatThreadHistoryHarness({
 }
 
 describe("chat composer", () => {
+  it("缺少失败项文档快照时只恢复该项正文，不借用最后输入的乙引用", async () => {
+    const user = userEvent.setup();
+    render(
+      <ChatQueueProvider>
+        <ComposerHarness send={vi.fn()}>
+          <MissingSnapshotRecoveryHarness />
+        </ComposerHarness>
+      </ChatQueueProvider>,
+    );
+    const input = await screen.findByRole("textbox", { name: "message" });
+    await user.type(input, "/工作流乙");
+    await user.click(await screen.findByRole("option", { name: /工作流乙/ }));
+    await user.click(screen.getByRole("button", { name: "清空乙" }));
+    await user.click(screen.getByRole("button", { name: "恢复甲" }));
+    expect(input).toHaveValue("甲的无快照正文");
+    expect(
+      input.querySelector('[data-chat-composer-reference-type="workflow"]'),
+    ).toBeNull();
+  });
+
   it("空正文助手保留运行项和正式文件，附件点击进入共享打开入口", async () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false, staleTime: Infinity } },

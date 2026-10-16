@@ -43,7 +43,9 @@ import {
   useChatHandoff,
   useChatQueueEntries,
   useChatQueueStore,
+  snapshotComposerMessage,
   type ChatSendSelection,
+  type RejectedChatSelection,
   type QueuedChatEntry,
 } from "./chat-queue-store";
 import {
@@ -100,7 +102,7 @@ type ChatRuntimeOptions = {
   selection: ChatSendSelection;
   suggestions?: readonly ThreadSuggestion[];
   onMessageAccepted?: () => void;
-  onMessageRejected?: (selection: ChatSendSelection) => void;
+  onMessageRejected?: (selection: RejectedChatSelection) => void;
   onApprovalRequested?: (approval: PendingApproval) => void;
   send: (
     text: string,
@@ -724,9 +726,15 @@ export function useChatRuntime(options: ChatRuntimeOptions): ChatRuntimeResult {
           ) {
             return;
           }
-          messageRejectedRef.current?.(snapshot.selection);
           const composer = runtimeRef.current?.thread?.composer;
           composer?.setText(text);
+          messageRejectedRef.current?.({
+            ...snapshot.selection,
+            composerRecovery: {
+              text,
+              runConfig: snapshotComposerMessage(message).runConfig,
+            },
+          });
           if (composer && composer.getState().attachments.length === 0) {
             for (const attachmentPath of attachmentPaths) {
               void composer.addAttachment(pathFile(attachmentPath));
@@ -1181,8 +1189,9 @@ export function useChatRuntime(options: ChatRuntimeOptions): ChatRuntimeResult {
 
   const onNew = useCallback(
     (message: AppendMessage) => {
+      const snapshot = snapshotComposerMessage(message);
       messageAcceptedRef.current?.();
-      return submit(message, currentSnapshot);
+      return submit(snapshot, currentSnapshot);
     },
     [currentSnapshot, submit],
   );
@@ -1193,15 +1202,16 @@ export function useChatRuntime(options: ChatRuntimeOptions): ChatRuntimeResult {
         : queuedEntries.map(({ id, prompt }) => ({ id, prompt })),
       enqueue: (message, { steer }) => {
         if (approvalPendingRef.current) return;
+        const snapshot = snapshotComposerMessage(message);
         if (options.serverManagedQueue) {
           messageAcceptedRef.current?.();
-          void submit(message, currentSnapshot);
+          void submit(snapshot, currentSnapshot);
           return;
         }
         const entry: QueuedChatEntry = {
           id: crypto.randomUUID(),
           prompt: promptOf(message),
-          message,
+          message: snapshot,
           chatId: currentSnapshot.chatId,
           selection: currentSnapshot.selection,
         };
@@ -1213,7 +1223,7 @@ export function useChatRuntime(options: ChatRuntimeOptions): ChatRuntimeResult {
           !queueIsRunning &&
           current.length === 0
         ) {
-          void submit(message, currentSnapshot);
+          void submit(snapshot, currentSnapshot);
           return;
         }
         queueStore.enqueue(queueKey, entry, steer);

@@ -35,7 +35,12 @@ import type { ChatWorkflowOption } from "./chat-workflow-reference";
 import type { ChatSkillOption } from "./chat-skill-reference";
 import type { ChatConnectorOption } from "./chat-connector-reference";
 import type { AllyPathFile } from "../runtime/chat-attachment-adapter";
-import type { ChatCodeReference } from "../runtime/chat-queue-store";
+import {
+  chatComposerDraftOf,
+  type ChatComposerRunConfig,
+  type ChatComposerRecovery,
+  type ChatCodeReference,
+} from "../runtime/chat-queue-store";
 import {
   readWorkspaceFileDrag,
   workspaceFileDragType,
@@ -90,6 +95,7 @@ type ChatComposerInputProps = {
   draft?: string;
   clearRevision?: number;
   restoreRevision?: number;
+  restoreDraft?: ChatComposerRecovery;
   disabled?: boolean;
 };
 
@@ -380,6 +386,7 @@ export function ChatComposerInput({
   draft,
   clearRevision = 0,
   restoreRevision = 0,
+  restoreDraft,
   disabled = false,
 }: ChatComposerInputProps) {
   const { t } = useTranslation("chat");
@@ -419,13 +426,12 @@ export function ChatComposerInput({
     0,
   );
   const compositionGuardRef = useRef(false);
+  const restoringConfigRef =
+    useRef<ChatComposerRecovery["runConfig"]>(undefined);
   const skillsErrorRef = useRef(skillsError);
   const connectorsErrorRef = useRef(connectorsError);
   const disabledRef = useRef(disabled);
   const insertedCodeReferenceIDsRef = useRef(new Set<string>());
-  const sentDocumentRef = useRef<ReturnType<Editor["getJSON"]> | undefined>(
-    undefined,
-  );
   const handledDraftRef = useRef<string | undefined>(draft ? undefined : draft);
   const handledClearRevisionRef = useRef(clearRevision);
   const handledRestoreRevisionRef = useRef(restoreRevision);
@@ -912,6 +918,19 @@ export function ChatComposerInput({
       },
     },
     onUpdate: ({ editor: nextEditor }) => {
+      const composer = callbacksRef.current.aui.composer;
+      const previousConfig =
+        restoringConfigRef.current ?? composer.getState().runConfig;
+      const runConfig: ChatComposerRunConfig = {
+        ...previousConfig,
+        custom: {
+          ...previousConfig.custom,
+          chatComposerDraft: {
+            document: structuredClone(nextEditor.getJSON()),
+          },
+        },
+      };
+      composer.setRunConfig(runConfig);
       const text = extractText(nextEditor);
       const codeReferences: ChatCodeReference[] = [];
       const skillIDs = new Set<string>();
@@ -1007,7 +1026,6 @@ export function ChatComposerInput({
   useLayoutEffect(() => {
     if (!editor || handledClearRevisionRef.current === clearRevision) return;
     handledClearRevisionRef.current = clearRevision;
-    sentDocumentRef.current = editor.getJSON();
     editor.commands.clearContent();
   }, [clearRevision, editor]);
 
@@ -1015,10 +1033,30 @@ export function ChatComposerInput({
     if (!editor || handledRestoreRevisionRef.current === restoreRevision)
       return;
     handledRestoreRevisionRef.current = restoreRevision;
-    const sentDocument = sentDocumentRef.current;
-    sentDocumentRef.current = undefined;
-    if (sentDocument) editor.commands.setContent(sentDocument);
-  }, [editor, restoreRevision]);
+    if (!restoreDraft) return;
+    const draft = chatComposerDraftOf(restoreDraft.runConfig);
+    const config = restoreDraft.runConfig ?? {};
+    // 恢复只消费该发送项的数据，不能依赖第三方 React 客户端尚未提交的缓存。
+    restoringConfigRef.current = config;
+    aui.composer.setRunConfig(config);
+    try {
+      editor.commands.setContent(
+        draft?.document ?? {
+          type: "doc",
+          content: [
+            {
+              type: "paragraph",
+              content: restoreDraft.text
+                ? [{ type: "text", text: restoreDraft.text }]
+                : [],
+            },
+          ],
+        },
+      );
+    } finally {
+      restoringConfigRef.current = undefined;
+    }
+  }, [aui, editor, restoreRevision, restoreDraft]);
 
   const codeReferenceCandidate = parseReference(
     codeReferenceRequest?.path ?? "",

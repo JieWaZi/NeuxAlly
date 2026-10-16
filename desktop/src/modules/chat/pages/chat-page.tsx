@@ -26,7 +26,10 @@ import type {
 } from "@/shared/api/generated/types.gen";
 import type { ChatWorkspaceMainContent } from "../components/chat-workspace-surface";
 import { useWorkbench } from "../workbench/workbench-store";
-import type { ChatSendSelection } from "../runtime/chat-queue-store";
+import type {
+  ChatSendSelection,
+  ChatComposerRecovery,
+} from "../runtime/chat-queue-store";
 import { useTranslation } from "react-i18next";
 import {
   useLocation,
@@ -205,6 +208,8 @@ export function ChatPageContent({
   const selectWorkflow = (id?: string) => {
     setSelectedWorkflow(id ? workflowOptions.current.get(id) : undefined);
   };
+  const [composerRestoreDraft, setComposerRestoreDraft] =
+    useState<ChatComposerRecovery>();
   const [composerRestoreRevision, setComposerRestoreRevision] = useState(0);
   const [sessionSwitch, setSessionSwitch] = useState<{
     chatId: string;
@@ -738,6 +743,7 @@ export function ChatPageContent({
       clearComposer();
     },
     onMessageRejected: (selection) => {
+      setComposerRestoreDraft(selection.composerRecovery);
       if (!entry) setSelectedWorkflow(selection.selectedWorkflows?.[0]);
       setComposerRestoreRevision((revision) => revision + 1);
       if (!selectedWakerID) return;
@@ -1215,6 +1221,7 @@ export function ChatPageContent({
       composerClearRevision,
       companionScopeRevision,
       composerRestoreRevision,
+      composerRestoreDraft,
       terminalEnabled: Boolean(activeChatId && workspaceDirectory),
       linkWorkspaceRoot: workspaceDirectory,
       linkAdditionalWorkingDirectories,

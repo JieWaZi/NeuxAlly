@@ -128,7 +128,10 @@ import {
   sendFailureEquals,
   type ChatSendFailure,
 } from "../runtime/chat-send-failure";
-import type { ChatCodeReference } from "../runtime/chat-queue-store";
+import type {
+  ChatCodeReference,
+  ChatComposerRecovery,
+} from "../runtime/chat-queue-store";
 import type { GithubComJieWaZiNeuxAllyServerRepositoriesModelsPendingApproval as PendingApproval } from "@/shared/api/generated/types.gen";
 import type { GithubComJieWaZiNeuxAllyServerRepositoriesModelsPendingElicitation as PendingElicitation } from "@/shared/api/generated/types.gen";
 import {
@@ -219,6 +222,7 @@ type ChatThreadProps = {
   composerClearRevision?: number;
   companionScopeRevision?: number;
   composerRestoreRevision?: number;
+  composerRestoreDraft?: ChatComposerRecovery;
   terminalEnabled?: boolean;
   onOpenTerminal?: () => void;
   onOpenLink?: (url: string) => boolean;
@@ -1639,6 +1643,7 @@ const Composer = memo(function Composer({
   draft,
   clearRevision,
   restoreRevision,
+  restoreDraft,
   terminalEnabled,
   onOpenTerminal,
   onOpenFile,
@@ -1685,6 +1690,7 @@ const Composer = memo(function Composer({
   draft?: string;
   clearRevision?: number;
   restoreRevision?: number;
+  restoreDraft?: ChatComposerRecovery;
   terminalEnabled: boolean;
   onOpenTerminal?: () => void;
   onOpenFile?: (file: ChatFileOpenRequest) => void;
@@ -1912,6 +1918,7 @@ const Composer = memo(function Composer({
                   draft={draft}
                   clearRevision={clearRevision}
                   restoreRevision={restoreRevision}
+                  restoreDraft={restoreDraft}
                   className="placeholder:text-muted-foreground type-label resize-none bg-transparent outline-none disabled:opacity-55"
                 />
               </ComposerInputBody>
@@ -2059,6 +2066,7 @@ export function ChatThread({
   composerClearRevision,
   companionScopeRevision,
   composerRestoreRevision,
+  composerRestoreDraft,
   terminalEnabled = false,
   onOpenTerminal,
   onOpenLink,
@@ -2396,6 +2404,7 @@ export function ChatThread({
                       draft={composerDraft}
                       clearRevision={composerClearRevision}
                       restoreRevision={composerRestoreRevision}
+                      restoreDraft={composerRestoreDraft}
                       isRunning={isRunning}
                       terminalEnabled={terminalEnabled}
                       onOpenTerminal={onOpenTerminal}
