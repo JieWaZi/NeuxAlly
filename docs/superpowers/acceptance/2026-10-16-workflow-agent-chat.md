@@ -4,7 +4,7 @@
 
 实际验收日期为 **2026-10-17**，文件名保留设计开始日。范围依据[聊天调用工作流 SPEC](../specs/2026-10-16-workflow-agent-chat-design.md)和[实施计划](../plans/2026-10-16-workflow-agent-chat.md)，在独立分支 `codex/workflow-agent-chat` 验证。未合并或推送，未打开、控制或截图运行中的桌面与浏览器。
 
-Task 1、2、3 均在修复独立评审发现后通过各自复审，Task 4 已通过独立任务评审。整分支首次最终评审提出 3 项 Important 与 1 项 Minor，本轮统一修复并补充验证；**修复后的 scoped 独立复审和最终分支交付仍待主控执行**。以下自动化结果不能替代真实账号、真实模型和桌面视觉验收。
+Task 1、2、3 均在修复独立评审发现后通过各自复审，Task 4 已通过独立任务评审。整分支首次最终评审提出 3 项 Important 与 1 项 Minor，统一修复提交 `8636fbf` 后，定向独立复审逐项确认全部关闭，未发现新增破坏或范围外遗留。独立功能分支及工作树保留供查看。以下自动化结果不能替代真实账号、真实模型和桌面视觉验收。
 
 ## SPEC 逐项证据
 
@@ -19,7 +19,7 @@ Task 1、2、3 均在修复独立评审发现后通过各自复审，Task 4 已�
 | 7. 混合交付与文件边界 | 新增 CLI 集成先读 files 不产生附件，再 deliver 固化文件；真实 Runtime 文本事件和附件在原助手终态消息共存。Task 2 普通字符串、越界软链接、缺失文件、同名不同 Run、非终态拒绝及原大小字节回归 | 只交付输出 Schema 的最终 file；部分失败结果不推断成全部节点文件 |
 | 8. 登记顺序、失败恢复与重放 | Task 1 fact-first/message-first；Task 2 真实 Journal 迟到事实、原执行身份、固化后回执失败且源文件删除恢复、HTTP receipt 登记失败恢复；新增 CLI 同 ID replay/receipt、删原产物后读附件字节、原消息只有一份附件 | 不用重跑工作流补偿消息登记；桌面文件打开另有 Electron 自动化，未做视觉操作 |
 | 9. 全仓检查、race、SQL | 本次完整检查结果见下节；复用 Task 2 实际 SQL 与已通过 race；新增跨层测试单独 race | 不修改检查豁免，不重复无变化的 SQL 基准 |
-| 10. 独立审查与平台边界 | 各任务评审和返工记录见下节；全分支审查待主控 | 未预称全部评审或真实平台通过 |
+| 10. 独立审查与平台边界 | 各任务独立评审、整分支评审及修复后的定向复审均完成；3 项 Important 与 1 项 Minor 全部关闭 | 真实账号模型、真实用户库升级及桌面视觉仍未验收 |
 
 ## 真实 CLI 集成路径
 
@@ -72,7 +72,7 @@ Task 3 评审发现甲乙入队后甲拒绝会从全局编辑器快照恢复乙�
 
 Task 4 的真实 CLI race 运行出现 `completed:true` 与同回执 `resource.run.status:cancelling` 不一致（`neux-task4-cli-race.log`）。定位到 wait 先读取资源，再次读取 Run 判断终态，两读之间 Runner 已提交终态。这是逻辑快照竞态，不是 Go data-race 告警。确定性回归 `TestAgentWaitCompletionMatchesReturnedRunSnapshot` 在第一份 queued 快照读出后驱动真实协调者完成，原实现返回 completed:true，取得真实 RED（`neux-task4-wait-red.log`）；最小修复从已返回的 `models.WorkflowRun` 快照判断终态，删除第二次读取。回归 GREEN（`neux-task4-wait-green.log`）及两包聚焦 race 通过（`neux-task4-snapshot-race.log`）。没有新增接口、状态源或等待循环。
 
-整分支首次最终评审的统一修复如下；这些是实施证据，尚未通过主控待安排的修复后独立复审。
+整分支首次最终评审的统一修复如下。修复提交 `8636fbf9ea8e916315113d13ea60b4eff7b837dc` 已通过另一独立上下文的定向复审，四项均为 ADDRESSED，未发现新增 Critical／Important、其他破坏或范围外观察。
 
 | 等级 | 实际根因与修复 | 新增行为证据 |
 | --- | --- | --- |
@@ -83,7 +83,7 @@ Task 4 的真实 CLI race 运行出现 `completed:true` 与同回执 `resource.r
 
 迁移 SQL 实测 300 旧运行/300 独立消费者：3 批运行读取加 3 批租约读取，共 6 次 SELECT，每次最多 128 行；300 次逐主键条件更新单独计数，不冒充 6 条总 SQL。重复初始化读取 1 次、写入 0 次。EXPLAIN 命中消费者运行复合索引和租约/运行主键索引，无 JOIN 或临时排序。非法旧关联分别为缺失租约、原租约未选择该定义、Context 定义身份不匹配；保留旧数据诊断但新关联列保持空，不会永久双读。真实 SQLite trigger 注入第二条更新失败时整批回滚，删去故障后原初始化恢复。全部数据库在临时目录，未读取或修改真实用户库。
 
-本轮最终固定源码 `NODE_OPTIONS=--no-experimental-webstorage pnpm check` 退出 0（日志 `neux-final-fix-check.log`）：252 个前端文件、1612 项测试、71 项 Electron 测试、全部 Go 包与 vet、API 一致性及构建通过。新增登记/实时身份/迁移/CLI 相关六包聚焦 race 退出 0（`neux-final-fix-race.log`）；三种旧事实 sink 场景最终 race 也退出 0（`neux-final-fix-live-final-race.log`）。未重复未变化 Workflow 全量 race，未新增失败或检查豁免；基线 Canvas/Vite/OpenAPI 提示保留。文档填入实际结果后执行 docs:check 收尾。独立 scoped 复审和最终交付保持待主控。
+本轮最终固定源码 `NODE_OPTIONS=--no-experimental-webstorage pnpm check` 退出 0（日志 `neux-final-fix-check.log`）：252 个前端文件、1612 项测试、71 项 Electron 测试、全部 Go 包与 vet、API 一致性及构建通过。新增登记/实时身份/迁移/CLI 相关六包聚焦 race 退出 0（`neux-final-fix-race.log`）；三种旧事实 sink 场景最终 race 也退出 0（`neux-final-fix-live-final-race.log`）。未重复未变化 Workflow 全量 race，未新增失败或检查豁免；基线 Canvas/Vite/OpenAPI 提示保留。文档填入实际结果后执行 docs:check 收尾。定向复审范围为 `62546eb..8636fbf`，同时核对原消息发布、共享 Registry 的 get/wait 边界与实际验证日志；未重复测试套件。后续仅收尾计划与验收文档，无生产源码或测试变更。
 
 ## 主控裁定及误判成本
 
@@ -115,7 +115,7 @@ Task 4 的真实 CLI race 运行出现 `completed:true` 与同回执 `resource.r
 
 ## 未执行的验收
 
-未使用真实账号模型执行自动补参、持续等待、最终总结和交付；受控消费者是决策测试，Runtime 替身是协议边界测试，两者均不替代该项。未启动或操作桌面、浏览器，未取得真实渲染、浅暗主题像素、文件预览或下载的视觉验收。修复后的独立复审、最终交付仍待主控，不自动合并、推送或清理工作树。
+未使用真实账号模型执行自动补参、持续等待、最终总结和交付；受控消费者是决策测试，Runtime 替身是协议边界测试，两者均不替代该项。未启动或操作桌面、浏览器，未取得真实渲染、浅暗主题像素、文件预览或下载的视觉验收。真实用户数据库升级亦未验收，仅在临时 SQLite 中验证旧 schema 初始化。独立评审和分支交付已完成，保留 `codex/workflow-agent-chat` 及工作树；未合并、推送或清理工作树。
 
 
 ## 附录：消费者原记录归档
