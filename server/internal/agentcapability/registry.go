@@ -388,7 +388,10 @@ func (r *Registry) ServeHTTP(w http.ResponseWriter, request *http.Request) {
 		result.Replayed = true
 		op, _ := contract.Find(id)
 		if id == "workflow.runs.start" || id == "workflow.runs.deliver" {
-			current.recordResult(ctx, op, result)
+			if err := current.recordResult(ctx, op, result); err != nil {
+				writeRegistrationFailure(w, id, key, result)
+				return
+			}
 		}
 		writeSuccess(w, id, op.Completion, result)
 	case request.Method == http.MethodPost && path == "/commands":
@@ -436,7 +439,10 @@ func (r *Registry) ServeHTTP(w http.ResponseWriter, request *http.Request) {
 		if result.CommandID == "" {
 			result.CommandID = util.New()
 		}
-		current.recordResult(ctx, op, result)
+		if err := current.recordResult(ctx, op, result); err != nil && (input.Operation == "workflow.runs.start" || input.Operation == "workflow.runs.deliver") {
+			writeRegistrationFailure(w, input.Operation, input.RequestID, result)
+			return
+		}
 		writeSuccess(w, input.Operation, op.Completion, result)
 	default:
 		writeFailure(w, "", status_error.AgentInputInvalid)
@@ -475,15 +481,35 @@ func writeFailure(w http.ResponseWriter, operation string, err error) {
 	}
 }
 
-// recordResult 在原领域回执保留成功语义的同时，允许登记失败后用原回执补写事实。
-func (current *lease) recordResult(ctx context.Context, op contract.Operation, result Result) {
-	if current.record != nil {
-		current.recordMutex.Lock()
-		if !current.recorded[result.CommandID] {
-			if err := current.record(ctx, op, result); err == nil {
-				current.recorded[result.CommandID] = true
-			}
+// writeRegistrationFailure 保留原回执身份，只在消息正式登记成功后返回领域附件。
+func writeRegistrationFailure(w http.ResponseWriter, operation, requestID string, result Result) {
+	details := map[string]any{"nextStep": map[string]any{"operation": operation, "requestId": requestID}}
+	if data, ok := result.Data.(map[string]any); ok {
+		if runID, ok := data["runId"].(string); ok {
+			details["runId"] = runID
 		}
-		current.recordMutex.Unlock()
 	}
+	response := ErrorResponse(operation, RejectWithDetails(status_error.AgentCommandOutcomeUnknown, "The domain result is committed, but message registration failed. Query the original receipt with the same operation and requestId in nextStep; do not start another run or use a new requestId. Attachments are not registered yet.", details))
+	response.CommandID, response.Replayed = result.CommandID, result.Replayed
+	w.WriteHeader(status_error.AgentCommandOutcomeUnknown.StatusCode())
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		logx.Errorf("encode agent registration failure failed: operation=%s error=%v", operation, err)
+	}
+}
+
+// recordResult 只在正式登记成功后去重，失败保留原领域回执供查询补写。
+func (current *lease) recordResult(ctx context.Context, op contract.Operation, result Result) error {
+	if current.record == nil {
+		return nil
+	}
+	current.recordMutex.Lock()
+	defer current.recordMutex.Unlock()
+	if current.recorded[result.CommandID] {
+		return nil
+	}
+	if err := current.record(ctx, op, result); err != nil {
+		return err
+	}
+	current.recorded[result.CommandID] = true
+	return nil
 }

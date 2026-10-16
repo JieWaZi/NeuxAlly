@@ -32,6 +32,7 @@ type agentCommandFacts struct {
 }
 
 func (f *agentCommandFacts) record(ctx context.Context, journal chatservice.Journal, chatID, executionID string, op contract.Operation, result agentcapability.Result) error {
+	currentExecutionID := executionID
 	if (op.ID == "workflow.runs.start" || op.ID == "workflow.runs.deliver") && result.ExecutionID != "" {
 		executionID = result.ExecutionID
 	}
@@ -58,7 +59,7 @@ func (f *agentCommandFacts) record(ctx context.Context, journal chatservice.Jour
 		}
 	}
 	records, err := journal.AppendExecutionFacts(ctx, chatID, []eventlog.AppendInput{{Type: constants.ChatEventTypeAgentCommandCommitted, ExecutionID: executionID, Data: marshalData(command)}})
-	if err == nil && f != nil {
+	if err == nil && f != nil && executionID == currentExecutionID {
 		f.mutex.Lock()
 		f.pending = append(f.pending, records...)
 		f.mutex.Unlock()

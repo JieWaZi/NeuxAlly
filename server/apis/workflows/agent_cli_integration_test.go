@@ -10,12 +10,14 @@ import (
 	"time"
 
 	"github.com/JieWaZi/NeuxAlly/server/constants"
+	"github.com/JieWaZi/NeuxAlly/server/constants/status_error"
 	"github.com/JieWaZi/NeuxAlly/server/internal/agentcapability"
 	"github.com/JieWaZi/NeuxAlly/server/internal/agentcli"
 	"github.com/JieWaZi/NeuxAlly/server/internal/runtimes"
 	"github.com/JieWaZi/NeuxAlly/server/internal/util"
 	"github.com/JieWaZi/NeuxAlly/server/repositories/models"
 	"github.com/JieWaZi/NeuxAlly/server/services/execution"
+	"github.com/JieWaZi/NeuxAlly/server/services/workflow"
 )
 
 // consumerCLIRuntime 仅替代模型协议，命令调用及最终答复均进入真实 Core。
@@ -62,6 +64,11 @@ func TestConsumerCLIExecutesAndDeliversThroughRealCore(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	otherRevision, diagnostics, err := s.SaveSource(ctx, workflow.SaveSourceCommand{DefinitionID: other.ID, RequestID: "other-save", Source: source, SDKVersion: constants.WorkflowSDKVersion})
+	if err != nil {
+		t.Fatalf("other runnable workflow: %v %+v", err, diagnostics)
+	}
+	other.CurrentRevisionID = otherRevision.RevisionID
 	startChat := func(requestID string) (execution.AcceptedExecution, runtimes.RunRequest) {
 		t.Helper()
 		intent, err := s.BindConsumer(ctx, execution.WorkIntent{ClientRequestID: requestID, Chat: execution.ChatTarget{Create: &execution.CreateChatSpec{WakerID: "fixture-waker", WorkingDirectory: root}}, Input: execution.WorkInput{Actor: "user", Content: "review this change"}, Options: execution.WorkOptions{RuntimeID: "codex", AccountID: "system", Model: "fixture", PermissionLevel: constants.PermissionLevelDefault}}, []string{definition.ID})
@@ -114,8 +121,15 @@ func TestConsumerCLIExecutesAndDeliversThroughRealCore(t *testing.T) {
 		t.Fatalf("missing immutable contract: %+v", described)
 	}
 	params := map[string]any{"definitionId": definition.ID, "revisionId": described["revisionId"], "args": map[string]any{"task": "review this change", "path": path}}
-	forbidden := map[string]any{"definitionId": other.ID, "revisionId": definition.CurrentRevisionID, "args": params["args"]}
-	call(request, []string{"workflow", "runs", "start", "--request-id", "unselected"}, forbidden, false)
+	forbidden := map[string]any{"definitionId": other.ID, "revisionId": other.CurrentRevisionID, "args": params["args"]}
+	rejected := call(request, []string{"workflow", "runs", "start", "--request-id", "unselected"}, forbidden, false)
+	if rejected.Error == nil || rejected.Error.Code != status_error.AgentOperationForbidden.Key() {
+		t.Fatalf("unselected definition failed for the wrong reason: %+v", rejected)
+	}
+	unselectedRuns, err := s.Runs.ListRuns(ctx, other.ID, 0, "", 10)
+	if err != nil || len(unselectedRuns) != 0 {
+		t.Fatalf("unselected definition started a run: %+v %v", unselectedRuns, err)
+	}
 	// 暂停真实后台调度，使观察期限确定性先到期；随后恢复同一协调者推进原 Run。
 	s.Close()
 	started := call(request, []string{"workflow", "runs", "start", "--request-id", "stable-start"}, params, true)

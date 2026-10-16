@@ -4,7 +4,7 @@
 
 实际验收日期为 **2026-10-17**，文件名保留设计开始日。范围依据[聊天调用工作流 SPEC](../specs/2026-10-16-workflow-agent-chat-design.md)和[实施计划](../plans/2026-10-16-workflow-agent-chat.md)，在独立分支 `codex/workflow-agent-chat` 验证。未合并或推送，未打开、控制或截图运行中的桌面与浏览器。
 
-Task 1、2、3 均在修复独立评审发现后通过各自复审；Task 4 当前完成补充集成与文档自审，**整个功能分支的最终独立评审和分支交付仍待主控执行**。以下自动化结果不能替代真实账号、真实模型和桌面视觉验收。
+Task 1、2、3 均在修复独立评审发现后通过各自复审，Task 4 已通过独立任务评审。整分支首次最终评审提出 3 项 Important 与 1 项 Minor，本轮统一修复并补充验证；**修复后的 scoped 独立复审和最终分支交付仍待主控执行**。以下自动化结果不能替代真实账号、真实模型和桌面视觉验收。
 
 ## SPEC 逐项证据
 
@@ -39,7 +39,7 @@ Task 1、2、3 均在修复独立评审发现后通过各自复审；Task 4 当�
 
 更新后 fresh 消费者只读取系统 Skill 与该参考，未读取 SPEC、计划、实现或其他报告；实际 9 场景决策均符合预期：充分上下文自动组织 task；缺仓库/代码版本一次追问；超时继续同 Run；STEP_FAILED 不重跑；用户停止后结束；成功且 files.available 仍先 deliver；交付响应丢失查同 ID receipt；启动响应不确定且源文件已删仍查原 receipt；声明文件不可用时分别报告运行成功与文件未交付。取消夹具使用真实 `get.run` / `wait.resource.run` 嵌套，附件为 `name/path/mediaType/managed`。
 
-消费者原始记录分别为本地执行账本的 `skill-baseline.md` 与 `skill-acceptance.md`。这些记录不代表消费者执行过 CLI；实际 HTTP、运行与文件由上节集成测试证明。
+消费者原始记录已完整归档在本文附录，保留原场景、事实、决策及边界。它们不代表消费者执行过 CLI；实际 HTTP、运行与文件由上节集成测试证明。
 
 ## 验证命令与结果
 
@@ -72,11 +72,22 @@ Task 3 评审发现甲乙入队后甲拒绝会从全局编辑器快照恢复乙�
 
 Task 4 的真实 CLI race 运行出现 `completed:true` 与同回执 `resource.run.status:cancelling` 不一致（`neux-task4-cli-race.log`）。定位到 wait 先读取资源，再次读取 Run 判断终态，两读之间 Runner 已提交终态。这是逻辑快照竞态，不是 Go data-race 告警。确定性回归 `TestAgentWaitCompletionMatchesReturnedRunSnapshot` 在第一份 queued 快照读出后驱动真实协调者完成，原实现返回 completed:true，取得真实 RED（`neux-task4-wait-red.log`）；最小修复从已返回的 `models.WorkflowRun` 快照判断终态，删除第二次读取。回归 GREEN（`neux-task4-wait-green.log`）及两包聚焦 race 通过（`neux-task4-snapshot-race.log`）。没有新增接口、状态源或等待循环。
 
-Task 4 的自审、聚焦集成及全仓检查属于本次实施证据，不能代替即将由主控组织的全分支独立评审。
+整分支首次最终评审的统一修复如下；这些是实施证据，尚未通过主控待安排的修复后独立复审。
+
+| 等级 | 实际根因与修复 | 新增行为证据 |
+| --- | --- | --- |
+| Important 1 | 旧事实正确写原消息但误入新 Execution pending；只把同执行事实交给实时投影，旧事实仍正常登记发布 | 旧 start/deliver 接真实 sink 后继续 TextDelta 原均 ChatLogError；修复后新文本连续且旧消息保留引用/附件，同执行实时投影回归仍通过 |
+| Important 2 | Registry 吞登记错误导致完整 ok:true；保留领域回执，失败响应按既有 query_receipt 指引原 operation/requestId，携 CommandID/Run，成功前无 attachments | 首次失败响应驱动下一次 receipts，再次登记失败仍错误，最终原 JSONL 消息恰好一份附件、业务调用一次 |
+| Important 3 | 新列未回填 Context 旧关联；在现有 loadDB/AutoMigrate 后有界搬移，旧 start 名称从原 Revision 恢复 | 无新列旧表 260 行经实际初始化：257 合法迁移、3 非法不授权；同聊天查询/旧回执、跨聊天拒绝、256 活跃运行关联取消、重复初始化、大整数/未知 JSON 保真；真实写故障回滚批次后可恢复 |
+| Minor 4 | 原 CLI 负例混用未保存定义与别定义 Revision；改为另一个已保存可运行定义、自身 Revision 与合法参数 | 精确 AgentOperationForbidden 且该定义零 Run；临时 overlay 移除授权屏障后测试失败，证明断言锁定授权 |
+
+迁移 SQL 实测 300 旧运行/300 独立消费者：3 批运行读取加 3 批租约读取，共 6 次 SELECT，每次最多 128 行；300 次逐主键条件更新单独计数，不冒充 6 条总 SQL。重复初始化读取 1 次、写入 0 次。EXPLAIN 命中消费者运行复合索引和租约/运行主键索引，无 JOIN 或临时排序。非法旧关联分别为缺失租约、原租约未选择该定义、Context 定义身份不匹配；保留旧数据诊断但新关联列保持空，不会永久双读。真实 SQLite trigger 注入第二条更新失败时整批回滚，删去故障后原初始化恢复。全部数据库在临时目录，未读取或修改真实用户库。
+
+本轮最终固定源码 `NODE_OPTIONS=--no-experimental-webstorage pnpm check` 退出 0（日志 `neux-final-fix-check.log`）：252 个前端文件、1612 项测试、71 项 Electron 测试、全部 Go 包与 vet、API 一致性及构建通过。新增登记/实时身份/迁移/CLI 相关六包聚焦 race 退出 0（`neux-final-fix-race.log`）；三种旧事实 sink 场景最终 race 也退出 0（`neux-final-fix-live-final-race.log`）。未重复未变化 Workflow 全量 race，未新增失败或检查豁免；基线 Canvas/Vite/OpenAPI 提示保留。文档填入实际结果后执行 docs:check 收尾。独立 scoped 复审和最终交付保持待主控。
 
 ## 主控裁定及误判成本
 
-以下保留本地 `progress.md` 全部 Ruling 的实际决策及判断有误时的返工边界；其中已发生的接口、队列恢复与测试布局修正也在上节如实记录。
+以下完整保留当前执行账本的 12 条 Ruling，包含原 7 条与最终评审及初始化裁定、判断依据和误判成本。
 
 * Task 1: Ruling: 纳入 intent.go 的唯一输入转换路径；发送失败恢复限定为未接纳输入的引用恢复，已启动回合保护普通原生重试，不新增能力重签 — 符合既有事实及用户不重复运行的要求 — 判断有误时需扩展人工重新运行入口。
 
@@ -92,6 +103,61 @@ Task 4 的自审、聚焦集成及全仓检查属于本次实施证据，不能�
 
 * Task 4: Ruling: CLI跨层集成改放execution包并调用真实私有agentCommandFacts.record，不在测试桥接中重写生产事实映射 — 重写映射会绕过本功能关键文件登记路径，SPEC要求仅Runtime/model替身；无需仅为测试公开生产接口或启动全部Runtime Service — 判断有误时需增加测试装配成本或调整跨层测试布局。后续实际验证execution→workflow→execution导入环，改复用apis/workflows现有openCoreWorkflowPorts完整Core fixture，新增该包agent_cli_integration_test.go，真实request.Env连接自然走私有生产Record；无需生产重构。
 
+* Final review: Ruling: 真实账号模型和桌面视觉继续标记未验收，不操作运行应用 — 用户未授权这类操作且自动化不能替代 — 判断有误时需补真实账号与桌面验收后才能确认平台表现。
+
+* Final review: Ruling: 不在本分支治理基线Canvas/Vite/OpenAPI提示 — baseline与最终日志均存在且无新增失败、豁免或预算超限 — 判断有误时需单独排查被既有提示掩盖的新告警。
+
+* Final review: Ruling: 原生失败重试不重签消费者能力，保持Task1已裁定边界 — 已启动运行保护和显式人工重跑入口是不同授权 — 判断有误时需补人工重跑及能力重签设计与回归。
+
+* Final review: Ruling: 不补旧chatId-only取消外部兼容层 — 固定原Execution保证重试安全，仓库内调用已同步且未发现承诺支持的旧外部调用者 — 判断有误时旧外部客户端需升级或另补安全兼容入口。
+
+* Final fix: Ruling: 在现有数据库初始化边界补存量consumerLeaseId的幂等有界搬移，并恢复旧start回执缺失的受信名称；不增加永久双读或新迁移框架 — 新列替换既有事实必须保持当前历史可用且只有一份权威关联 — 判断有误时需调整初始化迁移及旧版本回执回归，临时数据库证据不能替代真实用户库升级验收。
+
 ## 未执行的验收
 
-未使用真实账号模型执行自动补参、持续等待、最终总结和交付；受控消费者是决策测试，Runtime 替身是协议边界测试，两者均不替代该项。未启动或操作桌面、浏览器，未取得真实渲染、浅暗主题像素、文件预览或下载的视觉验收。全分支独立审查、最终交付仍待主控，不自动合并、推送或清理工作树。
+未使用真实账号模型执行自动补参、持续等待、最终总结和交付；受控消费者是决策测试，Runtime 替身是协议边界测试，两者均不替代该项。未启动或操作桌面、浏览器，未取得真实渲染、浅暗主题像素、文件预览或下载的视觉验收。修复后的独立复审、最终交付仍待主控，不自动合并、推送或清理工作树。
+
+
+## 附录：消费者原记录归档
+
+以下逐字保留当时记录（标题降级以适应本文层级），未补写未发生的 CLI 或真实模型执行。
+
+### 系统工作流指南受控决策基线
+
+独立消费者：skill_baseline；只提供更新前 `skills/ally/SKILL.md` 与 `skills/ally/references/workflow-execution.md`，不提供 SPEC、计划或实现。以下是实际返回决策的归纳，不是 CLI 执行记录，也不代表真实账号 Runtime 验收。原指南尚未修改。
+
+| 场景 | 已提供事实 | 实际决策 | 结论 |
+| --- | --- | --- | --- |
+| 充分评审上下文 | 所选 wf-review、rev1、必填 task:string、实际代码变更上下文 | 自动构造 task，使用稳定请求身份，不要求用户重复说明评审任务 | 通过 |
+| 单次观察超时 | wait 的 completed:false 且 run 仍 running，用户只催快点完成 | 继续 wait 同一个 run，不取消、不另开运行、不以已启动结束 | 通过 |
+| 运行失败 | terminal failed，STEP_FAILED | 查询缺失诊断后报告失败，不重新启动 | 通过 |
+| 用户停止 | cancelled，actor:user，source:workflow | 说明用户停止，结束任务，不换另一方法继续执行 | 通过 |
+| 最终文件缺正式能力 | 成功结果有聊天目录外文件，当前发现只有 start/get/wait/cancel | 刷新能力发现寻找正式交付；若没有则准确说明缺口，不声称文件已进会话 | 通过决策；产品正式交付能力仍待实现 |
+| 启动响应不确定 | 原 request-id 已固定，启动响应丢失 | 查询原请求回执，不换 ID 重启 | 通过 |
+| 必要信息确实缺失 | 无项目绑定、空工作区、空附件；repository 与 revision 必填且无默认值，定义版本 revA | 一次询问仓库 URL 和待评审分支/commit，当前不启动；不猜 main/HEAD，也不把 revA 误当代码版本 | 通过 |
+
+没有观察到旧指南决策失败，不能把这次基线写成 RED。新增 `deliver` 实现后的指南复测需使用实际命令契约，验证最终消息文件交付的正确动作；实际文件与日志行为由集成测试提供证据。
+
+#### 后端交付能力实现后的旧指南复测
+
+独立新上下文消费者 `baseline_delivery_discovery`，只读取尚未修改的系统 Skill 与工作流指南，提供实际 `workflow.runs.deliver` 发现契约及受控成功结果。消费者决定先用稳定 request-id 调用 deliver(run-A)，不把 succeeded 或 files.available:true 当会话附件已交付；响应丢失时查同 operation/request-id 正式 receipt，取得 attachments 后确认交付，不重启、不换请求身份、不复制 result.report 的任意路径。正式附件夹具使用真实 name/path/mediaType/managed 字段，size 仅属于 files 描述。
+
+本次仍通过，没有可归因于旧指南的错误决定。后续仅需补充新增能力和真实字段的参考说明，保留已验证的既有行为规则；不能声称新措辞修复了此前不存在的决策失败。最终示例中的 Markdown 引用只有在 Core 正式登记已经成功的夹具前提下才有意义，真实消息附件仍由集成测试验证。本次未执行 CLI 或调用真实账号 Runtime。
+
+### 更新后工作流参考受控消费者复测
+
+日期：2026-10-17。独立新上下文消费者 `skill_acceptance`，模型 gpt-6.1-sol / medium，仅读取系统 SKILL.md 和 workflow-execution.md，未读取 SPEC、计划、源实现或其他报告；未执行 CLI、调用真实账号 Runtime 或控制桌面。以下归纳其实际决策，9个场景均符合预期。属于参考检索/应用检查，不是证明新措辞修复旧行为失败；旧基线亦已通过。
+
+| 场景 | 实际下一步 |
+| --- | --- |
+| 充分代码评审上下文 | 自动组织 task，使用冻结revA、稳定request-id启动一次并保留receipt，之后持续观察 |
+| 必要仓库/代码版本缺失 | 一次询问两项，不启动，不把工作流revA当代码版本 |
+| completed:false且running，用户催促 | 继续等待同run，不重复启动或取消，不报完成 |
+| STEP_FAILED终态 | 报真实失败，不自动重跑或替代执行 |
+| cancelled，actor:user/source:run | 说明用户停止，结束观察，不重启；不把completed当成功 |
+| succeeded且files.available:true，聊天尚无附件 | 显式deliver原run，先固定delivery request-id；正式receipt/附件登记确认后才报交付 |
+| deliver响应丢失但同ID正式receipt有附件 | 不换请求身份、不重启，使用正式附件引用恢复原消息交付 |
+| start响应不确定且原输入文件已删 | 查原operation/request-id receipt确定原run，不换ID、不更换输入重启 |
+| succeeded但声明文件不可用且deliver无附件 | 保留workflow成功，单独说明文件未交付；不从任意字符串复制、不自动再运行 |
+
+接口夹具使用实际 `get.run` / `wait.resource.run` 嵌套及 `cancellationReason.actor/source/requestedAt`，正式附件为 `name/path/mediaType/managed`。真实文件字节、HTTP和命令映射另由CLI跨层集成测试提供证据。此项不声称真实模型自动执行全链路已经验收。

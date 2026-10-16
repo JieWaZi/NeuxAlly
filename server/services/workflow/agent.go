@@ -468,8 +468,21 @@ func (s *Service) agentRunReceipt(ctx context.Context, scope workflowtool.Scope,
 	if err != nil {
 		return result, err
 	}
-	if origin.ChatID != current.ChatID || !slices.Contains(current.DefinitionIDs, run.DefinitionID) {
+	if origin.ChatID != current.ChatID || !slices.Contains(origin.DefinitionIDs, run.DefinitionID) || !slices.Contains(current.DefinitionIDs, run.DefinitionID) || data["definitionId"] != run.DefinitionID || data["revisionId"] != run.RevisionID {
 		return result, status_error.AgentOperationForbidden
+	}
+	// 旧 start 回执没有名称，仅从原不可变版本补齐展示引用，不改写已提交回执。
+	if name, _ := data["name"].(string); name == "" {
+		revision, err := s.store.GetRevision(ctx, run.DefinitionID, run.RevisionID)
+		if err != nil {
+			return result, err
+		}
+		restored := make(map[string]any, len(data)+1)
+		for key, value := range data {
+			restored[key] = value
+		}
+		restored["name"] = revision.Manifest.Meta.Title
+		result.Data = restored
 	}
 	result.ExecutionID = origin.ID
 	return result, nil
