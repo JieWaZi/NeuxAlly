@@ -1,0 +1,57 @@
+package runtimes
+
+import (
+	"context"
+
+	"github.com/JieWaZi/NeuxAlly/server/constants"
+	acpcodex "github.com/JieWaZi/acp-go/pkg/codex"
+	acp "github.com/coder/acp-go-sdk"
+)
+
+const (
+	// codexACPModelConfigID 是 acp-go Codex Adapter 的模型配置标识。
+	codexACPModelConfigID acp.SessionConfigId = "model"
+	// codexACPReasoningConfigID 是 acp-go Codex Adapter 的推理强度配置标识。
+	codexACPReasoningConfigID acp.SessionConfigId = "reasoning_effort"
+)
+
+// codexACPRuntimeBinding 组合 Codex 自身的 ACP 能力与产品策略。
+func codexACPRuntimeBinding() acpRuntimeBinding {
+	binding := standardACPRuntimeBinding()
+	binding.baseRuntimeID = RuntimeIDCodex
+	binding.displayName = "Codex"
+	binding.executableLogKey = "codex_binary"
+	binding.modelConfigID = codexACPModelConfigID
+	binding.reasoningConfigID = codexACPReasoningConfigID
+	binding.elicitationSessionPaths = append(binding.elicitationSessionPaths, []string{"codex", "sessionId"})
+	binding.modeID = func(policy ExecutionPolicy, _ *acp.SessionModeState) (acp.SessionModeId, error) {
+		if policy.WorkspaceReadOnly || policy.PermissionLevel == PermissionLevelDefault {
+			return "read-only", nil
+		}
+		if policy.PermissionLevel == PermissionLevelFullAccess {
+			return "agent-full-access", nil
+		}
+		return "agent", nil
+	}
+	binding.selectedSkillPrompt = func(prompt string, selections []skillSelection) string {
+		return selectedSkillCommandPrompt("$", prompt, selections)
+	}
+	binding.messagePhase = codexACPMessagePhase
+	binding.newAgent = func(ctx context.Context, config acpAdapterConfig) (acp.Agent, error) {
+		return acpcodex.NewAgent(ctx, acpcodex.Config{
+			Logger:                      acpAdapterLogger(ctx),
+			CodexPath:                   config.Executable,
+			PrefixArgs:                  cloneStrings(config.PrefixArgs),
+			Environment:                 append([]string(nil), config.Environment...),
+			DefaultModeRequestUserInput: constants.RuntimeCodexDefaultModeRequestUserInput,
+		})
+	}
+	return binding
+}
+
+// codexACPMessagePhase 读取 acp-go 保留的 Codex 消息阶段。
+func codexACPMessagePhase(meta map[string]any) string {
+	codexMeta, _ := meta[constants.RuntimeACPMetaKeyCodex].(map[string]any)
+	phase, _ := codexMeta[constants.RuntimeACPMetaKeyPhase].(string)
+	return phase
+}

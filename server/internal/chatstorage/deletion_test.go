@@ -1,0 +1,106 @@
+package chatstorage
+
+import (
+	"os"
+	"path/filepath"
+	"testing"
+)
+
+func TestDeletionCoordinatorResumesByCommittedDatabaseFact(t *testing.T) {
+	layout, err := NewLayout(t.TempDir())
+	if err != nil {
+		t.Fatalf("NewLayout() error = %v", err)
+	}
+	coordinator, err := NewDeletionCoordinator(layout)
+	if err != nil {
+		t.Fatalf("NewDeletionCoordinator() error = %v", err)
+	}
+	chatID := "11111111111111111111111111111111"
+	chatRoot, err := layout.ChatRoot(chatID)
+	if err != nil {
+		t.Fatalf("ChatRoot() error = %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(chatRoot, "log"), 0o700); err != nil {
+		t.Fatalf("create chat aggregate: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(chatRoot, "log", chatID+".jsonl"), []byte("authority"), 0o600); err != nil {
+		t.Fatalf("write authority: %v", err)
+	}
+	if _, err := coordinator.Stage(
+		"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+		[]DeletionTarget{{Kind: AggregateKindChat, AggregateID: chatID}},
+		[]string{chatID},
+	); err != nil {
+		t.Fatalf("Stage() error = %v", err)
+	}
+	if exists, existsErr := pathExists(chatRoot); existsErr != nil || exists {
+		t.Fatal("aggregate remained published after staging")
+	}
+	if err := coordinator.Resume(func(string, []string) (bool, error) { return false, nil }, nil); err != nil {
+		t.Fatalf("Resume(rollback) error = %v", err)
+	}
+	if exists, existsErr := pathExists(chatRoot); existsErr != nil || !exists {
+		t.Fatal("uncommitted aggregate was not restored")
+	}
+	if _, err := coordinator.Stage(
+		"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+		[]DeletionTarget{{Kind: AggregateKindChat, AggregateID: chatID}},
+		[]string{chatID},
+	); err != nil {
+		t.Fatalf("second Stage() error = %v", err)
+	}
+	if err := coordinator.Resume(func(string, []string) (bool, error) { return true, nil }, nil); err != nil {
+		t.Fatalf("Resume(commit) error = %v", err)
+	}
+	if exists, existsErr := pathExists(chatRoot); existsErr != nil || exists {
+		t.Fatal("committed aggregate was restored")
+	}
+	intents, err := os.ReadDir(coordinator.intentRoot)
+	if err != nil || len(intents) != 0 {
+		t.Fatalf("remaining deletion intents = %v, error = %v", intents, err)
+	}
+}
+
+func TestDeletionCoordinatorRejectsUntrustedManifestStateAndPath(t *testing.T) {
+	layout, err := NewLayout(t.TempDir())
+	if err != nil {
+		t.Fatalf("NewLayout() error = %v", err)
+	}
+	coordinator, err := NewDeletionCoordinator(layout)
+	if err != nil {
+		t.Fatalf("NewDeletionCoordinator() error = %v", err)
+	}
+	intentID := "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+	chatID := "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+	originalPath, err := layout.ChatRoot(chatID)
+	if err != nil {
+		t.Fatalf("ChatRoot() error = %v", err)
+	}
+	valid := deletionIntent{
+		Version: deletionIntentVersion,
+		ID:      intentID,
+		State:   "staged",
+		ChatIDs: []string{chatID},
+		Targets: []deletionIntentTarget{{
+			Kind:         AggregateKindChat,
+			AggregateID:  chatID,
+			OriginalPath: originalPath,
+			StagedPath: filepath.Join(
+				coordinator.stagingRoot,
+				intentID,
+				string(AggregateKindChat)+"-"+chatID,
+			),
+		}},
+	}
+	invalidState := valid
+	invalidState.State = "unknown"
+	if err := coordinator.validateIntent(invalidState); err == nil {
+		t.Fatal("manifest with unknown state was accepted")
+	}
+	invalidPath := valid
+	invalidPath.Targets = append([]deletionIntentTarget(nil), valid.Targets...)
+	invalidPath.Targets[0].StagedPath = filepath.Join(coordinator.stagingRoot, intentID, "other")
+	if err := coordinator.validateIntent(invalidPath); err == nil {
+		t.Fatal("manifest with non-canonical staging path was accepted")
+	}
+}

@@ -1,0 +1,9 @@
+packages:
+  - desktop
+  - desktop/pi-bridge
+onlyBuiltDependencies:
+  - electron
+  - esbuild
+  - node-pty
+patchedDependencies:
+  "@ncdai/react-wheel-picker@1.2.2": patches/@ncdai__react-wheel-picker@1.2.2.patch

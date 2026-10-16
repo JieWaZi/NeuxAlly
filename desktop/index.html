@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="description" content="NeuxAlly 本地优先伙伴工作台" />
+    <title>NeuxAlly</title>
+    <link rel="icon" type="image/svg+xml" href="/ally-logo.svg" />
+    <link rel="stylesheet" href="/src/shared/styles/index.css" />
+    <link rel="preload" href="/welcome-eyes.svg" as="image" />
+    <!-- 与欢迎 IP 的实际尺寸同步，提前请求对应像素密度的身体图片。 -->
+    <link
+      rel="preload"
+      as="image"
+      href="../vendor/companion/assets/bodies/plush-256.png"
+      imagesrcset="../vendor/companion/assets/bodies/plush-256.png 256w, ../vendor/companion/assets/bodies/plush-512.png 512w"
+      imagesizes="clamp(112px, calc(18vw - 17.28px), 192px)"
+      fetchpriority="high"
+    />
+    <script>
+      (() => {
+        try {
+          const mode = localStorage.getItem("ally.ui.theme");
+          const resolved =
+            mode === "light" || mode === "dark"
+              ? mode
+              : matchMedia("(prefers-color-scheme: dark)").matches
+                ? "dark"
+                : "light";
+          document.documentElement.dataset.theme = resolved;
+          document.documentElement.style.colorScheme = resolved;
+        } catch {
+          document.documentElement.dataset.theme = "light";
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root">
+      <!-- 首帧预留品牌布局，完整 IP 就绪后统一入场。 -->
+      <main class="welcome-screen bg-background text-foreground">
+        <div class="welcome-layout" data-guide="false">
+          <div class="welcome-brand" role="img" aria-label="NeuxAlly">
+            <div class="welcome-brand-content" aria-hidden="true">
+              <div
+                class="welcome-character"
+                data-ready="false"
+                data-intro="true"
+              ></div>
+              <div class="welcome-wordmark">
+                <span class="welcome-logo"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

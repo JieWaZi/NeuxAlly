@@ -1,0 +1,173 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/ci.yml
+
+  package:
+    needs: verify
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: mac-arm64
+            os: macos-15
+            arch: arm64
+            installer: NeuxAlly-mac-arm64.dmg
+            report: size-report-arm64.json
+          - id: mac-x64
+            os: macos-15-intel
+            arch: x64
+            installer: NeuxAlly-mac-x64.dmg
+            report: size-report-x64.json
+          - id: windows-x64
+            os: windows-latest
+            arch: x64
+            installer: NeuxAlly-windows-x64.exe
+            report: size-report-windows-x64.json
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 校验 tag
+        shell: bash
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "tag 必须是 vX.Y.Z，当前为 ${tag}"
+            exit 1
+          fi
+          echo "ALLY_VERSION=${tag#v}" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: server/go.mod
+          cache: true
+          cache-dependency-path: server/go.sum
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.34.4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: 缓存 Electron 下载
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.os == 'Windows' && format('{0}\electron', env.LOCALAPPDATA) || format('{0}/Library/Caches/electron', env.HOME) }}
+          key: electron-${{ matrix.id }}-${{ hashFiles('pnpm-lock.yaml', 'desktop/package.json') }}
+          restore-keys: |
+            electron-${{ matrix.id }}-
+
+      - name: 确认构建架构
+        shell: bash
+        run: |
+          if [[ "$(node -p process.arch)" != "${{ matrix.arch }}" ]]; then
+            echo "构建机架构与 ${{ matrix.arch }} 不一致"
+            exit 1
+          fi
+
+      - run: pnpm install --frozen-lockfile
+      - run: node ./scripts/stamp-release-version.mjs
+      - run: pnpm build:desktop
+        env:
+          EXPECTED_ARCH: ${{ matrix.arch }}
+          ALLY_RELEASE_PACKAGE: "1"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NeuxAlly-${{ matrix.id }}
+          if-no-files-found: error
+          path: |
+            desktop/release/${{ matrix.installer }}
+            desktop/release/${{ matrix.report }}
+
+      - name: 保留失败构建的体积报告
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: size-diagnostics-${{ matrix.id }}
+          if-no-files-found: ignore
+          path: desktop/release/${{ matrix.report }}
+
+  publish:
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: 校验 tag
+        shell: bash
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "tag 必须是 vX.Y.Z，当前为 ${tag}"
+            exit 1
+          fi
+          echo "RELEASE_TAG=${tag}" >> "$GITHUB_ENV"
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: NeuxAlly-*
+          merge-multiple: true
+          path: dist
+
+      - name: 生成校验和与变更说明
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          release_files=(
+            NeuxAlly-mac-arm64.dmg
+            NeuxAlly-mac-x64.dmg
+            NeuxAlly-windows-x64.exe
+            size-report-arm64.json
+            size-report-x64.json
+            size-report-windows-x64.json
+          )
+          for file in "${release_files[@]}"; do
+            test -f "dist/${file}"
+          done
+          (
+            cd dist
+            sha256sum "${release_files[@]}"
+          ) > dist/SHA256SUMS
+          notes="$(gh api --method POST "/repos/${GITHUB_REPOSITORY}/releases/generate-notes" -f tag_name="$RELEASE_TAG" --jq .body)"
+          {
+            printf '%s\n\n' "$notes"
+            printf '%s\n' "内部试用包：macOS 为临时签名且未公证，Windows 未做代码签名。"
+          } > release-notes.md
+
+      - name: 发布 GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" dist/* --clobber
+          else
+            gh release create "$RELEASE_TAG" dist/* \
+              --title "$RELEASE_TAG" \
+              --notes-file release-notes.md
+          fi

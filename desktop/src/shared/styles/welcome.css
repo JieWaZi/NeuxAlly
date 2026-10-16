@@ -1,0 +1,219 @@
+/* 欢迎品牌是专用展示场景，正文与控件仍复用共享排版和组件。 */
+.welcome-screen {
+  display: grid;
+  container-type: inline-size;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  align-items: safe center;
+  justify-items: center;
+  padding: 48px;
+}
+
+.welcome-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 0fr);
+  align-items: center;
+  gap: 0;
+  width: 100%;
+  max-width: 1440px;
+  transition:
+    grid-template-columns var(--duration-slow) var(--ease-ui),
+    column-gap var(--duration-slow) var(--ease-ui);
+}
+
+.welcome-layout[data-guide="true"] {
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  column-gap: 48px;
+}
+
+.welcome-brand {
+  --welcome-character-size: clamp(112px, 18cqw, 192px);
+  position: relative;
+  container-type: inline-size;
+  display: grid;
+  min-width: 0;
+  min-height: 400px;
+  align-items: center;
+}
+
+.welcome-brand-content {
+  display: flex;
+  width: min(100%, 1040px);
+  justify-self: center;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+}
+
+.welcome-character {
+  width: var(--welcome-character-size);
+  height: var(--welcome-character-size);
+}
+
+.welcome-character {
+  position: relative;
+  transition:
+    width var(--duration-slow) var(--ease-ui),
+    height var(--duration-slow) var(--ease-ui);
+}
+
+.welcome-character[data-ready="false"][data-intro="true"] {
+  opacity: 0;
+}
+
+.welcome-character[data-ready="true"][data-intro="true"] {
+  animation: welcome-arrive var(--duration-slow) var(--ease-ui) both;
+}
+
+.welcome-wordmark {
+  container-type: inline-size;
+  width: min(100%, 640px);
+  min-width: 0;
+  transition: width var(--duration-slow) var(--ease-ui);
+}
+
+.welcome-wordmark[data-intro="true"] {
+  animation: welcome-reveal var(--duration-standard) var(--ease-ui) both;
+  animation-delay: var(--duration-standard);
+}
+
+.welcome-logo {
+  display: grid;
+  position: relative;
+  width: 100%;
+  height: 320px;
+  align-items: center;
+  justify-content: center;
+  color: var(--welcome-wordmark-start);
+}
+
+.welcome-logo-fallback {
+  font:
+    900 clamp(32px, 18cqw, 120px) / 1 system-ui,
+    sans-serif;
+  background: linear-gradient(
+    90deg,
+    var(--welcome-wordmark-start),
+    var(--welcome-wordmark-end)
+  );
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+.welcome-guide {
+  min-width: 0;
+  animation: welcome-guide-arrive var(--duration-slow) var(--ease-ui) both;
+}
+
+.welcome-layout[data-guide="true"] .welcome-brand-content {
+  flex-direction: column;
+  gap: 0;
+}
+
+.welcome-layout[data-guide="true"] .welcome-brand {
+  --welcome-character-size: clamp(96px, 28cqw, 128px);
+}
+
+.welcome-layout[data-guide="true"] .welcome-wordmark {
+  width: min(100%, 400px);
+}
+
+.welcome-layout[data-guide="true"] .welcome-logo {
+  height: 180px;
+}
+
+.welcome-setup-card {
+  container-type: inline-size;
+  max-height: calc(100dvh - 96px);
+  min-height: 0;
+}
+
+.welcome-setup-content {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.welcome-runtime-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+@container (max-width: 440px) {
+  .welcome-runtime-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@container (max-width: 800px) {
+  .welcome-layout[data-guide="true"] {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 24px;
+  }
+  .welcome-layout[data-guide="true"] .welcome-brand {
+    min-height: 0;
+  }
+  .welcome-setup-card {
+    max-height: none;
+  }
+}
+
+@container (max-width: 640px) {
+  .welcome-brand-content {
+    flex-direction: column;
+    gap: 0;
+  }
+}
+
+@keyframes welcome-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.85);
+  }
+  65% {
+    opacity: 1;
+    transform: translateY(-4px) scale(1.04);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes welcome-reveal {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes welcome-guide-arrive {
+  from {
+    opacity: 0;
+    transform: translateX(32px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .welcome-character,
+  .welcome-wordmark,
+  .welcome-guide {
+    animation: none;
+  }
+  .welcome-layout,
+  .welcome-character,
+  .welcome-wordmark {
+    transition: none;
+  }
+}

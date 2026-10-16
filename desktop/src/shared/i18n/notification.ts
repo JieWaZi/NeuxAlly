@@ -1,0 +1,26 @@
+export const notificationZh = {
+  open: "通知 {{count}} 项，打开任务看板",
+  stale: "通知 {{count}} 项，正在同步",
+  loading: "正在同步通知，打开任务看板",
+  unavailable: "通知暂未同步，打开任务看板",
+  approval: "待审批",
+  input: "待输入",
+  review: "待验收",
+  result: "待查看",
+  automatic_failure: "运行失败",
+  handle: "处理",
+  view: "查看",
+} as const;
+export const notificationEn = {
+  open: "{{count}} notifications, open task board",
+  stale: "Syncing {{count}} notifications",
+  loading: "Syncing notifications, open task board",
+  unavailable: "Notifications unavailable, open task board",
+  approval: "Approval",
+  input: "Input",
+  review: "Review",
+  result: "Unread result",
+  automatic_failure: "Run failed",
+  handle: "Handle",
+  view: "View",
+} as const;

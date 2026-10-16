@@ -1,0 +1,27 @@
+# 构建与发布
+
+## 入口
+
+`pnpm build` 构建 Core、Renderer 与 Electron 代码。`pnpm build:desktop` 调用 scripts/package-desktop.mjs，在当前 macOS 或 Windows 原生环境生成安装包；desktop 的 electron:package 复用同一流程。
+
+发布版本使用 X.Y.Z，并通过 ALLY_VERSION 写入 Core；版本写入符号随 Go module 保持一致。发布工作流位于 .github/workflows/release.yml，仓库及安装包归属为 JieWaZi/NeuxAlly。
+
+## 构建资源
+
+品牌标志的矢量母版为 `desktop/public/ally-logo.svg`。在 macOS 运行 `pnpm icon:generate`，通过系统 `sips` 与 `iconutil` 统一生成浅暗标志、应用 PNG、macOS ICNS、Windows 多分辨率 ICO 和托盘图标；派生资源不手工修改。默认安装图标使用浅色底板，暗色应用图标另存为 `desktop/resources/app-icon-dark.png`。
+
+Core 使用 CGO_ENABLED=0、-trimpath 和 -s -w。Renderer 由 Vite 编译，主进程与 preload 由 esbuild 编译，node-pty 保留原生运行依赖。系统技能、Pi Bridge、工作流 SDK 和呈现目录必须与生成源一致。
+
+已由 Vite 或 esbuild 打包的 JavaScript 依赖放在开发依赖中，安装包仅额外携带 node-pty 及其必要依赖。node-pty 只保留当前平台与架构的预编译文件；本机编译目录仅保留 Release 的原生模块、动态库、可执行文件及 ConPTY 运行文件，排除调试符号、静态库、对象目录和构建元数据。node-addon-api 只保留包信息与许可，不携带编译期头文件和工具。electron-builder 固定使用 `--publish never`，产物由独立发布任务统一上传，打包任务无需 GitHub 发布令牌。
+
+首屏静态 JS 预算为 500,000 bytes。打包检查安装包 150 MiB、安装文件 450 MiB、Resources 125 MiB 的体积上限，输出机器可读报告。Resources 包含 Core、CLI、前端产物及必要原生模块；预算涵盖约 72 MiB 的 Core/CLI 和约 40 MiB 的前端及运行资源。Windows 即使超限也输出三项实测体积及最大的 30 个文件，失败构建的报告由发布工作流单独保存。实际文件名与默认平台以打包脚本为准。
+
+发布矩阵在原生 runner 上分别构建 macOS arm64、macOS x64（amd64）与 Windows x64，并校验构建机架构。GitHub Release 直接提供用户可安装的 NeuxAlly-mac-arm64.dmg、NeuxAlly-mac-x64.dmg 和 NeuxAlly-windows-x64.exe，附带分架构体积报告及 SHA256SUMS。Actions 中以 NeuxAlly 命名的 artifact 仅用于 CI 暂存与跨任务传输，用户下载入口为 Release 中的 DMG 或 EXE。代码签名、公证及签名密钥由发布环境管理；本地签名不表示完成发行签名与公证。
+
+## 发布前
+
+运行 pnpm check，确认生成文件、版本、许可和资源链接完整。在对应原生平台验证安装包、终端与 Core 的认证健康检查及退出回收。真实智能体、账号、窗口和视觉验收分别记录；不将本地测试结果等同于全部平台可用。
+
+终端冒烟在独立的 Electron Node 进程中验证真实 PTY 输出、退出码和临时目录清理，完成后刷出结果并明确退出，避免 Windows ConPTY 残留 worker 阻塞测试进程。随后独立验证打包 Core 的认证健康检查与停止回收；该测试不代表完整桌面应用的资源释放验收。
+
+公开发布只包含当前源码和必要构建资源，不包含本机缓存、日志、截图、临时仓库或开发技能安装环境。第三方许可随安装包保留，见根目录 THIRD_PARTY_NOTICES.md。

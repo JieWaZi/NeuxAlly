@@ -1,0 +1,242 @@
+:root {
+  --ease-ui: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-ui-exit: cubic-bezier(0.3, 0, 1, 1);
+  --duration-instant: 80ms;
+  --duration-quick: 140ms;
+  --duration-standard: 220ms;
+  --duration-content-swap: 320ms;
+  --duration-slow: 420ms;
+  --duration-deliberate: 420ms;
+
+  /* 进入、退出与布局过渡复用统一时长。 */
+  --duration-enter: var(--duration-standard);
+  --duration-exit: var(--duration-quick);
+  --duration-layout: var(--duration-standard);
+}
+
+[data-motion="presence"][data-state="open"],
+[data-motion="presence"][data-state="delayed-open"] {
+  animation: fade-in var(--duration-quick) var(--ease-ui) both;
+}
+
+[data-motion="presence"][data-state="closed"] {
+  animation: fade-out var(--duration-quick) var(--ease-ui-exit) both;
+}
+
+[data-motion="popup"][data-state="open"] {
+  animation: dialog-in var(--duration-standard) var(--ease-ui) both;
+}
+
+[data-motion="popup"][data-state="closed"] {
+  animation: dialog-out var(--duration-quick) var(--ease-ui-exit) both;
+}
+
+[data-motion="view"][data-state="open"] {
+  animation: view-in var(--duration-standard) var(--ease-ui) both;
+}
+
+[data-motion="overlay"][data-state="open"] {
+  animation: fade-in var(--duration-standard) var(--ease-ui) both;
+}
+
+[data-motion="overlay"][data-state="closed"] {
+  animation: fade-out var(--duration-quick) var(--ease-ui-exit) both;
+}
+
+/* 自带退出动画的舞台浮层提前同步淡出，关闭后沿用同一动画而不重播。 */
+[data-motion="overlay"][data-closing="true"] {
+  animation: fade-out var(--duration-slow) var(--ease-ui-exit) both;
+}
+
+[data-chat-canvas-layout] [data-chat-right-panel-host] {
+  transition-duration: var(--duration-slow);
+}
+
+[data-scene-chrome-accessory-wrapper]:has(
+  [data-workbench-layout-motion="true"]
+) {
+  transition: width var(--duration-slow) var(--ease-ui);
+}
+
+[data-motion="none"] {
+  animation: none !important;
+  transition: none !important;
+}
+
+[data-motion="presence"][data-presence-layout="collapse"][data-state="open"] {
+  animation: collapse-in var(--duration-standard) var(--ease-ui);
+}
+
+[data-motion="presence"][data-presence-layout="collapse"][data-state="closed"] {
+  animation: collapse-out var(--duration-quick) var(--ease-ui-exit) both;
+}
+
+[data-running-shimmer="true"]::after {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  content: "";
+  background: linear-gradient(
+    105deg,
+    transparent 15%,
+    color-mix(in oklab, var(--accent) 16%, transparent) 45%,
+    color-mix(in oklab, var(--foreground) 12%, transparent) 50%,
+    transparent 80%
+  );
+  transform: translateX(-110%);
+  animation: running-shimmer calc(var(--duration-slow) * 4) var(--ease-ui)
+    infinite;
+}
+
+/* 已完成节点沿用消息成功色，以低强度扫光保留完成反馈。 */
+[data-workflow-completed-flow="true"]::after {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  content: "";
+  background: linear-gradient(
+    105deg,
+    transparent 15%,
+    var(--status-success-surface) 50%,
+    transparent 80%
+  );
+  transform: translateX(-110%);
+  animation: running-shimmer calc(var(--duration-slow) * 12) var(--ease-ui)
+    infinite;
+}
+
+/* 画布连线仅表达连接方向，流动强度不代表节点正在执行。 */
+.workflow-connection-base {
+  opacity: 0.45;
+  stroke-dasharray: 4 4;
+}
+
+.workflow-connection-flow {
+  opacity: 0.3;
+  stroke-dasharray: 4 4;
+  animation: workflow-connection-flow calc(var(--duration-slow) * 5) linear
+    infinite;
+}
+
+[data-workflow-motion="false"] .workflow-connection-flow,
+[data-workflow-motion="false"] [data-workflow-completed-flow="true"]::after,
+[data-workflow-motion="false"] [data-running-shimmer="true"]::after {
+  animation-play-state: paused;
+}
+
+@keyframes workflow-connection-flow {
+  to {
+    stroke-dashoffset: -8;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes view-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@keyframes collapse-in {
+  from {
+    height: 0;
+    opacity: 0;
+  }
+  to {
+    height: var(--radix-collapsible-content-height);
+    opacity: 1;
+  }
+}
+
+@keyframes collapse-out {
+  from {
+    height: var(--radix-collapsible-content-height);
+    opacity: 1;
+  }
+  to {
+    height: 0;
+    opacity: 0;
+  }
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+}
+
+@keyframes dialog-out {
+  to {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+}
+
+@keyframes shell-side-panel-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes shell-side-panel-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes agent-grid-pulse {
+  0%,
+  70%,
+  100% {
+    transform: scale3d(1, 1, 1);
+  }
+
+  35% {
+    opacity: 0.35;
+    transform: scale3d(0.55, 0.55, 1);
+  }
+}
+
+@keyframes running-shimmer {
+  to {
+    transform: translateX(110%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  [data-motion] {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  [data-running-shimmer="true"]::after,
+  [data-workflow-completed-flow="true"]::after {
+    display: none;
+  }
+
+  .workflow-connection-flow {
+    display: none;
+  }
+}

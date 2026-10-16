@@ -1,0 +1,9 @@
+export { ChatTaskListPage } from "@/modules/chat/pages/chat-task-list-page";
+export { ConnectorDetailPage } from "@/modules/connector/pages/connector-detail-page";
+export { WakerConnectorsPage } from "@/modules/connector/pages/waker-connectors-page";
+export { WakerMemoryPage } from "@/modules/memory/pages/waker-memory-page";
+export { ProjectDetailPage } from "@/modules/project/pages/project-detail-page";
+export { ProjectListPage } from "@/modules/project/pages/project-list-page";
+export { SkillDetailPage } from "@/modules/skill/pages/skill-detail-page";
+export { WakerSkillsPage } from "@/modules/skill/pages/waker-skills-page";
+export { WakerDetailPage } from "@/modules/waker/pages/waker-detail-page";

@@ -1,0 +1,16 @@
+server:
+  name: ally-core
+  host: 127.0.0.1
+  port: 8432
+  exit_wait_timeout: 5
+  show_params: false
+  log:
+    to_stdout: true
+
+db:
+  type: sqlite
+  dbname: .ally/ally.db
+  showlog: false
+
+security:
+  local_token: ""

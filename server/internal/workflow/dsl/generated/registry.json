@@ -1,0 +1,71 @@
+{
+  "sdk": "ally.workflow/1",
+  "primitives": [
+    {
+      "name": "phase",
+      "signature": "declare function phase(id: string): void;",
+      "awaitRequired": false,
+      "hostCapability": "phase"
+    },
+    {
+      "name": "log",
+      "signature": "declare function log(message: string, options?: { level?: 'info' | 'warning' | 'error' }): void;",
+      "awaitRequired": false,
+      "hostCapability": "log"
+    },
+    {
+      "name": "worker",
+      "signature": "declare function worker\u003cT extends Json = string\u003e(prompt: string, options: VisualNode \u0026 WorkerOptions): Promise\u003cT | null\u003e;",
+      "awaitRequired": true,
+      "hostCapability": "worker"
+    },
+    {
+      "name": "askUser",
+      "signature": "declare function askUser(prompt: string, options: VisualNode \u0026 HumanOptions): Promise\u003cHumanAnswer\u003e;",
+      "awaitRequired": true,
+      "hostCapability": "human"
+    },
+    {
+      "name": "parallel",
+      "signature": "declare function parallel\u003cT extends Json\u003e(tasks: Array\u003c() =\u003e Promise\u003cT\u003e\u003e, options: GroupOptions): Promise\u003cArray\u003cT | null\u003e\u003e;",
+      "awaitRequired": true,
+      "hostCapability": "fork"
+    },
+    {
+      "name": "pipeline",
+      "signature": "declare function pipeline(items: Json[], stages: Array\u003c(previous: Json, original: Json, index: number) =\u003e Promise\u003cJson\u003e\u003e, options: GroupOptions): Promise\u003cArray\u003cJson | null\u003e\u003e;",
+      "awaitRequired": true,
+      "hostCapability": "pipeline"
+    },
+    {
+      "name": "workflow",
+      "signature": "declare function workflow(workflowId: string, options: VisualNode \u0026 ChildOptions): Promise\u003cChildResult\u003e;",
+      "awaitRequired": true,
+      "hostCapability": "child"
+    },
+    {
+      "name": "startWorkflow",
+      "signature": "declare function startWorkflow(workflowId: string, options: VisualNode \u0026 ChildOptions \u0026 { mode: 'joined' | 'detached' }): ChildHandle;",
+      "awaitRequired": false,
+      "hostCapability": "child_start"
+    },
+    {
+      "name": "joinWorkflow",
+      "signature": "declare function joinWorkflow(handle: ChildHandle): Promise\u003cChildResult\u003e;",
+      "awaitRequired": true,
+      "hostCapability": "child_join"
+    },
+    {
+      "name": "action",
+      "signature": "declare function action(actionId: string, options: VisualNode \u0026 ActionOptions): Promise\u003cActionResult\u003e;",
+      "awaitRequired": true,
+      "hostCapability": "action"
+    },
+    {
+      "name": "functionTask",
+      "signature": "declare function functionTask(options: VisualNode \u0026 FunctionOptions): Promise\u003cJson\u003e;",
+      "awaitRequired": true,
+      "hostCapability": "function"
+    }
+  ]
+}
