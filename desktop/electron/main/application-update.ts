@@ -1,6 +1,14 @@
 import { createHash } from "node:crypto";
 import { createReadStream } from "node:fs";
-import { mkdir, open, readdir, rename, rm, stat } from "node:fs/promises";
+import {
+  type FileHandle,
+  mkdir,
+  open,
+  readdir,
+  rename,
+  rm,
+  stat,
+} from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
 import {
@@ -135,7 +143,10 @@ export class ApplicationUpdate {
   private async fail(error: unknown, fallback: ApplicationUpdateError) {
     if (this.abort.signal.aborted) return;
     const code = error instanceof UpdateFailure ? error.code : fallback;
-    this.publish({ status: "error", error: code });
+    this.publish({
+      status: this.installer ? "downloaded" : "error",
+      error: code,
+    });
     // 外部下载地址可能携带临时令牌，诊断只记录稳定错误身份。
     await this.options.log?.(`软件更新失败：${code}`);
   }
@@ -198,6 +209,8 @@ export class ApplicationUpdate {
         url = new URL(location, url).href;
         continue;
       }
+      // 调用方只读取失败状态，不消费其响应体，须及时释放下载连接。
+      if (!response.ok) await response.body?.cancel().catch(() => undefined);
       return response;
     }
     throw new UpdateFailure("network");
@@ -225,11 +238,8 @@ export class ApplicationUpdate {
 
   check = (): Promise<ApplicationUpdateState> => {
     if (this.operation) return this.operation;
-    if (
-      this.abort.signal.aborted ||
-      this.state.status === "unavailable" ||
-      this.installer
-    )
+    if (this.opening) return this.opening;
+    if (this.abort.signal.aborted || this.state.status === "unavailable")
       return Promise.resolve(this.snapshot());
     this.operation = this.checkRelease().finally(() => {
       this.operation = undefined;
@@ -246,9 +256,11 @@ export class ApplicationUpdate {
       );
       if (response.status === 404) {
         this.candidate = undefined;
+        this.installer = undefined;
         this.publish({
           status: "no-release",
           release: undefined,
+          downloadedBytes: 0,
           checkedAt: new Date().toISOString(),
         });
         return this.snapshot();
@@ -269,9 +281,11 @@ export class ApplicationUpdate {
       const version = release.tag_name.replace(/^v/, "");
       if (!newerVersion(version, this.options.version)) {
         this.candidate = undefined;
+        this.installer = undefined;
         this.publish({
           status: "current",
           release: undefined,
+          downloadedBytes: 0,
           checkedAt: new Date().toISOString(),
         });
         return this.snapshot();
@@ -285,11 +299,23 @@ export class ApplicationUpdate {
           item.name === name && item.state === "uploaded" && item.size > 0,
       );
       if (!asset) throw new UpdateFailure("missing-asset");
-      const digest = asset.digest?.match(/^sha256:([a-f\d]{64})$/i)?.[1];
+      const digest = asset.digest
+        ?.match(/^sha256:([a-f\d]{64})$/i)?.[1]
+        ?.toLowerCase();
       const checksums = release.assets.some(
         (item) => item.name === "SHA256SUMS" && item.state === "uploaded",
       );
       if (!digest && !checksums) throw new UpdateFailure("checksum");
+      // 只有身份、大小和明确摘要均不变时，才继续提供已下载安装包。
+      const keepInstaller = Boolean(
+        this.installer &&
+        this.candidate?.tag === release.tag_name &&
+        this.candidate.name === name &&
+        this.candidate.size === asset.size &&
+        digest &&
+        this.candidate.digest?.toLowerCase() === digest,
+      );
+      if (!keepInstaller) this.installer = undefined;
       this.candidate = {
         tag: release.tag_name,
         name,
@@ -298,8 +324,8 @@ export class ApplicationUpdate {
         checksums,
       };
       this.publish({
-        status: "available",
-        downloadedBytes: 0,
+        status: keepInstaller ? "downloaded" : "available",
+        downloadedBytes: keepInstaller ? asset.size : 0,
         checkedAt: new Date().toISOString(),
         release: {
           version,
@@ -405,12 +431,13 @@ export class ApplicationUpdate {
         AbortSignal.any([this.abort.signal, AbortSignal.timeout(30 * 60_000)]),
       );
       if (!response.ok || !response.body) throw new UpdateFailure("download");
-      const file = await open(partial, "wx", 0o600);
       const reader = response.body.getReader();
+      let file: FileHandle | undefined;
       const hash = createHash("sha256");
       let received = 0;
       let lastProgress = 0;
       try {
+        file = await open(partial, "wx", 0o600);
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
@@ -429,7 +456,7 @@ export class ApplicationUpdate {
         // 已中断的流可能拒绝 cancel，文件句柄仍须关闭，尤其是 Windows。
         await reader.cancel().catch(() => undefined);
         reader.releaseLock();
-        await file.close();
+        await file?.close();
       }
       await rename(partial, target);
       await this.completeDownload(candidate, digest, target);
@@ -442,6 +469,7 @@ export class ApplicationUpdate {
 
   openInstaller = (): Promise<ApplicationUpdateState> => {
     if (this.opening) return this.opening;
+    if (this.operation) return this.operation;
     this.opening = this.openVerifiedInstaller().finally(() => {
       this.opening = undefined;
     });

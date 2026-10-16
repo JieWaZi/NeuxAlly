@@ -27,11 +27,7 @@ export function AboutSoftwareSection() {
       )
     : 0;
   const canCheck =
-    state &&
-    !downloaded &&
-    !["unavailable", "checking", "downloading", "downloaded"].includes(
-      state.status,
-    );
+    state && !["unavailable", "checking", "downloading"].includes(state.status);
 
   return (
     <SettingsContentShell

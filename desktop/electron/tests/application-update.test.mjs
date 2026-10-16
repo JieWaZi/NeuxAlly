@@ -410,6 +410,130 @@ test("已失败的流拒绝取消时仍关闭文件句柄并释放读取器", as
   assert.deepEqual(await readdir(path.join(directory, "v0.2.0")), []);
 });
 
+test("已下载更新仍可重新检查，相同候选保留缓存，新版取代旧安装包入口", async (t) => {
+  let version = "0.2.0";
+  let metadataCalls = 0;
+  const { updater, opened } = await fixture(t, {
+    fetch: async (url) => {
+      if (url === api) {
+        metadataCalls++;
+        return Response.json(release(version));
+      }
+      return new Response(bytes);
+    },
+  });
+  await updater.check();
+  await updater.download();
+  assert.equal((await updater.check()).status, "downloaded");
+  assert.equal(metadataCalls, 2);
+  version = "0.3.0";
+  const state = await updater.check();
+  assert.equal(metadataCalls, 3);
+  assert.equal(state.status, "available");
+  assert.equal(state.release.version, "0.3.0");
+  assert.equal(state.downloadedBytes, 0);
+  await updater.openInstaller();
+  assert.equal(opened.length, 0);
+  await updater.download();
+  await updater.openInstaller();
+  assert.equal(opened.length, 1);
+  assert.ok(opened[0].includes(`${path.sep}v0.3.0${path.sep}`));
+});
+
+test("下载后发现发行撤回或不再高于当前版本时废止旧安装入口", async (t) => {
+  for (const status of [404, 200]) {
+    let withdrawn = false;
+    const { updater, opened } = await fixture(t, {
+      fetch: async (url) => {
+        if (url !== api) return new Response(bytes);
+        if (!withdrawn) return Response.json(release());
+        return status === 404
+          ? new Response(null, { status })
+          : Response.json(release("0.1.0"));
+      },
+    });
+    await updater.check();
+    await updater.download();
+    withdrawn = true;
+    const state = await updater.check();
+    assert.equal(state.status, status === 404 ? "no-release" : "current");
+    assert.equal(state.release, undefined);
+    assert.equal(state.downloadedBytes, 0);
+    await updater.openInstaller();
+    assert.equal(opened.length, 0);
+  }
+});
+
+test("已有安装包时检查失败仍可安装缓存并继续重试检查", async (t) => {
+  let broken = false;
+  let version = "0.2.0";
+  const { updater, opened } = await fixture(t, {
+    fetch: async (url) => {
+      if (url !== api) return new Response(bytes);
+      if (broken) throw new Error("offline");
+      return Response.json(release(version));
+    },
+  });
+  await updater.check();
+  await updater.download();
+  broken = true;
+  const state = await updater.check();
+  assert.equal(state.status, "downloaded");
+  assert.equal(state.error, "network");
+  await updater.openInstaller();
+  assert.equal(opened.length, 1);
+  broken = false;
+  version = "0.3.0";
+  assert.equal((await updater.check()).release.version, "0.3.0");
+});
+
+test("元数据、校验文件与安装包的失败 HTTP 响应均释放响应体", async (t) => {
+  for (const [stage, status] of [
+    ["metadata", 403],
+    ["metadata", 404],
+    ["metadata", 500],
+    ["checksums", 500],
+    ["installer", 500],
+  ]) {
+    let cancelled = 0;
+    const data = release();
+    if (stage === "checksums") {
+      data.assets = data.assets.map((asset) => ({ ...asset, digest: null }));
+      data.assets.push({ name: "SHA256SUMS", state: "uploaded", size: 200 });
+    }
+    const { updater } = await fixture(t, {
+      fetch: async (url) => {
+        if (url === api && stage !== "metadata") return Response.json(data);
+        return new Response(new ReadableStream({ cancel: () => cancelled++ }), {
+          status,
+        });
+      },
+    });
+    await updater.check();
+    if (stage !== "metadata") await updater.download();
+    assert.equal(cancelled, 1, `${stage}/${status}`);
+  }
+});
+
+test("取得安装包响应后文件创建失败仍取消并释放读取器", async (t) => {
+  let cancelled = 0;
+  let body;
+  const { updater, directory, opened } = await fixture(t, {
+    fetch: async (url) => {
+      if (url === api) return Response.json(release());
+      // 在请求返回前制造真实的文件创建冲突，走 open 失败分支。
+      await mkdir(path.join(directory, "v0.2.0", `${names[0]}.part`));
+      body = new ReadableStream({ cancel: () => cancelled++ });
+      return new Response(body);
+    },
+  });
+  await updater.check();
+  assert.equal((await updater.download()).status, "error");
+  assert.equal(cancelled, 1);
+  assert.equal(body.locked, false);
+  assert.equal(opened.length, 0);
+});
+
 test("新安装包校验成功后移除旧版本缓存，其他目录保留", async (t) => {
   const { updater, directory } = await fixture(t);
   for (const name of ["v0.1.0", "other"]) {

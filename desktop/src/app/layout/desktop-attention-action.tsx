@@ -5,7 +5,7 @@ import { useApplicationUpdate } from "@/shared/desktop/application-update";
 import { Button } from "@/shared/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/shared/ui/tooltip";
 
-/** 发行更新临时占用铃铛位置，原任务看板与通知事实继续由原模块维护。 */
+/** 更新操作位于原入口位置，旁侧保留原通知和任务看板入口。 */
 export function DesktopAttentionAction({
   active,
   connected,
@@ -44,29 +44,32 @@ export function DesktopAttentionAction({
   );
   const Icon = downloading ? LoaderCircle : downloaded ? PackageOpen : Download;
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          size="icon"
-          shape="capsule"
-          variant="ghost"
-          aria-label={label}
-          data-desktop-no-drag-region
-          onClick={() => {
-            onOpenUpdates();
-            if (updates.busy || downloading || state.status === "checking")
-              return;
-            if (downloaded) updates.openInstaller();
-            else updates.download();
-          }}
-        >
-          <Icon
-            aria-hidden="true"
-            className={downloading ? "motion-safe:animate-spin" : undefined}
-          />
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent>{label}</TooltipContent>
-    </Tooltip>
+    <>
+      <NotificationBell active={active} connected={connected} onOpen={onOpen} />
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            size="icon"
+            shape="capsule"
+            variant="ghost"
+            aria-label={label}
+            data-desktop-no-drag-region
+            onClick={() => {
+              onOpenUpdates();
+              if (updates.busy || downloading || state.status === "checking")
+                return;
+              if (downloaded) updates.openInstaller();
+              else updates.download();
+            }}
+          >
+            <Icon
+              aria-hidden="true"
+              className={downloading ? "motion-safe:animate-spin" : undefined}
+            />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>{label}</TooltipContent>
+      </Tooltip>
+    </>
   );
 }

@@ -8,6 +8,66 @@ import "@/shared/i18n";
 
 afterEach(() => vi.unstubAllGlobals());
 
+it("下载完成后仍能检查后续版本并提供新版下载入口", async () => {
+  const downloaded: ApplicationUpdateState = {
+    revision: 1,
+    currentVersion: "0.1.0",
+    platform: "darwin",
+    arch: "arm64",
+    status: "downloaded",
+    downloadedBytes: 100,
+    release: {
+      version: "0.2.0",
+      notes: "更新",
+      publishedAt: "2026-10-16T00:00:00Z",
+      downloadSize: 100,
+      url: "https://github.com/JieWaZi/NeuxAlly/releases/tag/v0.2.0",
+    },
+  };
+  const check = vi.fn(async (): Promise<ApplicationUpdateState> => ({
+    ...downloaded,
+    revision: 2,
+    status: "available",
+    downloadedBytes: 0,
+    release: {
+      version: "0.3.0",
+      notes: "更新",
+      publishedAt: "2026-10-16T00:00:00Z",
+      downloadSize: 100,
+      url: "https://github.com/JieWaZi/NeuxAlly/releases/tag/v0.3.0",
+    },
+  }));
+  vi.stubGlobal("allyDesktop", {
+    application_update_state: async () => downloaded,
+    onApplicationUpdate: () => () => undefined,
+    check_application_update: check,
+  });
+  const client = new QueryClient();
+  const view = render(
+    <QueryClientProvider client={client}>
+      <AboutSoftwareSection />
+    </QueryClientProvider>,
+  );
+  try {
+    expect(
+      await screen.findByRole("button", { name: "打开安装包" }),
+    ).toBeInTheDocument();
+    const button = screen.getByRole("button", { name: "检查更新" });
+    expect(button).toBeEnabled();
+    await userEvent.setup().click(button);
+    expect(
+      await screen.findByRole("heading", { name: "新版本 v0.3.0" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "下载新版本" })).toBeEnabled();
+    expect(
+      screen.queryByRole("button", { name: "打开安装包" }),
+    ).not.toBeInTheDocument();
+  } finally {
+    view.unmount();
+    client.clear();
+  }
+});
+
 it("关于软件展示真实版本，检查后下载、显示进度与打开安装包，不把下载视为已安装", async () => {
   const initial: ApplicationUpdateState = {
     revision: 0,

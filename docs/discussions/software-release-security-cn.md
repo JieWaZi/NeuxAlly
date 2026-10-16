@@ -59,4 +59,3 @@ Apple 开发者计划标准年费为 99 美元，中国大陆通过 Developer Ap
 依据：[Electron Fiddle 打包配置](https://github.com/electron/fiddle/blob/main/forge.config.ts)、[Electron Fiddle 发布工作流](https://github.com/electron/fiddle/blob/main/.github/workflows/release.yml)、[Flameshot 签名政策](https://github.com/flameshot-org/flameshot#code-signing-policy)。
 
 用户指定案例的依据：[OpenBitFun 桌面发布流程](https://github.com/GCWing/OpenBitFun/blob/main/.github/workflows/desktop-package.yml)、[Apple 签名准备脚本](https://github.com/GCWing/OpenBitFun/blob/main/scripts/ci/setup-macos-signing.sh)、[macOS 签名及公证验证运行](https://github.com/GCWing/OpenBitFun/actions/runs/38772060516)、[下载签名说明](https://github.com/GCWing/OpenBitFun/blob/main/docs/verify-downloads.md)、[Proma v0.19.58 发布流程](https://github.com/proma-ai/Proma/blob/v0.19.58/.github/workflows/release.yml)、[Proma v0.19.58 发布运行](https://github.com/proma-ai/Proma/actions/runs/36101031688)。
-
