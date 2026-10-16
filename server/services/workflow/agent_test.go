@@ -20,6 +20,7 @@ import (
 	"github.com/JieWaZi/NeuxAlly/server/internal/agentcli"
 	"github.com/JieWaZi/NeuxAlly/server/internal/agentcommand"
 	"github.com/JieWaZi/NeuxAlly/server/internal/chat/eventlog"
+	"github.com/JieWaZi/NeuxAlly/server/internal/notification/events"
 	"github.com/JieWaZi/NeuxAlly/server/internal/workspace"
 	"github.com/JieWaZi/NeuxAlly/server/repositories/controllers"
 	"github.com/JieWaZi/NeuxAlly/server/repositories/models"
@@ -475,4 +476,68 @@ type deliveryReceiptFailure struct {
 
 func (deliveryReceiptFailure) Create(context.Context, agentcommand.Receipt) error {
 	return status_error.DatabaseError
+}
+
+// advanceAfterRunRead 在观察已读取运行快照后推进真实协调者，确定性覆盖双读竞态。
+type advanceAfterRunRead struct {
+	// WorkflowRunController 保留真实 SQLite 行为。
+	controllers.WorkflowRunController
+	// once 只在第一份观察快照形成后推进运行。
+	once sync.Once
+	// advance 通过真实 Runner 提交终态，不直接改写数据库。
+	advance func()
+}
+
+// ListOperations 在资源组装期间触发真实运行终态提交。
+func (r *advanceAfterRunRead) ListOperations(ctx context.Context, id string) ([]models.WorkflowOperationRequest, error) {
+	value, err := r.WorkflowRunController.ListOperations(ctx, id)
+	if err == nil {
+		r.once.Do(r.advance)
+	}
+	return value, err
+}
+
+// TestAgentWaitCompletionMatchesReturnedRunSnapshot 防止终态标志混入后续版本。
+func TestAgentWaitCompletionMatchesReturnedRunSnapshot(t *testing.T) {
+	ctx := context.Background()
+	s, _ := workflowTestService(t)
+	s.events = events.New()
+	defer s.events.Close()
+	definition := savedTestWorkflow(t, s, workflowTestSource(t))
+	lease := models.WorkflowConsumerLease{ID: "wait-execution", ChatID: "wait-chat", AuthToken: "token", DefinitionIDs: []string{definition.ID}, DeadlineAt: time.Now().Add(time.Hour).UnixMilli()}
+	if err := s.consumers.CreateConsumer(ctx, lease); err != nil {
+		t.Fatal(err)
+	}
+	s.chats = &consumerChatBoundary{actual: models.Execution{ID: lease.ID, ChatID: lease.ChatID, Status: constants.ExecutionStatusRunning}, summary: chat.ChatSummary{Chat: models.Chat{ID: lease.ChatID, ActiveExecutionID: lease.ID}}}
+	run, err := s.StartRun(ctx, StartRunCommand{DefinitionID: definition.ID, ConsumerLeaseID: lease.ID, RequestID: "snapshot", Args: map[string]any{"text": "snapshot"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	original := s.runs
+	s.runs = &advanceAfterRunRead{WorkflowRunController: original, advance: func() {
+		terminal := runTicks(t, s, run.ID, 8)
+		if terminal.Status != constants.WorkflowRunStatusSucceeded {
+			t.Fatalf("real runner did not finish: %+v", terminal)
+		}
+	}}
+	for _, binding := range s.AgentBindings(lease.ID, lease.AuthToken, constants.WorkflowCapabilityScopeConsumer) {
+		if binding.Operation != "workflow.runs.wait" {
+			continue
+		}
+		observed, err := binding.Call(ctx, agentcapability.Request{Operation: binding.Operation, Params: map[string]any{"runId": run.ID, "timeoutMs": 1}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		data := observed.Data.(map[string]any)
+		snapshot := data["resource"].(map[string]any)["run"].(models.WorkflowRun)
+		if data["completed"] != false || snapshot.Status == constants.WorkflowRunStatusSucceeded {
+			t.Fatalf("completed must describe the returned pre-terminal snapshot: %+v", data)
+		}
+		current, err := original.GetRun(ctx, run.ID)
+		if err != nil || current.Status != constants.WorkflowRunStatusSucceeded {
+			t.Fatalf("interleaving did not reach real terminal: %+v %v", current, err)
+		}
+		return
+	}
+	t.Fatal("missing wait binding")
 }

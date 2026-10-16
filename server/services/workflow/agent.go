@@ -22,6 +22,7 @@ import (
 	workflowfiles "github.com/JieWaZi/NeuxAlly/server/internal/workflow/files"
 	workflowstate "github.com/JieWaZi/NeuxAlly/server/internal/workflow/state"
 	"github.com/JieWaZi/NeuxAlly/server/internal/workspace"
+	"github.com/JieWaZi/NeuxAlly/server/repositories/models"
 )
 
 // AgentBindings 只签发当前服务端场景具有的操作，不接受调用方声明场景或身份。
@@ -89,8 +90,13 @@ func (s *Service) AgentBindings(key, token string, kind constants.WorkflowCapabi
 					if err != nil {
 						return nil, false, err
 					}
-					run, err := s.runs.GetRun(ctx, input.RunID)
-					return unwrapWorkflow(value), workflowstate.TerminalRun(run.Status), err
+					resource := unwrapWorkflow(value)
+					// 终态标志与返回运行必须来自同一快照，不能混入后续提交的状态。
+					run, ok := resource["run"].(models.WorkflowRun)
+					if !ok {
+						return nil, false, status_error.WorkflowStateInvalid
+					}
+					return resource, workflowstate.TerminalRun(run.Status), nil
 				})
 			}
 			input := workflowAgentInput(request)

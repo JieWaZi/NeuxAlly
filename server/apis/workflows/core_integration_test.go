@@ -155,6 +155,8 @@ func openCoreWorkflowPorts(t *testing.T, directory string, runtime coreTestRunti
 	if err != nil {
 		t.Fatal(err)
 	}
+	hub := events.New()
+	database.DB = controllers.WithEventPublisher(database.DB, hub)
 	wakers := controllers.NewWakerController(database.DB)
 	profiles := controllers.NewProfileDocumentController(database.DB)
 	projects := controllers.NewProjectController(database.DB)
@@ -171,7 +173,6 @@ func openCoreWorkflowPorts(t *testing.T, directory string, runtime coreTestRunti
 		}
 	}
 	transactions := controllers.NewTransactionController(dbhelper.NewGormTransactionManager(database.DB))
-	hub := events.New()
 	registry := agentcapability.New(builtinskills.Guide)
 	endpoint := httptest.NewServer(registry)
 	skills := controllers.NewSkillController(database.DB)
@@ -208,7 +209,7 @@ func openCoreWorkflowPorts(t *testing.T, directory string, runtime coreTestRunti
 	if err := core.Open(ctx); err != nil {
 		t.Fatal(err)
 	}
-	s := workflowTestNew(workflow.Config{Commands: controllers.NewAgentCommandController(database.DB), Events: hub, Store: controllers.NewWorkflowController(database.DB), Runs: controllers.NewWorkflowRunController(database.DB), CreationSessions: controllers.NewWorkflowCreationController(database.DB), Transactions: transactions, Executions: core, Chats: chats, Worker: workflow.CoreWorkerAdapter{Executions: core, Chats: chats}, Wakers: wakers, Projects: projects, DataDirectory: directory})
+	s := workflowTestNew(workflow.Config{Commands: controllers.NewAgentCommandController(database.DB), Events: hub, Store: controllers.NewWorkflowController(database.DB), Runs: controllers.NewWorkflowRunController(database.DB), CreationSessions: controllers.NewWorkflowCreationController(database.DB), Consumers: controllers.NewWorkflowConsumerController(database.DB), Transactions: transactions, Executions: core, Chats: chats, Worker: workflow.CoreWorkerAdapter{Executions: core, Chats: chats}, Wakers: wakers, Projects: projects, DataDirectory: directory})
 	if err := s.Start(ctx); err != nil {
 		t.Fatal(err)
 	}

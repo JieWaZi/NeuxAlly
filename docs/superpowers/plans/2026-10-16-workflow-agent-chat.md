@@ -55,39 +55,42 @@
 * Produces: 启动命令回执含真实 `runId/definitionId/revisionId/name`；`execution.agentCommandFacts.record` 只从受信 Core 结果提取引用，原生工具 stdout 不产生授权事实。
 * Consumes: 既有 `workflowIds`、`BindConsumer`、`AppendExecutionFacts`、`workflow.runs.start` 回执。为 Task 2 预留 `AgentCommandData.Attachments []eventlog.AttachmentReference`，按命令身份／稳定路径去重投影到助手消息附件。
 
-- [ ] **Step 1: 先写失败测试。** `TestConsumerBindsOneWorkflowReferenceAndInstructions`：选中已保存定义得到真实 ID／名称及指导 Agent 读契约再用 CLI 的上下文；传两个定义拒绝。`TestWorkflowCommandFactsReplayOnAssistantMessage`：先后不同顺序的执行消息和启动事实最终投影同一运行，伪造 stdout 无 Core 事实时无引用。
-- [ ] **Step 2: 验证 RED。** 在 `server` 运行 `go test ./services/workflow ./internal/chat/messageview ./services/execution -run 'Workflow|Consumer' -count=1`，记录缺失行为导致的断言失败；编译缺字段不是充分 RED 证据。
-- [ ] **Step 3: 最小实现。** 补齐真实选择快照、输入深拷贝／摘要／持久化／失败恢复所需传递；首版聊天最多一个。启动后将 Core 确认的运行身份写入既有命令事实并让 live／durable 两条投影一致。保留原生运行日志，业务执行项不以任意工具文本建立。已确认启动运行的回合不得误判为可直接原生重试；未实际启动的选择引用不单独禁用重试。不增加失败 Execution 的能力重签或自动续跑机制。
-- [ ] **Step 4: 验证 GREEN。** 重跑聚焦测试，再 `gofmt -w` 修改的 Go 文件，运行 `pnpm api:generate`，提交前运行 `NODE_OPTIONS=--no-experimental-webstorage pnpm check`，其中包含 API 一致性、前端、Go vet 和 Go test。预计全部通过；已有失败按名称报告。
-- [ ] **Step 5: 自审并提交。** 仅提交本任务文件，中文提交信息说明消息引用、运行事实及重放保证。报告 RED／GREEN 命令、输出、接口和提交；不触碰 main。
+- [x] **Step 1: 先写失败测试。** `TestConsumerBindsOneWorkflowReferenceAndInstructions`：选中已保存定义得到真实 ID／名称及指导 Agent 读契约再用 CLI 的上下文；传两个定义拒绝。`TestWorkflowCommandFactsReplayOnAssistantMessage`：先后不同顺序的执行消息和启动事实最终投影同一运行，伪造 stdout 无 Core 事实时无引用。
+- [x] **Step 2: 验证 RED。** 在 `server` 运行 `go test ./services/workflow ./internal/chat/messageview ./services/execution -run 'Workflow|Consumer' -count=1`，记录缺失行为导致的断言失败；编译缺字段不是充分 RED 证据。
+- [x] **Step 3: 最小实现。** 补齐真实选择快照、输入深拷贝／摘要／持久化／失败恢复所需传递；首版聊天最多一个。启动后将 Core 确认的运行身份写入既有命令事实并让 live／durable 两条投影一致。保留原生运行日志，业务执行项不以任意工具文本建立。已确认启动运行的回合不得误判为可直接原生重试；未实际启动的选择引用不单独禁用重试。不增加失败 Execution 的能力重签或自动续跑机制。
+- [x] **Step 4: 验证 GREEN。** 重跑聚焦测试，再 `gofmt -w` 修改的 Go 文件，运行 `pnpm api:generate`，提交前运行 `NODE_OPTIONS=--no-experimental-webstorage pnpm check`，其中包含 API 一致性、前端、Go vet 和 Go test。预计全部通过；已有失败按名称报告。
+- [x] **Step 5: 自审并提交。** 仅提交本任务文件，中文提交信息说明消息引用、运行事实及重放保证。报告 RED／GREEN 命令、输出、接口和提交；不触碰 main。
 
 ### Task 2: 用户停止传播与最终文件交付
 
 **Files:**
 * Modify: `server/services/workflow/{agent,capabilities,runs}.go`、`server/repositories/models/{workflow_run,workflow_consumer}.go`、`server/repositories/controllers/{workflow_run_controller,workflow_consumer_controller}.go`、`server/apis/chats/cancel_chat_execution.go`、`server/apis/workflows/cancel_run.go`、`server/internal/agentcapability/contract/{catalog,output,display}.go`、`server/services/execution/agent.go`，必要的已有文件安全能力。
 * Modify when needed: `server/internal/chat/eventlog/codec.go` 及相邻测试，保证在执行终态之后追加的受信命令／附件事实仍保留明确 Execution 身份且不重新激活执行。
+* Modify when needed: 前端已有聊天停止调用链及相邻测试，仅为发送和恢复本次 Execution 身份，不提前实施 Task 3 的输入引用或运行展示。
 * Test: `server/services/workflow/{consumer,agent,retry,terminal_receipt}_test.go`、`server/apis/workflows/files_test.go`、`server/internal/chat/messageview/agent_command_test.go`、Repository 相邻真实 SQLite 测试。
 
 **Interfaces:**
 * Consumes: Task 1 的运行引用及 `AgentCommandData.Attachments`，原消费者与 Chat 关联。
 * Produces: `Service.CancelConsumerExecution(ctx context.Context, chatID, executionID string) error`，聊天取消 API 在停止 Agent 前调用；持久关闭本次消费者并取消已接纳关联运行。已关闭授权在 `StartRun` 最终接纳锁／事务内重核，防止并发遗漏。
+* Produces: 聊天停止请求绑定原 Execution 身份；传播部分失败后，即使旧 Agent 已终态且下一轮已开始，重试仍补偿原执行的遗漏运行，不重新绑定当前活跃执行。
 * Produces: `models.WorkflowRun.ConsumerLeaseID string` 作为可索引调用关联，替代 JSON Context 中同一事实；不重复保存两个权威关联。`WorkflowConsumerLease` 增加持久撤销时间，Controller 提供撤销和索引有界运行读取，游标遍历不漏活跃运行。
 * Produces: Run 的可空取消原因结构，至少含 `actor/source/requestedAt`；通过新 `CancelRunWithReason` 或等效既有职责方法接入，旧 `CancelRun` 调用者保持既有语义。常量集中，公开字段中文标签，终态不得被停止改写。
 * Produces: 新增现有命令域内的 `workflow.runs.deliver`（参数 `runId`，需要稳定 request-id，同步写操作），只允许本聊天获准且已终态的运行。返回 `runId/definitionId/revisionId/name/attachments/files`；把成功运行声明的最终文件固化为 Chat 附件，`files` 保留不可用文件的准确状态。
 * Produces: `workflow.runs.get/wait` 返回最终文件描述和明确取消原因，等待仍用原事件观察；不新增等待循环后台任务。
 
-- [ ] **Step 1: 先写失败测试。** `TestConsumerCancellationClosesAdmissionRace` 用屏障覆盖取消与最终接纳交错；`TestConsumerCancellationDoesNotRewriteTerminalRun` 覆盖重复停止和已终态。`TestAgentDeliversDeclaredFilesToAssistantMessage` 使用真实临时文件验证声明文件、同名不同 Run、重复回执和消息登记重放；`TestAgentDeliveryRejectsEscapingFiles` 覆盖越界软链接及普通字符串路径。`TestCommandFactsAfterExecutionTerminalKeepOwner` 覆盖真实日志编码、重读和重放后，迟到的附件／命令事实仍属于原消息，不污染下一回合。
-- [ ] **Step 2: 验证 RED。** `go test ./services/workflow ./internal/chat/messageview ./repositories/controllers -run 'Consumer|AgentDeliver|WorkflowCommand' -count=1`，记录所需行为缺失；接口新增时先通过现有可调用入口验证 RED，不以编译失败代替行为测试。
-- [ ] **Step 3: 最小实现。** 在 Workflow 原接纳／取消锁和统一事务内实现撤销与原因，聊天取消捕获准确执行身份。复用文件校验及 Chat 受管目录，使用 Run＋输出字段稳定身份避免覆盖，先安全固化文件再提交可重放登记；登记失败允许查询原交付回执恢复。文件交付不在 GET／wait 隐式写入，由 Agent 显式调用 deliver。
-- [ ] **Step 4: 验证 GREEN。** 聚焦测试通过后，运行 `go test -race ./services/workflow ./internal/chat/messageview`；对新增消费者查询记录真实 `EXPLAIN QUERY PLAN` 和有界查询次数证据。运行 `gofmt`、`pnpm api:generate`，提交前运行 `NODE_OPTIONS=--no-experimental-webstorage pnpm check`。
-- [ ] **Step 5: 自审并提交。** 中文提交说明双向停止、接纳竞态和最终文件交付；报告无遗漏运行与文件安全的证据，列出 Task 3 消费的最终生成类型和命令契约。
+- [x] **Step 1: 先写失败测试。** `TestConsumerCancellationClosesAdmissionRace` 用屏障覆盖取消与最终接纳交错；`TestConsumerCancellationDoesNotRewriteTerminalRun` 覆盖重复停止和已终态。`TestAgentDeliversDeclaredFilesToAssistantMessage` 使用真实临时文件验证声明文件、同名不同 Run、重复回执和消息登记重放；`TestAgentDeliveryRejectsEscapingFiles` 覆盖越界软链接及普通字符串路径。`TestCommandFactsAfterExecutionTerminalKeepOwner` 覆盖真实日志编码、重读和重放后，迟到的附件／命令事实仍属于原消息，不污染下一回合。
+- [x] **Step 2: 验证 RED。** `go test ./services/workflow ./internal/chat/messageview ./repositories/controllers -run 'Consumer|AgentDeliver|WorkflowCommand' -count=1`，记录所需行为缺失；接口新增时先通过现有可调用入口验证 RED，不以编译失败代替行为测试。
+- [x] **Step 3: 最小实现。** 在 Workflow 原接纳／取消锁和统一事务内实现撤销与原因，聊天取消捕获准确执行身份。复用文件校验及 Chat 受管目录，使用 Run＋输出字段稳定身份避免覆盖，先安全固化文件再提交可重放登记；登记失败允许查询原交付回执恢复。文件交付不在 GET／wait 隐式写入，由 Agent 显式调用 deliver。
+- [x] **Step 4: 验证 GREEN。** 聚焦测试通过后，运行 `go test -race ./services/workflow ./internal/chat/messageview`；对新增消费者查询记录真实 `EXPLAIN QUERY PLAN` 和有界查询次数证据。运行 `gofmt`、`pnpm api:generate`，提交前运行 `NODE_OPTIONS=--no-experimental-webstorage pnpm check`。
+- [x] **Step 5: 自审并提交。** 中文提交说明双向停止、接纳竞态和最终文件交付；报告无遗漏运行与文件安全的证据，列出 Task 3 消费的最终生成类型和命令契约。
 
 ### Task 3: 单工作流输入、消息执行项与右侧运行过程
 
 **Files:**
-* Modify: `desktop/src/modules/chat/components/{chat-composer-input,chat-thread,chat-workspace-surface}.tsx`、`desktop/src/modules/chat/pages/chat-page.tsx`、`desktop/src/modules/chat/runtime/{chat-queue-store,use-chat-runtime,chat-projection}.ts*`、`desktop/src/app/providers.tsx`、`desktop/src/shared/i18n/{chat,workflow}.ts`。
+* Modify: `desktop/src/modules/chat/components/{chat-composer-input,chat-thread,chat-workspace-surface}.tsx`、`desktop/src/modules/chat/pages/chat-page.tsx`、`desktop/src/modules/chat/runtime/{chat-queue-store,use-chat-runtime,chat-projection}.ts*`、`desktop/src/app/providers.tsx`、`desktop/src/shared/i18n/{index,workflow}.ts`。
 * Create: `desktop/src/modules/chat/components/chat-workflow-reference.tsx`：引用类型、消息标签；`desktop/src/modules/workflow/components/workflow-call.tsx`：受信运行执行项与右侧过程内容，必要相邻测试。
 * Modify: `desktop/src/modules/workflow/index.ts`、Workflow 公开导出、既有运行组件和 Chat 贡献槽；跨模块通过公开入口及 app 装配。
+* Modify: `desktop/src/shared/api/use-query-events.ts` 及相邻测试，按需透传已有连接状态，为运行区域提供断线／陈旧反馈，复用原订阅。
 * Test: `desktop/src/modules/chat/runtime/chat-composer.integration.test.tsx`、`desktop/src/modules/chat/runtime/chat-projection.test.ts`、`desktop/src/modules/chat/pages` 和 Workflow 过程相邻集成测试。
 
 **Interfaces:**
@@ -96,11 +99,11 @@
 * Produces: 普通 `ChatPageContent` 搜索并装配工作流，特殊 `entry` 不启用；服务端名称搜索与游标读取覆盖首屏之外的定义，不能只在首屏本地过滤。
 * Produces: 运行内容引用 `{type:'workflow-run', ids:{workflowId,runId}}`，经 `useOpenWorkbenchContent` 打开右侧；Workflow 公共贡献组件按该引用读取原运行并复用画布、详情与停止，不导航走原聊天。
 
-- [ ] **Step 1: 先写失败测试。** 在真实 TipTap 输入中 `/` 可选择工作流，第二个替换第一个；中文输入法回车不误发，删除、队列和失败恢复保留准确引用。发送 payload 是选中真实 ID。投影的助手消息含运行与文件；执行项打开确切右侧引用，渲染运行中、失败和已停止；特殊 entry 不出现工作流入口。
-- [ ] **Step 2: 验证 RED。** `pnpm --dir desktop exec vitest run src/modules/chat/runtime/chat-composer.integration.test.tsx src/modules/chat/runtime/chat-projection.test.ts`，针对新增集成文件另运行同目录测试，记录实际 UI 行为缺失。
-- [ ] **Step 3: 最小实现。** 复用已有 `/` 提示和引用节点，普通聊天一个选择；保持技能等既有语义。新增工作流业务执行项放在执行过程区，统一事件按原 Run 更新；右侧内容复用组件并保持关闭释放订阅。正式文件复用会话附件组件，不只显示任意路径文本。普通卡片无常驻边框阴影，使用现有语义 Token。
-- [ ] **Step 4: 验证 GREEN。** 聚焦集成测试通过后，提交前运行 `NODE_OPTIONS=--no-experimental-webstorage pnpm check`（包含 `pnpm --dir desktop check`、`pnpm api:check`）；禁止为省事修改检查例外。未授权不启动／控制桌面或浏览器。
-- [ ] **Step 5: 自审并提交。** 中文提交记录输入、消息和右侧交互。报告浅暗主题和窄容器自动化覆盖及仍需真实视觉验收的范围。
+- [x] **Step 1: 先写失败测试。** 在真实 TipTap 输入中 `/` 可选择工作流，第二个替换第一个；中文输入法回车不误发，删除、队列和失败恢复保留准确引用。发送 payload 是选中真实 ID。投影的助手消息含运行与文件；执行项打开确切右侧引用，渲染运行中、失败和已停止；特殊 entry 不出现工作流入口。
+- [x] **Step 2: 验证 RED。** `pnpm --dir desktop exec vitest run src/modules/chat/runtime/chat-composer.integration.test.tsx src/modules/chat/runtime/chat-projection.test.ts`，针对新增集成文件另运行同目录测试，记录实际 UI 行为缺失。
+- [x] **Step 3: 最小实现。** 复用已有 `/` 提示和引用节点，普通聊天一个选择；保持技能等既有语义。新增工作流业务执行项放在执行过程区，统一事件按原 Run 更新；右侧内容复用组件并保持关闭释放订阅。正式文件复用会话附件组件，不只显示任意路径文本。普通卡片无常驻边框阴影，使用现有语义 Token。
+- [x] **Step 4: 验证 GREEN。** 聚焦集成测试通过后，提交前运行 `NODE_OPTIONS=--no-experimental-webstorage pnpm check`（包含 `pnpm --dir desktop check`、`pnpm api:check`）；禁止为省事修改检查例外。未授权不启动／控制桌面或浏览器。
+- [x] **Step 5: 自审并提交。** 中文提交记录输入、消息和右侧交互。报告浅暗主题和窄容器自动化覆盖及仍需真实视觉验收的范围。
 
 ### Task 4: Skill 行为、文档与整体验收
 
@@ -108,7 +111,7 @@
 * Modify: `skills/ally/references/workflow-execution.md`，必要的 `skills/ally/SKILL.md` 引用；通过 `pnpm skills:generate` 更新内嵌资源。
 * Modify: `docs/architecture/{workflows,agent-capabilities,chat-and-execution,notifications-and-work-board}-cn.md` 与 `docs/guide/chat-and-workbench-cn.md` 中实际实现的相关章节。
 * Create: `docs/superpowers/acceptance/2026-10-16-workflow-agent-chat.md`：需求逐项证据及真实平台边界。
-* Create if needed: `server/services/workflow/agent_cli_integration_test.go`：通过真实 `agentcli.Execute`、HTTP Registry、临时 SQLite 和编译器串联 CLI 启动、观察、终态及文件交付；仅 Runtime／模型使用边界替身。
+* Create if needed: `server/apis/workflows/agent_cli_integration_test.go`：通过真实 `agentcli.Execute`、HTTP Registry、临时 SQLite、编译器及实际命令事实映射串联 CLI 启动、观察、终态及文件交付；仅 Runtime／模型使用边界替身。
 * Test: 必要的跨层 CLI／文件／停止回归放回所属 Task 1、2、3 的测试文件，避免仅检查 Skill 包含某段文字。
 
 **Interfaces:**
@@ -116,8 +119,10 @@
 * Produces: Agent 执行指南明确自动组织业务输入、固定 Revision、稳定 request-id、wait 超时继续原 Run、终态原因区分、显式 deliver 后把返回文件交付消息、失败／用户停止不自动重跑。
 * Produces: 验收报告列出测试、命令、退出码、独立审查、SQL 查询证据与未执行的真实模型／视觉验收，不把模拟行为测试说成真实账号执行。
 
-- [ ] **Step 1: 读取 `writing-skills` 与验证技能。** 使用受控场景先记录旧指南消费行为：已有充分代码评审上下文、缺少必要目标、一次 wait 超时、运行失败、用户主动停止及最终文件交付。测试的是消费者决策，不 grep 指令文本；如旧指南已作出正确决定，如实保留通过结果，不虚构失败。新增正式交付能力在实现后使用实际契约复测。
-- [ ] **Step 2: 更新指南并复测。** 明确每种场景下一步动作，运行 `pnpm skills:generate`、`pnpm skills:check`，以同样受控场景验证新指南行为并记录限度。
-- [ ] **Step 3: 更新当前能力文档并整体验收。** 核对实际 CLI 参数解析和 HTTP／领域集成证据，缺少时补充真实 CLI 包调用的集成验证，不能以模拟绑定成功代替完整启动、等待、终态和交付证据。在 worktree 运行 `NODE_OPTIONS=--no-experimental-webstorage pnpm check`，必要时追加已识别竞态的 race 测试；确认每个 SPEC 验收点都有证据或明确未验证边界。
+- [x] **Step 1: 读取 `writing-skills` 与验证技能。** 使用受控场景先记录旧指南消费行为：已有充分代码评审上下文、缺少必要目标、一次 wait 超时、运行失败、用户主动停止及最终文件交付。测试的是消费者决策，不 grep 指令文本；如旧指南已作出正确决定，如实保留通过结果，不虚构失败。新增正式交付能力在实现后使用实际契约复测。
+- [x] **Step 2: 更新指南并复测。** 明确每种场景下一步动作，运行 `pnpm skills:generate`、`pnpm skills:check`，以同样受控场景验证新指南行为并记录限度。
+- [x] **Step 3: 更新当前能力文档并整体验收。** 核对实际 CLI 参数解析和 HTTP／领域集成证据，缺少时补充真实 CLI 包调用的集成验证，不能以模拟绑定成功代替完整启动、等待、终态和交付证据。在 worktree 运行 `NODE_OPTIONS=--no-experimental-webstorage pnpm check`，必要时追加已识别竞态的 race 测试；确认每个 SPEC 验收点都有证据或明确未验证边界。
 - [ ] **Step 4: 自审并提交。** 提交指南、生成资源、文档与验收报告；主控生成整个功能分支的独立评审包，修复确认的重要问题后重新运行相关测试和完整检查。
 - [ ] **Step 5: 分支交付。** 按 `finishing-a-development-branch` 保留独立 worktree／分支和提交，报告 SPEC、计划、验收路径与检查结果；不自动合并、推送或清理仍待用户查看的 worktree。
+
+Task 4 的本地自审、指南/文档/跨层集成及完整检查已完成。Step 4 的提交后独立评审、全分支评审与 Step 5 分支交付继续由主控执行，尚未完成。
