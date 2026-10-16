@@ -19,9 +19,21 @@ func (c *CancelChatExecution) Path() string {
 }
 
 // Output 触发当前 Runtime Invocation 取消。
-func (c *CancelChatExecution) Output(*gin.Context) (interface{}, error) {
-	if err := global.ExecutionService.Cancel(c.ChatID); err != nil {
+func (c *CancelChatExecution) Output(ctx *gin.Context) (interface{}, error) {
+	summary, err := global.ChatService.GetChatSummary(ctx, c.ChatID)
+	if err != nil {
 		return nil, ginx.WithStack(err)
+	}
+	executionID := summary.Chat.ActiveExecutionID
+	if executionID == "" {
+		return ginx.CommonSuccessResponse(), nil
+	}
+	propagationErr := global.WorkflowService.CancelConsumerExecution(ctx, c.ChatID, executionID)
+	if err := global.ExecutionService.CancelExecution(c.ChatID, executionID); err != nil {
+		return nil, ginx.WithStack(err)
+	}
+	if propagationErr != nil {
+		return nil, ginx.WithStack(propagationErr)
 	}
 	return ginx.CommonSuccessResponse(), nil
 }

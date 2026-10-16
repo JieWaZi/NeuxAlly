@@ -189,3 +189,50 @@ func TestLiveSummaryPreservesProjectionFailureAndCancellation(t *testing.T) {
 		})
 	}
 }
+
+// 迟到交付经过实际 Journal、JSONL 重读和历史索引后，原消息保留附件且新回合继续活跃。
+func TestCommandFactsAfterTerminalRecoverOriginalMessage(t *testing.T) {
+	ctx := context.Background()
+	_, manager := newRecoveryTestService(t, t.TempDir())
+	chatID := "83838383838383838383838383838383"
+	directory := t.TempDir()
+	if _, err := manager.CreateDormantChats(ctx, []DormantChat{{Chat: models.Chat{ID: chatID, WakerID: "worker", WorkspaceDirectory: directory, AdditionalWorkingDirectories: []string{directory}, Title: "交付恢复"}}}); err != nil {
+		t.Fatal(err)
+	}
+	inputs := []eventlog.AppendInput{
+		{Type: constants.ChatEventTypeUserMessageCreated, MessageID: "u1", Data: recoveryTestData(t, eventlog.MessageCreatedData{Role: constants.MessageRoleUser, Content: "生成报告"})},
+		{Type: constants.ChatEventTypeExecutionCreated, ExecutionID: "old", Data: recoveryTestData(t, eventlog.ExecutionCreatedData{UserMessageID: "u1", RuntimeID: "codex"})},
+		{Type: constants.ChatEventTypeExecutionCompleted, ExecutionID: "old", Data: recoveryTestData(t, eventlog.ExecutionFinishedData{Status: constants.ExecutionStatusCompleted})},
+		{Type: constants.ChatEventTypeUserMessageCreated, MessageID: "u2", Data: recoveryTestData(t, eventlog.MessageCreatedData{Role: constants.MessageRoleUser, Content: "继续其他任务"})},
+		{Type: constants.ChatEventTypeExecutionCreated, ExecutionID: "next", Data: recoveryTestData(t, eventlog.ExecutionCreatedData{UserMessageID: "u2", RuntimeID: "codex"})},
+	}
+	if _, err := manager.eventCommitter.store.Append(chatID, inputs); err != nil {
+		t.Fatal(err)
+	}
+	fact := eventlog.AppendInput{Type: constants.ChatEventTypeAgentCommandCommitted, ExecutionID: "old", Data: recoveryTestData(t, eventlog.AgentCommandData{CommandID: "delivery", Operation: "workflow.runs.deliver", Completion: "immediate", Attachments: []eventlog.AttachmentReference{{Name: "report.txt", Path: "attachments/report/report.txt", Managed: true}}})}
+	for range 2 {
+		if _, err := manager.AppendExecutionFacts(ctx, chatID, []eventlog.AppendInput{fact}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	summary, err := manager.GetChatSummary(ctx, chatID)
+	if err != nil || summary.Chat.ActiveExecutionID != "next" {
+		t.Fatalf("迟到事实重新激活旧执行: %+v %v", summary, err)
+	}
+	history, err := manager.ReadMessageHistory(ctx, chatID, 0, 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	attached := 0
+	for _, message := range history.Resources {
+		if len(message.Attachments) > 0 {
+			attached++
+			if message.ExecutionID != "old" || len(message.Attachments) != 1 || message.Status != constants.ExecutionStatusCompleted {
+				t.Fatalf("附件归属或终态被污染: %+v", message)
+			}
+		}
+	}
+	if attached != 1 {
+		t.Fatalf("历史查询丢失或重复交付: %+v", history.Resources)
+	}
+}

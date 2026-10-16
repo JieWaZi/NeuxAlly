@@ -340,7 +340,7 @@ func (s *Service) handleConsumerTool(ctx context.Context, scope workflowtool.Sco
 	if err != nil {
 		return nil, err
 	}
-	if subtle.ConstantTimeCompare([]byte(lease.AuthToken), []byte(scope.Token)) != 1 || lease.DeadlineAt <= time.Now().UnixMilli() {
+	if subtle.ConstantTimeCompare([]byte(lease.AuthToken), []byte(scope.Token)) != 1 || lease.RevokedAt != nil || lease.DeadlineAt <= time.Now().UnixMilli() {
 		return nil, status_error.WorkflowStateConflict
 	}
 	actual, err := s.chats.ReadExecution(ctx, lease.ChatID, lease.ID)
@@ -410,8 +410,7 @@ func (s *Service) handleConsumerTool(ctx context.Context, scope workflowtool.Sco
 	if err != nil {
 		return nil, err
 	}
-	originID, _ := run.Context["consumerLeaseId"].(string)
-	origin, originErr := s.consumers.GetConsumer(ctx, originID)
+	origin, originErr := s.consumers.GetConsumer(ctx, run.ConsumerLeaseID)
 	if originErr != nil || origin.ChatID != lease.ChatID || !slices.Contains(lease.DefinitionIDs, run.DefinitionID) {
 		return nil, status_error.WorkflowNotFound
 	}
@@ -419,7 +418,7 @@ func (s *Service) handleConsumerTool(ctx context.Context, scope workflowtool.Sco
 		if input.RequestID == "" || len(input.RequestID) > 128 {
 			return nil, status_error.BadRequest
 		}
-		if err := s.CancelRun(ctx, run.ID); err != nil {
+		if err := s.CancelRunWithReason(ctx, run.ID, &models.WorkflowCancellationReason{Actor: constants.WorkflowCancellationActorAgent, Source: constants.WorkflowCancellationSourceCLI, RequestedAt: time.Now().UnixMilli()}); err != nil {
 			return nil, err
 		}
 		run, err = s.runs.GetRun(ctx, run.ID)
@@ -433,7 +432,11 @@ func (s *Service) handleConsumerTool(ctx context.Context, scope workflowtool.Sco
 	if err != nil {
 		return nil, err
 	}
-	return map[string]any{"ok": true, "data": map[string]any{"run": run, "humanRequests": humans, "operationRequests": operations}}, nil
+	files, err := s.OutputFiles(ctx, run)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]any{"ok": true, "data": map[string]any{"run": run, "humanRequests": humans, "operationRequests": operations, "files": files}}, nil
 }
 
 // Resources 返回创作可引用的真实目录，凭据仅输出可选择的引用身份。

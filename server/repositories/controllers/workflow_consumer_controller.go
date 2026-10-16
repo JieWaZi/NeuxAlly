@@ -14,6 +14,8 @@ import (
 type WorkflowConsumerController interface {
 	// CreateConsumer 插入签发锚点；重复身份保留首次白名单与凭据。
 	CreateConsumer(context.Context, models.WorkflowConsumerLease) error
+	// RevokeConsumer 只记录首次撤销，且限定真实聊天归属。
+	RevokeConsumer(context.Context, string, string, int64) error
 	// GetConsumer 读取工具请求绑定的真实回合。
 	GetConsumer(context.Context, string) (models.WorkflowConsumerLease, error)
 }
@@ -46,4 +48,11 @@ func (c *workflowConsumerController) GetConsumer(ctx context.Context, id string)
 		return value, databaseError("get_workflow_consumer", id, err)
 	}
 	return value, nil
+}
+
+func (c *workflowConsumerController) RevokeConsumer(ctx context.Context, chatID, id string, now int64) error {
+	if err := controllerDB(ctx, c.db).Model(&models.WorkflowConsumerLease{}).Where("id = ? AND chat_id = ? AND revoked_at IS NULL", id, chatID).Update("revoked_at", now).Error; err != nil {
+		return databaseError("revoke_workflow_consumer", id, err)
+	}
+	return nil
 }

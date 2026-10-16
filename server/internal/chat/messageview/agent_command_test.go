@@ -111,3 +111,40 @@ func TestWorkflowCommandFactsReplayOnAssistantMessage(t *testing.T) {
 		})
 	}
 }
+
+// 真实 JSONL 编解码不能把迟到的交付归到下一轮，或重新激活已结束的执行。
+func TestCommandFactsAfterExecutionTerminalKeepOwner(t *testing.T) {
+	store, err := eventlog.NewStore(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	chatID := "0123456789abcdef0123456789abcdef"
+	_, err = store.Create(chatID, []eventlog.AppendInput{
+		{Type: constants.ChatEventTypeCreated, Data: json.RawMessage(`{"wakerId":"waker","workspaceDirectory":"/workspace"}`)},
+		{Type: constants.ChatEventTypeExecutionCreated, ExecutionID: "old", Data: json.RawMessage(`{"userMessageId":"user"}`)},
+		{Type: constants.ChatEventTypeExecutionCompleted, ExecutionID: "old", Data: json.RawMessage(`{"status":"completed"}`)},
+		{Type: constants.ChatEventTypeExecutionCreated, ExecutionID: "next", Data: json.RawMessage(`{"userMessageId":"user2"}`)},
+		{Type: constants.ChatEventTypeAgentCommandCommitted, ExecutionID: "old", Data: json.RawMessage(`{"commandId":"delivery","operation":"workflow.runs.deliver","completion":"immediate","attachments":[{"path":"attachments/run/report.txt","name":"report.txt","managed":true}]}`)},
+		{Type: constants.ChatEventTypeExecutionStarted, ExecutionID: "next"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	records, err := store.ReadAll(chatID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if records[4].ExecutionID != "old" || records[5].ExecutionID != "next" {
+		t.Fatalf("迟到事实丢失执行身份或污染后续作用域: %+v", records)
+	}
+	builder := NewMessageViewBuilder()
+	for _, record := range records {
+		if _, err := builder.Apply(record); err != nil {
+			t.Fatal(err)
+		}
+	}
+	messages := builder.Messages()
+	if len(messages) != 2 || len(messages[0].Attachments) != 1 || len(messages[1].Attachments) != 0 {
+		t.Fatalf("迟到交付未保留原消息: %+v", messages)
+	}
+}

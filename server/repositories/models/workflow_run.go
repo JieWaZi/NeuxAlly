@@ -35,12 +35,16 @@ type WorkflowExecutionDefaults struct {
 
 // WorkflowRun 固定版本、参数、执行配置和租约，不读取后续创作修改。
 type WorkflowRun struct {
+	// ConsumerLeaseID 是唯一的调用授权关联，供索引取消和同聊天验证。
+	ConsumerLeaseID string `gorm:"size:32;not null;default:'';index:idx_workflow_consumer_runs,priority:1" json:"-"`
+	// 停止原因
+	CancellationReason *WorkflowCancellationReason `gorm:"serializer:json;type:text" json:"cancellationReason,omitempty"`
 	// WorkerConfigurations 按源码节点身份冻结接纳时解析的有效执行配置，不包含凭据。
 	WorkerConfigurations map[string]WorkflowExecutionDefaults `gorm:"serializer:json;type:text;not null" json:"-"`
 	// RootRunID 绑定调用树，统一限制全部后代的数量。
 	RootRunID string `gorm:"index;size:32" json:"rootRunId"`
 	// ID 是运行身份。
-	ID string `gorm:"type:varchar(32);primaryKey;index:idx_workflow_board_identity,priority:1;index:idx_workflow_board_activity,priority:3,sort:desc;index:idx_workflow_board_executor,priority:4,sort:desc" json:"id"`
+	ID string `gorm:"type:varchar(32);primaryKey;index:idx_workflow_consumer_runs,priority:2;index:idx_workflow_board_identity,priority:1;index:idx_workflow_board_activity,priority:3,sort:desc;index:idx_workflow_board_executor,priority:4,sort:desc" json:"id"`
 	// DefinitionID 是所属定义。
 	DefinitionID string `gorm:"index:idx_workflow_board_identity,priority:2;type:varchar(32);not null;index;index:idx_workflow_board_executor,priority:1;index:idx_workflow_run_history,priority:1" json:"definitionId"`
 	// RevisionID 是本次不可变版本。
@@ -338,3 +342,13 @@ type WorkflowActionCall struct {
 }
 
 func (WorkflowActionCall) TableName() string { return "workflow_action_calls" }
+
+// 停止原因
+type WorkflowCancellationReason struct {
+	// 操作主体
+	Actor string `json:"actor"`
+	// 停止来源
+	Source string `json:"source"`
+	// 请求时间
+	RequestedAt int64 `json:"requestedAt"`
+}

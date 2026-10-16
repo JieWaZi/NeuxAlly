@@ -592,3 +592,45 @@ func TestWorkflowCommandFactsKeepLiveAndDurableReferencesEqual(t *testing.T) {
 		t.Fatalf("实时和重放消息修订不一致: %d != %d", messages[0].Revision, snapshot.Revision)
 	}
 }
+
+// 新回合查询旧回执时，可信运行身份控制持久消息登记，当前执行不能替代原归属。
+func TestDeliveryCommandFactUsesOriginalExecution(t *testing.T) {
+	store, err := eventlog.NewStore(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	chatID := "73737373737373737373737373737373"
+	if _, err := store.Create(chatID, activeChatInputs()); err != nil {
+		t.Fatal(err)
+	}
+	sink, _ := newRuntimeEventSinkForTest(store, chatID)
+	if _, err := store.Append(chatID, []eventlog.AppendInput{{Type: constants.ChatEventTypeExecutionCompleted, ExecutionID: "execution-1", Data: marshalData(eventlog.ExecutionFinishedData{Status: constants.ExecutionStatusCompleted})}, {Type: constants.ChatEventTypeExecutionCreated, ExecutionID: "next", Data: marshalData(eventlog.ExecutionCreatedData{UserMessageID: "next-user"})}}); err != nil {
+		t.Fatal(err)
+	}
+	op, _ := contract.Find("workflow.runs.deliver")
+	facts := &agentCommandFacts{}
+	result := agentcapability.Result{CommandID: "delivery", ExecutionID: "execution-1", Data: map[string]any{"runId": "run", "definitionId": "definition", "revisionId": "revision", "name": "报告", "attachments": []eventlog.AttachmentReference{{Name: "report.txt", Path: "attachments/run/report.txt", Managed: true}}}}
+	if err := facts.record(context.Background(), sink.journal, chatID, "next", op, result); err != nil {
+		t.Fatal(err)
+	}
+	records, err := store.ReadAll(chatID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	messages, err := messageview.ReplayMessages(records)
+	if err != nil {
+		t.Fatal(err)
+	}
+	attached := 0
+	for _, message := range messages {
+		if len(message.Attachments) > 0 {
+			attached++
+			if message.ExecutionID != "execution-1" || len(message.WorkflowRuns) != 1 {
+				t.Fatalf("新回合覆盖原交付身份: %+v", message)
+			}
+		}
+	}
+	if attached != 1 {
+		t.Fatal("原消息没有交付")
+	}
+}

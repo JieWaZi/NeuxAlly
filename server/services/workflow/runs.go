@@ -5,10 +5,12 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"io"
 	"mime"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -146,6 +148,16 @@ func (s *Service) StartRun(ctx context.Context, command StartRunCommand) (models
 			run, err = s.runs.GetRun(ctx, id)
 			return err
 		}
+
+		if command.ConsumerLeaseID != "" {
+			lease, err := s.consumers.GetConsumer(ctx, command.ConsumerLeaseID)
+			if err != nil {
+				return err
+			}
+			if lease.RevokedAt != nil || lease.DeadlineAt <= time.Now().UnixMilli() || !slices.Contains(lease.DefinitionIDs, command.DefinitionID) {
+				return status_error.WorkflowStateConflict
+			}
+		}
 		definition, err := s.store.GetDefinition(ctx, command.DefinitionID)
 		if err != nil {
 			return err
@@ -232,10 +244,7 @@ func (s *Service) StartRun(ctx context.Context, command StartRunCommand) (models
 			retryID = command.RetrySourceRunID
 		}
 		flowContext := map[string]any{"runId": id, "workflowId": definition.ID, "revisionId": revision.ID, "runStartedAt": now, "workflowName": revision.Manifest.Meta.Title, "parentRunId": parentID, "retrySourceRunId": retryID, "triggerSource": source, "scope": map[string]any{"projectId": scope.ProjectID, "workingDirectory": scope.WorkingDirectory}}
-		if command.ConsumerLeaseID != "" {
-			flowContext["consumerLeaseId"] = command.ConsumerLeaseID
-		}
-		run = models.WorkflowRun{ID: id, RootRunID: rootRunID, DefinitionID: definition.ID, RevisionID: revision.ID, RevisionOrdinal: revision.Ordinal, Status: constants.WorkflowRunStatusQueued, Args: args, Defaults: command.Defaults, WorkerConfigurations: configurations, Limits: revision.Manifest.Meta.Limits, ScopeBinding: scope, Context: flowContext, RootFiberID: fiberID, ParentRunID: command.ParentRunID, Joined: command.Joined, Depth: command.Depth, Version: 1, StartedAt: now, DeadlineAt: now + timeout}
+		run = models.WorkflowRun{ID: id, ConsumerLeaseID: command.ConsumerLeaseID, RootRunID: rootRunID, DefinitionID: definition.ID, RevisionID: revision.ID, RevisionOrdinal: revision.Ordinal, Status: constants.WorkflowRunStatusQueued, Args: args, Defaults: command.Defaults, WorkerConfigurations: configurations, Limits: revision.Manifest.Meta.Limits, ScopeBinding: scope, Context: flowContext, RootFiberID: fiberID, ParentRunID: command.ParentRunID, Joined: command.Joined, Depth: command.Depth, Version: 1, StartedAt: now, DeadlineAt: now + timeout}
 		fiber := models.WorkflowFiber{ID: fiberID, RunID: id, Path: "root", Status: constants.WorkflowStepStatusReady, State: workflowdsl.NewMachine(revision.Bundle, args, flowContext, now)}
 		if err = s.runs.CreateRun(ctx, run, fiber); err != nil {
 			return err
@@ -295,21 +304,83 @@ func (s *Service) validateRevisionIMTargets(ctx context.Context, revision models
 
 // CancelRun 提交停止意图，Runner 在真实外部执行收敛后形成 cancelled。
 func (s *Service) CancelRun(ctx context.Context, id string) error {
+	return s.CancelRunWithReason(ctx, id, nil)
+}
+
+// CancelRunWithReason 保留首次真实停止来源；重复停止与终态读取均不改写运行。
+func (s *Service) CancelRunWithReason(ctx context.Context, id string, reason *models.WorkflowCancellationReason) error {
 	s.state.Commands.Lock()
 	defer s.state.Commands.Unlock()
 	return s.transactions.Transaction(ctx, func(ctx context.Context) error {
-		state, err := s.state.OwnedRun(ctx, id)
+		run, err := s.runs.GetRun(ctx, id)
 		if err != nil {
 			return err
 		}
-		if !workflowstate.TerminalRun(state.Run.Status) {
+		if !workflowstate.TerminalRun(run.Status) && run.Status != constants.WorkflowRunStatusCancelling {
+			state, err := s.state.OwnedRun(ctx, id)
+			if err != nil {
+				return err
+			}
 			state.Run.Status = constants.WorkflowRunStatusCancelling
+			if reason != nil {
+				value := *reason
+				state.Run.CancellationReason = &value
+			}
 			if err := s.state.CommitRun(ctx, state); err != nil {
 				return err
 			}
 		}
-		return agentcommand.Commit(ctx, map[string]any{"runId": id, "definitionId": state.Run.DefinitionID, "cancellationRequested": true})
+		return agentcommand.Commit(ctx, map[string]any{"runId": id, "definitionId": run.DefinitionID, "cancellationRequested": !workflowstate.TerminalRun(run.Status)})
 	})
+}
+
+// CancelConsumerExecution 先关闭本轮授权，再逐页取消全部已接纳运行；失败仍继续处理其余运行。
+func (s *Service) CancelConsumerExecution(ctx context.Context, chatID, executionID string) error {
+	if executionID == "" || s.consumers == nil {
+		return nil
+	}
+	s.state.Commands.Lock()
+	err := s.transactions.Transaction(ctx, func(ctx context.Context) error {
+		lease, err := s.consumers.GetConsumer(ctx, executionID)
+		if errors.Is(err, status_error.WorkflowNotFound) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		if lease.ChatID != chatID {
+			return status_error.WorkflowStateConflict
+		}
+		return s.consumers.RevokeConsumer(ctx, chatID, executionID, time.Now().UnixMilli())
+	})
+	s.state.Commands.Unlock()
+	if err != nil {
+		return err
+	}
+	lease, err := s.consumers.GetConsumer(ctx, executionID)
+	if errors.Is(err, status_error.WorkflowNotFound) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	reason := &models.WorkflowCancellationReason{Actor: constants.WorkflowCancellationActorUser, Source: constants.WorkflowCancellationSourceChat, RequestedAt: *lease.RevokedAt}
+	var firstErr error
+	for after := ""; ; {
+		ids, err := s.runs.ListActiveConsumerRuns(ctx, executionID, after, constants.WorkflowConsumerPageSize)
+		if err != nil {
+			return err
+		}
+		for _, id := range ids {
+			if err := s.CancelRunWithReason(ctx, id, reason); err != nil && firstErr == nil {
+				firstErr = err
+			}
+		}
+		if len(ids) < constants.WorkflowConsumerPageSize {
+			return firstErr
+		}
+		after = ids[len(ids)-1]
+	}
 }
 
 func (s *Service) prepareAdmission(ctx context.Context, definition models.WorkflowDefinition, revision models.WorkflowRevision, command StartRunCommand, runID string, configurations map[string]models.WorkflowExecutionDefaults) (models.WorkflowScopeBinding, error) {

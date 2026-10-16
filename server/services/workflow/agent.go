@@ -14,12 +14,14 @@ import (
 	"github.com/JieWaZi/NeuxAlly/server/internal/agentcapability"
 	"github.com/JieWaZi/NeuxAlly/server/internal/agentcapability/contract"
 	"github.com/JieWaZi/NeuxAlly/server/internal/agentcommand"
+	"github.com/JieWaZi/NeuxAlly/server/internal/chat/eventlog"
 	"github.com/JieWaZi/NeuxAlly/server/internal/logx"
 	"github.com/JieWaZi/NeuxAlly/server/internal/notification/events"
 	workflowtool "github.com/JieWaZi/NeuxAlly/server/internal/workflow/capability"
 	workflowdsl "github.com/JieWaZi/NeuxAlly/server/internal/workflow/dsl"
 	workflowfiles "github.com/JieWaZi/NeuxAlly/server/internal/workflow/files"
 	workflowstate "github.com/JieWaZi/NeuxAlly/server/internal/workflow/state"
+	"github.com/JieWaZi/NeuxAlly/server/internal/workspace"
 )
 
 // AgentBindings 只签发当前服务端场景具有的操作，不接受调用方声明场景或身份。
@@ -30,7 +32,7 @@ func (s *Service) AgentBindings(key, token string, kind constants.WorkflowCapabi
 	case constants.WorkflowCapabilityScopeCreation:
 		ids = []string{"workflow.authoring.prepare", "workflow.source.get", "workflow.source.validate", "workflow.source.save", "workflow.sdk.get", "workflow.resources.list", "workflow.annotations.list", "workflow.evidence.list"}
 	case constants.WorkflowCapabilityScopeConsumer:
-		ids = []string{"workflow.definitions.list", "workflow.definitions.describe", "workflow.runs.start", "workflow.runs.get", "workflow.runs.cancel", "workflow.runs.wait"}
+		ids = []string{"workflow.definitions.list", "workflow.definitions.describe", "workflow.runs.start", "workflow.runs.get", "workflow.runs.cancel", "workflow.runs.wait", "workflow.runs.deliver"}
 	case constants.WorkflowCapabilityScopeResult:
 		ids = []string{"workflow.results.schema", "workflow.results.submit"}
 	}
@@ -55,15 +57,25 @@ func (s *Service) AgentBindings(key, token string, kind constants.WorkflowCapabi
 			op, _ := contract.Find(id)
 			if op.Effect != constants.AgentCLIEffectRead {
 				if id == "workflow.runs.start" {
-					return s.startAgentRun(ctx, scope, owner, request)
+					result, err := s.startAgentRun(ctx, scope, owner, request)
+					if err != nil {
+						return result, err
+					}
+					return s.agentRunReceipt(ctx, scope, id, result)
 				}
 				result, err := agentcommand.Execute(ctx, s.commands, owner, request, func(ctx context.Context) error {
+					if id == "workflow.runs.deliver" {
+						return s.deliverAgentRun(ctx, scope, request)
+					}
 					input := workflowAgentInput(request)
 					input.RequestID = agentcommand.ID(owner, id, request.RequestID)
 					_, err := s.handleTool(ctx, scope, input)
 					return err
 				})
-				return workflowAgentReceipt(id, result), err
+				if err != nil {
+					return result, err
+				}
+				return s.agentRunReceipt(ctx, scope, id, workflowAgentReceipt(id, result))
 			}
 			if id == "workflow.runs.wait" {
 				if s.events == nil {
@@ -130,7 +142,10 @@ func (s *Service) AgentBindings(key, token string, kind constants.WorkflowCapabi
 						}
 					}
 				}
-				return workflowAgentReceipt(id, result), err
+				if err != nil {
+					return result, err
+				}
+				return s.agentRunReceipt(ctx, scope, id, workflowAgentReceipt(id, result))
 			}
 		}
 		bindings = append(bindings, binding)
@@ -364,4 +379,89 @@ func workflowAgentInput(request agentcapability.Request) workflowtool.Input {
 		input.Action = constants.WorkflowActionResultSubmit
 	}
 	return input
+}
+
+// deliverAgentRun 先固化声明文件，再提交可恢复回执；消息登记由 Execution 的可信命令事实完成。
+func (s *Service) deliverAgentRun(ctx context.Context, scope workflowtool.Scope, request agentcapability.Request) error {
+	runID, _ := request.Params["runId"].(string)
+	if _, err := s.handleConsumerTool(ctx, scope, workflowtool.Input{Action: constants.WorkflowActionRunGet, RunID: runID}); err != nil {
+		return err
+	}
+	run, err := s.runs.GetRun(ctx, runID)
+	if err != nil {
+		return err
+	}
+	if !workflowstate.TerminalRun(run.Status) {
+		return status_error.WorkflowStateConflict
+	}
+	lease, err := s.consumers.GetConsumer(ctx, scope.Key)
+	if err != nil {
+		return err
+	}
+	summary, err := s.chats.GetChatSummary(ctx, lease.ChatID)
+	if err != nil {
+		return err
+	}
+	revision, err := s.store.GetRevision(ctx, run.DefinitionID, run.RevisionID)
+	if err != nil {
+		return err
+	}
+	files, err := s.OutputFiles(ctx, run)
+	if err != nil {
+		return err
+	}
+	attachments := []eventlog.AttachmentReference{}
+	for i := range files {
+		item := &files[i]
+		identity := agentcommand.ID(lease.ChatID, "workflow.runs.deliver", run.ID+":"+item.Field)
+		// 固化完成但数据库回执失败时复用原字节，不再要求源文件存在。
+		ref, found, err := workspace.ReadDeliveredAttachment(summary.Chat.WorkspaceDirectory, lease.ChatID, identity, item.Name)
+		if err != nil {
+			return err
+		}
+		if !found {
+			file, name, err := s.OpenOutputFile(ctx, run.DefinitionID, run.ID, item.ID)
+			if err != nil {
+				item.Available = false
+				continue
+			}
+			ref, err = workspace.SaveDeliveredAttachment(summary.Chat.WorkspaceDirectory, lease.ChatID, identity, name, file)
+			file.Close()
+			if err != nil {
+				return err
+			}
+		}
+		item.Available = true
+		item.Size = ref.Size
+		attachments = append(attachments, eventlog.AttachmentReference{Name: ref.Name, Path: ref.Path, MediaType: ref.MediaType, Managed: true})
+	}
+	return s.transactions.Transaction(ctx, func(ctx context.Context) error {
+		return agentcommand.Commit(ctx, map[string]any{"runId": run.ID, "definitionId": run.DefinitionID, "revisionId": run.RevisionID, "name": revision.Manifest.Meta.Title, "attachments": attachments, "files": files})
+	})
+}
+
+// agentRunReceipt 只从唯一运行关联恢复消息归属，查询回执不能归入当前新回合。
+func (s *Service) agentRunReceipt(ctx context.Context, scope workflowtool.Scope, operation string, result agentcapability.Result) (agentcapability.Result, error) {
+	if operation != "workflow.runs.start" && operation != "workflow.runs.deliver" {
+		return result, nil
+	}
+	data, _ := result.Data.(map[string]any)
+	runID, _ := data["runId"].(string)
+	run, err := s.runs.GetRun(ctx, runID)
+	if err != nil {
+		return result, err
+	}
+	origin, err := s.consumers.GetConsumer(ctx, run.ConsumerLeaseID)
+	if err != nil {
+		return result, err
+	}
+	current, err := s.consumers.GetConsumer(ctx, scope.Key)
+	if err != nil {
+		return result, err
+	}
+	if origin.ChatID != current.ChatID || !slices.Contains(current.DefinitionIDs, run.DefinitionID) {
+		return result, status_error.AgentOperationForbidden
+	}
+	result.ExecutionID = origin.ID
+	return result, nil
 }

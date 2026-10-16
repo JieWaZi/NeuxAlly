@@ -10,6 +10,7 @@ import (
 
 	"github.com/JieWaZi/NeuxAlly/server/constants"
 	"github.com/JieWaZi/NeuxAlly/server/constants/status_error"
+	"github.com/JieWaZi/NeuxAlly/server/internal/agentcapability/contract"
 )
 
 func TestGrantActivationScopeAndRevocation(t *testing.T) {
@@ -94,5 +95,43 @@ func TestInvalidContextRecoveryRequiresHostAuthorization(t *testing.T) {
 	response := ErrorResponse("workflow.source.get", status_error.AgentContextUnauthorized)
 	if response.Error == nil || response.Error.RetryAdvice != "refresh_context" || !strings.Contains(response.Error.Message, "host must provide") || !strings.Contains(response.Error.Message, "Do not retry") {
 		t.Fatalf("失效上下文缺少明确恢复边界: %+v", response)
+	}
+}
+
+// 消息登记失败后查询同一回执应重试登记，不再次调用业务命令。
+func TestReceiptRestoresFailedCommandFact(t *testing.T) {
+	registry := New(nil)
+	defer registry.Close()
+	calls, records := 0, 0
+	result := Result{CommandID: "receipt", Data: map[string]any{"runId": "run", "definitionId": "definition", "revisionId": "revision", "name": "报告", "attachments": []any{}, "files": []any{}}}
+	grant, activate, revoke, err := registry.Prepare(GrantSpec{ExecutionID: "execution", Bindings: []Binding{{Operation: "workflow.runs.deliver", Call: func(context.Context, Request) (Result, error) { calls++; return result, nil }, Receipt: func(context.Context, string) (Result, error) { return result, nil }}}, Validate: func(context.Context) error { return nil }, Record: func(context.Context, contract.Operation, Result) error {
+		records++
+		if records == 1 {
+			return status_error.ChatLogError
+		}
+		return nil
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer revoke()
+	activate()
+	send := func(method, path, body string) {
+		t.Helper()
+		request := httptest.NewRequest(method, constants.AgentCLIPath+path, strings.NewReader(body))
+		request.RemoteAddr = "127.0.0.1:12345"
+		request.Header.Set("Authorization", "Bearer "+grant.Token)
+		response := httptest.NewRecorder()
+		registry.ServeHTTP(response, request)
+		if response.Code != 200 {
+			t.Fatalf("%d %s", response.Code, response.Body)
+		}
+	}
+	send(http.MethodPost, "/commands", `{"operation":"workflow.runs.deliver","requestId":"delivery","params":{"runId":"run"}}`)
+	for range 2 {
+		send(http.MethodGet, "/receipts?operation=workflow.runs.deliver&requestId=delivery", "")
+	}
+	if records != 2 || calls != 1 {
+		t.Fatalf("回执没有恢复一次登记或重跑业务: records=%d calls=%d", records, calls)
 	}
 }

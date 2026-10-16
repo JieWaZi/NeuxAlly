@@ -1,6 +1,7 @@
 package workspace
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"mime"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/JieWaZi/NeuxAlly/server/constants"
 	"github.com/JieWaZi/NeuxAlly/server/constants/status_error"
+	"github.com/JieWaZi/NeuxAlly/server/internal/util"
 )
 
 // AttachmentInput 是用户选择的一份本地文件。
@@ -20,6 +22,8 @@ type AttachmentInput struct {
 
 // AttachmentReference 是可以安全写入 Chat JSONL 的文件引用。
 type AttachmentReference struct {
+	// Size 是固化交付文件的真实字节数。
+	Size int64 `json:"size,omitempty"`
 	// Name 是向用户和 Agent 展示的原始文件名。
 	Name string `json:"name"`
 	// Path 是相对 Chat 工作目录的稳定路径。
@@ -275,4 +279,98 @@ func copyFile(sourcePath string, destinationPath string) error {
 		return status_error.MessageAttachmentStorageError
 	}
 	return nil
+}
+
+// ReadDeliveredAttachment 恢复同一业务身份已固化的附件，缺失时返回 found=false。
+func ReadDeliveredAttachment(workingDirectory, chatID, identity, name string) (AttachmentReference, bool, error) {
+	if err := ValidateExecutionWorkspaceDeletion(workingDirectory, chatID); err != nil {
+		return AttachmentReference{}, false, err
+	}
+	if identity == "" || filepath.Base(identity) != identity || name == "" || filepath.Base(name) != name || name == "." || name == ".." {
+		return AttachmentReference{}, false, status_error.MessageAttachmentInvalid
+	}
+	root, err := os.OpenRoot(workingDirectory)
+	if err != nil {
+		return AttachmentReference{}, false, status_error.MessageAttachmentStorageError
+	}
+	defer root.Close()
+	directory := filepath.Join(constants.ExecutionWorkspaceAttachmentsDirectory, identity)
+	info, err := root.Lstat(directory)
+	if os.IsNotExist(err) {
+		return AttachmentReference{}, false, nil
+	}
+	if err != nil || !info.IsDir() {
+		return AttachmentReference{}, false, status_error.MessageAttachmentStorageError
+	}
+	markerFile, err := root.Open(filepath.Join(directory, constants.ChatContextOwnerFileName))
+	if err != nil {
+		return AttachmentReference{}, false, status_error.MessageAttachmentStorageError
+	}
+	var marker ownerMarker
+	err = json.NewDecoder(markerFile).Decode(&marker)
+	markerFile.Close()
+	if err != nil || marker.Kind != constants.ChatMessageAttachmentsOwnerKind || marker.ChatID != chatID || marker.MessageID != identity {
+		return AttachmentReference{}, false, status_error.ChatDirectoryOwnershipInvalid
+	}
+	path := filepath.Join(directory, name)
+	info, err = root.Lstat(path)
+	if err != nil || !info.Mode().IsRegular() {
+		return AttachmentReference{}, false, status_error.MessageAttachmentStorageError
+	}
+	file, err := root.Open(path)
+	if err != nil {
+		return AttachmentReference{}, false, status_error.MessageAttachmentStorageError
+	}
+	file.Close()
+	return AttachmentReference{Size: info.Size(), Name: name, Path: filepath.ToSlash(path), MediaType: mime.TypeByExtension(filepath.Ext(name)), Managed: true}, true, nil
+}
+
+// SaveDeliveredAttachment 接收已授权打开的真实字节，原子固化到 Chat 受管目录；稳定身份禁止覆盖。
+func SaveDeliveredAttachment(workingDirectory, chatID, identity, name string, input io.Reader) (AttachmentReference, error) {
+	if ref, found, err := ReadDeliveredAttachment(workingDirectory, chatID, identity, name); err != nil || found {
+		return ref, err
+	}
+	if _, err := ensureManagedRoot(workingDirectory, constants.ExecutionWorkspaceAttachmentsDirectory); err != nil {
+		return AttachmentReference{}, err
+	}
+	root, err := os.OpenRoot(workingDirectory)
+	if err != nil {
+		return AttachmentReference{}, status_error.MessageAttachmentStorageError
+	}
+	defer root.Close()
+	staging := filepath.Join(constants.ExecutionWorkspaceAttachmentsDirectory, "delivery-staging-"+util.New())
+	if err := root.Mkdir(staging, 0700); err != nil {
+		return AttachmentReference{}, status_error.MessageAttachmentStorageError
+	}
+	defer root.RemoveAll(staging)
+	marker, err := root.OpenFile(filepath.Join(staging, constants.ChatContextOwnerFileName), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
+	if err != nil {
+		return AttachmentReference{}, status_error.MessageAttachmentStorageError
+	}
+	encodeErr := json.NewEncoder(marker).Encode(ownerMarker{Kind: constants.ChatMessageAttachmentsOwnerKind, ChatID: chatID, MessageID: identity})
+	syncErr, closeErr := marker.Sync(), marker.Close()
+	if encodeErr != nil || syncErr != nil || closeErr != nil {
+		return AttachmentReference{}, status_error.MessageAttachmentStorageError
+	}
+	file, err := root.OpenFile(filepath.Join(staging, name), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
+	if err != nil {
+		return AttachmentReference{}, status_error.MessageAttachmentStorageError
+	}
+	count, copyErr := io.Copy(file, io.LimitReader(input, constants.WorkflowFileMaximumBytes+1))
+	syncErr, closeErr = file.Sync(), file.Close()
+	if copyErr != nil || syncErr != nil || closeErr != nil {
+		return AttachmentReference{}, status_error.MessageAttachmentStorageError
+	}
+	if count > constants.WorkflowFileMaximumBytes {
+		return AttachmentReference{}, status_error.MessageAttachmentInvalid
+	}
+	target := filepath.Join(constants.ExecutionWorkspaceAttachmentsDirectory, identity)
+	if err := root.Rename(staging, target); err != nil {
+		if ref, found, readErr := ReadDeliveredAttachment(workingDirectory, chatID, identity, name); found && readErr == nil {
+			return ref, nil
+		}
+		return AttachmentReference{}, status_error.MessageAttachmentStorageError
+	}
+	ref, _, err := ReadDeliveredAttachment(workingDirectory, chatID, identity, name)
+	return ref, err
 }

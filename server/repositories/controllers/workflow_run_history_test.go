@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/JieWaZi/NeuxAlly/server/constants"
@@ -188,4 +189,64 @@ func TestRemovedRunHistoryDoesNotAppearInWorkBoardOrUnreadCounts(t *testing.T) {
 	if _, found, err := results.Get(ctx, constants.WorkResultOwnerKindWorkflowRun, "flow-000"); err != nil || !found {
 		t.Fatalf("成果凭据必须保留: %v %v", found, err)
 	}
+}
+
+// 关联取消必须扫描完整活跃集合，同时保持索引游标读取与每页一次 SQL。
+func TestConsumerRunQueryUsesBoundedIndexTraversal(t *testing.T) {
+	db := newTestDB(t)
+	ctx := context.Background()
+	values := make([]models.WorkflowRun, 0, 800)
+	for i := 0; i < 800; i++ {
+		status := constants.WorkflowRunStatusQueued
+		lease := "selected"
+		if i >= 257 {
+			lease = "other"
+		}
+		if i >= 600 {
+			status = constants.WorkflowRunStatusSucceeded
+			lease = "selected"
+		}
+		values = append(values, models.WorkflowRun{ID: fmt.Sprintf("run-%04d", i), DefinitionID: "definition", ConsumerLeaseID: lease, Status: status})
+	}
+	if err := db.CreateInBatches(values, 50).Error; err != nil {
+		t.Fatal(err)
+	}
+	observer := &sqlPerformanceLog{}
+	if err := db.Callback().Query().After("gorm:query").Register("test:consumer_query_count", func(query *gorm.DB) { observer.Queries++; observer.MaxRows = max(observer.MaxRows, query.RowsAffected) }); err != nil {
+		t.Fatal(err)
+	}
+	runs := NewWorkflowRunController(db)
+	count := 0
+	after := ""
+	for {
+		ids, err := runs.ListActiveConsumerRuns(ctx, "selected", after, 128)
+		if err != nil {
+			t.Fatal(err)
+		}
+		count += len(ids)
+		if len(ids) < 128 {
+			break
+		}
+		after = ids[len(ids)-1]
+	}
+	if count != 257 || observer.Queries != 3 || observer.MaxRows > 128 {
+		t.Fatalf("分页遗漏或查询无界: count=%d queries=%d maxRows=%d", count, observer.Queries, observer.MaxRows)
+	}
+	var plans []struct { // Detail 是 SQLite 的真实查询计划。
+		Detail string `gorm:"column:detail"`
+	}
+	if err := db.Raw("EXPLAIN QUERY PLAN SELECT id FROM workflow_runs WHERE consumer_lease_id = ? AND id > ? AND status NOT IN (?,?,?) ORDER BY id ASC LIMIT 128", "selected", "", constants.WorkflowRunStatusSucceeded, constants.WorkflowRunStatusFailed, constants.WorkflowRunStatusCancelled).Scan(&plans).Error; err != nil {
+		t.Fatal(err)
+	}
+	indexed := false
+	for _, plan := range plans {
+		t.Log(plan.Detail)
+		if strings.Contains(plan.Detail, "idx_workflow_consumer_runs") {
+			indexed = true
+		}
+	}
+	if !indexed {
+		t.Fatal("关联查询未使用消费者索引")
+	}
+	t.Logf("257 active / 800 total: SQL=%d, maxRows=%d", observer.Queries, observer.MaxRows)
 }

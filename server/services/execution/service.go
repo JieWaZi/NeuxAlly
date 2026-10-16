@@ -38,6 +38,8 @@ type Service interface {
 	ResolveConfiguration(ctx context.Context, config ExecutionConfiguration) (ExecutionConfiguration, error)
 	// Cancel 取消指定 Chat 当前活跃的执行。
 	Cancel(chatID string) error
+	// CancelExecution 只停止调用者捕获的同一执行，避免误伤后继回合。
+	CancelExecution(chatID, executionID string) error
 	// CancelAndWait 取消指定 Chat 当前活跃执行并等待 durable 终态。
 	CancelAndWait(ctx context.Context, chatID string) error
 	// ResolveApproval 处理 Chat 当前执行的一次未决审批。
@@ -323,4 +325,18 @@ func marshalData(value interface{}) json.RawMessage {
 
 func nowMillis() int64 {
 	return time.Now().UnixMilli()
+}
+
+// CancelExecution 仅取消指定身份仍占用聊天的执行。
+func (m *service) CancelExecution(chatID, executionID string) error {
+	if strings.TrimSpace(chatID) == "" || strings.TrimSpace(executionID) == "" {
+		return status_error.BadRequest
+	}
+	m.executions.mutex.Lock()
+	active, exists := m.executions.active[chatID]
+	m.executions.mutex.Unlock()
+	if exists && active.executionID == executionID && active.cancel != nil {
+		active.cancel()
+	}
+	return nil
 }

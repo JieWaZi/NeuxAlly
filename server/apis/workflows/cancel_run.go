@@ -1,10 +1,13 @@
 package workflows
 
 import (
+	"github.com/JieWaZi/NeuxAlly/server/constants"
 	"github.com/JieWaZi/NeuxAlly/server/constants/status_error"
 	"github.com/JieWaZi/NeuxAlly/server/global"
+	"github.com/JieWaZi/NeuxAlly/server/repositories/models"
 	"github.com/gin-gonic/gin"
 	"github.com/shrewx/ginx"
+	"time"
 )
 
 // 停止运行
@@ -26,7 +29,7 @@ func (o *CancelWorkflowRun) Output(ctx *gin.Context) (interface{}, error) {
 	if run.DefinitionID != o.ID {
 		return nil, ginx.WithStack(status_error.WorkflowNotFound)
 	}
-	if err := global.WorkflowService.CancelRun(ctx, o.RunID); err != nil {
+	if err := global.WorkflowService.CancelRunWithReason(ctx, o.RunID, &models.WorkflowCancellationReason{Actor: constants.WorkflowCancellationActorUser, Source: constants.WorkflowCancellationSourceRun, RequestedAt: time.Now().UnixMilli()}); err != nil {
 		return nil, ginx.WithStack(err)
 	}
 	return ginx.CommonSuccessResponse(), nil

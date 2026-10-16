@@ -38,6 +38,8 @@ type Request struct {
 
 // Result 是领域模块真实提交或观察后返回的最小回执。
 type Result struct {
+	// ExecutionID 是领域从原运行关联恢复的消息归属，外部协议不能提供。
+	ExecutionID string `json:"-"`
 	// CommandID 是领域持久回执身份；读取操作可以留空。
 	CommandID string `json:"commandId,omitempty"`
 	// Replayed 表示本次读取了相同请求的原接纳结果。
@@ -385,6 +387,9 @@ func (r *Registry) ServeHTTP(w http.ResponseWriter, request *http.Request) {
 		}
 		result.Replayed = true
 		op, _ := contract.Find(id)
+		if id == "workflow.runs.start" || id == "workflow.runs.deliver" {
+			current.recordResult(ctx, op, result)
+		}
 		writeSuccess(w, id, op.Completion, result)
 	case request.Method == http.MethodPost && path == "/commands":
 		var input Request
@@ -431,15 +436,7 @@ func (r *Registry) ServeHTTP(w http.ResponseWriter, request *http.Request) {
 		if result.CommandID == "" {
 			result.CommandID = util.New()
 		}
-		if current.record != nil {
-			current.recordMutex.Lock()
-			if !current.recorded[result.CommandID] {
-				if err := current.record(ctx, op, result); err == nil {
-					current.recorded[result.CommandID] = true
-				}
-			}
-			current.recordMutex.Unlock()
-		}
+		current.recordResult(ctx, op, result)
 		writeSuccess(w, input.Operation, op.Completion, result)
 	default:
 		writeFailure(w, "", status_error.AgentInputInvalid)
@@ -475,5 +472,18 @@ func writeFailure(w http.ResponseWriter, operation string, err error) {
 	w.WriteHeader(status)
 	if encodeErr := json.NewEncoder(w).Encode(ErrorResponse(operation, err)); encodeErr != nil {
 		logx.Errorf("encode agent command failure failed: operation=%s error=%v", operation, encodeErr)
+	}
+}
+
+// recordResult 在原领域回执保留成功语义的同时，允许登记失败后用原回执补写事实。
+func (current *lease) recordResult(ctx context.Context, op contract.Operation, result Result) {
+	if current.record != nil {
+		current.recordMutex.Lock()
+		if !current.recorded[result.CommandID] {
+			if err := current.record(ctx, op, result); err == nil {
+				current.recorded[result.CommandID] = true
+			}
+		}
+		current.recordMutex.Unlock()
 	}
 }
