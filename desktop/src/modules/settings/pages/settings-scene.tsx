@@ -3,6 +3,7 @@ import { useMemo, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import { AIAccountsSection } from "../components/ai-accounts-section";
+import { AboutSoftwareSection } from "../components/about-software-section";
 import { RuntimeEnvironmentsSection } from "../components/runtime-environments-section";
 import {
   SettingsContentShell,
@@ -73,6 +74,7 @@ function SettingsSectionContent({
   section: SettingsSection;
 }) {
   if (section === "general") return <GeneralSettings />;
+  if (section === "about") return <AboutSoftwareSection />;
   if (section === "ai-accounts") return <AIAccountsSection />;
   return (
     <RuntimeEnvironmentsSection
