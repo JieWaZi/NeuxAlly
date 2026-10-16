@@ -1,6 +1,9 @@
 package models
 
-import "github.com/JieWaZi/NeuxAlly/server/constants"
+import (
+	"github.com/JieWaZi/NeuxAlly/server/constants"
+	"github.com/JieWaZi/NeuxAlly/server/internal/plugins"
+)
 
 // Execution 保存一次 Chat 执行在服务边界流转的领域状态。
 //
@@ -30,6 +33,8 @@ type Execution struct {
 	PermissionLevel constants.PermissionLevel `json:"permissionLevel"`
 	// WorkspaceReadOnly 表示本次 Runtime 只能读取工作区且不能申请文件修改。
 	WorkspaceReadOnly bool `json:"workspaceReadOnly"`
+	// PluginResources 是接纳时冻结的插件身份、版本与配置修订。
+	PluginResources []plugins.Snapshot `json:"pluginResources,omitempty"`
 	// Status 是执行当前生命周期状态。
 	Status constants.ExecutionStatus `json:"status"`
 	// Revision 是执行生命周期状态变化后递增的版本。

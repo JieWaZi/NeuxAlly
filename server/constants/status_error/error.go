@@ -671,3 +671,42 @@ const (
 	// @errEN delivery connection is disabled; enable it in connection settings and retry
 	IMConnectionDisabled StatusError = http.StatusConflict*1e8 + 4006
 )
+
+const (
+	// @errZH 插件清单无效或格式版本不受支持
+	// @errEN plugin manifest is invalid or its format version is unsupported
+	PluginManifestInvalid StatusError = http.StatusBadRequest*1e8 + 6501
+	// @errZH 插件内容或路径不合法
+	// @errEN plugin content or package path is invalid
+	PluginContentInvalid StatusError = http.StatusBadRequest*1e8 + 6502
+	// @errZH 插件内容超过导入限制
+	// @errEN plugin content exceeds import limits
+	PluginContentLimitExceeded StatusError = http.StatusBadRequest*1e8 + 6503
+	// @errZH 插件文件无法安全准备或读取
+	// @errEN plugin files could not be safely prepared or read
+	PluginStorageError StatusError = http.StatusInternalServerError*1e8 + 6501
+	// @errZH 插件或版本不存在
+	// @errEN plugin or version was not found
+	PluginNotFound StatusError = http.StatusNotFound*1e8 + 6501
+	// @errZH 插件版本或内容已变化，请重新确认
+	// @errEN plugin version or content changed; confirm the operation again
+	PluginVersionConflict StatusError = http.StatusConflict*1e8 + 6501
+	// @errZH 插件共享配置已变化或不兼容，请重新确认
+	// @errEN plugin shared configuration changed or is incompatible
+	PluginConfigurationConflict StatusError = http.StatusConflict*1e8 + 6502
+	// @errZH 请先完成插件所需配置、认证和程序准备
+	// @errEN complete required plugin configuration, authentication and dependencies first
+	PluginNotReady StatusError = http.StatusConflict*1e8 + 6503
+	// @errZH 此插件不属于当前伙伴可用范围
+	// @errEN plugin is outside the current partner scope
+	PluginForbidden StatusError = http.StatusForbidden*1e8 + 6501
+	// @errZH 插件认证未完成或外部授权失效
+	// @errEN plugin authentication did not complete or external authorization expired
+	PluginAuthorizationFailed StatusError = http.StatusBadGateway*1e8 + 6501
+	// @errZH 技能声明名称相同但内容不同，请调整已启用的技能或插件
+	// @errEN skills with the same declared name have different content
+	PluginSkillConflict StatusError = http.StatusConflict*1e8 + 6504
+	// @errZH 认证进程或工作仍在使用共享账号，请稍后重试
+	// @errEN shared account is in use by work or authorization; try again after it exits
+	PluginBusy StatusError = http.StatusConflict*1e8 + 6505
+)

@@ -1,4 +1,4 @@
-import { BarChart3, Cable, Folder, History, Sparkles } from "lucide-react";
+import { BarChart3, Package, Folder, History } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "react-router-dom";
 
@@ -16,8 +16,7 @@ const sections = [
   { key: "overview", icon: BarChart3 },
   { key: "projects", icon: Folder },
   { key: "memory", icon: History },
-  { key: "skills", icon: Sparkles },
-  { key: "connectors", icon: Cable },
+  { key: "resources", icon: Package },
 ] as const;
 
 export function PartnerDetailDock({ partnerId }: { partnerId: string }) {
@@ -35,6 +34,10 @@ export function PartnerDetailDock({ partnerId }: { partnerId: string }) {
           {sections.map(({ icon: Icon, key }) => {
             const href = key === "overview" ? root : `${root}/${key}`;
             const active =
+              (key === "resources" &&
+                /^\/wakers\/[^/]+\/(resources|plugins|skills|connectors)(?:\/|$)/.test(
+                  pathname,
+                )) ||
               pathname === href ||
               (pathname.startsWith(`${href}/`) && key !== "overview");
             return (

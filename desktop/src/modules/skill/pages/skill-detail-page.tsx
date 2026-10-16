@@ -1,3 +1,5 @@
+import { useRouteSceneActive } from "@/shared/workspace/app-scene-workspace";
+import { useQueryEvents } from "@/shared/api/use-query-events";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   localApiErrorMessage,
@@ -7,7 +9,7 @@ import {
 import { Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 
 import { WakerDetailLayout } from "@/modules/waker";
 import { Button } from "@/shared/ui/button";
@@ -52,6 +54,13 @@ export function SkillDetailPage() {
   const { t } = useTranslation("skill");
   const { skillId = "", wakerId = "" } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const active = useRouteSceneActive();
+  const back =
+    (location.state as { resourceBack?: string } | null)?.resourceBack ??
+    (wakerId
+      ? `/wakers/${wakerId}/resources?category=skills`
+      : "/resources?category=skills");
   const queryClient = useQueryClient();
   const { resolvedTheme } = useTheme();
   const [tab, setTab] = useState<DetailTab>("explanation");
@@ -64,13 +73,20 @@ export function SkillDetailPage() {
   );
   const detailQuery = useQuery({
     ...detailOptions,
-    enabled: Boolean(wakerId && skillId),
+    enabled: active && Boolean(skillId),
   });
+  const versionsOptions = listSkillVersionsOptions(
+    withLocalErrorSurface({ path: { wakerId, skillId } }),
+  );
   const versionsQuery = useQuery({
-    ...listSkillVersionsOptions(
-      withLocalErrorSurface({ path: { wakerId, skillId } }),
-    ),
-    enabled: Boolean(wakerId && skillId),
+    ...versionsOptions,
+    enabled: active && Boolean(skillId),
+  });
+  useQueryEvents({
+    topic: "resources",
+    resource: { kind: "global" },
+    queryKeys: [detailOptions.queryKey, versionsOptions.queryKey],
+    active,
   });
   const skill = detailQuery.data?.skill;
   const currentVersion = detailQuery.data?.currentVersion;
@@ -85,7 +101,7 @@ export function SkillDetailPage() {
         },
       }),
     ),
-    enabled: Boolean(wakerId && skillId && currentVersionId),
+    enabled: Boolean(skillId && currentVersionId),
   });
   const diffVersionQuery = useQuery({
     ...getSkillVersionOptions(
@@ -140,7 +156,7 @@ export function SkillDetailPage() {
     : null;
   const backAction = {
     label: t("detail.backToList"),
-    onClick: () => navigate(`/wakers/${wakerId}/skills`),
+    onClick: () => navigate(back),
   };
 
   if (detailQuery.isPending) {
@@ -260,26 +276,33 @@ export function SkillDetailPage() {
                     <Trash2 />
                   </PageAction>
                 ) : null}
-                <Switch
-                  hitArea="comfortable"
-                  checked={detailQuery.data?.enabled ?? false}
-                  disabled={toggleSkill.isPending}
-                  aria-label={t(
-                    detailQuery.data?.enabled
-                      ? "detail.disable"
-                      : "detail.enable",
-                    { name: skill.name },
-                  )}
-                  onClick={() =>
-                    toggleSkill.mutate({
-                      path: { wakerId, skillId },
-                      body: { enabled: !(detailQuery.data?.enabled ?? false) },
-                    })
-                  }
-                />
-                <span className="text-content-secondary type-body">
-                  {detailQuery.data?.enabled ? t("enabled") : t("disabled")}
-                </span>
+                {wakerId && (
+                  <>
+                    {" "}
+                    <Switch
+                      hitArea="comfortable"
+                      checked={detailQuery.data?.enabled ?? false}
+                      disabled={toggleSkill.isPending}
+                      aria-label={t(
+                        detailQuery.data?.enabled
+                          ? "detail.disable"
+                          : "detail.enable",
+                        { name: skill.name },
+                      )}
+                      onClick={() =>
+                        toggleSkill.mutate({
+                          path: { wakerId, skillId },
+                          body: {
+                            enabled: !(detailQuery.data?.enabled ?? false),
+                          },
+                        })
+                      }
+                    />
+                    <span className="text-content-secondary type-body">
+                      {detailQuery.data?.enabled ? t("enabled") : t("disabled")}
+                    </span>
+                  </>
+                )}
               </div>
               {toggleSkill.isError ? (
                 <p role="alert" className="text-destructive type-caption">
@@ -406,7 +429,7 @@ export function SkillDetailPage() {
           ]}
           wakerId={wakerId}
           onOpenChange={setDeleteOpen}
-          onDeleted={() => navigate(`/wakers/${wakerId}/skills`)}
+          onDeleted={() => navigate(back)}
         />
       ) : null}
     </WakerDetailLayout>

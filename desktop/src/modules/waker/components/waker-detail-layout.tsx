@@ -1,7 +1,14 @@
 import type { ReactNode } from "react";
 
 type Section =
-  "connectors" | "chats" | "memory" | "overview" | "projects" | "skills";
+  | "resources"
+  | "plugins"
+  | "connectors"
+  | "chats"
+  | "memory"
+  | "overview"
+  | "projects"
+  | "skills";
 
 type Props = {
   active: Section;

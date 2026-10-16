@@ -2,8 +2,9 @@ package skills
 
 import (
 	"context"
-
 	"github.com/JieWaZi/NeuxAlly/server/constants"
+	"github.com/JieWaZi/NeuxAlly/server/internal/notification/events"
+
 	"github.com/JieWaZi/NeuxAlly/server/constants/status_error"
 	"github.com/JieWaZi/NeuxAlly/server/global"
 	"github.com/JieWaZi/NeuxAlly/server/repositories/models"
@@ -22,6 +23,16 @@ type WakerSkillResponse struct {
 }
 
 func visibleSkill(ctx context.Context, wakerID string, skillID string) (models.SkillPackage, error) {
+	if wakerID == "" {
+		skill, err := global.SkillControllerManager.GetPackage(ctx, skillID)
+		if err != nil {
+			return skill, err
+		}
+		if skill.Scope == constants.SkillScopePrivate {
+			return models.SkillPackage{}, status_error.SkillNotFound
+		}
+		return skill, nil
+	}
 	if _, err := global.WakerControllerManager.Get(ctx, wakerID); err != nil {
 		return models.SkillPackage{}, err
 	}
@@ -41,23 +52,17 @@ func wakerSkillResponses(
 	ctx context.Context,
 	items []models.SkillWithState,
 ) ([]WakerSkillResponse, error) {
-	var publicWakerCount int64
+	ids := make([]string, 0, len(items))
 	for _, item := range items {
-		if item.SkillPackage.Scope != constants.SkillScopePrivate {
-			count, err := global.WakerControllerManager.Count(ctx, "")
-			if err != nil {
-				return nil, err
-			}
-			publicWakerCount = count
-			break
-		}
+		ids = append(ids, item.SkillPackage.ID)
+	}
+	counts, err := global.SkillControllerManager.InstalledCounts(ctx, ids)
+	if err != nil {
+		return nil, err
 	}
 	responses := make([]WakerSkillResponse, 0, len(items))
 	for _, item := range items {
-		affectedWakerCount := int64(1)
-		if item.SkillPackage.Scope != constants.SkillScopePrivate {
-			affectedWakerCount = publicWakerCount
-		}
+		affectedWakerCount := counts[item.SkillPackage.ID]
 		responses = append(responses, WakerSkillResponse{
 			Skill:              item.SkillPackage,
 			CurrentVersion:     item.CurrentVersion,
@@ -66,4 +71,16 @@ func wakerSkillResponses(
 		})
 	}
 	return responses, nil
+}
+
+// notifyResourceChanged 仅在对应资源写入生效后登记缓存失效。
+func notifyResourceChanged(ctx context.Context, id string) {
+	if global.EventHub == nil {
+		return
+	}
+	resource := events.Resource{Kind: "skill", ID: id}
+	if id == "" {
+		resource = events.Resource{Kind: "global"}
+	}
+	events.AfterCommit(ctx, func() { _ = events.Emit(global.EventHub, "resources", "resources.changed", resource, resource) })
 }

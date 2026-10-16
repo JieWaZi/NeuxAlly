@@ -1,3 +1,4 @@
+import { cn } from "@/shared/lib/cn";
 import { useMutation } from "@tanstack/react-query";
 import {
   localApiErrorMessage,
@@ -9,12 +10,10 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
 import { selectFiles } from "@/shared/desktop";
-import { cn } from "@/shared/lib/cn";
 import { Button } from "@/shared/ui/button";
 import { Checkbox } from "@/shared/ui/checkbox";
 import { Dialog, DialogContent, DialogFooter } from "@/shared/ui/dialog";
 import { Input } from "@/shared/ui/input";
-import { Switch } from "@/shared/ui/switch";
 
 import {
   importWakerSkillMutation,
@@ -22,7 +21,6 @@ import {
 } from "../api/skill-queries";
 
 type Source = "git" | "zip";
-type Scope = "public" | "private";
 
 type Candidate = {
   description: string;
@@ -30,7 +28,6 @@ type Candidate = {
   installed: boolean;
   installedSkillId: string;
   name: string;
-  scope: Scope;
   selected: boolean;
 };
 
@@ -42,41 +39,6 @@ type Props = {
 };
 
 const initialImportVersion = "1.0.0";
-
-type ImportScopeSwitchProps = {
-  ariaLabel: string;
-  checked: boolean;
-  disabled?: boolean;
-  onCheckedChange: (checked: boolean) => void;
-  publicLabel: string;
-};
-
-function ImportScopeSwitch({
-  ariaLabel,
-  checked,
-  disabled,
-  onCheckedChange,
-  publicLabel,
-}: ImportScopeSwitchProps) {
-  return (
-    <div className="flex shrink-0 items-center gap-1.5">
-      <Switch
-        checked={checked}
-        disabled={disabled}
-        aria-label={ariaLabel}
-        onClick={() => onCheckedChange(!checked)}
-      />
-      <span
-        className={cn(
-          "type-caption",
-          checked ? "text-foreground font-medium" : "text-muted-foreground",
-        )}
-      >
-        {publicLabel}
-      </span>
-    </div>
-  );
-}
 
 export function SkillImportDialog({ open, ...props }: Props) {
   if (!open) return null;
@@ -109,7 +71,6 @@ function OpenSkillImportDialog({
               installed: candidate.installed ?? false,
               installedSkillId: candidate.installedSkillId ?? "",
               selected: !(candidate.installed ?? false),
-              scope: "private",
             },
           ];
         }),
@@ -124,12 +85,9 @@ function OpenSkillImportDialog({
     },
   });
   const selected = candidates.filter((candidate) => candidate.selected);
-  const sourceReady = Boolean(wakerId && location.trim());
+  const sourceReady = Boolean(location.trim());
   const installReady = Boolean(token) && selected.length > 0;
   const pending = scan.isPending || install.isPending;
-  const allPublic =
-    candidates.length > 0 &&
-    candidates.every((candidate) => candidate.scope === "public");
 
   const chooseZip = async () => {
     const files = await selectFiles();
@@ -157,17 +115,11 @@ function OpenSkillImportDialog({
         token,
         candidates: selected.map((candidate) => ({
           id: candidate.id,
-          scope: candidate.scope,
           version: initialImportVersion,
           description: candidate.description,
         })),
       },
     });
-  };
-  const setAllScope = (scope: Scope) => {
-    setCandidates((current) =>
-      current.map((candidate) => ({ ...candidate, scope })),
-    );
   };
 
   return (
@@ -193,17 +145,6 @@ function OpenSkillImportDialog({
                   {t("import.candidateCount", { count: candidates.length })}
                 </p>
                 <div className="flex flex-wrap items-center gap-3">
-                  {candidates.length > 0 ? (
-                    <ImportScopeSwitch
-                      checked={allPublic}
-                      disabled={pending}
-                      ariaLabel={t("import.batchScope")}
-                      publicLabel={t("import.public")}
-                      onCheckedChange={(checked) =>
-                        setAllScope(checked ? "public" : "private")
-                      }
-                    />
-                  ) : null}
                   <Button
                     type="button"
                     size="sm"
@@ -274,21 +215,6 @@ function OpenSkillImportDialog({
                         {candidate.description}
                       </p>
                     </div>
-                    {candidate.selected && !candidate.installed ? (
-                      <ImportScopeSwitch
-                        checked={candidate.scope === "public"}
-                        disabled={pending}
-                        ariaLabel={t("import.candidateScope", {
-                          name: candidate.name,
-                        })}
-                        publicLabel={t("import.public")}
-                        onCheckedChange={(checked) =>
-                          updateCandidate(candidate.id, {
-                            scope: checked ? "public" : "private",
-                          })
-                        }
-                      />
-                    ) : null}
                   </div>
                 </div>
               ))}

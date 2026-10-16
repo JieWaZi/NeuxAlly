@@ -54,7 +54,7 @@ type frame struct {
 	Payload json.RawMessage `json:"payload"`
 }
 
-var allowedTopics = map[string]bool{"notifications": true, "work-board": true, "work-results": true, "entities": true, "automatic-tasks": true, "im": true, "runtimes": true, "system": true, "chat": true, "team": true, "workflow": true, "account-login": true}
+var allowedTopics = map[string]bool{"notifications": true, "work-board": true, "work-results": true, "entities": true, "automatic-tasks": true, "im": true, "runtimes": true, "system": true, "chat": true, "team": true, "workflow": true, "account-login": true, "plugins": true, "resources": true}
 
 func decodeControl(data []byte) (control, error) {
 	var result control
@@ -114,6 +114,10 @@ func validResourceShape(topic string, resource eventhub.Resource) bool {
 		return (resource.Kind == "automatic_task" || resource.Kind == "waker" || resource.Kind == "channel") && resource.ParentID == ""
 	case "im":
 		return (resource.Kind == "connection" || resource.Kind == "binding" || resource.Kind == "conversation" || resource.Kind == "login") && resource.ParentID == ""
+	case "resources":
+		return (resource.Kind == "skill" || resource.Kind == "connector" || resource.Kind == "waker") && resource.ParentID == ""
+	case "plugins":
+		return resource.Kind == "plugin" && resource.ParentID == ""
 	case "runtimes":
 		return resource.Kind == "runtime" && resource.ParentID == ""
 	default:

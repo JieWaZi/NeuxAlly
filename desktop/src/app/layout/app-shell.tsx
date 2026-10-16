@@ -213,7 +213,7 @@ function AppShellContent({
   const isChatSurface = isChat || isTeamChat;
   const activeRightPanel = chatRightPanel;
   const isWakerDetail =
-    /^\/wakers\/[^/]+(?:\/(?:connectors|memory|overview|projects|skills)(?:\/.*)?)?$/.test(
+    /^\/wakers\/[^/]+(?:\/(?:connectors|memory|overview|projects|skills|resources|plugins)(?:\/.*)?)?$/.test(
       location.pathname,
     );
   const hasPartnerContext =
@@ -389,6 +389,7 @@ function AppShellContent({
 
   const routeSceneLabels = useMemo<RouteSceneLabels>(
     () => ({
+      resources: t("plugin:title"),
       workBoard: t("workBoard:title"),
       im: t("im:title"),
       automaticTask: t("automaticTask:title"),
@@ -516,6 +517,18 @@ function AppShellContent({
           }
           onOpenPartnerDetail={openPartnerDetail}
           onOpenAutomaticTasks={openAutomaticTasks}
+          onOpenResources={() => {
+            setSceneNavigationVisible(false);
+            const href = "/resources";
+            navigate(href, { flushSync: true });
+            appScenes.dispatch({
+              type: "open",
+              tab: routeSceneForLocation(
+                { pathname: href, search: "" },
+                routeSceneLabels,
+              ),
+            });
+          }}
           onOpenWorkflows={() => {
             setSceneNavigationVisible(false);
             const href = "/workflows";

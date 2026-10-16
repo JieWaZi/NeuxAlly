@@ -2722,4 +2722,49 @@ describe("chat composer", () => {
       ),
     );
   });
+  it("restores the accepted plugin selection after an explicit backend rejection", async () => {
+    const user = userEvent.setup();
+    const onMessageAccepted = vi.fn();
+    const onMessageRejected = vi.fn();
+    const sendMessage = vi
+      .fn<SendMessage>()
+      .mockRejectedValue(
+        new ApiError("当前对话已有运行中的执行", "ChatHasActiveExecution", 409),
+      );
+    render(
+      <ChatQueueProvider>
+        <ComposerHarness
+          send={sendMessage}
+          onMessageAccepted={onMessageAccepted}
+          onMessageRejected={onMessageRejected}
+          selection={{
+            runtimeId: "codex",
+            model: "gpt-5",
+            reasoning: "high",
+            permissionLevel: "auto",
+            pluginIds: ["plugin-office"],
+            selectedPlugins: [
+              {
+                id: "plugin-office",
+                name: "飞书办公",
+                version: "1.4.0",
+              },
+            ],
+          }}
+        />
+      </ChatQueueProvider>,
+    );
+    await user.type(
+      screen.getByRole("textbox", { name: "message" }),
+      "审查改动",
+    );
+    await user.click(screen.getByRole("button", { name: "send" }));
+
+    await waitFor(() => expect(onMessageAccepted).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(onMessageRejected).toHaveBeenCalledWith(
+        expect.objectContaining({ pluginIds: ["plugin-office"] }),
+      ),
+    );
+  });
 });

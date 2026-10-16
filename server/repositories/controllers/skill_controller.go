@@ -16,6 +16,10 @@ import (
 
 // SkillController 定义技能包、版本和伙伴关系的持久化操作。
 type SkillController interface {
+	// ListLibrary 分页查询全局独立技能。
+	ListLibrary(context.Context, string, int, int) ([]models.SkillWithState, int64, error)
+	// InstalledCounts 返回实际安装关系总数。
+	InstalledCounts(context.Context, []string) (map[string]int64, error)
 	// CreatePackage 创建技能包元数据。
 	CreatePackage(ctx context.Context, skill models.SkillPackage) error
 	// GetPackage 按标识查询技能包。
@@ -59,26 +63,9 @@ type skillController struct {
 // NewSkillController 创建技能 Repository Controller。
 func NewSkillController(db *gorm.DB) SkillController { return &skillController{db: db} }
 
-// CreatePackage 创建技能包并将唯一冲突转换为稳定错误。
+// CreatePackage 创建技能包，展示名不参与资源身份判断。
 func (c *skillController) CreatePackage(ctx context.Context, skill models.SkillPackage) error {
-	if skill.Name == constants.AgentCLISkillName {
-		return status_error.SkillNameConflict
-	}
 	db := controllerDB(ctx, c.db)
-	var count int64
-	query := db.Model(&models.SkillPackage{}).Where("name = ?", skill.Name)
-	if skill.Scope == constants.SkillScopePrivate {
-		query = query.Where(
-			"(scope = ? AND owner_waker_id = ?) OR scope = ?",
-			skill.Scope, skill.OwnerWakerID, constants.SkillScopePublic,
-		)
-	}
-	if err := query.Count(&count).Error; err != nil {
-		return databaseError("check_skill_name", "skill_name="+skill.Name, err)
-	}
-	if count > 0 {
-		return status_error.SkillNameConflict
-	}
 	if err := db.Create(&skill).Error; err != nil {
 		if dbhelper.IsDuplicateError(err) {
 			return status_error.SkillNameConflict
@@ -105,8 +92,8 @@ func (c *skillController) GetPackage(ctx context.Context, id string) (models.Ski
 func (c *skillController) ListVisible(ctx context.Context, wakerID string, query string) ([]models.SkillWithState, error) {
 	var packages []models.SkillPackage
 	db := controllerDB(ctx, c.db).Where(
-		"scope = ? OR (scope = ? AND owner_waker_id = ?)",
-		constants.SkillScopePublic, constants.SkillScopePrivate, wakerID,
+		"built_in = ? OR (scope = ? AND owner_waker_id = ?) OR (scope = 'public' AND id IN (SELECT skill_package_id FROM waker_skills WHERE waker_id = ?))",
+		true, constants.SkillScopePrivate, wakerID, wakerID,
 	)
 	if normalized := strings.TrimSpace(query); normalized != "" {
 		db = db.Where("LOWER(name) LIKE ? OR LOWER(description) LIKE ?", "%"+strings.ToLower(normalized)+"%", "%"+strings.ToLower(normalized)+"%")
@@ -141,16 +128,30 @@ func (c *skillController) withStates(ctx context.Context, wakerID string, packag
 	for _, relation := range relations {
 		state[relation.SkillPackageID] = relation.Enabled
 	}
+	versionIDs := make([]string, 0, len(packages))
+	for _, skill := range packages {
+		if skill.CurrentVersionID != "" {
+			versionIDs = append(versionIDs, skill.CurrentVersionID)
+		}
+	}
+	versions := map[string]models.SkillVersion{}
+	for start := 0; start < len(versionIDs); start += 200 {
+		end := start + 200
+		if end > len(versionIDs) {
+			end = len(versionIDs)
+		}
+		var batch []models.SkillVersion
+		if err := controllerDB(ctx, c.db).Where("id IN ?", versionIDs[start:end]).Find(&batch).Error; err != nil {
+			return nil, databaseError("list_skill_current_versions", wakerID, err)
+		}
+		for _, version := range batch {
+			versions[version.ID] = version
+		}
+	}
 	result := make([]models.SkillWithState, 0, len(packages))
 	for _, skill := range packages {
 		item := models.SkillWithState{SkillPackage: skill, Enabled: state[skill.ID]}
-		if skill.CurrentVersionID != "" {
-			version, err := c.GetVersion(ctx, skill.CurrentVersionID)
-			if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-				return nil, err
-			}
-			item.CurrentVersion = version
-		}
+		item.CurrentVersion = versions[skill.CurrentVersionID]
 		result = append(result, item)
 	}
 	return result, nil
@@ -345,38 +346,9 @@ func (c *skillController) DeletePackage(ctx context.Context, skillID string) err
 
 func nowMillis() int64 { return time.Now().UnixMilli() }
 
-// UpdatePackageDisplayName 更新技能包展示名称并校验同范围唯一性。
+// UpdatePackageDisplayName 更新展示名称，不改写原技能声明名。
 func (c *skillController) UpdatePackageDisplayName(ctx context.Context, skillID string, name string) error {
-	if name == constants.AgentCLISkillName {
-		return status_error.SkillNameConflict
-	}
 	db := controllerDB(ctx, c.db)
-	var skill models.SkillPackage
-	if err := db.Where("id = ?", skillID).First(&skill).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return status_error.SkillNotFound.WithParams(map[string]interface{}{"SkillID": skillID})
-		}
-		return databaseError("get_skill", "skill_id="+skillID, err)
-	}
-	if skill.Name == name {
-		return nil
-	}
-	var count int64
-	query := db.Model(&models.SkillPackage{}).Where("id <> ? AND name = ?", skill.ID, name)
-	if skill.Scope == constants.SkillScopePrivate {
-		query = query.Where(
-			"(scope = ? AND owner_waker_id = ?) OR scope = ?",
-			skill.Scope,
-			skill.OwnerWakerID,
-			constants.SkillScopePublic,
-		)
-	}
-	if err := query.Count(&count).Error; err != nil {
-		return databaseError("check_skill_name", "skill_name="+name, err)
-	}
-	if count > 0 {
-		return status_error.SkillNameConflict
-	}
 	result := db.Model(&models.SkillPackage{}).Where("id = ?", skillID).Updates(map[string]any{
 		"name":       name,
 		"updated_at": nowMillis(),
@@ -388,4 +360,34 @@ func (c *skillController) UpdatePackageDisplayName(ctx context.Context, skillID 
 		return databaseError("update_skill_display_name", "skill_id="+skillID, result.Error)
 	}
 	return nil
+}
+
+// ListLibrary 分页查询全局独立技能，不将其隐式安装给伙伴。
+func (c *skillController) ListLibrary(ctx context.Context, query string, offset, limit int) ([]models.SkillWithState, int64, error) {
+	db := controllerDB(ctx, c.db).Model(&models.SkillPackage{}).Where("scope = ?", constants.SkillScopePublic)
+	if query = strings.TrimSpace(query); query != "" {
+		pattern := "%" + strings.ToLower(query) + "%"
+		db = db.Where("LOWER(name) LIKE ? OR LOWER(description) LIKE ?", pattern, pattern)
+	}
+	var total int64
+	if err := db.Count(&total).Error; err != nil {
+		return nil, 0, databaseError("count_skill_library", "", err)
+	}
+	if limit <= 0 || limit > 100 {
+		limit = 50
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	var packages []models.SkillPackage
+	if err := db.Order("built_in DESC, updated_at DESC, id ASC").Offset(offset).Limit(limit).Find(&packages).Error; err != nil {
+		return nil, 0, databaseError("list_skill_library", "", err)
+	}
+	result, err := c.withStates(ctx, "", packages)
+	return result, total, err
+}
+
+// InstalledCounts 批量读取实际安装关系数量。
+func (c *skillController) InstalledCounts(ctx context.Context, ids []string) (map[string]int64, error) {
+	return installedResourceCounts(ctx, c.db, &models.WakerSkill{}, "skill_package_id", ids)
 }

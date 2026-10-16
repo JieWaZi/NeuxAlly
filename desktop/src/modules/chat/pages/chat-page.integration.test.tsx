@@ -1,3 +1,4 @@
+import type * as GeneratedSDK from "@/shared/api/generated/sdk.gen";
 import type * as GeneratedQueries from "@/shared/api/generated/@tanstack/react-query.gen";
 import { draftWorkspaceStorageKey } from "./use-draft-workspace-selections";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -70,6 +71,7 @@ const {
   sendMessage,
   resolveApproval,
   wakerSkills,
+  wakerPlugins,
   wakerSkillsError,
   wakerConnectors,
   wakerConnectorsError,
@@ -234,6 +236,7 @@ const {
     }),
   ),
   resolveApproval: vi.fn(async () => undefined),
+  wakerPlugins: { current: [] as Array<Record<string, unknown>> },
   wakerSkills: { current: [] as Array<Record<string, unknown>> },
   wakerSkillsError: { current: false },
   wakerConnectors: { current: [] as Array<Record<string, unknown>> },
@@ -259,6 +262,15 @@ const {
   chatListDelay: { current: 0 },
 }));
 
+vi.mock("@/shared/api/generated/sdk.gen", async (importOriginal) => ({
+  ...(await importOriginal<typeof GeneratedSDK>()),
+  listWakerPlugins: async () => ({
+    data: {
+      resources: wakerPlugins.current,
+      totalSize: wakerPlugins.current.length,
+    },
+  }),
+}));
 vi.mock(
   "@/shared/api/generated/@tanstack/react-query.gen",
   async (importOriginal) => ({
@@ -521,6 +533,7 @@ beforeEach(() => {
     },
   });
 
+  wakerPlugins.current = [];
   historyMessageContent.current = "直接进入也应显示的历史消息";
   historyMessages.current = undefined;
   forkSourceChatId.current = "";
@@ -2360,6 +2373,59 @@ describe("ChatPage", () => {
     await waitFor(() =>
       expect(screen.queryByText("report.md")).not.toBeInTheDocument(),
     );
+  });
+
+  it("插件候选失效刷新后仍将用户显式选择交给 Core 校验", async () => {
+    wakerPlugins.current = [
+      {
+        plugin: { id: "plugin-office", name: "办公插件" },
+        ready: true,
+        versions: [{ id: "pv1", version: "1.0.0" }],
+        installations: [
+          { wakerId: "waker-1", versionId: "pv1", enabled: true },
+        ],
+      },
+    ];
+    const user = userEvent.setup();
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    render(
+      <QueryClientProvider client={client}>
+        <ChatQueueProvider>
+          <TooltipProvider delayDuration={0}>
+            <MemoryRouter initialEntries={["/chats/chat-1?wakerId=waker-1"]}>
+              <Routes>
+                <Route element={<ChatLayout />}>
+                  <Route path="/chats/:chatId" element={<ChatPage />} />
+                </Route>
+              </Routes>
+            </MemoryRouter>
+          </TooltipProvider>
+        </ChatQueueProvider>
+      </QueryClientProvider>,
+    );
+    const input = await screen.findByRole("textbox", { name: "输入消息" });
+    await user.type(input, "/办公");
+    await screen.findByRole("option", { name: /办公插件/ });
+    await user.keyboard("{ArrowDown}{Enter}");
+    expect(
+      document.querySelector('[data-chat-composer-plugin="plugin-office"]'),
+    ).toBeInTheDocument();
+    wakerPlugins.current = [];
+    await act(async () => {
+      await client.invalidateQueries({
+        predicate: (query) =>
+          (query.queryKey[0] as { _id?: string })?._id ===
+          "listWakerPluginReferences",
+      });
+    });
+    await user.type(input, "整理文档");
+    await user.click(screen.getByRole("button", { name: "发送消息" }));
+    await waitFor(() => expect(sendMessage).toHaveBeenCalledTimes(1));
+    expect(sendMessage.mock.calls[0]?.[0]).toMatchObject({
+      body: { pluginIds: ["plugin-office"] },
+    });
   });
 
   it("只把输入框本轮选择的已启用技能发送为 skillIds", async () => {

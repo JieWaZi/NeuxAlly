@@ -31,6 +31,12 @@ const { state, remove, testConnection, setEnabled } = vi.hoisted(() => {
   };
 });
 
+vi.mock("@/shared/workspace/app-scene-workspace", () => ({
+  useRouteSceneActive: () => true,
+}));
+vi.mock("@/shared/api/use-query-events", () => ({
+  useQueryEvents: () => undefined,
+}));
 vi.mock("@/modules/waker", () => ({
   WakerDetailLayout: ({ children }: { children: ReactNode }) => children,
 }));
@@ -117,7 +123,7 @@ function renderPage() {
             element={<ConnectorDetailPage />}
           />
           <Route
-            path="/wakers/:wakerId/connectors"
+            path="/wakers/:wakerId/resources"
             element={<p>连接器列表</p>}
           />
         </Routes>
@@ -134,7 +140,7 @@ function connectionTestResults() {
 it("公开连接器保留配置、工具说明与定向测试、编辑和启停操作", async () => {
   const user = userEvent.setup();
   renderPage();
-  await screen.findByRole("heading", { name: /研究服务.*公开/ });
+  await screen.findByRole("heading", { name: /研究服务.*全局/ });
   expect(
     screen.getByText("/Applications/research-server/bin/start-service"),
   ).toBeVisible();
@@ -177,7 +183,7 @@ it("公开连接器保留配置、工具说明与定向测试、编辑和启停�
 it("删除仍需确认全局影响，确认后回到当前伙伴列表", async () => {
   const user = userEvent.setup();
   renderPage();
-  await screen.findByRole("heading", { name: /研究服务.*公开/ });
+  await screen.findByRole("heading", { name: /研究服务.*全局/ });
   await user.click(screen.getByRole("button", { name: "删除连接器" }));
   const dialog = screen.getByRole("dialog", { name: "删除连接器" });
   expect(within(dialog).getByText(/从 3 个伙伴中移除/)).toBeVisible();
@@ -267,7 +273,7 @@ it("请求等待和失败时保留页头，错误可重试且不会被当作未�
   state.error = null;
   await user.click(screen.getByRole("button", { name: "重试" }));
   expect(
-    await screen.findByRole("heading", { name: /研究服务.*公开/ }),
+    await screen.findByRole("heading", { name: /研究服务.*全局/ }),
   ).toBeVisible();
 });
 

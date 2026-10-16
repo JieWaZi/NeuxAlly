@@ -72,6 +72,7 @@ func (m *service) retryExecution(ctx context.Context, chatID, executionID string
 		executionID:       retryID,
 		parentExecutionID: executionID,
 		retry:             true,
+		pluginSnapshots:   previous.PluginResources,
 		admission:         constants.ExecutionAdmissionCommitBeforeDispatch,
 		runtime: runtimeSelection{
 			RuntimeID:         previous.RuntimeID,
@@ -91,6 +92,9 @@ func (m *service) retryExecution(ctx context.Context, chatID, executionID string
 		request.message.Attachments = append(request.message.Attachments, AttachmentInput{
 			SourcePath: filepath.Join(workspaceRoot, attachment.Path),
 		})
+	}
+	for _, plugin := range message.Plugins {
+		request.message.PluginIDs = append(request.message.PluginIDs, plugin.ID)
 	}
 	for _, skill := range message.Skills {
 		request.message.SkillIDs = append(request.message.SkillIDs, skill.ID)
@@ -164,6 +168,8 @@ func executionFromRecords(records []eventlog.Record, executionID string) (models
 				return execution, latestID, status_error.ChatLogError
 			}
 			execution = models.Execution{
+				PluginResources:   created.PluginResources,
+				AccountID:         created.AccountID,
 				ID:                executionID,
 				ChatID:            record.ChatID,
 				UserMessageID:     created.UserMessageID,

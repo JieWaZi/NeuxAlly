@@ -17,6 +17,17 @@ func validateResource(ctx context.Context, command control) error {
 	}
 	var err error
 	switch command.Topic {
+	case "resources":
+		switch resource.Kind {
+		case "skill":
+			_, err = global.SkillControllerManager.GetPackage(ctx, resource.ID)
+		case "connector":
+			_, err = global.MCPConnectorControllerManager.Get(ctx, resource.ID)
+		case "waker":
+			_, err = global.WakerControllerManager.Get(ctx, resource.ID)
+		}
+	case "plugins":
+		_, err = global.PluginControllerManager.Get(ctx, resource.ID)
 	case "chat":
 		_, err = global.ChatControllerManager.Get(ctx, resource.ID)
 	case "team":

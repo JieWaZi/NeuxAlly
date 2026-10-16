@@ -523,7 +523,7 @@ describe("PartnerNavigationLayout", () => {
     expect(forwardButton).toBeDisabled();
   });
 
-  it("详情 Dock 支持键盘切换五个功能，并保持唯一选中入口", async () => {
+  it("详情 Dock 支持键盘切换四个功能，并保持唯一选中入口", async () => {
     const user = userEvent.setup();
     renderLayout({ initialEntry: "/wakers/waker-6" });
 
@@ -536,8 +536,7 @@ describe("PartnerNavigationLayout", () => {
     for (const [label, href] of [
       ["项目", "/wakers/waker-6/projects"],
       ["记忆", "/wakers/waker-6/memory"],
-      ["技能", "/wakers/waker-6/skills"],
-      ["连接器", "/wakers/waker-6/connectors"],
+      ["资源", "/wakers/waker-6/resources"],
       ["概览", "/wakers/waker-6"],
     ]) {
       const link = within(menu).getByRole("link", { name: label });
@@ -565,7 +564,7 @@ describe("PartnerNavigationLayout", () => {
       within(menu)
         .getAllByRole("link")
         .map((item) => item.getAttribute("aria-label")),
-    ).toEqual(["概览", "项目", "记忆", "技能", "连接器"]);
+    ).toEqual(["概览", "项目", "记忆", "资源"]);
     expect(within(menu).queryByText("伙伴 6")).toBeNull();
     expect(within(menu).queryByText("会话")).toBeNull();
     await user.click(screen.getByRole("button", { name: "展开全局侧栏" }));

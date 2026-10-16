@@ -27,6 +27,7 @@
 - [桌面生命周期与信任边界](architecture/desktop-lifecycle-cn.md)
 - [通知与工作看板](architecture/notifications-and-work-board-cn.md)
 - [架构总览](architecture/overview-cn.md)
+- [插件资源](architecture/plugin-resources-cn.md)
 - [伙伴资源与记忆](architecture/resources-and-memory-cn.md)
 - [智能体与账号](architecture/runtimes-and-accounts-cn.md)
 - [团队协作](architecture/teams-cn.md)

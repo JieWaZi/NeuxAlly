@@ -119,7 +119,7 @@ const mib = 1024 * 1024;
 test("Windows x64 和 arm64 的三项体积在上限时通过", async (t) => {
   const bytes = {
     application: 450 * mib,
-    resources: 125 * mib,
+    resources: 215 * mib,
     installer: 150 * mib,
   };
   for (const architecture of ["x64", "arm64"]) {
@@ -139,7 +139,7 @@ test("Windows x64 和 arm64 的三项体积在上限时通过", async (t) => {
 test("超限仍拒绝发布并保存全部实测体积和大文件清单", async (t) => {
   const bytes = {
     application: 450 * mib + 1,
-    resources: 125 * mib + 1,
+    resources: 215 * mib + 1,
     installer: 150 * mib + 1,
   };
   const release = await fixture(t, bytes);

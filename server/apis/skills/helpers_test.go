@@ -27,6 +27,9 @@ func TestWakerSkillResponsesExposeSharedChangeImpact(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = sqlDB.Close() })
+	previousSkills := global.SkillControllerManager
+	t.Cleanup(func() { global.SkillControllerManager = previousSkills })
+	global.SkillControllerManager = controllers.NewSkillController(database.DB)
 	previousWakers := global.WakerControllerManager
 	t.Cleanup(func() { global.WakerControllerManager = previousWakers })
 	global.WakerControllerManager = controllers.NewWakerController(database.DB)
@@ -34,8 +37,14 @@ func TestWakerSkillResponsesExposeSharedChangeImpact(t *testing.T) {
 	for _, waker := range []models.Waker{
 		{ID: "waker-1", Name: "伙伴一"},
 		{ID: "waker-2", Name: "伙伴二"},
+		{ID: "waker-3", Name: "未安装伙伴"},
 	} {
 		if err := global.WakerControllerManager.Create(ctx, waker); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, relation := range []models.WakerSkill{{ID: "p1", WakerID: "waker-1", SkillPackageID: "public"}, {ID: "p2", WakerID: "waker-2", SkillPackageID: "public"}, {ID: "s1", WakerID: "waker-1", SkillPackageID: "private"}} {
+		if err := global.SkillControllerManager.UpsertWakerSkill(ctx, relation); err != nil {
 			t.Fatal(err)
 		}
 	}

@@ -42,5 +42,6 @@ func (s *SetWakerSkillEnabled) Output(ctx *gin.Context) (interface{}, error) {
 	if err != nil {
 		return nil, ginx.WithStack(err)
 	}
+	notifyResourceChanged(ctx, s.SkillID)
 	return ginx.CommonSuccessResponse(), nil
 }

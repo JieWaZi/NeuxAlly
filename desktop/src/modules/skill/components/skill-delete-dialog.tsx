@@ -65,6 +65,12 @@ export function SkillDeleteDialog({
       try {
         await remove.mutateAsync({
           path: { wakerId, skillId: skill.id },
+          query: wakerId
+            ? undefined
+            : {
+                confirmed: true,
+                expectedAffectedCount: skill.affectedWakerCount,
+              },
         });
         deletedIds.push(skill.id);
       } catch {

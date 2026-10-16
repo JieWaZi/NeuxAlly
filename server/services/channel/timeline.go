@@ -13,6 +13,7 @@ import (
 	"github.com/JieWaZi/NeuxAlly/server/internal/chat/eventlog"
 	"github.com/JieWaZi/NeuxAlly/server/internal/chat/messageview"
 	"github.com/JieWaZi/NeuxAlly/server/internal/logx"
+	"github.com/JieWaZi/NeuxAlly/server/internal/plugins"
 	"github.com/JieWaZi/NeuxAlly/server/repositories/models"
 	chatservice "github.com/JieWaZi/NeuxAlly/server/services/chat"
 	"github.com/JieWaZi/NeuxAlly/server/services/execution"
@@ -471,6 +472,9 @@ func appendPendingWorkInput(
 		message.Attachments = append(message.Attachments, eventlog.AttachmentReference{
 			Name: filepath.Base(attachment.SourcePath),
 		})
+	}
+	for _, id := range input.PluginIDs {
+		message.Plugins = append(message.Plugins, plugins.Snapshot{ID: id, Name: id})
 	}
 	for _, skillID := range input.SkillIDs {
 		message.Skills = append(message.Skills, eventlog.MessageSkillReference{

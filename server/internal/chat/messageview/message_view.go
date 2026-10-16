@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/JieWaZi/NeuxAlly/server/constants/status_error"
+	"github.com/JieWaZi/NeuxAlly/server/internal/plugins"
 
 	"github.com/JieWaZi/NeuxAlly/server/constants"
 	"github.com/JieWaZi/NeuxAlly/server/internal/chat/eventlog"
@@ -207,6 +208,7 @@ func (p *MessageViewBuilder) applyMessageCreated(record eventlog.Record) (string
 		Truncated:       data.Truncated,
 		Content:         data.Content,
 		Attachments:     append([]eventlog.AttachmentReference(nil), data.Attachments...),
+		Plugins:         append([]plugins.Snapshot(nil), data.Plugins...),
 		Skills:          append([]eventlog.MessageSkillReference(nil), data.Skills...),
 		Connectors:      append([]eventlog.MessageConnectorReference(nil), data.Connectors...),
 		CodeReferences:  append([]eventlog.CodeReference(nil), data.CodeReferences...),
