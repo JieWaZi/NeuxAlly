@@ -31,6 +31,7 @@ import {
   ChatComposerAttachments,
   type ChatFileOpenRequest,
 } from "./chat-attachment";
+import type { ChatWorkflowOption } from "./chat-workflow-reference";
 import type { ChatSkillOption } from "./chat-skill-reference";
 import type { ChatConnectorOption } from "./chat-connector-reference";
 import type { AllyPathFile } from "../runtime/chat-attachment-adapter";
@@ -45,7 +46,8 @@ type MentionItem = {
   id: string;
   label: string;
   description?: string;
-  referenceType: "file" | "skill" | "connector" | "code" | "member";
+  referenceType:
+    "file" | "skill" | "connector" | "code" | "member" | "workflow";
 };
 const fileReferenceLimit = 20;
 
@@ -61,6 +63,10 @@ type ChatComposerInputProps = {
   ariaLabel: string;
   onValueChange?: () => void;
   className?: string;
+  workflows?: ChatWorkflowOption[];
+  selectedWorkflowId?: string;
+  onWorkflowSelectionChange?: (id?: string) => void;
+  searchWorkflows?: (query: string) => Promise<ChatWorkflowOption[]>;
   skills?: ChatSkillOption[];
   connectors?: ChatConnectorOption[];
   fileRoots?: string[];
@@ -172,6 +178,7 @@ function renderSuggestion(
   title: string,
   emptyMessage: () => string,
   loadingMessage?: () => string,
+  groupTitle?: (type: MentionItem["referenceType"]) => string,
 ): NonNullable<SuggestionOptions<MentionItem>["render"]> {
   return () => {
     let popup: HTMLDivElement | undefined;
@@ -253,6 +260,17 @@ function renderSuggestion(
         popup.append(empty);
       } else {
         currentItems.forEach((item, index) => {
+          if (
+            groupTitle &&
+            (index === 0 ||
+              currentItems[index - 1]?.referenceType !== item.referenceType)
+          ) {
+            const group = document.createElement("div");
+            group.className =
+              "text-muted-foreground type-caption px-2 py-1.5 font-medium";
+            group.textContent = groupTitle(item.referenceType);
+            popup?.append(group);
+          }
           const button = document.createElement("button");
           button.type = "button";
           button.className =
@@ -298,6 +316,7 @@ function renderSuggestion(
       onStart: show,
       onUpdate: render,
       onKeyDown: ({ event }) => {
+        if (event.isComposing || event.keyCode === 229) return false;
         if (event.key === "ArrowDown") {
           selectedIndex = Math.min(selectedIndex + 1, currentItems.length - 1);
           if (latestProps) render(latestProps);
@@ -334,6 +353,10 @@ export function ChatComposerInput({
   ariaLabel,
   onValueChange,
   className,
+  workflows,
+  selectedWorkflowId,
+  onWorkflowSelectionChange,
+  searchWorkflows,
   skills = [],
   connectors = [],
   fileRoots = [],
@@ -368,6 +391,7 @@ export function ChatComposerInput({
     onAttachmentsRemove,
     onAttachmentsChange,
     onOpenFile,
+    onWorkflowSelectionChange,
     onSkillSelectionChange,
     onConnectorSelectionChange,
     onMemberMentionChange,
@@ -377,6 +401,8 @@ export function ChatComposerInput({
   });
   const selectedSkillIdsRef = useRef(selectedSkillIds);
   const selectedConnectorIdsRef = useRef(selectedConnectorIds);
+  const workflowOptionsRef = useRef({ workflows, searchWorkflows });
+  const workflowSearchFailedRef = useRef(false);
   const skillsRef = useRef(skills);
   const connectorsRef = useRef(connectors);
   const fileRootsRef = useRef(fileRoots);
@@ -411,6 +437,7 @@ export function ChatComposerInput({
       onAttachmentsRemove,
       onAttachmentsChange,
       onOpenFile,
+      onWorkflowSelectionChange,
       onSkillSelectionChange,
       onConnectorSelectionChange,
       onMemberMentionChange,
@@ -420,6 +447,7 @@ export function ChatComposerInput({
     };
     selectedSkillIdsRef.current = selectedSkillIds;
     selectedConnectorIdsRef.current = selectedConnectorIds;
+    workflowOptionsRef.current = { workflows, searchWorkflows };
     skillsRef.current = skills;
     connectorsRef.current = connectors;
     fileRootsRef.current = fileRoots;
@@ -445,12 +473,16 @@ export function ChatComposerInput({
     onMemberMentionChange,
     onOpenFile,
     onSend,
+    onWorkflowSelectionChange,
     onSkillSelectionChange,
     onValueChange,
     onCodeReferencesChange,
     selectedConnectorIds,
     selectedSkillIds,
     skills,
+    workflows,
+    searchWorkflows,
+    selectedWorkflowId,
     skillsError,
   ]);
 
@@ -609,13 +641,15 @@ export function ChatComposerInput({
       }) as SuggestionOptions<MentionItem>,
     [hasMemberSuggestions, t],
   );
+  const hasWorkflowSuggestions =
+    workflows !== undefined || searchWorkflows !== undefined;
   const skillSuggestion = useMemo(
     () =>
       ({
         char: "/",
         allowedPrefixes: [" "],
-        items: ({ query }) =>
-          skillsRef.current
+        items: async ({ query }) => {
+          const skillItems = skillsRef.current
             .filter((skill) =>
               [skill.id, skill.name, skill.description].some((value) =>
                 value.toLowerCase().includes(query.toLowerCase()),
@@ -626,9 +660,33 @@ export function ChatComposerInput({
               label: skill.name,
               description: skill.description,
               referenceType: "skill" as const,
+            }));
+          const options = workflowOptionsRef.current;
+          workflowSearchFailedRef.current = false;
+          let workflows: ChatWorkflowOption[] = [];
+          try {
+            workflows = options.searchWorkflows
+              ? await options.searchWorkflows(query)
+              : (options.workflows ?? []).filter((flow) =>
+                  [flow.name, flow.description].some((value) =>
+                    value.toLowerCase().includes(query.toLowerCase()),
+                  ),
+                );
+          } catch {
+            workflowSearchFailedRef.current = true;
+          }
+          return [
+            ...skillItems,
+            ...workflows.map((flow) => ({
+              id: flow.id,
+              label: flow.name,
+              description: flow.description,
+              referenceType: "workflow" as const,
             })),
+          ];
+        },
         command: ({ editor, range, props }) => {
-          editor
+          const chain = editor
             .chain()
             .focus()
             .insertContentAt(range, {
@@ -636,20 +694,52 @@ export function ChatComposerInput({
               attrs: {
                 id: props.id,
                 label: props.label,
-                referenceType: "skill",
+                referenceType: props.referenceType,
                 mentionSuggestionChar: "/",
               },
-            })
-            .run();
-          selectSkill(props);
+            });
+          if (props.referenceType === "workflow") {
+            // 同一文档只承载本次选择，删除旧引用时按倒序位置修改，避免偏移。
+            chain.command(({ tr }) => {
+              const ranges: { from: number; to: number }[] = [];
+              tr.doc.descendants((node, pos) => {
+                if (
+                  node.type.name === "mention" &&
+                  node.attrs.referenceType === "workflow"
+                )
+                  ranges.push({ from: pos, to: pos + node.nodeSize });
+              });
+              for (const old of ranges
+                .filter((item) => item.from !== range.from)
+                .reverse())
+                tr.delete(old.from, old.to);
+              return true;
+            });
+          }
+          chain.run();
+          if (props.referenceType === "skill") selectSkill(props);
         },
-        // The suggestion renderer outlives React renders, so read the latest query state from the ref.
-        // eslint-disable-next-line react-hooks/refs
-        render: renderSuggestion(t("skills"), () =>
-          skillsErrorRef.current ? t("skillsLoadError") : t("noMatchingSkills"),
+        // 补全渲染器与编辑器同寿命，回调读取最新查询状态。
+        render: renderSuggestion(
+          t(hasWorkflowSuggestions ? "references" : "skills"),
+          // eslint-disable-next-line react-hooks/refs
+          () =>
+            workflowSearchFailedRef.current
+              ? t("workflowsLoadError")
+              : skillsErrorRef.current
+                ? t("skillsLoadError")
+                : t(
+                    hasWorkflowSuggestions
+                      ? "noMatchingReferences"
+                      : "noMatchingSkills",
+                  ),
+          () => t("searchingReferences"),
+          hasWorkflowSuggestions
+            ? (type) => t(type === "workflow" ? "workflows" : "skills")
+            : undefined,
         ),
       }) as SuggestionOptions<MentionItem>,
-    [selectSkill, t],
+    [hasWorkflowSuggestions, selectSkill, t],
   );
   const connectorSuggestion = useMemo(
     () =>
@@ -827,6 +917,7 @@ export function ChatComposerInput({
       const skillIDs = new Set<string>();
       const connectorIDs = new Set<string>();
       let memberID = "";
+      let workflowID = "";
       nextEditor.state.doc.descendants((node) => {
         if (node.type.name !== "mention") return;
         const referenceID = String(node.attrs.id ?? "");
@@ -838,6 +929,9 @@ export function ChatComposerInput({
                 path: referenceID,
               });
             }
+            break;
+          case "workflow":
+            workflowID = referenceID;
             break;
           case "skill":
             if (referenceID) skillIDs.add(referenceID);
@@ -862,8 +956,15 @@ export function ChatComposerInput({
       selectedMemberIdRef.current = memberID;
       nextEditor.view.dom.setAttribute("value", text);
       callbacksRef.current.aui.composer.setText(
-        text || (codeReferences.length ? t("codeReferenceOnlyMessage") : ""),
+        text.trim()
+          ? text
+          : workflowID
+            ? t("workflowReferenceOnlyMessage")
+            : codeReferences.length
+              ? t("codeReferenceOnlyMessage")
+              : "",
       );
+      callbacksRef.current.onWorkflowSelectionChange?.(workflowID || undefined);
       callbacksRef.current.onSkillSelectionChange?.(Array.from(skillIDs));
       callbacksRef.current.onConnectorSelectionChange?.(
         Array.from(connectorIDs),

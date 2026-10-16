@@ -10,6 +10,44 @@ import {
 import type { ChatEvent } from "@/shared/api/events";
 
 describe("chat projection", () => {
+  it("空正文助手仍投影受信运行和正式附件，用户引用保留稳定身份与名称", () => {
+    const run = {
+      workflowId: "flow-1",
+      runId: "run-old",
+      revisionId: "revision-1",
+      name: "评审",
+    };
+    const assistant = toThreadMessage({
+      id: "assistant",
+      role: "assistant",
+      status: "completed",
+      workflowRuns: [run],
+      attachments: [
+        {
+          name: "结论.md",
+          path: "attachments/result.md",
+          mediaType: "text/markdown",
+        },
+      ],
+    });
+    expect(assistant.metadata?.custom?.workflowRuns).toEqual([run]);
+    expect(assistant.metadata?.custom?.deliveredAttachments).toEqual([
+      expect.objectContaining({
+        name: "结论.md",
+        path: "attachments/result.md",
+      }),
+    ]);
+    expect(assistant.attachments).toEqual([]);
+    const user = toThreadMessage({
+      id: "user",
+      role: "user",
+      workflows: [{ id: "flow-1", name: "评审" }],
+    });
+    expect(user.metadata?.custom?.workflows).toEqual([
+      { id: "flow-1", name: "评审" },
+    ]);
+  });
+
   it("技能活动在 API 消息转换后仍保留独立类别与动作", () => {
     const projected = toThreadMessage({
       id: "skill-message",

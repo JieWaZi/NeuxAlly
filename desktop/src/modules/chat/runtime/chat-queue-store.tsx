@@ -24,6 +24,7 @@ export type ChatSendSelection = {
   }>;
   connectorIds?: string[];
   workflowIds?: string[];
+  selectedWorkflows?: Array<{ id: string; name: string }>;
   selectedConnectors?: Array<{
     id: string;
     name: string;

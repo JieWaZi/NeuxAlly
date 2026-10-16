@@ -1,6 +1,13 @@
+import {
+  ChatMessageWorkflowReferences,
+  type ChatWorkflowOption,
+} from "./chat-workflow-reference";
 import type { ChatResultSource } from "@/shared/api/notification-presentation";
 import { ChatWorkResultReader } from "@/shared/api/work-result-reading";
-import { ChatMessageContribution } from "./chat-contributions";
+import {
+  ChatMessageContribution,
+  ChatWorkflowRunContribution,
+} from "./chat-contributions";
 import { ChatForkContext, MessageForkAction } from "./chat-fork";
 import { Link } from "react-router-dom";
 import { chatHref } from "@/shared/lib/chat-navigation";
@@ -184,6 +191,10 @@ type ChatThreadProps = {
   composerSettings?: ReactNode;
   composerEffects?: ReactNode;
   renderComposerContextStrip?: () => ReactNode;
+  composerWorkflows?: ChatWorkflowOption[];
+  selectedWorkflowId?: string;
+  onWorkflowSelectionChange?: (id?: string) => void;
+  searchWorkflows?: (query: string) => Promise<ChatWorkflowOption[]>;
   composerSkills?: ChatSkillOption[];
   composerSkillsError?: boolean;
   composerConnectors?: ChatConnectorOption[];
@@ -1135,6 +1146,23 @@ function UserMessage({
   onOpenCodeReference?: (reference: ChatCodeReference) => void;
   onOpenFile?: (file: ChatFileOpenRequest) => void;
 }) {
+  const rawWorkflows = useAuiState(
+    (state) => state.message.metadata.custom.workflows,
+  );
+  const workflows = Array.isArray(rawWorkflows)
+    ? rawWorkflows.flatMap((value: unknown) => {
+        if (
+          !value ||
+          typeof value !== "object" ||
+          !("id" in value) ||
+          !("name" in value) ||
+          typeof value.id !== "string" ||
+          typeof value.name !== "string"
+        )
+          return [];
+        return [{ id: value.id, name: value.name }];
+      })
+    : [];
   const rawSkills = useAuiState(
     (state) => state.message.metadata.custom.skills,
   );
@@ -1179,6 +1207,7 @@ function UserMessage({
       <div className="ml-auto grid max-w-[78%] min-w-0 justify-items-end gap-2">
         <div className="bg-surface-tertiary text-foreground type-chat max-w-full min-w-0 overflow-hidden rounded-xl px-4 py-3">
           <div className="flex flex-wrap items-start gap-x-1.5 gap-y-1">
+            <ChatMessageWorkflowReferences workflows={workflows} />
             <ChatMessageSkillReferences
               skills={skills}
               wakerId={wakerId}
@@ -1364,11 +1393,13 @@ export function AssistantMessage({
   avatar,
   messageAuthors,
   onOpenFileChange,
+  onOpenFile,
   showUsageMetrics = true,
 }: {
   name: string;
   avatar?: string;
   messageAuthors?: Readonly<Record<string, ChatMessageAuthor>>;
+  onOpenFile?: (file: ChatFileOpenRequest) => void;
   onOpenFileChange?: (file: ChatFileChangeOpenRequest) => void;
   showUsageMetrics?: boolean;
 }) {
@@ -1399,8 +1430,10 @@ export function AssistantMessage({
           <MessageTimestamp />
         </div>
         <div className="mt-2 min-w-0">
+          <ChatWorkflowRunContribution message={message} />
           <ChatMessageParts onOpenFileChange={openFileChange} />
           <ChatMessageContribution messageId={messageID} />
+          <ChatMessageAttachments onOpenFile={onOpenFile} />
         </div>
         <AuiIf
           condition={(state) =>
@@ -1478,6 +1511,7 @@ const ChatMessage = memo(function ChatMessage({
       name={name}
       avatar={avatar}
       messageAuthors={messageAuthors}
+      onOpenFile={onOpenFile}
       onOpenFileChange={onOpenFileChange}
       showUsageMetrics={showUsageMetrics}
     />
@@ -1580,6 +1614,10 @@ const Composer = memo(function Composer({
   settings,
   effects,
   renderContextStrip,
+  workflows,
+  selectedWorkflowId,
+  onWorkflowSelectionChange,
+  searchWorkflows,
   skills,
   skillsError,
   connectors,
@@ -1622,6 +1660,10 @@ const Composer = memo(function Composer({
   settings?: ReactNode;
   effects?: ReactNode;
   renderContextStrip?: () => ReactNode;
+  workflows?: ChatWorkflowOption[];
+  selectedWorkflowId?: string;
+  onWorkflowSelectionChange?: (id?: string) => void;
+  searchWorkflows?: (query: string) => Promise<ChatWorkflowOption[]>;
   skills: ChatSkillOption[];
   skillsError: boolean;
   connectors: ChatConnectorOption[];
@@ -1821,6 +1863,10 @@ const Composer = memo(function Composer({
                   disabled={isWorkStopping || disabled}
                   placeholder={t("placeholder")}
                   ariaLabel={t("messageInput")}
+                  workflows={workflows}
+                  selectedWorkflowId={selectedWorkflowId}
+                  onWorkflowSelectionChange={onWorkflowSelectionChange}
+                  searchWorkflows={searchWorkflows}
                   skills={skills}
                   skillsError={skillsError}
                   connectors={connectors}
@@ -1986,6 +2032,10 @@ export function ChatThread({
   composerSettings,
   composerEffects,
   renderComposerContextStrip,
+  composerWorkflows,
+  selectedWorkflowId,
+  onWorkflowSelectionChange,
+  searchWorkflows,
   composerSkills = emptyList,
   composerSkillsError = false,
   composerConnectors = emptyList,
@@ -2321,6 +2371,10 @@ export function ChatThread({
                       settings={composerSettings}
                       effects={composerEffects}
                       renderContextStrip={renderComposerContextStrip}
+                      workflows={composerWorkflows}
+                      selectedWorkflowId={selectedWorkflowId}
+                      onWorkflowSelectionChange={onWorkflowSelectionChange}
+                      searchWorkflows={searchWorkflows}
                       skills={composerSkills}
                       skillsError={composerSkillsError}
                       connectors={composerConnectors}

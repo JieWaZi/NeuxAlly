@@ -515,6 +515,9 @@ export function useChatRuntime(options: ChatRuntimeOptions): ChatRuntimeResult {
           role: "user",
           content: text,
           attachments: optimisticAttachmentsOf(message),
+          workflows: snapshot.selection.selectedWorkflows?.map((flow) => ({
+            ...flow,
+          })),
           skills: (snapshot.selection.selectedSkills ?? []).map((skill) => ({
             ...skill,
           })),
@@ -545,6 +548,7 @@ export function useChatRuntime(options: ChatRuntimeOptions): ChatRuntimeResult {
       overlayRef.current = optimisticOverlay;
       setOverlay(optimisticOverlay);
 
+      let accepted = false;
       try {
         const result = await send(
           text,
@@ -552,6 +556,7 @@ export function useChatRuntime(options: ChatRuntimeOptions): ChatRuntimeResult {
           attachmentPaths,
           snapshot.selection,
         );
+        accepted = true;
         const execution = result.execution;
         const resultChatID = result.chat?.id ?? snapshot.chatId;
         const pendingCreateHandoff = !snapshot.chatId && Boolean(resultChatID);
@@ -629,11 +634,22 @@ export function useChatRuntime(options: ChatRuntimeOptions): ChatRuntimeResult {
           queueStore.migrate(snapshot.queueKey, resultChatID);
         }
         resolveErrorNoticeRecovery(recovery);
-        onSettled?.(result, { ...invocation, current });
+        // 首发接纳先交接真实聊天，再执行可能失败的后续刷新。
         if (current) {
-          onStarted(result, invocation);
+          await onStarted(result, invocation);
         }
+        await onSettled?.(result, { ...invocation, current });
       } catch (error) {
+        if (accepted) {
+          // 接纳后仅刷新失败，保留稳定消息与执行身份，不能恢复为可重复发送的草稿。
+          reportErrorNotice({
+            id: `accepted-refresh:${userID}`,
+            scope: snapshot.queueKey,
+            operation: `${operation}:refresh`,
+            message: i18n.t("sendAcceptedRefreshFailed", { ns: "chat" }),
+          });
+          return;
+        }
         runningByQueueRef.current[snapshot.queueKey] = false;
         const current =
           mountedRef.current &&
@@ -759,6 +775,9 @@ export function useChatRuntime(options: ChatRuntimeOptions): ChatRuntimeResult {
         workflowIds: options.selection.workflowIds
           ? [...options.selection.workflowIds]
           : undefined,
+        selectedWorkflows: options.selection.selectedWorkflows?.map((flow) => ({
+          ...flow,
+        })),
         selectedConnectors: options.selection.selectedConnectors?.map(
           (connector) => ({ ...connector }),
         ),

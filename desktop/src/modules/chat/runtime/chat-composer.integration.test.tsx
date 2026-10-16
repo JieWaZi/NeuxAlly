@@ -1,3 +1,10 @@
+import {
+  ChatContributionsProvider,
+  WorkbenchOpeningProvider,
+} from "../components/chat-contributions";
+import { WorkbenchProvider } from "../workbench/workbench-store";
+import { WorkflowCall } from "@/modules/workflow";
+import { getWorkflowRunQueryKey } from "@/shared/api/generated/@tanstack/react-query.gen";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   AuiProvider,
@@ -249,6 +256,28 @@ function AttachmentSubscriptionGapHarness({
         }}
       />
     </AuiProvider>
+  );
+}
+
+function WorkflowComposerHarness() {
+  const [, refresh] = useReducer((n: number) => n + 1, 0);
+  const [selectedWorkflowId, selectWorkflow] = useState<string>();
+  return (
+    <ComposerPrimitive.Root>
+      <ChatComposerInput
+        ariaLabel="message"
+        placeholder="输入消息"
+        onValueChange={refresh}
+        workflows={[
+          { id: "flow-review", name: "代码评审", description: "检查改动" },
+          { id: "flow-report", name: "周报", description: "生成报告" },
+        ]}
+        selectedWorkflowId={selectedWorkflowId}
+        onWorkflowSelectionChange={selectWorkflow}
+      />
+      <output aria-label="选择的工作流">{selectedWorkflowId ?? "无"}</output>
+      <ComposerPrimitive.Send>send</ComposerPrimitive.Send>
+    </ComposerPrimitive.Root>
   );
 }
 
@@ -579,6 +608,81 @@ function ChatThreadHistoryHarness({
 }
 
 describe("chat composer", () => {
+  it("空正文助手保留运行项和正式文件，附件点击进入共享打开入口", async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, staleTime: Infinity } },
+    });
+    queryClient.setQueryData(
+      getWorkflowRunQueryKey({ path: { id: "flow", runId: "old-run" } }),
+      { run: { id: "old-run", status: "succeeded" } },
+    );
+    const onOpenFile = vi.fn();
+    const ui = (
+      <QueryClientProvider client={queryClient}>
+        <ChatQueueProvider>
+          <WorkbenchProvider>
+            <ChatContributionsProvider value={{ WorkflowRuns: WorkflowCall }}>
+              <WorkbenchOpeningProvider
+                value={{
+                  scopeKey: "chat:empty-assistant",
+                  onOpen: () => undefined,
+                }}
+              >
+                <MemoryRouter>
+                  <TooltipProvider>
+                    <ChatThreadHistoryHarness
+                      onOpenFile={onOpenFile}
+                      messages={[
+                        {
+                          id: "empty-assistant",
+                          role: "assistant",
+                          status: "completed",
+                          workflowRuns: [
+                            {
+                              workflowId: "flow",
+                              runId: "old-run",
+                              name: "独立运行",
+                            },
+                          ],
+                          attachments: [
+                            {
+                              name: "最终结果.md",
+                              path: "attachments/final.md",
+                              mediaType: "text/markdown",
+                              managed: true,
+                            },
+                          ],
+                        },
+                      ]}
+                    />
+                  </TooltipProvider>
+                </MemoryRouter>
+              </WorkbenchOpeningProvider>
+            </ChatContributionsProvider>
+          </WorkbenchProvider>
+        </ChatQueueProvider>
+      </QueryClientProvider>
+    );
+    const rendered = renderUI(ui);
+    expect(
+      await screen.findByRole("button", { name: /独立运行/ }),
+    ).toHaveTextContent("已完成");
+    await userEvent.click(screen.getByRole("button", { name: /最终结果.md/ }));
+    expect(onOpenFile).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: "最终结果.md",
+        path: "attachments/final.md",
+      }),
+    );
+    rendered.unmount();
+    renderUI(ui);
+    await userEvent.click(
+      await screen.findByRole("button", { name: /最终结果.md/ }),
+    );
+    expect(onOpenFile).toHaveBeenCalledTimes(2);
+    expect(screen.getAllByRole("button", { name: /独立运行/ })).toHaveLength(1);
+  });
+
   it("@ 文件搜索期间显示加载状态而不提前展示无匹配", async () => {
     const user = userEvent.setup();
     let finishSearch: ((entries: []) => void) | undefined;
@@ -738,6 +842,43 @@ describe("chat composer", () => {
       scopedSearch.mockImplementation(async () => []);
       Reflect.deleteProperty(window, "allyDesktop");
     }
+  });
+
+  it("真实斜线补全单选工作流、替换并在删除引用时撤选，纯引用可发送", async () => {
+    const user = userEvent.setup();
+    const send = vi.fn().mockResolvedValue({ chat: { id: "chat-1" } });
+    render(
+      <ChatQueueProvider>
+        <ComposerHarness send={send}>
+          <WorkflowComposerHarness />
+        </ComposerHarness>
+      </ChatQueueProvider>,
+    );
+    const input = await screen.findByRole("textbox", { name: "message" });
+    await user.type(input, "/代码");
+    await user.click(await screen.findByRole("option", { name: /代码评审/ }));
+    expect(screen.getByLabelText("选择的工作流")).toHaveTextContent(
+      "flow-review",
+    );
+    await user.type(input, " /周");
+    await user.click(await screen.findByRole("option", { name: /周报/ }));
+    expect(
+      input.querySelectorAll('[data-chat-composer-reference-type="workflow"]'),
+    ).toHaveLength(1);
+    expect(input).not.toHaveTextContent("代码评审");
+    expect(screen.getByLabelText("选择的工作流")).toHaveTextContent(
+      "flow-report",
+    );
+    fireEvent.compositionStart(input);
+    fireEvent.keyDown(input, { key: "Enter", isComposing: true });
+    expect(send).not.toHaveBeenCalled();
+    fireEvent.compositionEnd(input);
+    await user.clear(input);
+    expect(screen.getByLabelText("选择的工作流")).toHaveTextContent("无");
+    await user.type(input, "/代码");
+    await user.click(await screen.findByRole("option", { name: /代码评审/ }));
+    await user.click(screen.getByRole("button", { name: "send" }));
+    await waitFor(() => expect(send).toHaveBeenCalled());
   });
 
   it("在 @ 文件建议菜单内选择一个团队成员并输出结构化成员标识", async () => {

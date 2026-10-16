@@ -1,3 +1,4 @@
+import type { ChatWorkflowOption } from "../components/chat-workflow-reference";
 import { useExecutionSelection } from "@/shared/hooks/use-execution-selection";
 import type { ExecutionSelection } from "@/shared/hooks/use-execution-selection";
 import { useChatFork } from "../components/chat-fork";
@@ -50,7 +51,10 @@ import {
   resolveElicitationMutation,
   sendMessageMutation,
 } from "../api/chat-queries";
-import { listAiAccountsOptions } from "@/shared/api/generated/@tanstack/react-query.gen";
+import {
+  listAiAccountsOptions,
+  listWorkflowsOptions,
+} from "@/shared/api/generated/@tanstack/react-query.gen";
 import { ChatHistoryLoadingState } from "../components/chat-history-loading-state";
 import {
   ChatWorkspaceSurface,
@@ -168,6 +172,39 @@ export function ChatPageContent({
   >({});
   const [selectedConnectorIDsByWaker, setSelectedConnectorIDsByWaker] =
     useState<Record<string, string[]>>({});
+  const [selectedWorkflow, setSelectedWorkflow] = useState<{
+    id: string;
+    name: string;
+  }>();
+  const workflowOptions = useRef(new Map<string, ChatWorkflowOption>());
+  const searchWorkflows = async (search: string) => {
+    const options: ChatWorkflowOption[] = [];
+    let before: number | undefined;
+    let beforeId: string | undefined;
+    do {
+      const page = await queryClient.fetchQuery(
+        listWorkflowsOptions({
+          query: { search, limit: 50, before, beforeId },
+        }),
+      );
+      for (const flow of page.items ?? []) {
+        if (!flow.id || !flow.currentRevisionId) continue;
+        const option = {
+          id: flow.id,
+          name: flow.title || t("workflows"),
+          description: flow.description || flow.whenToUse || "",
+        };
+        options.push(option);
+        workflowOptions.current.set(flow.id, option);
+      }
+      before = page.nextBefore;
+      beforeId = page.nextBeforeId;
+    } while (before && beforeId);
+    return options;
+  };
+  const selectWorkflow = (id?: string) => {
+    setSelectedWorkflow(id ? workflowOptions.current.get(id) : undefined);
+  };
   const [composerRestoreRevision, setComposerRestoreRevision] = useState(0);
   const [sessionSwitch, setSessionSwitch] = useState<{
     chatId: string;
@@ -221,6 +258,7 @@ export function ChatPageContent({
         : workspaceScopeKey,
   );
   const resetComposerScope = useCallback(() => {
+    setSelectedWorkflow(undefined);
     setSelectedSkillIDsByWaker({});
     setSelectedConnectorIDsByWaker({});
   }, []);
@@ -690,6 +728,8 @@ export function ChatPageContent({
       permissionLevel: selectedPermissionLevel,
       skillIds: selectedSkillIDs,
       selectedSkills,
+      workflowIds: !entry && selectedWorkflow ? [selectedWorkflow.id] : [],
+      selectedWorkflows: !entry && selectedWorkflow ? [selectedWorkflow] : [],
       connectorIds: selectedConnectorIDs,
       selectedConnectors,
       codeReferences: selectedCodeReferences,
@@ -698,6 +738,7 @@ export function ChatPageContent({
       clearComposer();
     },
     onMessageRejected: (selection) => {
+      if (!entry) setSelectedWorkflow(selection.selectedWorkflows?.[0]);
       setComposerRestoreRevision((revision) => revision + 1);
       if (!selectedWakerID) return;
       setSelectedSkillIDsByWaker((current) => ({
@@ -732,7 +773,7 @@ export function ChatPageContent({
         attachments: attachmentPaths.map((sourcePath) => ({ sourcePath })),
         skillIds: selection?.skillIds ?? [],
         connectorIds: selection?.connectorIds ?? [],
-        ...(selection?.workflowIds?.length
+        ...(!entry && selection?.workflowIds?.length
           ? { workflowIds: selection.workflowIds }
           : {}),
         codeReferences: (selection?.codeReferences ?? []).flatMap(
@@ -1154,6 +1195,10 @@ export function ChatPageContent({
       composerEffects,
       composerDraft: entry?.draft,
       renderComposerContextStrip,
+      composerWorkflows: entry ? undefined : [],
+      selectedWorkflowId: entry ? undefined : selectedWorkflow?.id,
+      onWorkflowSelectionChange: entry ? undefined : selectWorkflow,
+      searchWorkflows: entry ? undefined : searchWorkflows,
       composerSkills: enabledSkills,
       composerSkillsError: skillsQuery.isError,
       composerConnectors: enabledConnectors,
