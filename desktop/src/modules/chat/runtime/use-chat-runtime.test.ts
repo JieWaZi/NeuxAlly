@@ -148,6 +148,41 @@ describe("useChatRuntime queue", () => {
     notices.unmount();
   });
 
+  it("停止捕获原执行身份，下一轮渲染不会改写已捕获回调", async () => {
+    const options = runtimeOptions("chat-stop");
+    const { rerender } = renderHook(() => useChatRuntime(options), { wrapper });
+    const originalStop = runtimeAdapter.current?.onCancel;
+    options.activeExecutionId = "execution-2";
+    rerender();
+    await act(async () => {
+      await originalStop?.();
+    });
+    expect(options.cancel).toHaveBeenCalledWith("execution-1");
+    await act(async () => {
+      await runtimeAdapter.current?.onCancel?.();
+    });
+    expect(options.cancel).toHaveBeenLastCalledWith("execution-2");
+  });
+
+  it("接纳响应先于实时投影时仍可停止原执行", async () => {
+    const options = {
+      ...runtimeOptions("chat-accepted"),
+      activeExecutionId: undefined,
+      send: vi.fn().mockResolvedValue({
+        chat: { id: "chat-accepted" },
+        execution: { id: "accepted-execution", status: "running" },
+      }),
+    };
+    renderHook(() => useChatRuntime(options), { wrapper });
+    await act(async () => {
+      await runtimeAdapter.current?.onNew?.(queuedMessage);
+    });
+    await act(async () => {
+      await runtimeAdapter.current?.onCancel?.();
+    });
+    expect(options.cancel).toHaveBeenCalledWith("accepted-execution");
+  });
+
   it("消息重试绑定失败执行，连点只调用一次接口，结果触发权威刷新", async () => {
     let resolve!: (value: { data: MessageResult }) => void;
     retryExecutionMock.mockImplementation(

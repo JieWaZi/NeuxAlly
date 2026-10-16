@@ -787,14 +787,20 @@ export function ChatPageContent({
         return result;
       });
     },
-    cancel: async () => {
+    cancel: async (executionId) => {
       const invocation = chatInvocationGuard.capture(
         activeChatId,
         runtimeQueueKey,
       );
-      if (!invocation.chatId || !chatInvocationGuard.isCurrent(invocation))
+      if (
+        !executionId ||
+        !invocation.chatId ||
+        !chatInvocationGuard.isCurrent(invocation)
+      )
         return;
-      await cancel.mutateAsync({ path: { chatId: invocation.chatId } });
+      await cancel.mutateAsync({
+        path: { chatId: invocation.chatId, executionId },
+      });
     },
     onSettled: (result, invocation) => {
       refreshChat(

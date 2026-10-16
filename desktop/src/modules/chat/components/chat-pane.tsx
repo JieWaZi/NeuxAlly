@@ -171,8 +171,9 @@ export function ChatPane({
     selection: config,
     send: (text, _id, paths = [], selected = config) =>
       onSend(text, paths, selected),
-    cancel: async () => {
-      if (chatId) await cancel.mutateAsync({ path: { chatId } });
+    cancel: async (executionId) => {
+      if (chatId && executionId)
+        await cancel.mutateAsync({ path: { chatId, executionId } });
     },
     onMessageAccepted: () => setClearRevision((value) => value + 1),
     onMessageRejected: () => setRestoreRevision((value) => value + 1),

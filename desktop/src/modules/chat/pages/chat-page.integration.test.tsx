@@ -68,6 +68,7 @@ const {
   deleteChatWorkspaceFile,
   createChat,
   sendMessage,
+  cancelExecution,
   resolveApproval,
   wakerSkills,
   wakerSkillsError,
@@ -206,6 +207,7 @@ const {
       return true;
     },
   ),
+  cancelExecution: vi.fn(async () => undefined),
   createChat: vi.fn<(options: Record<string, unknown>) => Promise<unknown>>(
     async () => {
       if (createChatDelay.current > 0) {
@@ -367,7 +369,7 @@ vi.mock("@/shared/desktop", () => ({
 
 vi.mock("../api/chat-queries", () => ({
   cancelChatExecutionMutation: () => ({
-    mutationFn: async () => undefined,
+    mutationFn: cancelExecution,
   }),
   createChatMutation: () => ({ mutationFn: createChat }),
   chatListInfiniteOptions: (wakerId: string) => ({
@@ -582,6 +584,7 @@ beforeEach(() => {
   deleteChatWorkspaceFile.mockClear();
   createChat.mockClear();
   sendMessage.mockClear();
+  cancelExecution.mockClear();
   resolveApproval.mockClear();
   resolveApproval.mockResolvedValue(undefined);
 });
@@ -3014,6 +3017,43 @@ describe("ChatPage", () => {
     expect(
       document.querySelector("[data-chat-context]"),
     ).not.toBeInTheDocument();
+  });
+
+  it("停止按钮提交当前执行的稳定路径身份", async () => {
+    chatActiveExecutionID.current = "execution-to-stop";
+    const user = userEvent.setup();
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ChatQueueProvider>
+          <TooltipProvider delayDuration={0}>
+            <MemoryRouter initialEntries={["/chats/chat-1?wakerId=waker-1"]}>
+              <Routes>
+                <Route element={<ChatLayout />}>
+                  <Route path="/chats/:chatId" element={<ChatPage />} />
+                </Route>
+              </Routes>
+            </MemoryRouter>
+          </TooltipProvider>
+        </ChatQueueProvider>
+      </QueryClientProvider>,
+    );
+
+    expect(
+      await screen.findByText("直接进入也应显示的历史消息"),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "停止执行" }));
+    await waitFor(() =>
+      expect(cancelExecution).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { chatId: "chat-1", executionId: "execution-to-stop" },
+        }),
+        expect.anything(),
+      ),
+    );
   });
 
   it("从对话任务页直接进入会话即可显示历史", async () => {

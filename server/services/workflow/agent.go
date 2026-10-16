@@ -422,6 +422,9 @@ func (s *Service) deliverAgentRun(ctx context.Context, scope workflowtool.Scope,
 		if !found {
 			file, name, err := s.OpenOutputFile(ctx, run.DefinitionID, run.ID, item.ID)
 			if err != nil {
+				if !errors.Is(err, status_error.WorkflowFileNotFound) && !errors.Is(err, status_error.WorkflowFileInvalid) && !errors.Is(err, status_error.WorkflowBudgetExceeded) {
+					return err
+				}
 				item.Available = false
 				continue
 			}

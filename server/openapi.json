@@ -5495,83 +5495,6 @@
         }
       }
     },
-    "/api/v1/chats/{chatId}/cancel": {
-      "post": {
-        "tags": [
-          "github.com/JieWaZi/NeuxAlly/server/apis/chats"
-        ],
-        "summary": "取消执行",
-        "operationId": "CancelChatExecution",
-        "parameters": [
-          {
-            "name": "chatId",
-            "in": "path",
-            "description": "对话标识",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "description": "对话标识",
-              "x-go-field-name": "ChatID",
-              "x-tag-in": "path",
-              "x-tag-name": "chatId",
-              "x-tag-validate": "required"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GithubComShrewxGinxCommonResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": ">\n* `[WorkflowNotFound][40400003001]`\n",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
-                }
-              }
-            },
-            "x-status-errors": [
-              "[WorkflowNotFound][40400003001]"
-            ]
-          },
-          "409": {
-            "description": ">\n* `[WorkflowFenceConflict][40900003004]`\n* `[WorkflowStateConflict][40900003003]`\n",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
-                }
-              }
-            },
-            "x-status-errors": [
-              "[WorkflowFenceConflict][40900003004]",
-              "[WorkflowStateConflict][40900003003]"
-            ]
-          },
-          "500": {
-            "description": ">\n* `[WorkflowStateInvalid][50000003004]`\n",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
-                }
-              }
-            },
-            "x-status-errors": [
-              "[WorkflowStateInvalid][50000003004]"
-            ]
-          }
-        }
-      }
-    },
     "/api/v1/chats/{chatId}/elicitations/{elicitationId}": {
       "put": {
         "tags": [
@@ -5700,6 +5623,97 @@
             },
             "x-status-errors": [
               "[ChatLogError][50000000004]"
+            ]
+          }
+        }
+      }
+    },
+    "/api/v1/chats/{chatId}/executions/{executionId}/cancel": {
+      "post": {
+        "tags": [
+          "github.com/JieWaZi/NeuxAlly/server/apis/chats"
+        ],
+        "summary": "取消执行",
+        "operationId": "CancelChatExecution",
+        "parameters": [
+          {
+            "name": "chatId",
+            "in": "path",
+            "description": "对话标识",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "对话标识",
+              "x-go-field-name": "ChatID",
+              "x-tag-in": "path",
+              "x-tag-name": "chatId",
+              "x-tag-validate": "required,max=32"
+            }
+          },
+          {
+            "name": "executionId",
+            "in": "path",
+            "description": "执行标识",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "执行标识",
+              "x-go-field-name": "ExecutionID",
+              "x-tag-in": "path",
+              "x-tag-name": "executionId",
+              "x-tag-validate": "required,max=32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComShrewxGinxCommonResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": ">\n* `[WorkflowNotFound][40400003001]`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
+                }
+              }
+            },
+            "x-status-errors": [
+              "[WorkflowNotFound][40400003001]"
+            ]
+          },
+          "409": {
+            "description": ">\n* `[WorkflowFenceConflict][40900003004]`\n* `[WorkflowStateConflict][40900003003]`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
+                }
+              }
+            },
+            "x-status-errors": [
+              "[WorkflowFenceConflict][40900003004]",
+              "[WorkflowStateConflict][40900003003]"
+            ]
+          },
+          "500": {
+            "description": ">\n* `[WorkflowStateInvalid][50000003004]`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
+                }
+              }
+            },
+            "x-status-errors": [
+              "[WorkflowStateInvalid][50000003004]"
             ]
           }
         }

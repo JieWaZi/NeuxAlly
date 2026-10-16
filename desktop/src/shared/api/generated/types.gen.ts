@@ -11297,48 +11297,6 @@ export type ResolveApprovalResponses = {
 
 export type ResolveApprovalResponse = ResolveApprovalResponses[keyof ResolveApprovalResponses];
 
-export type CancelChatExecutionData = {
-    body?: never;
-    path: {
-        /**
-         * 对话标识
-         */
-        chatId: string;
-    };
-    query?: never;
-    url: '/api/v1/chats/{chatId}/cancel';
-};
-
-export type CancelChatExecutionErrors = {
-    /**
-     * >
-     * * `[WorkflowNotFound][40400003001]`
-     *
-     */
-    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
-    /**
-     * >
-     * * `[WorkflowFenceConflict][40900003004]`
-     * * `[WorkflowStateConflict][40900003003]`
-     *
-     */
-    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
-    /**
-     * >
-     * * `[WorkflowStateInvalid][50000003004]`
-     *
-     */
-    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
-};
-
-export type CancelChatExecutionError = CancelChatExecutionErrors[keyof CancelChatExecutionErrors];
-
-export type CancelChatExecutionResponses = {
-    200: GithubComShrewxGinxCommonResponse;
-};
-
-export type CancelChatExecutionResponse = CancelChatExecutionResponses[keyof CancelChatExecutionResponses];
-
 export type ResolveElicitationData = {
     body: GithubComJieWaZiNeuxAllyServerApisChatsResolveElicitationRequest & unknown;
     path: {
@@ -11394,6 +11352,52 @@ export type ListChatEventsResponses = {
 };
 
 export type ListChatEventsResponse = ListChatEventsResponses[keyof ListChatEventsResponses];
+
+export type CancelChatExecutionData = {
+    body?: never;
+    path: {
+        /**
+         * 对话标识
+         */
+        chatId: string;
+        /**
+         * 执行标识
+         */
+        executionId: string;
+    };
+    query?: never;
+    url: '/api/v1/chats/{chatId}/executions/{executionId}/cancel';
+};
+
+export type CancelChatExecutionErrors = {
+    /**
+     * >
+     * * `[WorkflowNotFound][40400003001]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[WorkflowFenceConflict][40900003004]`
+     * * `[WorkflowStateConflict][40900003003]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[WorkflowStateInvalid][50000003004]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type CancelChatExecutionError = CancelChatExecutionErrors[keyof CancelChatExecutionErrors];
+
+export type CancelChatExecutionResponses = {
+    200: GithubComShrewxGinxCommonResponse;
+};
+
+export type CancelChatExecutionResponse = CancelChatExecutionResponses[keyof CancelChatExecutionResponses];
 
 export type RetryChatExecutionData = {
     body?: never;

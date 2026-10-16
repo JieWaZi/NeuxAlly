@@ -353,11 +353,6 @@ export const resolveApproval = <ThrowOnError extends boolean = false>(options: O
 });
 
 /**
- * 取消执行
- */
-export const cancelChatExecution = <ThrowOnError extends boolean = false>(options: Options<CancelChatExecutionData, ThrowOnError>): RequestResult<CancelChatExecutionResponses, CancelChatExecutionErrors, ThrowOnError> => (options.client ?? client).post<CancelChatExecutionResponses, CancelChatExecutionErrors, ThrowOnError>({ url: '/api/v1/chats/{chatId}/cancel', ...options });
-
-/**
  * 处理结构化输入
  */
 export const resolveElicitation = <ThrowOnError extends boolean = false>(options: Options<ResolveElicitationData, ThrowOnError>): RequestResult<ResolveElicitationResponses, unknown, ThrowOnError> => (options.client ?? client).put<ResolveElicitationResponses, unknown, ThrowOnError>({
@@ -373,6 +368,11 @@ export const resolveElicitation = <ThrowOnError extends boolean = false>(options
  * 事件列表
  */
 export const listChatEvents = <ThrowOnError extends boolean = false>(options: Options<ListChatEventsData, ThrowOnError>): RequestResult<ListChatEventsResponses, ListChatEventsErrors, ThrowOnError> => (options.client ?? client).get<ListChatEventsResponses, ListChatEventsErrors, ThrowOnError>({ url: '/api/v1/chats/{chatId}/events/history', ...options });
+
+/**
+ * 取消执行
+ */
+export const cancelChatExecution = <ThrowOnError extends boolean = false>(options: Options<CancelChatExecutionData, ThrowOnError>): RequestResult<CancelChatExecutionResponses, CancelChatExecutionErrors, ThrowOnError> => (options.client ?? client).post<CancelChatExecutionResponses, CancelChatExecutionErrors, ThrowOnError>({ url: '/api/v1/chats/{chatId}/executions/{executionId}/cancel', ...options });
 
 /**
  * 重试失败回复

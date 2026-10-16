@@ -756,15 +756,16 @@ export function TeamChatPageContent({
         };
       });
     },
-    cancel: async () => {
+    cancel: async (executionId) => {
       const invocation = chatInvocationGuard.capture(
         activeChatId,
         runtimeQueueKey,
       );
       if (!chatInvocationGuard.isCurrent(invocation)) return;
       if (activeMemberTab?.chatId && invocation.chatId) {
+        if (!executionId) return;
         await cancelMemberExecution.mutateAsync({
-          path: { chatId: invocation.chatId },
+          path: { chatId: invocation.chatId, executionId },
         });
         return;
       }

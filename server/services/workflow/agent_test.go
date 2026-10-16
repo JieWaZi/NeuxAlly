@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
@@ -240,6 +241,22 @@ func TestAgentConcurrentCurrentRevisionAdmissionReplaysWinner(t *testing.T) {
 	}
 }
 
+// deliveryReadFailure 在交付安全打开前的真实运行仓储读取处注入故障。
+type deliveryReadFailure struct {
+	// WorkflowRunController 保留真实 SQLite 读取。
+	controllers.WorkflowRunController
+	// reads 记录当前请求到达的读取次数。
+	reads int
+}
+
+func (r *deliveryReadFailure) GetRun(ctx context.Context, id string) (models.WorkflowRun, error) {
+	r.reads++
+	if r.reads == 3 {
+		return models.WorkflowRun{}, status_error.DatabaseError
+	}
+	return r.WorkflowRunController.GetRun(ctx, id)
+}
+
 // 显式交付固化真实字节，重复回执不重跑，其他运行同名文件各有独立身份。
 func TestAgentDeliversDeclaredFilesToAssistantMessage(t *testing.T) {
 	ctx := context.Background()
@@ -281,6 +298,15 @@ func TestAgentDeliversDeclaredFilesToAssistantMessage(t *testing.T) {
 		runTicks(t, s, run.ID, 6)
 		lastRequest = requestID
 		request := agentcapability.Request{Operation: "workflow.runs.deliver", RequestID: requestID, Params: map[string]any{"runId": run.ID}}
+		if requestID == "second" {
+			original := s.runs
+			fault := &deliveryReadFailure{WorkflowRunController: original}
+			s.runs = fault
+			if _, err := deliver.Call(ctx, request); !errors.Is(err, status_error.DatabaseError) {
+				t.Fatalf("真实读取故障被成功空回执吞掉: reads=%d err=%v", fault.reads, err)
+			}
+			s.runs = original
+		}
 		if requestID == "first" {
 			original := s.commands
 			s.commands = deliveryReceiptFailure{Store: original}

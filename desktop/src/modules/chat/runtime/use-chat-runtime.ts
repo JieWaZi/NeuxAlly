@@ -108,7 +108,7 @@ type ChatRuntimeOptions = {
     attachmentPaths?: string[],
     selection?: ChatSendSelection,
   ) => Promise<MessageResult>;
-  cancel: () => Promise<void>;
+  cancel: (executionId?: string) => Promise<void>;
   onSettled?: (
     result: MessageResult,
     invocation: ChatInvocation & { current: boolean },
@@ -208,7 +208,7 @@ function isActiveLocalMessage(message: AllyChatMessage) {
 
 export function useChatRuntime(options: ChatRuntimeOptions): ChatRuntimeResult {
   const queueKey = options.queueKey;
-  const cancel = options.cancel;
+  const cancelExecution = options.cancel;
   const send = options.send;
   const onStarted = options.onStarted;
   const onSettled = options.onSettled;
@@ -421,6 +421,17 @@ export function useChatRuntime(options: ChatRuntimeOptions): ChatRuntimeResult {
         terminalExecution.executionId === options.activeExecutionId
       )) ||
     (localExecutionID && !localExecutionIsTerminal),
+  );
+  // 捕获本次停止的执行身份，异步重试不能重新读取下一轮。
+  const cancellationExecutionID =
+    (localExecutionID && !localExecutionIsTerminal
+      ? localExecutionID
+      : undefined) ??
+    options.activeExecutionId ??
+    messages.find(isActiveLocalMessage)?.executionId;
+  const cancel = useCallback(
+    () => cancelExecution(cancellationExecutionID),
+    [cancelExecution, cancellationExecutionID],
   );
   useEffect(() => () => clearErrorNoticeActions(queueKey), [queueKey]);
 
@@ -1231,7 +1242,7 @@ export function useChatRuntime(options: ChatRuntimeOptions): ChatRuntimeResult {
     suggestions: options.suggestions,
     queue,
     onNew,
-    onCancel: options.cancel,
+    onCancel: cancel,
     adapters: { attachments: chatAttachmentAdapter },
     unstable_capabilities: { copy: true },
   });

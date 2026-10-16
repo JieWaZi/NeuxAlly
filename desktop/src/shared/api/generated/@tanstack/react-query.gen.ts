@@ -906,23 +906,6 @@ export const resolveApprovalMutation = (options?: Partial<Options<ResolveApprova
 };
 
 /**
- * 取消执行
- */
-export const cancelChatExecutionMutation = (options?: Partial<Options<CancelChatExecutionData>>): UseMutationOptions<CancelChatExecutionResponse, CancelChatExecutionError, Options<CancelChatExecutionData>> => {
-    const mutationOptions: UseMutationOptions<CancelChatExecutionResponse, CancelChatExecutionError, Options<CancelChatExecutionData>> = {
-        mutationFn: async (fnOptions) => {
-            const { data } = await cancelChatExecution({
-                ...options,
-                ...fnOptions,
-                throwOnError: true
-            });
-            return data;
-        }
-    };
-    return mutationOptions;
-};
-
-/**
  * 处理结构化输入
  */
 export const resolveElicitationMutation = (options?: Partial<Options<ResolveElicitationData>>): UseMutationOptions<ResolveElicitationResponse, DefaultError, Options<ResolveElicitationData>> => {
@@ -985,6 +968,23 @@ export const listChatEventsInfiniteOptions = (options: Options<ListChatEventsDat
         queryKey: listChatEventsInfiniteQueryKey(options)
     });
     return opts as Omit<typeof opts, 'initialData'>;
+};
+
+/**
+ * 取消执行
+ */
+export const cancelChatExecutionMutation = (options?: Partial<Options<CancelChatExecutionData>>): UseMutationOptions<CancelChatExecutionResponse, CancelChatExecutionError, Options<CancelChatExecutionData>> => {
+    const mutationOptions: UseMutationOptions<CancelChatExecutionResponse, CancelChatExecutionError, Options<CancelChatExecutionData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await cancelChatExecution({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
 };
 
 /**

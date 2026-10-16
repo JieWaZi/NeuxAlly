@@ -1,6 +1,16 @@
+import { cancelChatExecutionMutation as generatedCancelChatExecutionMutation } from "@/shared/api/generated/@tanstack/react-query.gen";
+import {
+  withLocalErrorMutation,
+  localApiErrorMessage,
+} from "@/shared/api/local-error-surface";
+import {
+  captureErrorNoticeRecovery,
+  resolveErrorNoticeRecovery,
+  reportErrorNotice,
+} from "@/shared/api/error-notices";
+import { i18n } from "@/shared/i18n";
 export { listRuntimesOptions } from "@/shared/api/runtime-queries";
 export {
-  cancelChatExecutionMutation,
   createChatMutation,
   deleteChatMutation,
   getChatOptions,
@@ -143,4 +153,46 @@ export function evictDeletedChatsFromCache(
       };
     },
   );
+}
+
+/** 停止失败保留同一 Chat/Execution 的请求参数，用户重试只补偿原执行。 */
+export function cancelChatExecutionMutation() {
+  const base = withLocalErrorMutation(generatedCancelChatExecutionMutation());
+  const call = base.mutationFn;
+  const mutation: ReturnType<typeof generatedCancelChatExecutionMutation> = {
+    ...base,
+    mutationFn: async function stop(variables, context) {
+      if (!call) throw new Error("Missing cancellation mutation");
+      const { chatId, executionId } = variables.path;
+      const operation = `stop:${chatId}:${executionId}`;
+      const recovery = captureErrorNoticeRecovery(operation);
+      try {
+        const result = await call(variables, context);
+        resolveErrorNoticeRecovery(recovery);
+        return result;
+      } catch (error) {
+        reportErrorNotice(
+          {
+            id: operation,
+            operation,
+            scope: `chat:${chatId}`,
+            message: localApiErrorMessage(
+              error,
+              i18n.t("stopFailed", { ns: "chat" }),
+            ),
+            action: "retry",
+          },
+          async () => {
+            try {
+              await stop(variables, context);
+            } catch {
+              /* 原停止重试失败已更新同一提示，保留再次重试入口。 */
+            }
+          },
+        );
+        throw error;
+      }
+    },
+  };
+  return mutation;
 }
