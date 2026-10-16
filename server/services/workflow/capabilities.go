@@ -301,7 +301,10 @@ func (s *Service) BindConsumer(ctx context.Context, intent execution.WorkIntent,
 	slices.Sort(ids)
 	// 尚未由 Core 补齐的可选枚举不能直接 MarshalText；摘要显式编码入口的原始选择。
 	options := intent.Options
-	fingerprint, err := requestidempotency.New(intent.ExecutionID, []any{chatID, intent.ClientRequestID, intent.Chat.Create, intent.Input, options.RuntimeID, options.AccountID, options.Model, options.Reasoning, string(options.PermissionLevel), options.WorkspaceReadOnly, string(options.SessionPolicy), options.HistoryTurns, string(options.HistoryMode), options.SummaryModel, options.SummaryReasoning, ids})
+	// 工作流选择由独立 definitionIDs 参数确定，入口携带的展示快照会被真实定义替换。
+	identityInput := intent.Input
+	identityInput.Workflows = nil
+	fingerprint, err := requestidempotency.New(intent.ExecutionID, []any{chatID, intent.ClientRequestID, intent.Chat.Create, identityInput, options.RuntimeID, options.AccountID, options.Model, options.Reasoning, string(options.PermissionLevel), options.WorkspaceReadOnly, string(options.SessionPolicy), options.HistoryTurns, string(options.HistoryMode), options.SummaryModel, options.SummaryReasoning, ids})
 	if err != nil {
 		return intent, err
 	}

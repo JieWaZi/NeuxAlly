@@ -234,3 +234,35 @@ func TestConsumerBindsOneWorkflowReferenceAndInstructions(t *testing.T) {
 		}
 	})
 }
+
+// 本测试验证重新绑定读取真实改名快照，但受信展示快照不能改变原调用授权身份。
+func TestConsumerRenamePreservesBindingIdentity(t *testing.T) {
+	ctx := context.Background()
+	s, _ := workflowTestService(t)
+	definition := savedTestWorkflow(t, s, workflowTestSource(t))
+	s.executions = consumerExecutionBoundary{}
+	s.chats = &consumerChatBoundary{}
+	s.state.AgentBindings = s.AgentBindings
+	intent := execution.WorkIntent{ClientRequestID: "rename-binding", Chat: execution.ChatTarget{Create: &execution.CreateChatSpec{WakerID: "fixture", WorkingDirectory: t.TempDir()}}, Input: execution.WorkInput{Content: "评审改动"}, Options: execution.WorkOptions{RuntimeID: "runtime", PermissionLevel: constants.PermissionLevelDefault}}
+	first, err := s.BindConsumer(ctx, intent, []string{definition.ID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	definition, err = s.store.GetDefinition(ctx, definition.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	definition.Title = "新的评审名称"
+	if err := s.store.UpdateHead(ctx, definition, definition.CurrentRevisionID); err != nil {
+		t.Fatal(err)
+	}
+	// 既有受信入口可能带上旧展示快照；它会被真实定义替换，不属于本次请求选择。
+	intent.Input.Workflows = first.Input.Workflows
+	again, err := s.BindConsumer(ctx, intent, []string{definition.ID})
+	if err != nil || again.ExecutionID != first.ExecutionID || len(again.Input.Workflows) != 1 || again.Input.Workflows[0].Name != "新的评审名称" {
+		t.Fatalf("改名快照改变了稳定绑定身份: %+v %v", again.Input.Workflows, err)
+	}
+	if first.Input.Workflows[0].Name == "新的评审名称" {
+		t.Fatal("重新绑定修改了旧快照")
+	}
+}

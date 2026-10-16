@@ -236,7 +236,14 @@ func (m *service) startMessage(
 	}
 	isNew := request.chatID == ""
 	if !isNew && request.submissionID != "" {
-		identity, err := requestidempotency.New(request.submissionID, []any{request.chatID, request.message, request.runtime, request.parentExecutionID, request.admission, stableToolCapabilities(request.toolCapabilities), request.supplementalInstructions, request.allowedConnectorIDs, request.allowedAgentDomains})
+		// 展示名称允许随定义更新，续发身份只冻结用户选择的稳定工作流标识。
+		messageIdentity := request.message
+		messageIdentity.Workflows = nil
+		content := []any{request.chatID, messageIdentity, request.runtime, request.parentExecutionID, request.admission, stableToolCapabilities(request.toolCapabilities), request.supplementalInstructions, request.allowedConnectorIDs, request.allowedAgentDomains}
+		if len(request.message.Workflows) > 0 {
+			content = append(content, workflowSelectionIDs(request.message.Workflows))
+		}
+		identity, err := requestidempotency.New(request.submissionID, content)
 		if err != nil {
 			return AcceptedExecution{}, err
 		}
@@ -603,6 +610,18 @@ func (m *service) startMessage(
 	}
 }
 
+// workflowSelectionIDs 排除可变展示名称，首次接纳的完整快照仍由消息事实保存。
+func workflowSelectionIDs(references []eventlog.MessageWorkflowReference) []string {
+	if len(references) == 0 {
+		return nil
+	}
+	ids := make([]string, len(references))
+	for index, reference := range references {
+		ids[index] = reference.ID
+	}
+	return ids
+}
+
 // createRequestContent 返回普通 Chat 首发幂等摘要覆盖的全部规范化业务输入。
 func createRequestContent(request pendingMessage) []interface{} {
 	content := []interface{}{
@@ -617,7 +636,7 @@ func createRequestContent(request pendingMessage) []interface{} {
 		request.message.SkillIDs,
 		request.message.ConnectorIDs,
 		request.message.CodeReferences,
-		request.message.Workflows,
+		workflowSelectionIDs(request.message.Workflows),
 		request.runtime.ConfigurationResolved,
 		request.runtime.AccountID,
 		request.runtime.RuntimeID,
