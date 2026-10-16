@@ -40,6 +40,8 @@ type userMessage struct {
 	ConnectorIDs []string
 	// CodeReferences 是用户从工作范围内选择的有序整文件或代码片段引用。
 	CodeReferences []CodeReferenceInput
+	// Workflows 是本轮受信入口冻结的工作流选择。
+	Workflows []eventlog.MessageWorkflowReference
 }
 
 // CodeReferenceInput 是跨入口共享的待校验内容引用。
@@ -145,6 +147,7 @@ func normalizePendingMessage(input pendingMessage) pendingMessage {
 		[]runtimes.Instruction(nil),
 		input.supplementalInstructions...,
 	)
+	input.message.Workflows = append([]eventlog.MessageWorkflowReference(nil), input.message.Workflows...)
 	input.message.SkillIDs = append([]string(nil), input.message.SkillIDs...)
 	input.message.ConnectorIDs = append([]string(nil), input.message.ConnectorIDs...)
 	input.message.CodeReferences = append([]CodeReferenceInput(nil), input.message.CodeReferences...)
@@ -233,7 +236,14 @@ func (m *service) startMessage(
 	}
 	isNew := request.chatID == ""
 	if !isNew && request.submissionID != "" {
-		identity, err := requestidempotency.New(request.submissionID, []any{request.chatID, request.message, request.runtime, request.parentExecutionID, request.admission, stableToolCapabilities(request.toolCapabilities), request.supplementalInstructions, request.allowedConnectorIDs, request.allowedAgentDomains})
+		// 展示名称允许随定义更新，续发身份只冻结用户选择的稳定工作流标识。
+		messageIdentity := request.message
+		messageIdentity.Workflows = nil
+		content := []any{request.chatID, messageIdentity, request.runtime, request.parentExecutionID, request.admission, stableToolCapabilities(request.toolCapabilities), request.supplementalInstructions, request.allowedConnectorIDs, request.allowedAgentDomains}
+		if len(request.message.Workflows) > 0 {
+			content = append(content, workflowSelectionIDs(request.message.Workflows))
+		}
+		identity, err := requestidempotency.New(request.submissionID, content)
 		if err != nil {
 			return AcceptedExecution{}, err
 		}
@@ -600,6 +610,18 @@ func (m *service) startMessage(
 	}
 }
 
+// workflowSelectionIDs 排除可变展示名称，首次接纳的完整快照仍由消息事实保存。
+func workflowSelectionIDs(references []eventlog.MessageWorkflowReference) []string {
+	if len(references) == 0 {
+		return nil
+	}
+	ids := make([]string, len(references))
+	for index, reference := range references {
+		ids[index] = reference.ID
+	}
+	return ids
+}
+
 // createRequestContent 返回普通 Chat 首发幂等摘要覆盖的全部规范化业务输入。
 func createRequestContent(request pendingMessage) []interface{} {
 	content := []interface{}{
@@ -614,6 +636,7 @@ func createRequestContent(request pendingMessage) []interface{} {
 		request.message.SkillIDs,
 		request.message.ConnectorIDs,
 		request.message.CodeReferences,
+		workflowSelectionIDs(request.message.Workflows),
 		request.runtime.ConfigurationResolved,
 		request.runtime.AccountID,
 		request.runtime.RuntimeID,
@@ -1325,6 +1348,7 @@ func startedMessageEvents(
 				Attachments:    attachments,
 				Skills:         skills,
 				Connectors:     connectors,
+				Workflows:      append([]eventlog.MessageWorkflowReference(nil), request.message.Workflows...),
 				CodeReferences: codeReferences,
 			}),
 		},

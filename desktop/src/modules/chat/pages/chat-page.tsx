@@ -1,3 +1,4 @@
+import type { ChatWorkflowOption } from "../components/chat-workflow-reference";
 import { useExecutionSelection } from "@/shared/hooks/use-execution-selection";
 import type { ExecutionSelection } from "@/shared/hooks/use-execution-selection";
 import { useChatFork } from "../components/chat-fork";
@@ -25,7 +26,10 @@ import type {
 } from "@/shared/api/generated/types.gen";
 import type { ChatWorkspaceMainContent } from "../components/chat-workspace-surface";
 import { useWorkbench } from "../workbench/workbench-store";
-import type { ChatSendSelection } from "../runtime/chat-queue-store";
+import type {
+  ChatSendSelection,
+  ChatComposerRecovery,
+} from "../runtime/chat-queue-store";
 import { useTranslation } from "react-i18next";
 import {
   useLocation,
@@ -50,7 +54,10 @@ import {
   resolveElicitationMutation,
   sendMessageMutation,
 } from "../api/chat-queries";
-import { listAiAccountsOptions } from "@/shared/api/generated/@tanstack/react-query.gen";
+import {
+  listAiAccountsOptions,
+  listWorkflowsOptions,
+} from "@/shared/api/generated/@tanstack/react-query.gen";
 import { ChatHistoryLoadingState } from "../components/chat-history-loading-state";
 import {
   ChatWorkspaceSurface,
@@ -168,6 +175,41 @@ export function ChatPageContent({
   >({});
   const [selectedConnectorIDsByWaker, setSelectedConnectorIDsByWaker] =
     useState<Record<string, string[]>>({});
+  const [selectedWorkflow, setSelectedWorkflow] = useState<{
+    id: string;
+    name: string;
+  }>();
+  const workflowOptions = useRef(new Map<string, ChatWorkflowOption>());
+  const searchWorkflows = async (search: string) => {
+    const options: ChatWorkflowOption[] = [];
+    let before: number | undefined;
+    let beforeId: string | undefined;
+    do {
+      const page = await queryClient.fetchQuery(
+        listWorkflowsOptions({
+          query: { search, limit: 50, before, beforeId },
+        }),
+      );
+      for (const flow of page.items ?? []) {
+        if (!flow.id || !flow.currentRevisionId) continue;
+        const option = {
+          id: flow.id,
+          name: flow.title || t("workflows"),
+          description: flow.description || flow.whenToUse || "",
+        };
+        options.push(option);
+        workflowOptions.current.set(flow.id, option);
+      }
+      before = page.nextBefore;
+      beforeId = page.nextBeforeId;
+    } while (before && beforeId);
+    return options;
+  };
+  const selectWorkflow = (id?: string) => {
+    setSelectedWorkflow(id ? workflowOptions.current.get(id) : undefined);
+  };
+  const [composerRestoreDraft, setComposerRestoreDraft] =
+    useState<ChatComposerRecovery>();
   const [composerRestoreRevision, setComposerRestoreRevision] = useState(0);
   const [sessionSwitch, setSessionSwitch] = useState<{
     chatId: string;
@@ -221,6 +263,7 @@ export function ChatPageContent({
         : workspaceScopeKey,
   );
   const resetComposerScope = useCallback(() => {
+    setSelectedWorkflow(undefined);
     setSelectedSkillIDsByWaker({});
     setSelectedConnectorIDsByWaker({});
   }, []);
@@ -690,6 +733,8 @@ export function ChatPageContent({
       permissionLevel: selectedPermissionLevel,
       skillIds: selectedSkillIDs,
       selectedSkills,
+      workflowIds: !entry && selectedWorkflow ? [selectedWorkflow.id] : [],
+      selectedWorkflows: !entry && selectedWorkflow ? [selectedWorkflow] : [],
       connectorIds: selectedConnectorIDs,
       selectedConnectors,
       codeReferences: selectedCodeReferences,
@@ -698,6 +743,8 @@ export function ChatPageContent({
       clearComposer();
     },
     onMessageRejected: (selection) => {
+      setComposerRestoreDraft(selection.composerRecovery);
+      if (!entry) setSelectedWorkflow(selection.selectedWorkflows?.[0]);
       setComposerRestoreRevision((revision) => revision + 1);
       if (!selectedWakerID) return;
       setSelectedSkillIDsByWaker((current) => ({
@@ -732,7 +779,7 @@ export function ChatPageContent({
         attachments: attachmentPaths.map((sourcePath) => ({ sourcePath })),
         skillIds: selection?.skillIds ?? [],
         connectorIds: selection?.connectorIds ?? [],
-        ...(selection?.workflowIds?.length
+        ...(!entry && selection?.workflowIds?.length
           ? { workflowIds: selection.workflowIds }
           : {}),
         codeReferences: (selection?.codeReferences ?? []).flatMap(
@@ -787,14 +834,20 @@ export function ChatPageContent({
         return result;
       });
     },
-    cancel: async () => {
+    cancel: async (executionId) => {
       const invocation = chatInvocationGuard.capture(
         activeChatId,
         runtimeQueueKey,
       );
-      if (!invocation.chatId || !chatInvocationGuard.isCurrent(invocation))
+      if (
+        !executionId ||
+        !invocation.chatId ||
+        !chatInvocationGuard.isCurrent(invocation)
+      )
         return;
-      await cancel.mutateAsync({ path: { chatId: invocation.chatId } });
+      await cancel.mutateAsync({
+        path: { chatId: invocation.chatId, executionId },
+      });
     },
     onSettled: (result, invocation) => {
       refreshChat(
@@ -1148,6 +1201,10 @@ export function ChatPageContent({
       composerEffects,
       composerDraft: entry?.draft,
       renderComposerContextStrip,
+      composerWorkflows: entry ? undefined : [],
+      selectedWorkflowId: entry ? undefined : selectedWorkflow?.id,
+      onWorkflowSelectionChange: entry ? undefined : selectWorkflow,
+      searchWorkflows: entry ? undefined : searchWorkflows,
       composerSkills: enabledSkills,
       composerSkillsError: skillsQuery.isError,
       composerConnectors: enabledConnectors,
@@ -1164,6 +1221,7 @@ export function ChatPageContent({
       composerClearRevision,
       companionScopeRevision,
       composerRestoreRevision,
+      composerRestoreDraft,
       terminalEnabled: Boolean(activeChatId && workspaceDirectory),
       linkWorkspaceRoot: workspaceDirectory,
       linkAdditionalWorkingDirectories,

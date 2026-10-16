@@ -7,11 +7,11 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { Square, WandSparkles } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { Link, useSearchParams } from "react-router-dom";
-import { subscribeWorkflow } from "@/shared/api/events";
+import { Link, useSearchParams, createSearchParams } from "react-router-dom";
+import { subscribeWorkflow, type StreamState } from "@/shared/api/events";
 import {
   localApiErrorMessage,
   withLocalErrorMutation,
@@ -43,18 +43,34 @@ export function WorkflowRunView({
   runId,
   actionsContainer,
   active: visible = true,
+  embedded = false,
 }: {
   id: string;
   runId: string;
   actionsContainer?: HTMLElement | null;
   active?: boolean;
+  embedded?: boolean;
 }) {
   const { t } = useTranslation("workflow");
   const { t: boardText } = useTranslation("workBoard");
   const client = useQueryClient();
   const sceneActive = useRouteSceneActive();
   const active = sceneActive && visible;
-  const [params, setParams] = useSearchParams();
+  const [routeParams, setRouteParams] = useSearchParams();
+  const [localParams, setLocalParams] = useState(() => new URLSearchParams());
+  const params = embedded ? localParams : routeParams;
+  const setParams = useCallback<typeof setRouteParams>(
+    (next, options) => {
+      if (embedded)
+        setLocalParams((previous) =>
+          createSearchParams(
+            typeof next === "function" ? next(previous) : next,
+          ),
+        );
+      else setRouteParams(next, options);
+    },
+    [embedded, setRouteParams],
+  );
   const offset = Number(params.get("offset") ?? 0);
   const selected = params.get("instance");
   const query = useQuery({
@@ -69,6 +85,7 @@ export function WorkflowRunView({
   });
   const [stopRunId, setStopRunId] = useState<string>();
   const [inputRunId, setInputRunId] = useState<string>();
+  const [stream, setStream] = useState<StreamState>("connecting");
   const stop = useMutation(withLocalErrorMutation(cancelWorkflowRunMutation()));
   useEffect(() => {
     if (!active || !id || !runId) return;
@@ -96,6 +113,7 @@ export function WorkflowRunView({
     };
     const close = subscribeWorkflow(id, {
       runId,
+      onState: setStream,
       onEvent: refresh,
       onGap: refresh,
       onReconnect: refresh,
@@ -107,7 +125,11 @@ export function WorkflowRunView({
     };
   }, [active, client, id, runId]);
   const switching = query.isPlaceholderData;
-  const run = switching ? undefined : query.data?.run;
+  const unavailable =
+    !switching &&
+    query.isSuccess &&
+    (!query.data.run || query.data.run.id !== runId);
+  const run = switching || unavailable ? undefined : query.data?.run;
   const runRoot = useRef<HTMLElement>(null);
   useNotificationPresentation({
     target:
@@ -118,8 +140,8 @@ export function WorkflowRunView({
     active,
   });
   const instances = useMemo(
-    () => (switching ? [] : (query.data?.instances ?? [])),
-    [query.data?.instances, switching],
+    () => (switching || unavailable ? [] : (query.data?.instances ?? [])),
+    [query.data?.instances, switching, unavailable],
   );
   const instance = instances.find((item) => item.id === selected);
   const instanceId = selected || instance?.id;
@@ -127,21 +149,21 @@ export function WorkflowRunView({
   const resultOpen = params.get("result") === "1";
   const waiting = useMemo(
     () =>
-      (switching
+      (switching || unavailable
         ? []
         : query.data?.humanRequests?.filter(
             (item) => item.status === "waiting",
           )) ?? [],
-    [query.data?.humanRequests, switching],
+    [query.data?.humanRequests, switching, unavailable],
   );
   const operations = useMemo(
     () =>
-      (switching
+      (switching || unavailable
         ? []
         : query.data?.operationRequests?.filter(
             (item) => item.status === "waiting",
           )) ?? [],
-    [query.data?.operationRequests, switching],
+    [query.data?.operationRequests, switching, unavailable],
   );
   const terminal = ["succeeded", "failed", "cancelled"].includes(
     run?.status ?? "",
@@ -234,7 +256,7 @@ export function WorkflowRunView({
   ]);
   const actions = (
     <div className="flex items-center gap-2">
-      {terminal && run?.status !== "succeeded" ? (
+      {!embedded && terminal && run?.status !== "succeeded" ? (
         <Button size="sm" variant="surface" asChild>
           <Link to={`/workflows/${id}?tab=canvas&optimizeRun=${runId}`}>
             <WandSparkles />
@@ -269,6 +291,19 @@ export function WorkflowRunView({
         ) : (
           <div className="absolute top-4 right-4 z-10">{actions}</div>
         )}
+        {embedded && (stream === "unavailable" || stream === "reconnecting") ? (
+          <p
+            role="status"
+            className="text-muted-foreground type-body px-5 py-3"
+          >
+            {t("runStateStale")}
+          </p>
+        ) : null}
+        {unavailable ? (
+          <p role="alert" className="text-destructive type-body p-5">
+            {t("callUnavailable")}
+          </p>
+        ) : null}
         {query.isError ? (
           <WorkflowQueryError
             error={query.error}
@@ -290,7 +325,7 @@ export function WorkflowRunView({
             </Button>
           </div>
         ) : null}
-        {query.data?.manifest ? (
+        {!unavailable && query.data?.manifest ? (
           <div
             className={cn(
               "flex min-h-0 min-w-0 flex-1",
@@ -431,7 +466,7 @@ export function WorkflowRunView({
           </div>
         ) : query.isPending ? (
           <WorkflowCanvasPlaceholder state="loading" active={active} />
-        ) : query.isSuccess ? (
+        ) : query.isSuccess && !unavailable ? (
           <EmptyState title={t("noExecutionNodes")} />
         ) : null}
         {switching ? (

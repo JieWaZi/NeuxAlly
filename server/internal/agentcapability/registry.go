@@ -38,6 +38,8 @@ type Request struct {
 
 // Result 是领域模块真实提交或观察后返回的最小回执。
 type Result struct {
+	// ExecutionID 是领域从原运行关联恢复的消息归属，外部协议不能提供。
+	ExecutionID string `json:"-"`
 	// CommandID 是领域持久回执身份；读取操作可以留空。
 	CommandID string `json:"commandId,omitempty"`
 	// Replayed 表示本次读取了相同请求的原接纳结果。
@@ -385,6 +387,12 @@ func (r *Registry) ServeHTTP(w http.ResponseWriter, request *http.Request) {
 		}
 		result.Replayed = true
 		op, _ := contract.Find(id)
+		if id == "workflow.runs.start" || id == "workflow.runs.deliver" {
+			if err := current.recordResult(ctx, op, result); err != nil {
+				writeRegistrationFailure(w, id, key, result)
+				return
+			}
+		}
 		writeSuccess(w, id, op.Completion, result)
 	case request.Method == http.MethodPost && path == "/commands":
 		var input Request
@@ -431,14 +439,9 @@ func (r *Registry) ServeHTTP(w http.ResponseWriter, request *http.Request) {
 		if result.CommandID == "" {
 			result.CommandID = util.New()
 		}
-		if current.record != nil {
-			current.recordMutex.Lock()
-			if !current.recorded[result.CommandID] {
-				if err := current.record(ctx, op, result); err == nil {
-					current.recorded[result.CommandID] = true
-				}
-			}
-			current.recordMutex.Unlock()
+		if err := current.recordResult(ctx, op, result); err != nil && (input.Operation == "workflow.runs.start" || input.Operation == "workflow.runs.deliver") {
+			writeRegistrationFailure(w, input.Operation, input.RequestID, result)
+			return
 		}
 		writeSuccess(w, input.Operation, op.Completion, result)
 	default:
@@ -476,4 +479,37 @@ func writeFailure(w http.ResponseWriter, operation string, err error) {
 	if encodeErr := json.NewEncoder(w).Encode(ErrorResponse(operation, err)); encodeErr != nil {
 		logx.Errorf("encode agent command failure failed: operation=%s error=%v", operation, encodeErr)
 	}
+}
+
+// writeRegistrationFailure 保留原回执身份，只在消息正式登记成功后返回领域附件。
+func writeRegistrationFailure(w http.ResponseWriter, operation, requestID string, result Result) {
+	details := map[string]any{"nextStep": map[string]any{"operation": operation, "requestId": requestID}}
+	if data, ok := result.Data.(map[string]any); ok {
+		if runID, ok := data["runId"].(string); ok {
+			details["runId"] = runID
+		}
+	}
+	response := ErrorResponse(operation, RejectWithDetails(status_error.AgentCommandOutcomeUnknown, "The domain result is committed, but message registration failed. Query the original receipt with the same operation and requestId in nextStep; do not start another run or use a new requestId. Attachments are not registered yet.", details))
+	response.CommandID, response.Replayed = result.CommandID, result.Replayed
+	w.WriteHeader(status_error.AgentCommandOutcomeUnknown.StatusCode())
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		logx.Errorf("encode agent registration failure failed: operation=%s error=%v", operation, err)
+	}
+}
+
+// recordResult 只在正式登记成功后去重，失败保留原领域回执供查询补写。
+func (current *lease) recordResult(ctx context.Context, op contract.Operation, result Result) error {
+	if current.record == nil {
+		return nil
+	}
+	current.recordMutex.Lock()
+	defer current.recordMutex.Unlock()
+	if current.recorded[result.CommandID] {
+		return nil
+	}
+	if err := current.record(ctx, op, result); err != nil {
+		return err
+	}
+	current.recorded[result.CommandID] = true
+	return nil
 }

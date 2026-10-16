@@ -20,7 +20,7 @@ type persistedRecord struct {
 	Type constants.ChatEventType `json:"type"`
 	// MessageID 只在稳定消息身份首次出现时写入。
 	MessageID string `json:"messageId,omitempty"`
-	// ExecutionID 只在执行作用域入口写入。
+	// ExecutionID 在执行入口或独立命令事实中明确保存归属。
 	ExecutionID string `json:"executionId,omitempty"`
 	// InvocationID 只在 Runtime Invocation 作用域发生变化时写入。
 	InvocationID string `json:"invocationId,omitempty"`
@@ -64,6 +64,12 @@ func encodeRecords(
 		if isMessageIdentityRecord(input.Type) {
 			persisted.MessageID = input.MessageID
 		}
+		if input.Type == constants.ChatEventTypeAgentCommandCommitted {
+			if input.ExecutionID == "" {
+				return nil, nil, initialScope, status_error.ChatLogRecordInvalid
+			}
+			persisted.ExecutionID = input.ExecutionID
+		}
 		if input.Type == constants.ChatEventTypeExecutionCreated {
 			if input.ExecutionID == "" {
 				return nil, nil, initialScope, status_error.ChatLogRecordInvalid
@@ -74,6 +80,7 @@ func encodeRecords(
 		}
 		if input.InvocationID != "" &&
 			input.Type != constants.ChatEventTypeExecutionCreated &&
+			input.Type != constants.ChatEventTypeAgentCommandCommitted &&
 			input.InvocationID != scope.invocationID {
 			persisted.InvocationID = input.InvocationID
 			scope.invocationID = input.InvocationID
@@ -88,6 +95,9 @@ func encodeRecords(
 			ExecutionID:   resolvedExecutionID(input, scope),
 			InvocationID:  resolvedInvocationID(input, scope),
 			Data:          append(json.RawMessage(nil), input.Data...),
+		}
+		if input.Type == constants.ChatEventTypeAgentCommandCommitted {
+			record.InvocationID = ""
 		}
 		encoded, err := json.Marshal(persisted)
 		if err != nil {
@@ -123,7 +133,7 @@ func decodeRecordPayload(
 	if persisted.Type == constants.ChatEventTypeUnspecified {
 		return Record{}, status_error.ChatLogCorrupted
 	}
-	if persisted.ExecutionID != "" {
+	if persisted.ExecutionID != "" && persisted.Type != constants.ChatEventTypeAgentCommandCommitted {
 		scope.executionID = persisted.ExecutionID
 		scope.invocationID = ""
 	}
@@ -132,7 +142,7 @@ func decodeRecordPayload(
 			return Record{}, status_error.ChatLogCorrupted
 		}
 	}
-	if persisted.InvocationID != "" {
+	if persisted.InvocationID != "" && persisted.Type != constants.ChatEventTypeAgentCommandCommitted {
 		scope.invocationID = persisted.InvocationID
 	}
 	record := Record{
@@ -145,6 +155,10 @@ func decodeRecordPayload(
 		ExecutionID:   scope.executionID,
 		InvocationID:  scope.invocationID,
 		Data:          append(json.RawMessage(nil), persisted.Data...),
+	}
+	if persisted.Type == constants.ChatEventTypeAgentCommandCommitted && persisted.ExecutionID != "" {
+		record.ExecutionID = persisted.ExecutionID
+		record.InvocationID = ""
 	}
 	if record.Type == constants.ChatEventTypeExecutionCreated || isExecutionMessageRecord(record.Type) {
 		record.MessageID = scope.executionID

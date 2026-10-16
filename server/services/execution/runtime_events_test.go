@@ -3,11 +3,15 @@ package execution
 import (
 	"context"
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/JieWaZi/NeuxAlly/server/constants"
+	"github.com/JieWaZi/NeuxAlly/server/constants/status_error"
 	"github.com/JieWaZi/NeuxAlly/server/internal/agentcapability"
 	"github.com/JieWaZi/NeuxAlly/server/internal/agentcapability/contract"
 	eventlog "github.com/JieWaZi/NeuxAlly/server/internal/chat/eventlog"
@@ -538,5 +542,277 @@ func TestCommandFactsKeepLiveAndDurableToolCaptionsEqual(t *testing.T) {
 	}
 	if len(messages) != 1 || !reflect.DeepEqual(messages[0].DisplayParts, lastLive.DisplayParts) {
 		t.Fatalf("live/durable diverged: live=%+v durable=%+v", lastLive, messages)
+	}
+}
+
+// 本测试捕获命令记录丢失可信 Core 回执或实时快照与日志重放不同步。
+func TestWorkflowCommandFactsKeepLiveAndDurableReferencesEqual(t *testing.T) {
+	store, err := eventlog.NewStore(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	chatID := "98989898989898989898989898989898"
+	if _, err := store.Create(chatID, activeChatInputs()); err != nil {
+		t.Fatal(err)
+	}
+	sink, live := newRuntimeEventSinkForTest(store, chatID)
+	sink.agentFacts = &agentCommandFacts{}
+	send := func(text string) {
+		t.Helper()
+		if err := sink.acceptInvocation(context.Background(), "invocation-1", runtimes.Event{Type: runtimes.EventTypeTextDelta, Data: marshalData(map[string]any{"text": text})}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	send("正在启动")
+	<-live
+	op, _ := contract.Find("workflow.runs.start")
+	result := agentcapability.Result{CommandID: "start-receipt", Data: map[string]any{"runId": "actual-run", "definitionId": "definition", "revisionId": "revision", "name": "代码评审"}}
+	if err := sink.agentFacts.record(context.Background(), sink.journal, chatID, "execution-1", op, result); err != nil {
+		t.Fatal(err)
+	}
+	send("等待结果")
+	snapshot := (<-live).Message
+	if err := sink.Flush(); err != nil {
+		t.Fatal(err)
+	}
+	records, err := store.ReadAll(chatID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	messages, err := messageview.ReplayMessages(records)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, message := range []*messageview.Message{snapshot, &messages[0]} {
+		encoded, _ := json.Marshal(message)
+		var public map[string]any
+		_ = json.Unmarshal(encoded, &public)
+		refs, _ := public["workflowRuns"].([]any)
+		if len(refs) != 1 || refs[0].(map[string]any)["runId"] != "actual-run" {
+			t.Fatalf("Core运行事实未进入实时/持久消息: %s", encoded)
+		}
+	}
+	if messages[0].Revision != snapshot.Revision {
+		t.Fatalf("实时和重放消息修订不一致: %d != %d", messages[0].Revision, snapshot.Revision)
+	}
+}
+
+// 新回合查询旧回执时，可信运行身份控制持久消息登记，当前执行不能替代原归属。
+func TestDeliveryCommandFactUsesOriginalExecution(t *testing.T) {
+	store, err := eventlog.NewStore(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	chatID := "73737373737373737373737373737373"
+	if _, err := store.Create(chatID, activeChatInputs()); err != nil {
+		t.Fatal(err)
+	}
+	sink, _ := newRuntimeEventSinkForTest(store, chatID)
+	if _, err := store.Append(chatID, []eventlog.AppendInput{{Type: constants.ChatEventTypeExecutionCompleted, ExecutionID: "execution-1", Data: marshalData(eventlog.ExecutionFinishedData{Status: constants.ExecutionStatusCompleted})}, {Type: constants.ChatEventTypeExecutionCreated, ExecutionID: "next", Data: marshalData(eventlog.ExecutionCreatedData{UserMessageID: "next-user"})}}); err != nil {
+		t.Fatal(err)
+	}
+	op, _ := contract.Find("workflow.runs.deliver")
+	facts := &agentCommandFacts{}
+	result := agentcapability.Result{CommandID: "delivery", ExecutionID: "execution-1", Data: map[string]any{"runId": "run", "definitionId": "definition", "revisionId": "revision", "name": "报告", "attachments": []eventlog.AttachmentReference{{Name: "report.txt", Path: "attachments/run/report.txt", Managed: true}}}}
+	if err := facts.record(context.Background(), sink.journal, chatID, "next", op, result); err != nil {
+		t.Fatal(err)
+	}
+	records, err := store.ReadAll(chatID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	messages, err := messageview.ReplayMessages(records)
+	if err != nil {
+		t.Fatal(err)
+	}
+	attached := 0
+	for _, message := range messages {
+		if len(message.Attachments) > 0 {
+			attached++
+			if message.ExecutionID != "execution-1" || len(message.WorkflowRuns) != 1 {
+				t.Fatalf("新回合覆盖原交付身份: %+v", message)
+			}
+		}
+	}
+	if attached != 1 {
+		t.Fatal("原消息没有交付")
+	}
+}
+
+// 旧 start、deliver 回执及补交付必须只更新原消息，后续新回合文本仍可实时输出。
+func TestOldWorkflowFactsDoNotInterruptCurrentExecution(t *testing.T) {
+	for _, scenario := range []struct {
+		// name 区分旧回执查询和旧运行首次补交付。
+		name string
+		// operation 是服务端登记的工作流操作。
+		operation string
+		// replayed 标识是否来自已存在的领域回执。
+		replayed bool
+	}{{"start-receipt", "workflow.runs.start", true}, {"deliver-receipt", "workflow.runs.deliver", true}, {"late-delivery", "workflow.runs.deliver", false}} {
+		operation := scenario.operation
+		t.Run(scenario.name, func(t *testing.T) {
+			store, err := eventlog.NewStore(t.TempDir())
+			if err != nil {
+				t.Fatal(err)
+			}
+			chatID := "74747474747474747474747474747474"
+			if _, err := store.Create(chatID, activeChatInputs()); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := store.Append(chatID, []eventlog.AppendInput{{Type: constants.ChatEventTypeExecutionCompleted, ExecutionID: "execution-1", Data: marshalData(eventlog.ExecutionFinishedData{Status: constants.ExecutionStatusCompleted})}, {Type: constants.ChatEventTypeExecutionCreated, ExecutionID: "next", Data: marshalData(eventlog.ExecutionCreatedData{UserMessageID: "next-user"})}}); err != nil {
+				t.Fatal(err)
+			}
+			sink, live := newRuntimeEventSinkForTest(store, chatID)
+			sink.executionID = "next"
+			sink.agentFacts = &agentCommandFacts{}
+			send := func(text string) {
+				t.Helper()
+				if err := sink.acceptInvocation(context.Background(), "new-invocation", runtimes.Event{Type: runtimes.EventTypeTextDelta, Data: marshalData(map[string]any{"text": text})}); err != nil {
+					t.Fatalf("current text interrupted: %v", err)
+				}
+			}
+			send("before")
+			<-live
+			op, _ := contract.Find(operation)
+			result := agentcapability.Result{CommandID: "old-receipt", Replayed: scenario.replayed, ExecutionID: "execution-1", Data: map[string]any{"runId": "old-run", "definitionId": "definition", "revisionId": "revision", "name": "原版本", "attachments": []eventlog.AttachmentReference{{Name: "report.txt", Path: "attachments/report.txt", Managed: true}}}}
+			if err := sink.agentFacts.record(context.Background(), sink.journal, chatID, "next", op, result); err != nil {
+				t.Fatal(err)
+			}
+			send("after")
+			snapshot := (<-live).Message
+			if snapshot.Content != "beforeafter" || len(snapshot.WorkflowRuns) != 0 || len(snapshot.Attachments) != 0 {
+				t.Fatalf("old fact leaked: %+v", snapshot)
+			}
+			if err := sink.Flush(); err != nil {
+				t.Fatal(err)
+			}
+			records, err := store.ReadAll(chatID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			messages, err := messageview.ReplayMessages(records)
+			if err != nil {
+				t.Fatal(err)
+			}
+			found := false
+			for _, message := range messages {
+				if message.ExecutionID == "execution-1" && len(message.WorkflowRuns) == 1 {
+					found = true
+					if operation == "workflow.runs.deliver" && len(message.Attachments) != 1 {
+						t.Fatal("old attachment lost")
+					}
+				}
+			}
+			if !found {
+				t.Fatal("original workflow reference lost")
+			}
+		})
+	}
+}
+
+// failedFactJournal 只注入日志写入故障，其余事实仍由真实日志读写。
+type failedFactJournal struct {
+	// Journal 复用原事件日志与实时发布端口。
+	chatservice.Journal
+	// failures 是尚未触发的日志写入故障次数。
+	failures int
+}
+
+func (j *failedFactJournal) AppendExecutionFacts(ctx context.Context, chatID string, inputs []eventlog.AppendInput) ([]eventlog.Record, error) {
+	if j.failures > 0 {
+		j.failures--
+		return nil, status_error.ChatLogError
+	}
+	return j.Journal.AppendExecutionFacts(ctx, chatID, inputs)
+}
+
+// 调用者必须能从首次失败响应恢复原回执，连续登记故障不能伪报附件成功。
+func TestRegistrationFailureGuidesOriginalMessageRecovery(t *testing.T) {
+	store, err := eventlog.NewStore(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	chatID := "75757575757575757575757575757575"
+	if _, err := store.Create(chatID, activeChatInputs()); err != nil {
+		t.Fatal(err)
+	}
+	sink, _ := newRuntimeEventSinkForTest(store, chatID)
+	journal := &failedFactJournal{Journal: sink.journal, failures: 2}
+	facts := &agentCommandFacts{}
+	registry := agentcapability.New(nil)
+	defer registry.Close()
+	calls := 0
+	result := agentcapability.Result{CommandID: "persisted-receipt", ExecutionID: "execution-1", Data: map[string]any{"runId": "run", "definitionId": "definition", "revisionId": "revision", "name": "报告", "attachments": []eventlog.AttachmentReference{{Name: "report.txt", Path: "attachments/report.txt", Managed: true}}}}
+	grant, activate, revoke, err := registry.Prepare(agentcapability.GrantSpec{ExecutionID: "execution-1", Validate: func(context.Context) error { return nil }, Bindings: []agentcapability.Binding{{Operation: "workflow.runs.deliver", Call: func(context.Context, agentcapability.Request) (agentcapability.Result, error) {
+		calls++
+		return result, nil
+	}, Receipt: func(context.Context, string) (agentcapability.Result, error) { return result, nil }}}, Record: func(ctx context.Context, op contract.Operation, value agentcapability.Result) error {
+		return facts.record(ctx, journal, chatID, "execution-1", op, value)
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer revoke()
+	activate()
+	send := func(method, path, body string) agentcapability.Response {
+		t.Helper()
+		request := httptest.NewRequest(method, constants.AgentCLIPath+path, strings.NewReader(body))
+		request.RemoteAddr = "127.0.0.1:12345"
+		request.Header.Set("Authorization", "Bearer "+grant.Token)
+		recorder := httptest.NewRecorder()
+		registry.ServeHTTP(recorder, request)
+		var response agentcapability.Response
+		if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+			t.Fatal(err)
+		}
+		return response
+	}
+	response := send(http.MethodPost, "/commands", `{"operation":"workflow.runs.deliver","requestId":"original-delivery","params":{"runId":"run"}}`)
+	for range 2 {
+		if response.OK || response.Error == nil || response.Error.RetryAdvice != "query_receipt" || response.Data != nil || response.CommandID != "persisted-receipt" {
+			t.Fatalf("caller cannot recover registration: %+v", response)
+		}
+		records, err := store.ReadAll(chatID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		messages, err := messageview.ReplayMessages(records)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, message := range messages {
+			if len(message.Attachments) > 0 {
+				t.Fatal("failed write reported attachment")
+			}
+		}
+		next, ok := response.Error.Details["nextStep"].(map[string]any)
+		if !ok {
+			t.Fatal("missing receipt instruction")
+		}
+		response = send(http.MethodGet, "/receipts?operation="+next["operation"].(string)+"&requestId="+next["requestId"].(string), "")
+	}
+	if !response.OK {
+		t.Fatalf("recovery failed: %+v", response)
+	}
+	send(http.MethodGet, "/receipts?operation=workflow.runs.deliver&requestId=original-delivery", "")
+	records, err := store.ReadAll(chatID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	messages, err := messageview.ReplayMessages(records)
+	if err != nil {
+		t.Fatal(err)
+	}
+	count := 0
+	for _, message := range messages {
+		if len(message.Attachments) > 0 {
+			count++
+			if message.ExecutionID != "execution-1" || len(message.Attachments) != 1 {
+				t.Fatalf("incorrect original delivery: %+v", message)
+			}
+		}
+	}
+	if count != 1 || calls != 1 {
+		t.Fatalf("duplicate delivery/run: attachments=%d calls=%d", count, calls)
 	}
 }

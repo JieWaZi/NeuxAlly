@@ -337,7 +337,7 @@ export function ChatWorkspaceSurface({
 
   return (
     <WorkbenchOpeningProvider
-      value={{ scopeKey: identity.scopeKey, onOpen: onOpenRightPanel }}
+      value={{ scopeKey: identity.scopeKey, onOpen: onOpenRightPanel, active }}
     >
       <div
         className={cn(

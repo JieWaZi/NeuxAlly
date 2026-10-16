@@ -43,7 +43,9 @@ import {
   useChatHandoff,
   useChatQueueEntries,
   useChatQueueStore,
+  snapshotComposerMessage,
   type ChatSendSelection,
+  type RejectedChatSelection,
   type QueuedChatEntry,
 } from "./chat-queue-store";
 import {
@@ -100,7 +102,7 @@ type ChatRuntimeOptions = {
   selection: ChatSendSelection;
   suggestions?: readonly ThreadSuggestion[];
   onMessageAccepted?: () => void;
-  onMessageRejected?: (selection: ChatSendSelection) => void;
+  onMessageRejected?: (selection: RejectedChatSelection) => void;
   onApprovalRequested?: (approval: PendingApproval) => void;
   send: (
     text: string,
@@ -108,7 +110,7 @@ type ChatRuntimeOptions = {
     attachmentPaths?: string[],
     selection?: ChatSendSelection,
   ) => Promise<MessageResult>;
-  cancel: () => Promise<void>;
+  cancel: (executionId?: string) => Promise<void>;
   onSettled?: (
     result: MessageResult,
     invocation: ChatInvocation & { current: boolean },
@@ -208,7 +210,7 @@ function isActiveLocalMessage(message: AllyChatMessage) {
 
 export function useChatRuntime(options: ChatRuntimeOptions): ChatRuntimeResult {
   const queueKey = options.queueKey;
-  const cancel = options.cancel;
+  const cancelExecution = options.cancel;
   const send = options.send;
   const onStarted = options.onStarted;
   const onSettled = options.onSettled;
@@ -422,6 +424,17 @@ export function useChatRuntime(options: ChatRuntimeOptions): ChatRuntimeResult {
       )) ||
     (localExecutionID && !localExecutionIsTerminal),
   );
+  // 捕获本次停止的执行身份，异步重试不能重新读取下一轮。
+  const cancellationExecutionID =
+    (localExecutionID && !localExecutionIsTerminal
+      ? localExecutionID
+      : undefined) ??
+    options.activeExecutionId ??
+    messages.find(isActiveLocalMessage)?.executionId;
+  const cancel = useCallback(
+    () => cancelExecution(cancellationExecutionID),
+    [cancelExecution, cancellationExecutionID],
+  );
   useEffect(() => () => clearErrorNoticeActions(queueKey), [queueKey]);
 
   const retryExecution = useCallback(
@@ -504,6 +517,9 @@ export function useChatRuntime(options: ChatRuntimeOptions): ChatRuntimeResult {
           role: "user",
           content: text,
           attachments: optimisticAttachmentsOf(message),
+          workflows: snapshot.selection.selectedWorkflows?.map((flow) => ({
+            ...flow,
+          })),
           skills: (snapshot.selection.selectedSkills ?? []).map((skill) => ({
             ...skill,
           })),
@@ -534,6 +550,7 @@ export function useChatRuntime(options: ChatRuntimeOptions): ChatRuntimeResult {
       overlayRef.current = optimisticOverlay;
       setOverlay(optimisticOverlay);
 
+      let accepted = false;
       try {
         const result = await send(
           text,
@@ -541,6 +558,7 @@ export function useChatRuntime(options: ChatRuntimeOptions): ChatRuntimeResult {
           attachmentPaths,
           snapshot.selection,
         );
+        accepted = true;
         const execution = result.execution;
         const resultChatID = result.chat?.id ?? snapshot.chatId;
         const pendingCreateHandoff = !snapshot.chatId && Boolean(resultChatID);
@@ -618,11 +636,22 @@ export function useChatRuntime(options: ChatRuntimeOptions): ChatRuntimeResult {
           queueStore.migrate(snapshot.queueKey, resultChatID);
         }
         resolveErrorNoticeRecovery(recovery);
-        onSettled?.(result, { ...invocation, current });
+        // 首发接纳先交接真实聊天，再执行可能失败的后续刷新。
         if (current) {
-          onStarted(result, invocation);
+          await onStarted(result, invocation);
         }
+        await onSettled?.(result, { ...invocation, current });
       } catch (error) {
+        if (accepted) {
+          // 接纳后仅刷新失败，保留稳定消息与执行身份，不能恢复为可重复发送的草稿。
+          reportErrorNotice({
+            id: `accepted-refresh:${userID}`,
+            scope: snapshot.queueKey,
+            operation: `${operation}:refresh`,
+            message: i18n.t("sendAcceptedRefreshFailed", { ns: "chat" }),
+          });
+          return;
+        }
         runningByQueueRef.current[snapshot.queueKey] = false;
         const current =
           mountedRef.current &&
@@ -697,9 +726,15 @@ export function useChatRuntime(options: ChatRuntimeOptions): ChatRuntimeResult {
           ) {
             return;
           }
-          messageRejectedRef.current?.(snapshot.selection);
           const composer = runtimeRef.current?.thread?.composer;
           composer?.setText(text);
+          messageRejectedRef.current?.({
+            ...snapshot.selection,
+            composerRecovery: {
+              text,
+              runConfig: snapshotComposerMessage(message).runConfig,
+            },
+          });
           if (composer && composer.getState().attachments.length === 0) {
             for (const attachmentPath of attachmentPaths) {
               void composer.addAttachment(pathFile(attachmentPath));
@@ -748,6 +783,9 @@ export function useChatRuntime(options: ChatRuntimeOptions): ChatRuntimeResult {
         workflowIds: options.selection.workflowIds
           ? [...options.selection.workflowIds]
           : undefined,
+        selectedWorkflows: options.selection.selectedWorkflows?.map((flow) => ({
+          ...flow,
+        })),
         selectedConnectors: options.selection.selectedConnectors?.map(
           (connector) => ({ ...connector }),
         ),
@@ -1151,8 +1189,9 @@ export function useChatRuntime(options: ChatRuntimeOptions): ChatRuntimeResult {
 
   const onNew = useCallback(
     (message: AppendMessage) => {
+      const snapshot = snapshotComposerMessage(message);
       messageAcceptedRef.current?.();
-      return submit(message, currentSnapshot);
+      return submit(snapshot, currentSnapshot);
     },
     [currentSnapshot, submit],
   );
@@ -1163,15 +1202,16 @@ export function useChatRuntime(options: ChatRuntimeOptions): ChatRuntimeResult {
         : queuedEntries.map(({ id, prompt }) => ({ id, prompt })),
       enqueue: (message, { steer }) => {
         if (approvalPendingRef.current) return;
+        const snapshot = snapshotComposerMessage(message);
         if (options.serverManagedQueue) {
           messageAcceptedRef.current?.();
-          void submit(message, currentSnapshot);
+          void submit(snapshot, currentSnapshot);
           return;
         }
         const entry: QueuedChatEntry = {
           id: crypto.randomUUID(),
           prompt: promptOf(message),
-          message,
+          message: snapshot,
           chatId: currentSnapshot.chatId,
           selection: currentSnapshot.selection,
         };
@@ -1183,7 +1223,7 @@ export function useChatRuntime(options: ChatRuntimeOptions): ChatRuntimeResult {
           !queueIsRunning &&
           current.length === 0
         ) {
-          void submit(message, currentSnapshot);
+          void submit(snapshot, currentSnapshot);
           return;
         }
         queueStore.enqueue(queueKey, entry, steer);
@@ -1231,7 +1271,7 @@ export function useChatRuntime(options: ChatRuntimeOptions): ChatRuntimeResult {
     suggestions: options.suggestions,
     queue,
     onNew,
-    onCancel: options.cancel,
+    onCancel: cancel,
     adapters: { attachments: chatAttachmentAdapter },
     unstable_capabilities: { copy: true },
   });

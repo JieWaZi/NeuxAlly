@@ -61,6 +61,11 @@ export type ChatToolArgs = {
   status: "running" | "completed" | "failed";
 };
 
+/** Core 受管附件的展示快照；助手侧避开第三方仅支持用户附件的限制。 */
+export type ChatDeliveredAttachment = NonNullable<
+  ChatMessage["attachments"]
+>[number];
+
 export type ChatRunMetrics = MessageRunMetrics;
 export type ChatFileChange = ToolFileChangeSummary & { path: string };
 
@@ -322,6 +327,17 @@ export function toThreadMessage(
           : {}),
         ...(message.runMetrics ? { runMetrics: message.runMetrics } : {}),
         ...(fileChanges.length ? { fileChanges } : {}),
+        ...(message.workflows?.length ? { workflows: message.workflows } : {}),
+        ...(role === "assistant" && message.attachments?.length
+          ? {
+              deliveredAttachments: message.attachments.map(
+                (attachment): ChatDeliveredAttachment => ({ ...attachment }),
+              ),
+            }
+          : {}),
+        ...(message.workflowRuns?.length
+          ? { workflowRuns: message.workflowRuns }
+          : {}),
         ...(message.skills?.length ? { skills: message.skills } : {}),
         ...(message.connectors?.length
           ? { connectors: message.connectors }
@@ -331,21 +347,23 @@ export function toThreadMessage(
           : {}),
       },
     },
-    attachments: (message.attachments ?? []).map((attachment, index) => ({
-      id: `${message.id}:attachment:${index}`,
-      type: attachment.mediaType?.startsWith("image/") ? "image" : "file",
-      name: attachment.name ?? attachment.path ?? "attachment",
-      contentType: attachment.mediaType,
-      status: { type: "complete" },
-      content: [
-        {
-          type: "file",
-          filename: attachment.name,
-          data: attachment.path ?? "",
-          mimeType: attachment.mediaType || "application/octet-stream",
-        },
-      ],
-    })),
+    attachments: (role === "user" ? (message.attachments ?? []) : []).map(
+      (attachment, index) => ({
+        id: `${message.id}:attachment:${index}`,
+        type: attachment.mediaType?.startsWith("image/") ? "image" : "file",
+        name: attachment.name ?? attachment.path ?? "attachment",
+        contentType: attachment.mediaType,
+        status: { type: "complete" },
+        content: [
+          {
+            type: "file",
+            filename: attachment.name,
+            data: attachment.path ?? "",
+            mimeType: attachment.mediaType || "application/octet-stream",
+          },
+        ],
+      }),
+    ),
     status:
       role === "user"
         ? undefined

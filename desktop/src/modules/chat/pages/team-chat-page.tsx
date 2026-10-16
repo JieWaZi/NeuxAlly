@@ -1,3 +1,4 @@
+import type { ChatComposerRecovery } from "../runtime/chat-queue-store";
 import { useExecutionSelection } from "@/shared/hooks/use-execution-selection";
 import { useDraftWorkspaceSelections } from "./use-draft-workspace-selections";
 import {
@@ -114,6 +115,8 @@ export function TeamChatPageContent({
   >({});
   const [selectedConnectorIDsByWaker, setSelectedConnectorIDsByWaker] =
     useState<Record<string, string[]>>({});
+  const [composerRestoreDraft, setComposerRestoreDraft] =
+    useState<ChatComposerRecovery>();
   const [composerRestoreRevision, setComposerRestoreRevision] = useState(0);
   const workspaceScopeKey = `team:${teamContext.channelId}:${teamContext.threadId ?? `draft:${searchParams.get("draftId") ?? "default"}`}`;
   const initialWorkspaceWarningCode =
@@ -636,6 +639,7 @@ export function TeamChatPageContent({
       clearComposer();
     },
     onMessageRejected: (selection) => {
+      setComposerRestoreDraft(selection.composerRecovery);
       setComposerRestoreRevision((revision) => revision + 1);
       if (!selectedWakerID) return;
       setSelectedSkillIDsByWaker((current) => ({
@@ -756,15 +760,16 @@ export function TeamChatPageContent({
         };
       });
     },
-    cancel: async () => {
+    cancel: async (executionId) => {
       const invocation = chatInvocationGuard.capture(
         activeChatId,
         runtimeQueueKey,
       );
       if (!chatInvocationGuard.isCurrent(invocation)) return;
       if (activeMemberTab?.chatId && invocation.chatId) {
+        if (!executionId) return;
         await cancelMemberExecution.mutateAsync({
-          path: { chatId: invocation.chatId },
+          path: { chatId: invocation.chatId, executionId },
         });
         return;
       }
@@ -1140,6 +1145,7 @@ export function TeamChatPageContent({
       composerClearRevision,
       companionScopeRevision,
       composerRestoreRevision,
+      composerRestoreDraft,
       terminalEnabled: Boolean(activeChatId && workspaceDirectory),
       linkWorkspaceRoot: workspaceDirectory,
       linkAdditionalWorkingDirectories,

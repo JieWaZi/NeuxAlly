@@ -14,6 +14,8 @@ import (
 type MessageViewBuilder struct {
 	// agentCommands 保存当前执行中由 Core 确认的命令事实，不能从工具输出建立。
 	agentCommands map[string]map[string]eventlog.AgentCommandData
+	// agentCommandOrder 保留事实首次出现顺序，确保延迟建立消息时投影稳定。
+	agentCommandOrder map[string][]string
 	// agentMatches 防止同一命令回执在多个原生工具行上重复变成业务活动。
 	agentMatches map[string]map[string]string
 	// messages 保存按创建顺序排列的当前消息快照。
@@ -53,6 +55,7 @@ func ReplayMessages(records []eventlog.Record) ([]Message, error) {
 func NewMessageViewBuilder() *MessageViewBuilder {
 	return &MessageViewBuilder{
 		agentCommands:          make(map[string]map[string]eventlog.AgentCommandData),
+		agentCommandOrder:      make(map[string][]string),
 		agentMatches:           make(map[string]map[string]string),
 		messages:               make([]Message, 0),
 		messageIndexes:         make(map[string]int),
@@ -69,7 +72,7 @@ func NewMessageViewBuilder() *MessageViewBuilder {
 func (p *MessageViewBuilder) Apply(record eventlog.Record) (string, error) {
 	switch record.Type {
 	case constants.ChatEventTypeAgentCommandCommitted:
-		return "", p.applyAgentCommand(record)
+		return p.applyAgentCommand(record)
 	case constants.ChatEventTypeMessageInherited:
 		var inherited InheritedMessage
 		if json.Unmarshal(record.Data, &inherited) != nil {
@@ -208,6 +211,7 @@ func (p *MessageViewBuilder) applyMessageCreated(record eventlog.Record) (string
 		Content:         data.Content,
 		Attachments:     append([]eventlog.AttachmentReference(nil), data.Attachments...),
 		Skills:          append([]eventlog.MessageSkillReference(nil), data.Skills...),
+		Workflows:       append([]eventlog.MessageWorkflowReference(nil), data.Workflows...),
 		Connectors:      append([]eventlog.MessageConnectorReference(nil), data.Connectors...),
 		CodeReferences:  append([]eventlog.CodeReference(nil), data.CodeReferences...),
 		Revision:        record.Sequence,
@@ -239,6 +243,7 @@ func (p *MessageViewBuilder) applyExecutionCreated(record eventlog.Record) (stri
 		if index, exists := p.messageIndexes[messageID]; exists {
 			message := &p.messages[index]
 			message.ExecutionID = record.ExecutionID
+			p.applyPendingCommandReferences(message)
 			message.Status = constants.ExecutionStatusPending
 			message.Revision = max(message.Revision+1, record.Sequence)
 			message.UpdatedAt = record.RecordedAt
@@ -254,6 +259,7 @@ func (p *MessageViewBuilder) applyExecutionCreated(record eventlog.Record) (stri
 			CreatedAt:       record.RecordedAt,
 			UpdatedAt:       record.RecordedAt,
 		}
+		p.applyPendingCommandReferences(&message)
 		p.messageIndexes[message.ID] = len(p.messages)
 		p.messages = append(p.messages, message)
 		return message.ID, nil
@@ -353,7 +359,7 @@ func (p *MessageViewBuilder) applyExecutionFinished(record eventlog.Record) (str
 	messageID := p.executionMessages[record.ExecutionID]
 	if index, exists := p.messageIndexes[messageID]; exists {
 		message := &p.messages[index]
-		message.Retryable = finished.Retryable
+		message.Retryable = finished.Retryable && len(message.WorkflowRuns) == 0
 		if len(finished.Usage) > 0 {
 			if err := p.applyUsage(message, finished.Usage); err != nil {
 				return "", status_error.ChatLogError
@@ -719,6 +725,8 @@ func displayPartID(messageID string, sequence int64) string {
 func cloneMessage(message Message, public bool) Message {
 	clone := message
 	clone.Attachments = append([]eventlog.AttachmentReference(nil), message.Attachments...)
+	clone.Workflows = append([]eventlog.MessageWorkflowReference(nil), message.Workflows...)
+	clone.WorkflowRuns = append([]eventlog.WorkflowRunReference(nil), message.WorkflowRuns...)
 	clone.Skills = append([]eventlog.MessageSkillReference(nil), message.Skills...)
 	clone.Connectors = append([]eventlog.MessageConnectorReference(nil), message.Connectors...)
 	clone.CodeReferences = append([]eventlog.CodeReference(nil), message.CodeReferences...)

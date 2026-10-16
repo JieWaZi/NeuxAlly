@@ -7,6 +7,7 @@ import (
 	"github.com/JieWaZi/NeuxAlly/server/constants"
 	"github.com/JieWaZi/NeuxAlly/server/constants/status_error"
 	"github.com/JieWaZi/NeuxAlly/server/internal/agentcapability"
+	"github.com/JieWaZi/NeuxAlly/server/internal/chat/eventlog"
 	"github.com/JieWaZi/NeuxAlly/server/internal/chatstorage"
 	"github.com/JieWaZi/NeuxAlly/server/internal/runtimes"
 	"github.com/JieWaZi/NeuxAlly/server/internal/workinput"
@@ -204,6 +205,7 @@ func (m *service) Start(
 			CodeReferences: append([]CodeReferenceInput(nil), intent.Input.CodeReferences...),
 			SkillIDs:       append([]string(nil), intent.Input.SkillIDs...),
 			ConnectorIDs:   append([]string(nil), intent.Input.ConnectorIDs...),
+			Workflows:      append([]eventlog.MessageWorkflowReference(nil), intent.Input.Workflows...),
 		},
 		runtime: runtimeSelection{
 			ConfigurationResolved: intent.Options.ConfigurationResolved,

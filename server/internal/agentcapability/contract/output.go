@@ -34,11 +34,13 @@ func outputSchema(id string) map[string]any {
 	case "workflow.definitions.describe":
 		return object("id", "name", "description", "whenToUse", "revisionId", "runnable", "inputSchema", "outputSchema")
 	case "workflow.runs.start":
-		return object("runId", "definitionId", "revisionId")
+		return object("runId", "definitionId", "revisionId", "name")
 	case "workflow.runs.cancel":
 		return object("runId", "definitionId", "cancellationRequested")
+	case "workflow.runs.deliver":
+		return object("runId", "definitionId", "revisionId", "name", "attachments", "files")
 	case "workflow.runs.get":
-		return object("run", "humanRequests", "operationRequests")
+		return object("run", "humanRequests", "operationRequests", "files")
 	case "workflow.evidence.list":
 		return object("run", "instances", "actionCalls", "humanRequests", "operations", "totalInstances", "nextCursor")
 	case "workflow.results.schema":

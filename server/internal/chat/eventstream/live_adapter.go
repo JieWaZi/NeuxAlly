@@ -26,6 +26,11 @@ func (a *LiveAdapter) ApplyCommandFact(record eventlog.Record) error {
 		return status_error.ChatLogError
 	}
 	_, err := a.messageView.Apply(record)
+	if err == nil {
+		if message := a.messageView.PublicMessage(a.messageID); message != nil {
+			a.nextRevision = max(a.nextRevision, message.Revision+1)
+		}
+	}
 	return err
 }
 

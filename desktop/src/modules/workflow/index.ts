@@ -13,3 +13,5 @@ export {
   WorkflowResultContent,
   WorkflowResultMessageScope,
 } from "./presentation/node-result";
+
+export { WorkflowCall, WorkflowCallContent } from "./components/workflow-call";

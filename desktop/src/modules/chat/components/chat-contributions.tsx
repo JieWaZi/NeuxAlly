@@ -1,3 +1,4 @@
+import type { ThreadMessage } from "@assistant-ui/react";
 import {
   createContext,
   useContext,
@@ -22,7 +23,14 @@ export type WorkbenchContributionProps = {
   active: boolean;
   scopeKey: string;
 };
+export type ChatWorkflowRunContributionProps = {
+  runs: unknown;
+  scopeKey: string;
+  isSummarizing: boolean;
+  active?: boolean;
+};
 export type ChatContributions = {
+  WorkflowRuns?: ComponentType<ChatWorkflowRunContributionProps>;
   Scope?: ComponentType<ChatContributionScopeProps>;
   Content?: ComponentType<WorkbenchContributionProps>;
 };
@@ -33,7 +41,7 @@ const MessageContent = createContext<
 export const ChatMessageContributionProvider = MessageContent.Provider;
 export const ChatContributionsProvider = Contributions.Provider;
 const WorkbenchOpening = createContext<
-  { scopeKey: string; onOpen: () => void } | undefined
+  { scopeKey: string; onOpen: () => void; active?: boolean } | undefined
 >(undefined);
 export const WorkbenchOpeningProvider = WorkbenchOpening.Provider;
 
@@ -46,6 +54,23 @@ export function useChatWorkspaceHost() {
 export function ChatMessageContribution({ messageId }: { messageId: string }) {
   const render = useContext(MessageContent);
   return render?.(messageId) ?? null;
+}
+/** 仅转交权威消息投影，模型正文不会生成运行引用。 */
+export function ChatWorkflowRunContribution({
+  message,
+}: {
+  message: ThreadMessage;
+}) {
+  const { WorkflowRuns } = useContext(Contributions);
+  const host = useContext(WorkbenchOpening);
+  return WorkflowRuns && host ? (
+    <WorkflowRuns
+      runs={message.metadata.custom.workflowRuns}
+      scopeKey={host.scopeKey}
+      active={host.active}
+      isSummarizing={message.status?.type === "running"}
+    />
+  ) : null;
 }
 export function ChatContributionScope({
   children,

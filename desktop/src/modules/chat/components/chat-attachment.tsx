@@ -122,6 +122,32 @@ export function ChatComposerAttachments({
   );
 }
 
+/** 用户上传与助手正式交付文件共用同一展示和工作台打开入口。 */
+function MessageAttachmentFileChip({
+  name,
+  path,
+  onOpenFile,
+}: {
+  name: string;
+  path: string;
+  onOpenFile?: (file: ChatFileOpenRequest) => void;
+}) {
+  return (
+    <span className={chatMessageReferenceChipClass}>
+      {onOpenFile && path ? (
+        <button
+          type="button"
+          className="max-w-40 truncate text-left"
+          onClick={() => onOpenFile({ name, path })}
+        >
+          {name}
+        </button>
+      ) : (
+        <span className="max-w-40 truncate">{name}</span>
+      )}
+    </span>
+  );
+}
 function ChatMessageAttachmentChip({
   onOpenFile,
 }: {
@@ -131,20 +157,12 @@ function ChatMessageAttachmentChip({
   const path =
     attachment.content?.find((part) => part.type === "file")?.data ?? "";
   return (
-    <AttachmentPrimitive.Root className={chatMessageReferenceChipClass}>
-      {onOpenFile && path ? (
-        <button
-          type="button"
-          className="max-w-40 truncate text-left"
-          onClick={() => onOpenFile({ name: attachment.name, path })}
-        >
-          <AttachmentPrimitive.Name />
-        </button>
-      ) : (
-        <span className="max-w-40 truncate">
-          <AttachmentPrimitive.Name />
-        </span>
-      )}
+    <AttachmentPrimitive.Root>
+      <MessageAttachmentFileChip
+        name={attachment.name}
+        path={path}
+        onOpenFile={onOpenFile}
+      />
     </AttachmentPrimitive.Root>
   );
 }
@@ -154,6 +172,36 @@ export function ChatMessageAttachments({
 }: {
   onOpenFile?: (file: ChatFileOpenRequest) => void;
 }) {
+  const role = useAuiState((state) => state.message.role);
+  const delivered = useAuiState(
+    (state) => state.message.metadata.custom.deliveredAttachments,
+  );
+  if (role === "assistant") {
+    if (!Array.isArray(delivered)) return null;
+    return (
+      <div className="mt-2 flex min-w-0 flex-wrap gap-2">
+        {delivered.flatMap((value: unknown) => {
+          if (
+            !value ||
+            typeof value !== "object" ||
+            !("path" in value) ||
+            typeof value.path !== "string" ||
+            !("name" in value) ||
+            typeof value.name !== "string"
+          )
+            return [];
+          return (
+            <MessageAttachmentFileChip
+              key={value.path}
+              name={value.name}
+              path={value.path}
+              onOpenFile={onOpenFile}
+            />
+          );
+        })}
+      </div>
+    );
+  }
   return (
     <MessagePrimitive.Attachments>
       {() => <ChatMessageAttachmentChip onOpenFile={onOpenFile} />}

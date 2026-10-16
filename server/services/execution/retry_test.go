@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -15,6 +16,8 @@ import (
 	"github.com/JieWaZi/NeuxAlly/server/constants"
 	"github.com/JieWaZi/NeuxAlly/server/constants/status_error"
 	"github.com/JieWaZi/NeuxAlly/server/internal/chat/eventlog"
+	"github.com/JieWaZi/NeuxAlly/server/internal/chat/messageview"
+	"github.com/JieWaZi/NeuxAlly/server/internal/requestidempotency"
 	"github.com/JieWaZi/NeuxAlly/server/internal/runtimes"
 	"github.com/JieWaZi/NeuxAlly/server/internal/util"
 	"github.com/JieWaZi/NeuxAlly/server/repositories/controllers"
@@ -34,6 +37,8 @@ type retryTestRuntime struct {
 	output string
 	// tool 表示 Runtime 已交付工具调用，但测试故意省略结果中的副作用标记。
 	tool bool
+	// beforeReturn 在 Runtime 返回前注入真实 Core 日志事实。
+	beforeReturn func()
 }
 
 func (r *retryTestRuntime) Runtimes() []runtimes.RuntimeSummary { return (&fakeRuntime{}).Runtimes() }
@@ -61,6 +66,9 @@ func (r *retryTestRuntime) Run(ctx context.Context, request runtimes.RunRequest,
 		if err := sink.Accept(ctx, runtimes.Event{Type: runtimes.EventTypeToolUse, Data: marshalData(map[string]any{"id": "tool-1", "name": "Bash"})}); err != nil {
 			return runtimes.Result{Failure: &runtimes.Failure{Code: runtimes.FailureCodeEventDelivery}}
 		}
+	}
+	if r.beforeReturn != nil {
+		r.beforeReturn()
 	}
 	result.Facts = runtimes.InvocationFacts{InvocationID: id, RuntimeID: request.Target.RuntimeID, BaseRuntimeID: runtimes.RuntimeIDCodex}
 	result.Session.Mode = request.Session.Mode
@@ -359,5 +367,53 @@ func TestRetryExecutionConcurrentRequestsShareOneChild(t *testing.T) {
 	runner.mutex.Unlock()
 	if count != 3 {
 		t.Fatalf("并发请求被重复派发：%d", count)
+	}
+}
+
+// 本测试捕获 Runtime 未报告副作用时，Core 已启动运行仍被原生重试的漏洞。
+func TestWorkflowCoreRunPreventsRetryButSelectionAloneDoesNot(t *testing.T) {
+	for _, started := range []bool{false, true} {
+		t.Run(fmt.Sprint(started), func(t *testing.T) {
+			runner := &retryTestRuntime{result: retryableTestResult()}
+			manager := newMessageTestService(t, t.TempDir(), runner)
+			intent := retryTestIntent(t)
+			intent.ExecutionID = util.New()
+			if err := json.Unmarshal([]byte(`{"actor":"user","content":"评审改动","workflows":[{"id":"definition","name":"代码评审"}]}`), &intent.Input); err != nil {
+				t.Fatal(err)
+			}
+			core := manager.execution.(*service)
+			if started {
+				runner.beforeReturn = func() {
+					identity := requestidempotency.Identity{ID: intent.ClientRequestID}
+					_, err := core.journal.AppendExecutionFacts(context.Background(), identity.ResourceID("chat", "waker-1"), []eventlog.AppendInput{{Type: constants.ChatEventTypeAgentCommandCommitted, ExecutionID: intent.ExecutionID, Data: json.RawMessage(`{"commandId":"receipt","operation":"workflow.runs.start","completion":"accepted","workflowRun":{"workflowId":"definition","runId":"run","revisionId":"revision","name":"代码评审"}}`)}})
+					if err != nil {
+						t.Errorf("追加运行事实: %v", err)
+					}
+				}
+			}
+			accepted := retryTestStart(t, manager, intent)
+			_, err := core.retryExecution(context.Background(), accepted.Chat.ID, accepted.Execution.ID)
+			if started {
+				if !errors.Is(err, status_error.ExecutionRetryUnavailable) {
+					t.Fatalf("已启动真实运行仍允许重试: %v", err)
+				}
+			} else {
+				if err != nil {
+					t.Fatalf("仅选择工作流不应禁止原有重试: %v", err)
+				}
+				waitForChatTerminal(t, manager, accepted.Chat.ID)
+				records, err := core.journal.ReadRecords(accepted.Chat.ID)
+				if err != nil {
+					t.Fatal(err)
+				}
+				messages, err := messageview.ReplayMessages(records)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if len(messages) != 4 || len(messages[2].Workflows) != 1 || messages[2].Workflows[0].ID != "definition" {
+					t.Fatalf("重试丢失选择快照: %+v", messages)
+				}
+			}
+		})
 	}
 }

@@ -1,4 +1,7 @@
 export const workflowZh = {
+  runStateStale: "连接中断，显示上次读取的运行状态",
+  callUnavailable: "运行暂不可用",
+  agentSummarizing: "智能体正在总结",
   failureDetails: "查看失败详情",
   failureDeliveryUnknown:
     "发送结果不确定，请先核对微信或飞书是否收到消息，避免重复发送。",
@@ -463,6 +466,9 @@ type WorkflowTranslation = {
     : { [P in keyof (typeof workflowZh)[K]]: string };
 };
 export const workflowEn = {
+  runStateStale: "Connection interrupted. Showing the last known run state.",
+  callUnavailable: "Run unavailable",
+  agentSummarizing: "Agent is summarizing",
   failureDetails: "View failure details",
   failureDeliveryUnknown:
     "Delivery is uncertain. Check whether the chat received the message before sending again.",

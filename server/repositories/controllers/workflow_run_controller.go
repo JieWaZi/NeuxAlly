@@ -36,6 +36,8 @@ type WorkflowRunState struct {
 
 // WorkflowRunController 只暴露接纳、租约、快照提交和有界查询。
 type WorkflowRunController interface {
+	// ListActiveConsumerRuns 沿稳定身份索引有界读取授权下的全部非终态运行。
+	ListActiveConsumerRuns(context.Context, string, string, int) ([]string, error)
 	// NodeCounts 读取所有实际实例的按职责和状态分组计数，不用静态节点数估算进度。
 	NodeCounts(context.Context, string) ([]WorkflowNodeCount, error)
 	// CountReservedEffects 统计跨进程事务内预留而尚未终止的真实外部调用槽。
@@ -367,7 +369,11 @@ func (c *workflowRunController) CommitRunState(ctx context.Context, value Workfl
 	if err != nil {
 		return databaseError("encode_workflow_failure", run.ID, err)
 	}
-	result := db.Model(&models.WorkflowRun{}).Where("id = ? AND version = ? AND lease_owner = ? AND fence = ? AND lease_until > ?", run.ID, expected, run.LeaseOwner, run.Fence, now).Updates(map[string]any{"status": run.Status, "result": string(output), "failure": string(failure), "version": run.Version, "completed_at": run.CompletedAt})
+	reason, err := json.Marshal(run.CancellationReason)
+	if err != nil {
+		return databaseError("encode_workflow_cancellation", run.ID, err)
+	}
+	result := db.Model(&models.WorkflowRun{}).Where("id = ? AND version = ? AND lease_owner = ? AND fence = ? AND lease_until > ?", run.ID, expected, run.LeaseOwner, run.Fence, now).Updates(map[string]any{"status": run.Status, "result": string(output), "failure": string(failure), "cancellation_reason": string(reason), "version": run.Version, "completed_at": run.CompletedAt})
 	if result.Error != nil {
 		return databaseError("commit_workflow_run", run.ID, result.Error)
 	}
@@ -474,4 +480,16 @@ func (c *workflowRunController) ListNodeInstances(ctx context.Context, runID, no
 		return nil, 0, databaseError("list_workflow_node_instances", runID, err)
 	}
 	return values, total, nil
+}
+
+func (c *workflowRunController) ListActiveConsumerRuns(ctx context.Context, leaseID, after string, limit int) ([]string, error) {
+	if limit <= 0 || limit > constants.WorkflowConsumerPageSize {
+		limit = constants.WorkflowConsumerPageSize
+	}
+	var ids []string
+	err := controllerDB(ctx, c.db).Model(&models.WorkflowRun{}).Where("consumer_lease_id = ? AND id > ? AND status NOT IN ?", leaseID, after, []constants.WorkflowRunStatus{constants.WorkflowRunStatusSucceeded, constants.WorkflowRunStatusFailed, constants.WorkflowRunStatusCancelled}).Order("id ASC").Limit(limit).Pluck("id", &ids).Error
+	if err != nil {
+		return nil, databaseError("list_active_consumer_runs", leaseID, err)
+	}
+	return ids, nil
 }
