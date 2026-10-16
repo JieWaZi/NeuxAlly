@@ -2,6 +2,7 @@ import type {
   GlobalEventSubscription,
   GlobalEventDelivery,
 } from "./core-event-protocol";
+import type { ApplicationUpdateState } from "./application-update";
 export type CoreConnection = {
   baseUrl: string;
   token: string;
@@ -242,6 +243,16 @@ export type TerminalExitEvent = {
 
 export type DesktopCommands = {
   core_connection: { args: undefined; result: CoreConnection };
+  application_update_state: { args: undefined; result: ApplicationUpdateState };
+  check_application_update: { args: undefined; result: ApplicationUpdateState };
+  download_application_update: {
+    args: undefined;
+    result: ApplicationUpdateState;
+  };
+  open_application_installer: {
+    args: undefined;
+    result: ApplicationUpdateState;
+  };
   subscribe_core_events: { args: GlobalEventSubscription; result: boolean };
   resync_core_events: {
     args: { subscriptionId: string; after?: number | string };
@@ -562,6 +573,7 @@ export type DesktopCommands = {
   };
 };
 export type DesktopEvents = {
+  "application-update": ApplicationUpdateState;
   "core-event": GlobalEventDelivery;
   "browser-navigation": BrowserNavigationEvent;
   "workspace-resource-change": WorkspaceResourceChangeEvent;
@@ -576,6 +588,9 @@ export type DesktopBridge = {
       : [args: DesktopCommands[K]["args"]]
   ) => Promise<DesktopCommands[K]["result"]>;
 } & {
+  onApplicationUpdate(
+    handler: (state: ApplicationUpdateState) => void,
+  ): () => void;
   onCoreEvent(handler: (event: GlobalEventDelivery) => void): () => void;
   onBrowserNavigation(
     handler: (event: BrowserNavigationEvent) => void,
