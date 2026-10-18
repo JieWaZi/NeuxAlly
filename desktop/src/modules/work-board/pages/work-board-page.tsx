@@ -47,6 +47,8 @@ import {
   type WorkBoardMode,
 } from "../components/work-board-content";
 
+const requestStates: readonly string[] = ["approval", "input", "review"];
+
 export function WorkBoardPage() {
   const { t } = useTranslation("workBoard");
   const client = useQueryClient();
@@ -90,6 +92,15 @@ export function WorkBoardPage() {
   const to = normalizeDateInput(params.get("to"));
   const dates = localDateRangeBounds(from, to);
   const states = (params.get("states") ?? "").split(",").filter(Boolean);
+  const pendingStates = states.filter((value) => requestStates.includes(value));
+  const selectedStates =
+    mode === "attention"
+      ? pendingStates.length
+        ? pendingStates
+        : requestStates
+      : mode === "results"
+        ? ["results"]
+        : states;
   useEffect(() => {
     const timer = window.setTimeout(() => setSearch(text), 250);
     return () => window.clearTimeout(timer);
@@ -110,7 +121,9 @@ export function WorkBoardPage() {
               to: dates.end,
               states: states.join(",") || undefined,
             }
-          : {}),
+          : mode === "attention"
+            ? { states: pendingStates.join(",") || undefined }
+            : {}),
       },
     }),
   );
@@ -256,6 +269,7 @@ export function WorkBoardPage() {
   const clearFilters = () => {
     setSearch("");
     change({
+      mode: "all",
       executorId: "",
       executorName: "",
       executorKind: "",
@@ -272,7 +286,8 @@ export function WorkBoardPage() {
     text ||
     (mode === "all" && (states.length || from || to)),
   );
-  const canClearFilters = filtered || Boolean(states.length || from || to);
+  const canClearFilters =
+    mode !== "all" || filtered || Boolean(states.length || from || to);
   const count =
     mode === "attention"
       ? (list.data?.attention?.length ?? 0)
@@ -367,70 +382,88 @@ export function WorkBoardPage() {
                   ),
                 ]}
               />
-              {mode === "all" ? (
-                <>
-                  <div className="w-field-filter min-w-0">
-                    <SearchableMultiSelect
-                      value={states}
-                      onValueChange={(value) =>
-                        change({ states: value.join(",") })
-                      }
-                      triggerLabel={
-                        states.length
-                          ? t("selectedStates", { count: states.length })
-                          : t("taskState")
-                      }
-                      searchLabel={t("searchState")}
-                      emptyLabel={t("noStates")}
-                      clearSearchLabel={t("clearSearch")}
-                      clearSelectionLabel={t("allStates")}
-                      options={[
-                        "running",
-                        "waiting",
-                        "completed",
-                        "failed",
-                        "canceled",
-                        "idle",
-                      ].map((value) => ({ value, label: t(value) }))}
-                    />
-                  </div>
-                  <ExecutorFilter
-                    value={executorId}
-                    label={params.get("executorName") ?? ""}
-                    kind={executorKind}
-                    onChange={(id, name, kind) =>
+              <div className="w-field-filter min-w-0">
+                <SearchableMultiSelect
+                  value={selectedStates}
+                  onValueChange={(values) => {
+                    const added = values.find(
+                      (value) => !selectedStates.includes(value),
+                    );
+                    if (added === "results") {
+                      change({ mode: "results", states: "" });
+                    } else if (
+                      (added && requestStates.includes(added)) ||
+                      (mode === "attention" && !added)
+                    ) {
+                      const pending = values.filter((value) =>
+                        requestStates.includes(value),
+                      );
                       change({
-                        executorId: id,
-                        executorName: name,
-                        executorKind: kind,
-                      })
+                        mode: pending.length ? "attention" : "all",
+                        states: pending.join(","),
+                      });
+                    } else {
+                      change({
+                        mode: "all",
+                        states: values
+                          .filter(
+                            (value) =>
+                              !requestStates.includes(value) &&
+                              value !== "results",
+                          )
+                          .join(","),
+                      });
                     }
-                  />
-                  <DateRangePicker
-                    from={from}
-                    to={to}
-                    onChange={(start, end) => change({ from: start, to: end })}
-                    labels={{
-                      clear: t("clear"),
-                      empty: t("recent"),
-                      title: t("range"),
-                      help: t("rangeHelp"),
-                      trigger: t("chooseRange"),
-                    }}
-                  />
-                </>
-              ) : (
-                <ExecutorFilter
-                  value={executorId}
-                  label={params.get("executorName") ?? ""}
-                  kind={executorKind}
-                  onChange={(id, name, kind) =>
-                    change({
-                      executorId: id,
-                      executorName: name,
-                      executorKind: kind,
-                    })
+                  }}
+                  triggerLabel={
+                    selectedStates.length
+                      ? t("selectedStates", { count: selectedStates.length })
+                      : t("taskState")
                   }
+                  searchLabel={t("searchState")}
+                  emptyLabel={t("noStates")}
+                  clearSearchLabel={t("clearSearch")}
+                  clearSelectionLabel={t("allStates")}
+                  options={[
+                    ...[
+                      "running",
+                      "waiting",
+                      "completed",
+                      "failed",
+                      "canceled",
+                      "idle",
+                    ].map((value) => ({ value, label: t(value) })),
+                    { value: "approval", label: t("pendingApproval") },
+                    { value: "input", label: t("pendingInput") },
+                    { value: "review", label: t("pendingReview") },
+                    { value: "results", label: t("results") },
+                  ]}
+                />
+              </div>
+              <ExecutorFilter
+                value={executorId}
+                label={params.get("executorName") ?? ""}
+                kind={executorKind}
+                onChange={(id, name, kind) =>
+                  change({
+                    executorId: id,
+                    executorName: name,
+                    executorKind: kind,
+                  })
+                }
+              />
+              {mode === "all" && (
+                <DateRangePicker
+                  from={from}
+                  to={to}
+                  onChange={(start, end) => change({ from: start, to: end })}
+                  labels={{
+                    clear: t("clear"),
+                    empty: t("recent"),
+                    title: t("range"),
+                    help: t("rangeHelp"),
+                    trigger: t("chooseRange"),
+                  }}
                 />
               )}
               <ResourcePageSearchField
@@ -444,15 +477,6 @@ export function WorkBoardPage() {
         >
           <div className="flex items-center gap-2">
             <h2 className="type-title font-semibold">{t("records")}</h2>
-            {mode !== "all" ? (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => change({ mode: "all" })}
-              >
-                {t(mode)} · {t("clear")}
-              </Button>
-            ) : null}
             {canClearFilters ? (
               <Button variant="ghost" size="sm" onClick={clearFilters}>
                 {t("clearFilters")}

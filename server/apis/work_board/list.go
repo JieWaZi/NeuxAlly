@@ -67,6 +67,14 @@ func (d *ListWorkBoard) Validate(*gin.Context) error {
 		if raw == "" {
 			continue
 		}
+		if d.Mode == "attention" {
+			switch constants.NotificationKind(raw) {
+			case constants.NotificationKindApproval, constants.NotificationKindInput, constants.NotificationKindReview:
+				continue
+			default:
+				return status_error.BadRequest
+			}
+		}
 		var state constants.WorkBoardState
 		if state.UnmarshalText([]byte(raw)) != nil {
 			return status_error.BadRequest
