@@ -99,29 +99,39 @@ type Server struct {
 	Headers map[string]string `json:"headers"`
 }
 
-// Package 是对原始包的一次确定性解析结果。
+// 插件包
 type Package struct {
-	// Manifest 是已验证的包元数据。
+	// 元数据
 	Manifest Manifest `json:"manifest"`
-	// Format 是实际采用的包格式。
+	// 包格式
 	Format string `json:"format"`
-	// Skills 是可交付技能，按组件键排序。
+	// 展示资料
+	Presentation Presentation `json:"presentation"`
+	// 软件图标
+	Icon string `json:"icon,omitempty"`
+	// 插件说明
+	Readme string `json:"readme,omitempty"`
+	// 包含技能
 	Skills []Skill `json:"skills"`
-	// Servers 是可交付 MCP 定义，按组件键排序。
+	// 包含连接器
 	Servers []Server `json:"servers"`
-	// Diagnostics 是不阻断其他组件的逐项诊断。
+	// 兼容性说明
 	Diagnostics []Diagnostic `json:"diagnostics"`
 }
 
-// Load 优先读取通用清单，缺失时按 Claude 导入规则发现受支持组件。
+// Load 优先读取通用清单，缺失时导入 Codex 或 Claude 清单的受支持组件。
 func Load(root string) (Package, error) {
 	pkg := Package{Skills: []Skill{}, Servers: []Server{}, Diagnostics: []Diagnostic{}}
 	portable := filepath.Join(root, "plugin.json")
 	_, err := os.Lstat(portable)
 	manifestPath := "plugin.json"
 	if os.IsNotExist(err) {
-		manifestPath = ".claude-plugin/plugin.json"
-		pkg.Format = constants.PluginFormatClaude
+		manifestPath = ".codex-plugin/plugin.json"
+		pkg.Format = constants.PluginFormatCodex
+		if _, err := os.Lstat(filepath.Join(root, manifestPath)); os.IsNotExist(err) {
+			manifestPath = ".claude-plugin/plugin.json"
+			pkg.Format = constants.PluginFormatClaude
+		}
 	} else {
 		pkg.Format = constants.PluginFormatPortable
 	}
@@ -187,25 +197,26 @@ func Load(root string) (Package, error) {
 	}
 	skillPaths := []string{"skills"}
 	mcpPaths := []string{"mcp.json"}
-	if pkg.Format == constants.PluginFormatClaude {
+	if pkg.compatibilityFormat() {
 		mcpPaths = []string{".mcp.json"}
 		if value, ok := raw["skills"]; ok {
-			if err := decodePaths(value, &skillPaths); err != nil {
+			var declared []string
+			if err := decodePaths(value, &declared); err != nil {
 				pkg.diagnose("skills", "invalid_component")
-				skillPaths = nil
+			} else {
+				skillPaths = append(skillPaths, declared...)
 			}
 		}
-		if value, ok := raw["mcpServers"]; ok {
-			var inline map[string]json.RawMessage
-			if json.Unmarshal(value, &inline) == nil && inline != nil {
-				pkg.loadServers(root, inline)
-			} else if decodePaths(value, &mcpPaths) != nil {
-				pkg.diagnose("mcpServers", "invalid_component")
-				mcpPaths = nil
-			}
-		}
-		for _, key := range []string{"hooks", "agents", "commands", "lspServers", "channels"} {
+		for _, key := range []string{"hooks", "agents", "commands", "lspServers", "channels", "apps", "outputStyles", "workflows", "settings", "userConfig", "dependencies", "experimental"} {
 			if _, ok := raw[key]; ok {
+				pkg.diagnose(key, "unsupported_component")
+			}
+		}
+		for key, relative := range map[string]string{"hooks": "hooks/hooks.json", "agents": "agents", "commands": "commands", "lspServers": ".lsp.json", "apps": ".app.json"} {
+			if _, declared := raw[key]; declared {
+				continue
+			}
+			if _, err := os.Lstat(filepath.Join(root, relative)); err == nil {
 				pkg.diagnose(key, "unsupported_component")
 			}
 		}
@@ -215,47 +226,89 @@ func Load(root string) (Package, error) {
 		pkg.loadSkills(root, path, seen)
 	}
 	for _, path := range mcpPaths {
-		resolved, pathErr := contained(root, path)
-		if pathErr != nil {
-			if !os.IsNotExist(pathErr) {
-				pkg.diagnose(path, "invalid_component")
-			}
-			continue
-		}
-		document, readErr := readObject(resolved)
-		if readErr != nil {
-			pkg.diagnose(path, "invalid_component")
-			continue
-		}
-		if pkg.Format == constants.PluginFormatPortable && !stringEquals(document["$schema"], constants.PluginMCPSchema) {
-			pkg.diagnose(path, "unsupported_schema")
-			continue
-		}
-		if pkg.Format == constants.PluginFormatPortable {
-			valid := true
-			for key := range document {
-				if key != "$schema" && key != "mcpServers" {
-					valid = false
-				}
-			}
-			if !valid {
-				pkg.diagnose(path, "invalid_component")
-				continue
-			}
-		}
-		var servers map[string]json.RawMessage
-		if json.Unmarshal(document["mcpServers"], &servers) != nil || servers == nil {
-			pkg.diagnose(path, "invalid_component")
-			continue
-		}
-		pkg.loadServers(root, servers)
+		pkg.loadMCPFile(root, path)
 	}
+	if pkg.compatibilityFormat() {
+		if value, ok := raw["mcpServers"]; ok {
+			pkg.loadDeclaredMCP(root, value)
+		}
+	}
+	pkg.loadPresentation(root, raw)
 	sort.Slice(pkg.Skills, func(i, j int) bool { return pkg.Skills[i].Key < pkg.Skills[j].Key })
 	sort.Slice(pkg.Servers, func(i, j int) bool { return pkg.Servers[i].Key < pkg.Servers[j].Key })
 	sort.Slice(pkg.Diagnostics, func(i, j int) bool {
 		return pkg.Diagnostics[i].Component+pkg.Diagnostics[i].Code < pkg.Diagnostics[j].Component+pkg.Diagnostics[j].Code
 	})
 	return pkg, nil
+}
+
+func (p Package) compatibilityFormat() bool {
+	return p.Format == constants.PluginFormatClaude || p.Format == constants.PluginFormatCodex
+}
+
+func (pkg *Package) loadMCPFile(root, path string, required ...bool) {
+	resolved, pathErr := contained(root, path)
+	if pathErr != nil {
+		if !os.IsNotExist(pathErr) || (len(required) > 0 && required[0]) {
+			pkg.diagnose(path, "invalid_component")
+		}
+		return
+	}
+	document, readErr := readObject(resolved)
+	if readErr != nil {
+		pkg.diagnose(path, "invalid_component")
+		return
+	}
+	if pkg.Format == constants.PluginFormatPortable && !stringEquals(document["$schema"], constants.PluginMCPSchema) {
+		pkg.diagnose(path, "unsupported_schema")
+		return
+	}
+	if pkg.Format == constants.PluginFormatPortable {
+		valid := true
+		for key := range document {
+			if key != "$schema" && key != "mcpServers" {
+				valid = false
+			}
+		}
+		if !valid {
+			pkg.diagnose(path, "invalid_component")
+			return
+		}
+	}
+	var servers map[string]json.RawMessage
+	if json.Unmarshal(document["mcpServers"], &servers) != nil || servers == nil {
+		pkg.diagnose(path, "invalid_component")
+		return
+	}
+	pkg.loadServers(root, servers)
+}
+
+func (p *Package) loadDeclaredMCP(root string, value json.RawMessage) {
+	var path string
+	if json.Unmarshal(value, &path) == nil {
+		if filepath.ToSlash(filepath.Clean(path)) != ".mcp.json" {
+			p.loadMCPFile(root, path, true)
+		}
+		return
+	}
+	var inline map[string]json.RawMessage
+	if json.Unmarshal(value, &inline) == nil && inline != nil {
+		p.loadServers(root, inline)
+		return
+	}
+	var items []json.RawMessage
+	if json.Unmarshal(value, &items) == nil && items != nil {
+		for _, item := range items {
+			// MCP 声明只接受一层路径或对象，不展开嵌套数组。
+			if text := strings.TrimSpace(string(item)); text != "" && text[0] != '[' {
+				p.loadDeclaredMCP(root, item)
+			} else {
+				p.diagnose("mcpServers", "invalid_component")
+			}
+		}
+		return
+	}
+	p.diagnose("mcpServers", "invalid_component")
 }
 
 func (p *Package) diagnose(component, code string) {
@@ -289,12 +342,12 @@ func stringEquals(raw json.RawMessage, want string) bool {
 }
 func decodePaths(raw json.RawMessage, result *[]string) error {
 	var one string
-	if json.Unmarshal(raw, &one) == nil {
+	if validString(raw) && json.Unmarshal(raw, &one) == nil {
 		*result = []string{one}
 		return nil
 	}
 	var paths []string
-	if json.Unmarshal(raw, &paths) != nil || paths == nil {
+	if !validStringArray(raw) || json.Unmarshal(raw, &paths) != nil || paths == nil {
 		return status_error.PluginContentInvalid
 	}
 	*result = paths
@@ -331,7 +384,7 @@ func (p *Package) loadSkills(root, relative string, seen map[string]bool) {
 		p.diagnose(relative, "invalid_component")
 		return
 	}
-	if _, err := os.Lstat(filepath.Join(path, "SKILL.md")); err == nil && p.Format == constants.PluginFormatClaude {
+	if _, err := os.Lstat(filepath.Join(path, "SKILL.md")); err == nil && p.compatibilityFormat() {
 		p.loadSkill(root, relative, seen)
 		return
 	}
@@ -345,6 +398,8 @@ func (p *Package) loadSkills(root, relative string, seen map[string]bool) {
 	}
 }
 func (p *Package) loadSkill(root, relative string, seen map[string]bool) {
+	// 默认目录发现和显式单技能路径必须形成同一组件身份。
+	relative = filepath.ToSlash(filepath.Clean(filepath.FromSlash(relative)))
 	if seen[relative] {
 		return
 	}
@@ -386,7 +441,7 @@ func (p *Package) loadServers(root string, definitions map[string]json.RawMessag
 			p.diagnose(key, "invalid_mcp")
 			continue
 		}
-		if p.Format == constants.PluginFormatClaude {
+		if p.compatibilityFormat() {
 			if server.Type == "" && server.Command != "" {
 				server.Type = "stdio"
 			}
@@ -417,7 +472,7 @@ func (p *Package) loadServers(root string, definitions map[string]json.RawMessag
 				valid = false
 			}
 			commandForValidation, cwdForValidation := server.Command, server.Cwd
-			if p.Format == constants.PluginFormatClaude {
+			if p.compatibilityFormat() {
 				commandForValidation = strings.ReplaceAll(commandForValidation, "${CLAUDE_PLUGIN_ROOT}", "${PLUGIN_ROOT}")
 				cwdForValidation = strings.ReplaceAll(strings.ReplaceAll(cwdForValidation, "${CLAUDE_PLUGIN_ROOT}", "${PLUGIN_ROOT}"), "${CLAUDE_PLUGIN_DATA}", "${PLUGIN_DATA}")
 			}
@@ -427,7 +482,7 @@ func (p *Package) loadServers(root string, definitions map[string]json.RawMessag
 			if strings.ContainsAny(commandForValidation, "/\\") && !strings.HasPrefix(commandForValidation, "${PLUGIN_ROOT}/") && !strings.HasPrefix(commandForValidation, "./") {
 				valid = false
 			}
-			if strings.HasPrefix(commandForValidation, "./") || (p.Format == constants.PluginFormatClaude && strings.HasPrefix(commandForValidation, "${PLUGIN_ROOT}/")) {
+			if strings.HasPrefix(commandForValidation, "./") || (p.compatibilityFormat() && strings.HasPrefix(commandForValidation, "${PLUGIN_ROOT}/")) {
 				_, err := contained(root, strings.TrimPrefix(strings.TrimPrefix(commandForValidation, "${PLUGIN_ROOT}/"), "./"))
 				if err != nil {
 					valid = false
@@ -461,7 +516,7 @@ func (p *Package) loadServers(root string, definitions map[string]json.RawMessag
 			}
 		}
 		for _, existing := range p.Servers {
-			if existing.Key == key {
+			if existing.Key == key && !p.compatibilityFormat() {
 				valid = false
 			}
 		}
@@ -470,6 +525,14 @@ func (p *Package) loadServers(root string, definitions map[string]json.RawMessag
 			continue
 		}
 		server.Key = key
+		if p.compatibilityFormat() {
+			for index, existing := range p.Servers {
+				if existing.Key == key {
+					p.Servers = append(p.Servers[:index], p.Servers[index+1:]...)
+					break
+				}
+			}
+		}
 		if server.Args == nil {
 			server.Args = []string{}
 		}

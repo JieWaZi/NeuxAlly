@@ -1,76 +1,62 @@
-import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it, vi } from "vitest";
-
+import { afterEach, expect, it, vi } from "vitest";
 import "@/shared/i18n";
-
+import { toSkillSummary } from "../model/skill-view";
 import { SkillCard } from "./skill-card";
 
-const skill = {
-  id: "code-review",
-  name: "代码审查",
-  description: "检查当前改动。",
-  version: "1.0.0",
-  scope: "built_in" as const,
-  source: "ally" as const,
-  enabled: true,
-  affectedWakerCount: 1,
-  updatedAt: "2026-08-05T08:00:00Z",
-};
+const avatar = vi.hoisted(() => vi.fn());
+vi.mock("@/shared/ui/avatar", () => ({
+  Avatar: (props: unknown) => {
+    avatar(props);
+    return <span data-testid="installed-partner-avatar" />;
+  },
+}));
+afterEach(() => {
+  cleanup();
+  avatar.mockClear();
+});
 
-describe("SkillCard", () => {
-  it("separates detail navigation from the partner enable switch", async () => {
-    const user = userEvent.setup();
-    const onEnabledChange = vi.fn();
-
-    render(
-      <MemoryRouter>
-        <SkillCard
-          skill={skill}
-          wakerId="waker-1"
-          onEnabledChange={onEnabledChange}
-        />
-      </MemoryRouter>,
-    );
-
-    expect(
-      screen.getByRole("link", { name: "查看技能 代码审查" }),
-    ).toHaveAttribute("href", "/wakers/waker-1/skills/code-review");
-
-    await user.click(screen.getByRole("switch", { name: "停用 代码审查" }));
-    expect(onEnabledChange).toHaveBeenCalledWith(false);
-    expect(
-      screen.queryByRole("button", { name: "卸载技能 代码审查" }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("checkbox", { name: "选择技能 代码审查" }),
-    ).not.toBeInTheDocument();
+it("shows actual installed partner profiles and offers manage and uninstall", () => {
+  const skill = toSkillSummary({
+    skill: { id: "writing", name: "writing-skills", source: "git" },
+    affectedWakerCount: 6,
+    installedPartners: Array.from({ length: 4 }, (_, index) => ({
+      id: `partner-${index}`,
+      name: `伙伴${index}`,
+      avatar: `actual-avatar-${index}`,
+    })),
   });
-
-  it("exposes selection and uninstall actions outside the detail link", async () => {
-    const user = userEvent.setup();
-    const onDelete = vi.fn();
-    const onSelectedChange = vi.fn();
-
-    render(
-      <MemoryRouter>
-        <SkillCard
-          skill={{ ...skill, scope: "public", source: "git" }}
-          wakerId="waker-1"
-          onDelete={onDelete}
-          onEnabledChange={vi.fn()}
-          onSelectedChange={onSelectedChange}
-        />
-      </MemoryRouter>,
-    );
-
-    await user.click(
-      screen.getByRole("checkbox", { name: "选择技能 代码审查" }),
-    );
-    expect(onSelectedChange).toHaveBeenCalledWith(true);
-
-    await user.click(screen.getByRole("button", { name: "卸载技能 代码审查" }));
-    expect(onDelete).toHaveBeenCalledTimes(1);
-  });
+  if (!skill) throw new Error("missing skill fixture");
+  const uninstall = vi.fn();
+  render(
+    <MemoryRouter>
+      <SkillCard
+        compact
+        skill={skill}
+        wakerId="w1"
+        onEnabledChange={vi.fn()}
+        onDelete={uninstall}
+      />
+    </MemoryRouter>,
+  );
+  expect(screen.getByText("6 个伙伴使用")).toBeVisible();
+  expect(screen.getByText("来自 Git")).toBeVisible();
+  expect(screen.getAllByTestId("installed-partner-avatar")).toHaveLength(4);
+  expect(avatar.mock.calls.map(([props]) => props.src)).toEqual([
+    "actual-avatar-0",
+    "actual-avatar-1",
+    "actual-avatar-2",
+    "actual-avatar-3",
+  ]);
+  fireEvent.pointerDown(
+    screen.getByRole("button", { name: "writing-skills更多操作" }),
+    { button: 0, ctrlKey: false },
+  );
+  expect(screen.getByRole("menuitem", { name: "管理" })).toHaveAttribute(
+    "href",
+    "/wakers/w1/skills/writing",
+  );
+  fireEvent.click(screen.getByRole("menuitem", { name: "卸载" }));
+  expect(uninstall).toHaveBeenCalledOnce();
 });

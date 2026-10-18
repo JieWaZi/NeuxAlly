@@ -99,7 +99,7 @@ func pluginDetail(ctx context.Context, resource models.Plugin, selectedVersion .
 	return detailFromState(ctx, resource, states[resource.ID], selectedVersion...)
 }
 func detailFromState(ctx context.Context, resource models.Plugin, state models.PluginState, selectedVersion ...string) (PluginDetailResponse, error) {
-	result := PluginDetailResponse{Plugin: resource, PartnerNames: state.PartnerNames, Versions: state.Versions, Installations: state.Installations, Values: map[string]string{}, Fields: []packageplugin.ConfigurationField{}, ConfiguredSecrets: []string{}, Blockers: []string{}, Account: authorization.Account{Scopes: []string{}}}
+	result := PluginDetailResponse{Plugin: resource, PartnerNames: state.PartnerNames, PartnerAvatars: state.PartnerAvatars, Versions: state.Versions, Installations: state.Installations, Values: map[string]string{}, Fields: []packageplugin.ConfigurationField{}, ConfiguredSecrets: []string{}, Blockers: []string{}, Account: authorization.Account{Scopes: []string{}}}
 	config := state.Configuration
 
 	result.Values = config.Values
@@ -185,6 +185,9 @@ func prepareResource(ctx context.Context, stage packageplugin.StagedPackage, own
 	if resource.ID == "" {
 		name := extension.DisplayName
 		if name == "" {
+			name = stage.Package.Presentation.DisplayName
+		}
+		if name == "" {
 			name = stage.Package.Manifest.Name
 		}
 		resource = models.Plugin{ID: util.New(), Name: name, Description: stage.Package.Manifest.Description, SourceKey: source, OwnerWakerID: owner}
@@ -214,6 +217,7 @@ func prepareResource(ctx context.Context, stage packageplugin.StagedPackage, own
 			return PluginDetailResponse{}, status_error.PluginContentInvalid
 		}
 	}
+	preparedVersionID := ""
 	err = global.TransactionControllerManager.Transaction(ctx, func(txctx context.Context) error {
 		existing, err := global.PluginControllerManager.FindSource(txctx, resource.OwnerWakerID, resource.SourceKey)
 		if err != nil {
@@ -231,13 +235,14 @@ func prepareResource(ctx context.Context, stage packageplugin.StagedPackage, own
 				return err
 			}
 		}
-		_, err = global.PluginControllerManager.PutVersion(txctx, version)
+		stored, err := global.PluginControllerManager.PutVersion(txctx, version)
+		preparedVersionID = stored.ID
 		return err
 	})
 	if err != nil {
 		return PluginDetailResponse{}, err
 	}
-	return pluginDetail(ctx, resource)
+	return pluginDetail(ctx, resource, preparedVersionID)
 }
 
 // providerSnapshotKey 只在一次列表查询内复用官方身份结果。

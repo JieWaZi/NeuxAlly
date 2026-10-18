@@ -10,7 +10,7 @@
     "dev:server": "pnpm pi:bridge:generate && node scripts/dev-server.mjs",
     "icon:generate": "sh ./scripts/generate-macos-app-icon.sh",
     "api:generate": "sh ./scripts/generate-api.sh",
-    "api:check": "node --test scripts/normalize-openapi.test.mjs && sh ./scripts/check-generated-api.sh",
+    "api:check": "node --test scripts/normalize-openapi.test.mjs scripts/generate-api.test.mjs && sh ./scripts/check-generated-api.sh",
     "build:server": "node ./scripts/build-server.mjs",
     "build:sidecar": "pnpm pi:bridge:generate && node ./scripts/build-sidecar.mjs",
     "pi:bridge:generate": "pnpm --dir desktop/pi-bridge build",

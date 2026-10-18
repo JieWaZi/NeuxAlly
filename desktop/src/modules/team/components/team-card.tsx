@@ -1,4 +1,4 @@
-import { Card, CardFooter } from "@/shared/ui/card";
+import { Card, CardBody, CardFooter } from "@/shared/ui/card";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   localApiErrorMessage,
@@ -49,32 +49,34 @@ export function TeamCard({
     <>
       <Card asChild variant="resource">
         <article>
-          <button
-            type="button"
-            aria-label={t("editCard", { name: channel.name ?? t("title") })}
-            onClick={() => setEditing(true)}
-            className="hover:bg-surface-subtle grid min-h-32 w-full grid-cols-[auto_minmax(0,1fr)] gap-4 p-5 text-left transition-colors"
-          >
-            <TeamAvatarStack members={members} />
-            <span className="min-w-0">
-              <span className="flex items-center gap-2">
-                <strong className="type-label truncate font-medium">
-                  {channel.name}
-                </strong>
-                <span className="text-muted-foreground type-caption shrink-0">
-                  {t("membersCount", { count: members.length })}
+          <CardBody asChild>
+            <button
+              type="button"
+              aria-label={t("editCard", { name: channel.name ?? t("title") })}
+              onClick={() => setEditing(true)}
+              className="grid min-h-32 w-full grid-cols-[auto_minmax(0,1fr)] gap-4 p-5 text-left transition-colors"
+            >
+              <TeamAvatarStack members={members} />
+              <span className="min-w-0">
+                <span className="flex items-center gap-2">
+                  <strong className="type-label truncate font-medium">
+                    {channel.name}
+                  </strong>
+                  <span className="text-muted-foreground type-caption shrink-0">
+                    {t("membersCount", { count: members.length })}
+                  </span>
+                </span>
+                <span className="text-muted-foreground type-body mt-2 line-clamp-2">
+                  {channel.description || t("noDescription")}
+                </span>
+                <span className="text-muted-foreground type-caption mt-2 block truncate">
+                  {t("lead", {
+                    name: lead?.waker?.name ?? t("unnamedMember"),
+                  })}
                 </span>
               </span>
-              <span className="text-muted-foreground type-body mt-2 line-clamp-2">
-                {channel.description || t("noDescription")}
-              </span>
-              <span className="text-muted-foreground type-caption mt-2 block truncate">
-                {t("lead", {
-                  name: lead?.waker?.name ?? t("unnamedMember"),
-                })}
-              </span>
-            </span>
-          </button>
+            </button>
+          </CardBody>
           <CardFooter className="grid grid-cols-[1fr_44px] gap-0 px-0">
             <Link
               to={`/teams/${channel.id}`}

@@ -6,15 +6,29 @@ export function ReadOnlyField({
   label,
   children,
   className,
+  layout = "stacked",
 }: {
   label: ReactNode;
   children: ReactNode;
   className?: string;
+  layout?: "stacked" | "row";
 }) {
   return (
-    <div className={cn("min-w-0", className)}>
+    <div
+      className={cn(
+        "min-w-0",
+        layout === "row" &&
+          "grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] items-center gap-x-3",
+        className,
+      )}
+    >
       <dt className="text-content-secondary type-ui">{label}</dt>
-      <dd className="type-body mt-1 min-w-0 [overflow-wrap:anywhere] whitespace-pre-wrap">
+      <dd
+        className={cn(
+          "type-body min-w-0 [overflow-wrap:anywhere] whitespace-pre-wrap",
+          layout === "stacked" && "mt-1",
+        )}
+      >
         {children}
       </dd>
     </div>

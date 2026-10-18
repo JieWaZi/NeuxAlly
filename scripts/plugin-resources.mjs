@@ -276,6 +276,46 @@ export async function prepareCatalog(output) {
   }
 }
 
+// 用户说明从固定源生成；仅在包身份和能力集合相同时用于已安装的旧快照。
+export async function syncPluginGuides(catalog, checking = false) {
+  const lock = await loadLock();
+  const guides = catalog.entries.map((entry) => {
+    const pkg = entry.package;
+    if (!pkg.readme?.trim() || !pkg.manifest.description?.trim())
+      throw new Error(
+        `内置插件 ${entry.key} 必须提供简介和面向用户的 Markdown 说明`,
+      );
+    const provider = lock.providers.find(
+      (item) => item.name === pkg.manifest.extensions?.["com.ally"]?.provider,
+    );
+    return {
+      key: entry.key,
+      name: pkg.manifest.name,
+      repository: pkg.manifest.repository,
+      skills: (pkg.skills ?? []).map((item) => item.key).sort(),
+      connectors: (pkg.servers ?? []).map((item) => item.key).sort(),
+      summary: pkg.presentation.shortDescription,
+      readme: pkg.readme,
+      upstreamVersion: provider?.version ?? pkg.manifest.version,
+    };
+  });
+  const destination = path.join(
+    root,
+    "desktop/src/modules/plugin/model/builtin-plugin-guides.gen.json",
+  );
+  const text = await requireDesktop("prettier").format(JSON.stringify(guides), {
+    parser: "json",
+  });
+  if (checking) {
+    if ((await readFile(destination, "utf8")) !== text)
+      throw new Error(
+        "内置插件说明未同步，请运行 node scripts/plugin-resources.mjs --guides-only",
+      );
+  } else {
+    await writeFile(destination, text);
+  }
+}
+
 // 下载只发生于开发或打包阶段；校验完整压缩资产后再提取单个原生程序。
 export async function prepareProvider(output, target, options = {}) {
   const lock = await loadLock();
@@ -417,12 +457,15 @@ if (
   import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href
 ) {
   const checking = process.argv.includes("--check");
-  const output = checking
-    ? await mkdtemp(path.join(os.tmpdir(), "plugin-check-"))
-    : path.join(root, "desktop/resources/plugins");
+  const guidesOnly = process.argv.includes("--guides-only");
+  const output =
+    checking || guidesOnly
+      ? await mkdtemp(path.join(os.tmpdir(), "plugin-check-"))
+      : path.join(root, "desktop/resources/plugins");
   try {
-    await prepareCatalog(output);
-    if (!checking) {
+    const catalog = await prepareCatalog(output);
+    await syncPluginGuides(catalog, checking);
+    if (!checking && !guidesOnly) {
       const target =
         process.argv.find(
           (value, index) => index > 1 && !value.startsWith("--"),
@@ -432,8 +475,15 @@ if (
       });
       await verifyPrepared(output, target);
     }
-    console.log(checking ? "固定插件源与目录检查通过" : "固定插件资源准备完成");
+    console.log(
+      checking
+        ? "固定插件源与目录检查通过"
+        : guidesOnly
+          ? "内置插件用户说明生成完成"
+          : "固定插件资源准备完成",
+    );
   } finally {
-    if (checking) await rm(output, { recursive: true, force: true });
+    if (checking || guidesOnly)
+      await rm(output, { recursive: true, force: true });
   }
 }

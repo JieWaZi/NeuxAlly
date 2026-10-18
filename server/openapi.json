@@ -10165,6 +10165,113 @@
         }
       }
     },
+    "/api/v1/plugins/catalog/{key}/skill": {
+      "get": {
+        "tags": [
+          "github.com/JieWaZi/NeuxAlly/server/apis/plugins"
+        ],
+        "summary": "查看目录插件技能",
+        "operationId": "GetCatalogPluginSkill",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "description": "目录条目",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "目录条目",
+              "x-go-field-name": "Key",
+              "x-tag-in": "path",
+              "x-tag-name": "key",
+              "x-tag-validate": "required"
+            }
+          },
+          {
+            "name": "path",
+            "in": "query",
+            "description": "资源路径",
+            "schema": {
+              "type": "string",
+              "description": "资源路径",
+              "x-go-field-name": "FilePath",
+              "x-tag-in": "query",
+              "x-tag-name": "path"
+            }
+          },
+          {
+            "name": "skillKey",
+            "in": "query",
+            "description": "组件标识",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "组件标识",
+              "x-go-field-name": "SkillKey",
+              "x-tag-in": "query",
+              "x-tag-name": "skillKey",
+              "x-tag-validate": "required"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComJieWaZiNeuxAllyServerApisPluginsPluginSkillResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": ">\n* `[PluginContentInvalid][40000006502]`\n* `[PluginContentLimitExceeded][40000006503]`\n* `[PluginManifestInvalid][40000006501]`\n* `[SkillContentInvalid][40000000013]`\n* `[SkillContentLimitExceeded][40000000014]`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
+                }
+              }
+            },
+            "x-status-errors": [
+              "[PluginContentInvalid][40000006502]",
+              "[PluginContentLimitExceeded][40000006503]",
+              "[PluginManifestInvalid][40000006501]",
+              "[SkillContentInvalid][40000000013]",
+              "[SkillContentLimitExceeded][40000000014]"
+            ]
+          },
+          "404": {
+            "description": ">\n* `[PluginNotFound][40400006501]`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
+                }
+              }
+            },
+            "x-status-errors": [
+              "[PluginNotFound][40400006501]"
+            ]
+          },
+          "500": {
+            "description": ">\n* `[PluginStorageError][50000006501]`\n* `[SkillUnavailable][50000000008]`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
+                }
+              }
+            },
+            "x-status-errors": [
+              "[PluginStorageError][50000006501]",
+              "[SkillUnavailable][50000000008]"
+            ]
+          }
+        }
+      }
+    },
     "/api/v1/plugins/prepare": {
       "post": {
         "tags": [
@@ -10568,7 +10675,7 @@
             }
           },
           "400": {
-            "description": ">\n* `[PluginContentInvalid][40000006502]`\n* `[PluginManifestInvalid][40000006501]`\n* `[SkillContentInvalid][40000000013]`\n* `[SkillContentLimitExceeded][40000000014]`\n",
+            "description": ">\n* `[PluginContentInvalid][40000006502]`\n* `[PluginContentLimitExceeded][40000006503]`\n* `[PluginManifestInvalid][40000006501]`\n* `[SkillContentInvalid][40000000013]`\n* `[SkillContentLimitExceeded][40000000014]`\n",
             "content": {
               "application/json": {
                 "schema": {
@@ -10578,6 +10685,7 @@
             },
             "x-status-errors": [
               "[PluginContentInvalid][40000006502]",
+              "[PluginContentLimitExceeded][40000006503]",
               "[PluginManifestInvalid][40000006501]",
               "[SkillContentInvalid][40000000013]",
               "[SkillContentLimitExceeded][40000000014]"
@@ -10666,7 +10774,7 @@
             }
           },
           "400": {
-            "description": ">\n* `[BadRequest][40000000001]`\n",
+            "description": ">\n* `[BadRequest][40000000001]`\n* `[PluginManifestInvalid][40000006501]`\n",
             "content": {
               "application/json": {
                 "schema": {
@@ -10675,7 +10783,8 @@
               }
             },
             "x-status-errors": [
-              "[BadRequest][40000000001]"
+              "[BadRequest][40000000001]",
+              "[PluginManifestInvalid][40000006501]"
             ]
           },
           "403": {
@@ -10691,8 +10800,8 @@
               "[PluginForbidden][40300006501]"
             ]
           },
-          "409": {
-            "description": ">\n* `[PluginVersionConflict][40900006501]`\n",
+          "408": {
+            "description": ">\n* `[OperationCanceled][40800000001]`\n",
             "content": {
               "application/json": {
                 "schema": {
@@ -10701,6 +10810,20 @@
               }
             },
             "x-status-errors": [
+              "[OperationCanceled][40800000001]"
+            ]
+          },
+          "409": {
+            "description": ">\n* `[PluginBusy][40900006505]`\n* `[PluginVersionConflict][40900006501]`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
+                }
+              }
+            },
+            "x-status-errors": [
+              "[PluginBusy][40900006505]",
               "[PluginVersionConflict][40900006501]"
             ]
           }
@@ -11814,6 +11937,19 @@
               "[PluginNotFound][40400006501]"
             ]
           },
+          "408": {
+            "description": ">\n* `[OperationCanceled][40800000001]`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
+                }
+              }
+            },
+            "x-status-errors": [
+              "[OperationCanceled][40800000001]"
+            ]
+          },
           "409": {
             "description": ">\n* `[PluginNotReady][40900006503]`\n* `[PluginVersionConflict][40900006501]`\n",
             "content": {
@@ -12345,6 +12481,149 @@
               "[AgentConnectionUnavailable][50300009001]",
               "[DatabaseBusy][50300001001]",
               "[IMServiceUnavailable][50300004001]"
+            ]
+          }
+        }
+      }
+    },
+    "/api/v1/plugins/{pluginId}/skill": {
+      "get": {
+        "tags": [
+          "github.com/JieWaZi/NeuxAlly/server/apis/plugins"
+        ],
+        "summary": "查看插件技能",
+        "operationId": "GetPluginSkill",
+        "parameters": [
+          {
+            "name": "pluginId",
+            "in": "path",
+            "description": "插件标识",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "插件标识",
+              "x-go-field-name": "PluginID",
+              "x-tag-in": "path",
+              "x-tag-name": "pluginId",
+              "x-tag-validate": "required"
+            }
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "description": "组件标识",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "组件标识",
+              "x-go-field-name": "Key",
+              "x-tag-in": "query",
+              "x-tag-name": "key",
+              "x-tag-validate": "required"
+            }
+          },
+          {
+            "name": "path",
+            "in": "query",
+            "description": "资源路径",
+            "schema": {
+              "type": "string",
+              "description": "资源路径",
+              "x-go-field-name": "FilePath",
+              "x-tag-in": "query",
+              "x-tag-name": "path"
+            }
+          },
+          {
+            "name": "versionId",
+            "in": "query",
+            "description": "版本标识",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "版本标识",
+              "x-go-field-name": "VersionID",
+              "x-tag-in": "query",
+              "x-tag-name": "versionId",
+              "x-tag-validate": "required"
+            }
+          },
+          {
+            "name": "wakerId",
+            "in": "query",
+            "description": "所属伙伴",
+            "schema": {
+              "type": "string",
+              "description": "所属伙伴",
+              "x-go-field-name": "WakerID",
+              "x-tag-in": "query",
+              "x-tag-name": "wakerId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComJieWaZiNeuxAllyServerApisPluginsPluginSkillResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": ">\n* `[PluginContentInvalid][40000006502]`\n* `[PluginContentLimitExceeded][40000006503]`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
+                }
+              }
+            },
+            "x-status-errors": [
+              "[PluginContentInvalid][40000006502]",
+              "[PluginContentLimitExceeded][40000006503]"
+            ]
+          },
+          "403": {
+            "description": ">\n* `[PluginForbidden][40300006501]`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
+                }
+              }
+            },
+            "x-status-errors": [
+              "[PluginForbidden][40300006501]"
+            ]
+          },
+          "409": {
+            "description": ">\n* `[PluginNotReady][40900006503]`\n* `[PluginVersionConflict][40900006501]`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
+                }
+              }
+            },
+            "x-status-errors": [
+              "[PluginNotReady][40900006503]",
+              "[PluginVersionConflict][40900006501]"
+            ]
+          },
+          "500": {
+            "description": ">\n* `[PluginStorageError][50000006501]`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
+                }
+              }
+            },
+            "x-status-errors": [
+              "[PluginStorageError][50000006501]"
             ]
           }
         }
@@ -19283,6 +19562,19 @@
               }
             }
           },
+          "400": {
+            "description": ">\n* `[PluginManifestInvalid][40000006501]`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
+                }
+              }
+            },
+            "x-status-errors": [
+              "[PluginManifestInvalid][40000006501]"
+            ]
+          },
           "403": {
             "description": ">\n* `[PluginForbidden][40300006501]`\n",
             "content": {
@@ -19294,6 +19586,33 @@
             },
             "x-status-errors": [
               "[PluginForbidden][40300006501]"
+            ]
+          },
+          "408": {
+            "description": ">\n* `[OperationCanceled][40800000001]`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
+                }
+              }
+            },
+            "x-status-errors": [
+              "[OperationCanceled][40800000001]"
+            ]
+          },
+          "409": {
+            "description": ">\n* `[PluginBusy][40900006505]`\n* `[PluginVersionConflict][40900006501]`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
+                }
+              }
+            },
+            "x-status-errors": [
+              "[PluginBusy][40900006505]",
+              "[PluginVersionConflict][40900006501]"
             ]
           }
         }
@@ -28885,6 +29204,17 @@
             "description": "安装关系",
             "x-go-field-name": "Installations"
           },
+          "partnerAvatars": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "propertyNames": {
+              "type": "string"
+            },
+            "description": "伙伴头像",
+            "x-go-field-name": "PartnerAvatars"
+          },
           "partnerNames": {
             "type": "object",
             "additionalProperties": {
@@ -28953,6 +29283,107 @@
         "description": "插件启停请求",
         "x-go-struct-name": "GithubComJieWaZiNeuxAllyServerApisPluginsPluginEnabledRequest",
         "x-go-vendor-type": "github.com/JieWaZi/NeuxAlly/server/apis/plugins.PluginEnabledRequest"
+      },
+      "GithubComJieWaZiNeuxAllyServerApisPluginsPluginSkillResponse": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string",
+            "description": "技能正文",
+            "x-go-field-name": "Content"
+          },
+          "file": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GithubComJieWaZiNeuxAllyServerInternalPackagefilesResourceFile"
+              },
+              {
+                "description": "选中文件",
+                "x-go-field-name": "File",
+                "x-go-star-level": 1,
+                "x-tag-json": "file,omitempty"
+              }
+            ]
+          },
+          "resources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GithubComJieWaZiNeuxAllyServerInternalPackagefilesResourceEntry"
+            },
+            "description": "资源列表",
+            "x-go-field-name": "Resources"
+          },
+          "skill": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GithubComJieWaZiNeuxAllyServerInternalPluginsSkill"
+              },
+              {
+                "description": "技能资料",
+                "x-go-field-name": "Skill"
+              }
+            ]
+          },
+          "version": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GithubComJieWaZiNeuxAllyServerApisPluginsPluginSkillVersion"
+              },
+              {
+                "description": "当前版本",
+                "x-go-field-name": "Version"
+              }
+            ]
+          },
+          "versions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GithubComJieWaZiNeuxAllyServerApisPluginsPluginSkillVersion"
+            },
+            "description": "历史版本",
+            "x-go-field-name": "Versions"
+          }
+        },
+        "description": "插件技能正文",
+        "x-go-struct-name": "GithubComJieWaZiNeuxAllyServerApisPluginsPluginSkillResponse",
+        "x-go-vendor-type": "github.com/JieWaZi/NeuxAlly/server/apis/plugins.PluginSkillResponse"
+      },
+      "GithubComJieWaZiNeuxAllyServerApisPluginsPluginSkillVersion": {
+        "type": "object",
+        "properties": {
+          "createdAt": {
+            "type": "integer",
+            "format": "int64",
+            "description": "登记时间",
+            "x-go-field-name": "CreatedAt",
+            "x-tag-json": "createdAt,omitempty"
+          },
+          "id": {
+            "type": "string",
+            "description": "版本标识",
+            "x-go-field-name": "ID",
+            "x-tag-json": "id,omitempty"
+          },
+          "skill": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GithubComJieWaZiNeuxAllyServerInternalPluginsSkill"
+              },
+              {
+                "description": "技能资料",
+                "x-go-field-name": "Skill"
+              }
+            ]
+          },
+          "version": {
+            "type": "string",
+            "description": "插件版本",
+            "x-go-field-name": "Version"
+          }
+        },
+        "description": "插件技能版本",
+        "x-go-struct-name": "GithubComJieWaZiNeuxAllyServerApisPluginsPluginSkillVersion",
+        "x-go-vendor-type": "github.com/JieWaZi/NeuxAlly/server/apis/plugins.PluginSkillVersion"
       },
       "GithubComJieWaZiNeuxAllyServerApisPluginsPrepareCatalogPluginRequest": {
         "type": "object",
@@ -30117,6 +30548,29 @@
         "x-go-struct-name": "GithubComJieWaZiNeuxAllyServerApisSkillsSkillImportCandidate",
         "x-go-vendor-type": "github.com/JieWaZi/NeuxAlly/server/apis/skills.SkillImportCandidate"
       },
+      "GithubComJieWaZiNeuxAllyServerApisSkillsSkillPartnerResponse": {
+        "type": "object",
+        "properties": {
+          "avatar": {
+            "type": "string",
+            "description": "伙伴头像",
+            "x-go-field-name": "Avatar"
+          },
+          "id": {
+            "type": "string",
+            "description": "伙伴标识",
+            "x-go-field-name": "ID"
+          },
+          "name": {
+            "type": "string",
+            "description": "伙伴名称",
+            "x-go-field-name": "Name"
+          }
+        },
+        "description": "技能安装伙伴",
+        "x-go-struct-name": "GithubComJieWaZiNeuxAllyServerApisSkillsSkillPartnerResponse",
+        "x-go-vendor-type": "github.com/JieWaZi/NeuxAlly/server/apis/skills.SkillPartnerResponse"
+      },
       "GithubComJieWaZiNeuxAllyServerApisSkillsSkillResourceEntry": {
         "type": "object",
         "properties": {
@@ -30317,6 +30771,14 @@
             "type": "boolean",
             "description": "启用状态",
             "x-go-field-name": "Enabled"
+          },
+          "installedPartners": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GithubComJieWaZiNeuxAllyServerApisSkillsSkillPartnerResponse"
+            },
+            "description": "安装伙伴预览",
+            "x-go-field-name": "InstalledPartners"
           },
           "skill": {
             "allOf": [
@@ -33897,6 +34359,85 @@
         "x-go-struct-name": "GithubComJieWaZiNeuxAllyServerInternalChatMessageviewToolSafeSummary",
         "x-go-vendor-type": "github.com/JieWaZi/NeuxAlly/server/internal/chat/messageview.ToolSafeSummary"
       },
+      "GithubComJieWaZiNeuxAllyServerInternalPackagefilesResourceEntry": {
+        "type": "object",
+        "properties": {
+          "digest": {
+            "type": "string",
+            "description": "内容摘要",
+            "x-go-field-name": "Digest",
+            "x-tag-json": "digest,omitempty"
+          },
+          "directory": {
+            "type": "boolean",
+            "description": "是否目录",
+            "x-go-field-name": "Directory"
+          },
+          "executable": {
+            "type": "boolean",
+            "description": "可执行权限",
+            "x-go-field-name": "Executable",
+            "x-tag-json": "executable,omitempty"
+          },
+          "path": {
+            "type": "string",
+            "description": "资源路径",
+            "x-go-field-name": "Path"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int64",
+            "description": "字节数",
+            "x-go-field-name": "Size",
+            "x-tag-json": "size,omitempty"
+          }
+        },
+        "description": "资源条目",
+        "x-go-struct-name": "GithubComJieWaZiNeuxAllyServerInternalPackagefilesResourceEntry",
+        "x-go-vendor-type": "github.com/JieWaZi/NeuxAlly/server/internal/packagefiles.ResourceEntry"
+      },
+      "GithubComJieWaZiNeuxAllyServerInternalPackagefilesResourceFile": {
+        "type": "object",
+        "properties": {
+          "binary": {
+            "type": "boolean",
+            "description": "是否二进制",
+            "x-go-field-name": "Binary"
+          },
+          "content": {
+            "type": "string",
+            "description": "文件内容",
+            "x-go-field-name": "Content",
+            "x-tag-json": "content,omitempty"
+          },
+          "contentBase64": {
+            "type": "string",
+            "description": "编码内容",
+            "x-go-field-name": "ContentBase64",
+            "x-tag-json": "contentBase64,omitempty"
+          },
+          "executable": {
+            "type": "boolean",
+            "description": "可执行权限",
+            "x-go-field-name": "Executable",
+            "x-tag-json": "executable,omitempty"
+          },
+          "path": {
+            "type": "string",
+            "description": "资源路径",
+            "x-go-field-name": "Path"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int64",
+            "description": "字节数",
+            "x-go-field-name": "Size"
+          }
+        },
+        "description": "资源文件",
+        "x-go-struct-name": "GithubComJieWaZiNeuxAllyServerInternalPackagefilesResourceFile",
+        "x-go-vendor-type": "github.com/JieWaZi/NeuxAlly/server/internal/packagefiles.ResourceFile"
+      },
       "GithubComJieWaZiNeuxAllyServerInternalPluginsAuthor": {
         "type": "object",
         "properties": {
@@ -34229,13 +34770,19 @@
             "items": {
               "$ref": "#/components/schemas/GithubComJieWaZiNeuxAllyServerInternalPluginsDiagnostic"
             },
-            "description": "Diagnostics 是不阻断其他组件的逐项诊断。",
+            "description": "兼容性说明",
             "x-go-field-name": "Diagnostics"
           },
           "format": {
             "type": "string",
-            "description": "Format 是实际采用的包格式。",
+            "description": "包格式",
             "x-go-field-name": "Format"
+          },
+          "icon": {
+            "type": "string",
+            "description": "软件图标",
+            "x-go-field-name": "Icon",
+            "x-tag-json": "icon,omitempty"
           },
           "manifest": {
             "allOf": [
@@ -34243,17 +34790,34 @@
                 "$ref": "#/components/schemas/GithubComJieWaZiNeuxAllyServerInternalPluginsManifest"
               },
               {
-                "description": "Manifest 是已验证的包元数据。",
+                "description": "元数据",
                 "x-go-field-name": "Manifest"
               }
             ]
+          },
+          "presentation": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GithubComJieWaZiNeuxAllyServerInternalPluginsPresentation"
+              },
+              {
+                "description": "展示资料",
+                "x-go-field-name": "Presentation"
+              }
+            ]
+          },
+          "readme": {
+            "type": "string",
+            "description": "插件说明",
+            "x-go-field-name": "Readme",
+            "x-tag-json": "readme,omitempty"
           },
           "servers": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/GithubComJieWaZiNeuxAllyServerInternalPluginsServer"
             },
-            "description": "Servers 是可交付 MCP 定义，按组件键排序。",
+            "description": "包含连接器",
             "x-go-field-name": "Servers"
           },
           "skills": {
@@ -34261,13 +34825,69 @@
             "items": {
               "$ref": "#/components/schemas/GithubComJieWaZiNeuxAllyServerInternalPluginsSkill"
             },
-            "description": "Skills 是可交付技能，按组件键排序。",
+            "description": "包含技能",
             "x-go-field-name": "Skills"
           }
         },
-        "description": "Package 是对原始包的一次确定性解析结果。",
+        "description": "插件包",
         "x-go-struct-name": "GithubComJieWaZiNeuxAllyServerInternalPluginsPackage",
         "x-go-vendor-type": "github.com/JieWaZi/NeuxAlly/server/internal/plugins.Package"
+      },
+      "GithubComJieWaZiNeuxAllyServerInternalPluginsPresentation": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "description": "分类",
+            "x-go-field-name": "Category",
+            "x-tag-json": "category,omitempty"
+          },
+          "developerName": {
+            "type": "string",
+            "description": "开发者",
+            "x-go-field-name": "DeveloperName",
+            "x-tag-json": "developerName,omitempty"
+          },
+          "displayName": {
+            "type": "string",
+            "description": "展示名称",
+            "x-go-field-name": "DisplayName",
+            "x-tag-json": "displayName,omitempty"
+          },
+          "longDescription": {
+            "type": "string",
+            "description": "完整介绍",
+            "x-go-field-name": "LongDescription",
+            "x-tag-json": "longDescription,omitempty"
+          },
+          "privacyPolicyURL": {
+            "type": "string",
+            "description": "隐私政策",
+            "x-go-field-name": "PrivacyPolicyURL",
+            "x-tag-json": "privacyPolicyURL,omitempty"
+          },
+          "shortDescription": {
+            "type": "string",
+            "description": "简短介绍",
+            "x-go-field-name": "ShortDescription",
+            "x-tag-json": "shortDescription,omitempty"
+          },
+          "termsOfServiceURL": {
+            "type": "string",
+            "description": "服务条款",
+            "x-go-field-name": "TermsOfServiceURL",
+            "x-tag-json": "termsOfServiceURL,omitempty"
+          },
+          "websiteURL": {
+            "type": "string",
+            "description": "官方网站",
+            "x-go-field-name": "WebsiteURL",
+            "x-tag-json": "websiteURL,omitempty"
+          }
+        },
+        "description": "插件展示资料",
+        "x-go-struct-name": "GithubComJieWaZiNeuxAllyServerInternalPluginsPresentation",
+        "x-go-vendor-type": "github.com/JieWaZi/NeuxAlly/server/internal/plugins.Presentation"
       },
       "GithubComJieWaZiNeuxAllyServerInternalPluginsServer": {
         "type": "object",

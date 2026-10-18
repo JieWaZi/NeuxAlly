@@ -41,6 +41,8 @@ type PluginController interface {
 	Install(context.Context, models.WakerPlugin) error
 	// Installations 按插件或伙伴查询真实安装。
 	Installations(context.Context, string, string) ([]models.WakerPlugin, error)
+	// InstalledVersionsExcept 返回移除指定伙伴关系或整个资源后仍被安装引用的版本。
+	InstalledVersionsExcept(context.Context, string, string) ([]models.PluginVersion, error)
 	// SetEnabled 修改已有安装的启停。
 	SetEnabled(context.Context, string, string, bool) error
 	// SwitchVersion 按旧版本条件切换已有安装。
@@ -120,7 +122,7 @@ func (c *pluginController) List(ctx context.Context, owner, waker, query string,
 	}
 	if query = strings.TrimSpace(query); query != "" {
 		pattern := "%" + strings.ToLower(query) + "%"
-		db = db.Where("LOWER(name) LIKE ? OR LOWER(description) LIKE ?", pattern, pattern)
+		db = db.Where("LOWER(name) LIKE ? OR LOWER(description) LIKE ? OR source_key = ?", pattern, pattern, query)
 	}
 	var total int64
 	if err := db.Count(&total).Error; err != nil {
@@ -190,6 +192,22 @@ func (c *pluginController) Versions(ctx context.Context, id string) ([]models.Pl
 		return nil, databaseError("list_plugin_versions", id, err)
 	}
 	return result, nil
+}
+
+// InstalledVersionsExcept 用安装子查询限定当前版本，不展开历史或使用 JOIN。
+func (c *pluginController) InstalledVersionsExcept(ctx context.Context, plugin, waker string) ([]models.PluginVersion, error) {
+	db := controllerDB(ctx, c.db)
+	installed := db.Model(&models.WakerPlugin{}).Select("version_id")
+	if waker == "" {
+		installed = installed.Where("plugin_id <> ?", plugin)
+	} else {
+		installed = installed.Where("plugin_id <> ? OR waker_id <> ?", plugin, waker)
+	}
+	versions := []models.PluginVersion{}
+	if err := db.Select("id", "package").Where("id IN (?)", installed).Find(&versions).Error; err != nil {
+		return nil, databaseError("remaining_plugin_installation_versions", plugin, err)
+	}
+	return versions, nil
 }
 
 // Install 校验归属和版本，重复安装不重启停用关系。
@@ -426,6 +444,7 @@ func (c *pluginController) ReadStates(ctx context.Context, ids []string) (map[st
 		item := result[resource.ID]
 		item.Plugin = resource
 		item.PartnerNames = map[string]string{}
+		item.PartnerAvatars = map[string]string{}
 		result[resource.ID] = item
 	}
 	for _, version := range versions {
@@ -446,14 +465,16 @@ func (c *pluginController) ReadStates(ctx context.Context, ids []string) (map[st
 		}
 	}
 	names := map[string]string{}
+	avatars := map[string]string{}
 	for start := 0; start < len(partnerIDs); start += 100 {
 		end := min(start+100, len(partnerIDs))
 		var partners []models.Waker
-		if err := db.Select("id", "name").Where("id IN ?", partnerIDs[start:end]).Find(&partners).Error; err != nil {
+		if err := db.Select("id", "name", "avatar").Where("id IN ?", partnerIDs[start:end]).Find(&partners).Error; err != nil {
 			return nil, databaseError("read_plugin_partners", "", err)
 		}
 		for _, partner := range partners {
 			names[partner.ID] = partner.Name
+			avatars[partner.ID] = partner.Avatar
 		}
 	}
 	for _, install := range installs {
@@ -462,7 +483,11 @@ func (c *pluginController) ReadStates(ctx context.Context, ids []string) (map[st
 		if item.PartnerNames == nil {
 			item.PartnerNames = map[string]string{}
 		}
+		if item.PartnerAvatars == nil {
+			item.PartnerAvatars = map[string]string{}
+		}
 		item.PartnerNames[install.WakerID] = names[install.WakerID]
+		item.PartnerAvatars[install.WakerID] = avatars[install.WakerID]
 		result[install.PluginID] = item
 	}
 	var configs []models.PluginConfiguration

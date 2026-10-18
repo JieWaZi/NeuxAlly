@@ -1,26 +1,47 @@
-import { Package } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import { LockKeyhole, Plus, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { Card, CardFooter } from "@/shared/ui/card";
 import { Button } from "@/shared/ui/button";
 import { Switch } from "@/shared/ui/switch";
-import type { PluginDetail, PluginCatalogEntry } from "../model/plugin-view";
+import { Checkbox } from "@/shared/ui/checkbox";
+import {
+  ResourceItemAction,
+  ResourceListItem,
+} from "@/shared/ui/resource-list-item";
+import {
+  ResourceManagementCard,
+  ResourcePartnerUsage,
+  ResourceMoreAction,
+} from "@/shared/ui/resource-management-card";
+import { DropdownMenuItem } from "@/shared/ui/dropdown-menu";
+import { PluginIcon } from "./plugin-icon";
+import {
+  pluginDisplayName,
+  pluginSummary,
+  pluginNeedsAuthorization,
+  type PluginDetail,
+  type PluginCatalogEntry,
+} from "../model/plugin-view";
 export function PluginCard({
   detail,
   catalog,
   wakerId = "",
   onInstall,
   onToggle,
+  onRemove,
   pending = false,
+  selected = false,
+  onSelectedChange,
 }: {
   detail?: PluginDetail;
   catalog?: PluginCatalogEntry;
   wakerId?: string;
   onInstall: () => void;
   onToggle?: (enabled: boolean) => void;
+  onRemove?: () => void;
   pending?: boolean;
+  selected?: boolean;
+  onSelectedChange?: (selected: boolean) => void;
 }) {
-  const location = useLocation();
   const { t } = useTranslation("plugin");
   const relation = detail?.installations?.find(
     (item) => item.wakerId === wakerId,
@@ -28,57 +49,122 @@ export function PluginCard({
   const version =
     detail?.versions?.find((item) => item.id === relation?.versionId) ??
     detail?.versions?.[0];
-  const pkg = version?.package ?? catalog?.package;
-  const name = detail?.plugin?.name ?? pkg?.manifest?.name ?? "";
+  const pkg = catalog?.package ?? version?.package;
+  const needsAuthorization = pluginNeedsAuthorization(pkg, detail);
+  const mine = Boolean(detail && !catalog);
+  const name = pluginDisplayName(pkg, detail?.plugin?.name);
   const to = catalog
     ? `/resources/plugins/catalog/${catalog.key}`
     : wakerId
       ? `/wakers/${wakerId}/plugins/${detail?.plugin?.id}`
       : `/resources/plugins/${detail?.plugin?.id}`;
-  return (
-    <Card variant="resource" asChild>
-      <article>
-        <Link
-          state={{ resourceBack: location.pathname + location.search }}
-          to={to}
-          className="focus-visible:ring-ring rounded-control min-h-32 space-y-3 p-5 outline-none focus-visible:ring-2"
-        >
-          <div className="flex items-center gap-3">
-            <Package className="size-icon-lg text-muted-foreground shrink-0" />
-            <h2 className="type-label min-w-0 truncate font-medium">{name}</h2>
-          </div>
-          <p className="type-body text-muted-foreground line-clamp-3">
-            {detail?.plugin?.description ?? pkg?.manifest?.description}
-          </p>
-          <p className="type-caption text-muted-foreground">
-            {t("version")}{" "}
-            {version?.version ?? pkg?.manifest?.version ?? t("unknown")}
-          </p>
-        </Link>
-        <CardFooter>
-          <span className="type-caption text-muted-foreground min-w-0 flex-1 truncate">
-            {relation
-              ? t(relation.enabled ? "enabled" : "disabled")
-              : detail
-                ? t("installedCount", {
-                    count: detail.installations?.length ?? 0,
-                  })
-                : pkg?.manifest?.author?.name}
-          </span>
-          {relation && onToggle ? (
+  const description = pluginSummary(
+    pkg,
+    detail?.plugin?.description,
+    catalog ? `catalog:${catalog.key}` : detail?.plugin?.sourceKey,
+  );
+  const installations = (detail?.installations ?? []).filter(
+    (item) => !wakerId || item.wakerId === wakerId,
+  );
+  if (mine)
+    return (
+      <ResourceManagementCard
+        title={name}
+        description={description}
+        icon={<PluginIcon pkg={pkg} />}
+        to={to}
+        label={t("viewPlugin", { name })}
+        selected={selected}
+        selection={
+          onSelectedChange && (
+            <Checkbox
+              size="sm"
+              checked={selected}
+              aria-label={t("selectNamed", { name })}
+              onCheckedChange={(checked) => onSelectedChange(checked === true)}
+            />
+          )
+        }
+        control={
+          relation && onToggle ? (
             <Switch
+              hitArea="comfortable"
               checked={relation.enabled ?? false}
               disabled={pending}
               aria-label={t("enable")}
               onClick={() => onToggle(!relation.enabled)}
             />
-          ) : (
-            <Button size="sm" variant="secondary" onClick={onInstall}>
-              {t("install")}
-            </Button>
-          )}
-        </CardFooter>
-      </article>
-    </Card>
+          ) : undefined
+        }
+        usage={
+          <ResourcePartnerUsage
+            count={installations.length}
+            partners={installations.map((item) => ({
+              id: item.wakerId ?? "",
+              name: detail?.partnerNames?.[item.wakerId ?? ""] || t("unknown"),
+              avatar: detail?.partnerAvatars?.[item.wakerId ?? ""],
+            }))}
+          />
+        }
+        actions={
+          <>
+            {needsAuthorization && (
+              <span className="type-caption text-warning flex items-center gap-1">
+                <LockKeyhole className="size-icon-sm" />
+                {t("requiresAuthorization")}
+              </span>
+            )}
+            <ResourceMoreAction to={to} name={name}>
+              {(!wakerId || needsAuthorization) && (
+                <DropdownMenuItem onSelect={onInstall}>
+                  {needsAuthorization ? <LockKeyhole /> : <Plus />}
+                  {t(needsAuthorization ? "authorize" : "installToPartners")}
+                </DropdownMenuItem>
+              )}
+              {onRemove && (
+                <DropdownMenuItem
+                  className="text-destructive data-[highlighted]:text-destructive"
+                  onSelect={onRemove}
+                >
+                  <Trash2 />
+                  {t(wakerId ? "uninstall" : "remove")}
+                </DropdownMenuItem>
+              )}
+            </ResourceMoreAction>
+          </>
+        }
+      />
+    );
+  return (
+    <ResourceListItem
+      title={name}
+      description={description}
+      descriptionLines={1}
+      icon={<PluginIcon pkg={pkg} />}
+      to={to}
+      label={t("viewPlugin", { name })}
+      actions={
+        needsAuthorization ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={pending}
+            aria-label={t("authorizeNamed", { name })}
+            onClick={onInstall}
+          >
+            {t("authorize")}
+          </Button>
+        ) : (
+          <ResourceItemAction
+            variant="ghost"
+            disabled={pending}
+            label={t("installNamed", { name })}
+            onClick={onInstall}
+          >
+            <Plus />
+          </ResourceItemAction>
+        )
+      }
+    />
   );
 }

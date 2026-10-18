@@ -6,7 +6,10 @@ import { withLocalErrorSurface } from "@/shared/api/local-error-surface";
 import { Checkbox } from "@/shared/ui/checkbox";
 import { Input } from "@/shared/ui/input";
 import { Button } from "@/shared/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui/popover";
+import { FieldControlTrigger } from "@/shared/ui/field-control-trigger";
 import { QueryState } from "@/shared/ui/query-state";
+import { ResourcePartnerAvatar } from "@/shared/ui/resource-management-card";
 
 export function PartnerPicker({
   selected,
@@ -14,7 +17,11 @@ export function PartnerPicker({
   installed = [],
   onlyPartner,
   onNames,
+  variant = "list",
+  disabled = false,
 }: {
+  variant?: "list" | "select";
+  disabled?: boolean;
   selected: string[];
   onChange: (ids: string[]) => void;
   installed?: string[];
@@ -58,13 +65,14 @@ export function PartnerPicker({
       ),
     );
   }, [onlyPartner, owner.data, library.data, onNames]);
-  return (
+  const content = (
     <div className="space-y-3">
       {!onlyPartner && (
         <Input
           aria-label={t("partners")}
           value={search}
           placeholder={t("search")}
+          disabled={disabled}
           onChange={(event) => {
             setSearch(event.target.value);
             setPage(1);
@@ -73,6 +81,7 @@ export function PartnerPicker({
       )}
       {query.isPending || query.isError ? (
         <QueryState
+          loadingLayout="content"
           pending={query.isPending}
           error={query.error}
           onRetry={() => void query.refetch()}
@@ -91,8 +100,9 @@ export function PartnerPicker({
                 className="hover:bg-surface-subtle min-h-control-md rounded-control flex cursor-pointer items-center gap-3 px-2 py-2"
               >
                 <Checkbox
+                  aria-label={partner.name}
                   checked={existing || selected.includes(id)}
-                  disabled={existing}
+                  disabled={existing || disabled}
                   onCheckedChange={(checked) =>
                     onChange(
                       checked
@@ -100,6 +110,11 @@ export function PartnerPicker({
                         : selected.filter((value) => value !== id),
                     )
                   }
+                />
+                <ResourcePartnerAvatar
+                  name={partner.name ?? ""}
+                  avatar={partner.avatar}
+                  size="xs"
                 />
                 <span className="type-body min-w-0 flex-1 truncate">
                   {partner.name}
@@ -136,5 +151,31 @@ export function PartnerPicker({
         </div>
       )}
     </div>
+  );
+  if (variant === "list") return content;
+  const names = partners
+    .filter((partner) => selected.includes(partner.id ?? ""))
+    .map((partner) => partner.name);
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <FieldControlTrigger disabled={disabled} aria-label={t("partners")}>
+          <span>
+            {selected.length
+              ? names.length === selected.length
+                ? names.join("、")
+                : t("selectedPartners", { count: selected.length })
+              : t("selectPartners")}
+          </span>
+        </FieldControlTrigger>
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        width="trigger"
+        className="max-h-80 overflow-y-auto p-3"
+      >
+        {content}
+      </PopoverContent>
+    </Popover>
   );
 }

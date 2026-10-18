@@ -141,26 +141,6 @@ export function ConnectorDetailPage() {
           actions={
             <div className="grid max-w-full justify-items-end gap-2">
               <div className="flex max-w-full flex-wrap items-center gap-2">
-                {canEdit ? (
-                  <PageAction
-                    intent="edit"
-                    disabled={!connector}
-                    label={t("detail.edit")}
-                    onClick={() => setEditOpen(true)}
-                  >
-                    <Pencil />
-                  </PageAction>
-                ) : null}
-                {!builtIn ? (
-                  <PageAction
-                    intent="delete"
-                    disabled={!connector}
-                    label={t("detail.delete")}
-                    onClick={() => setDeleteOpen(true)}
-                  >
-                    <Trash2 />
-                  </PageAction>
-                ) : null}
                 {wakerId && !systemManaged ? (
                   <Switch
                     checked={detailQuery.data?.enabled ?? false}
@@ -190,6 +170,26 @@ export function ConnectorDetailPage() {
                         : t("disabled")}
                   </span>
                 ) : null}
+                {canEdit ? (
+                  <PageAction
+                    intent="edit"
+                    disabled={!connector}
+                    label={t("detail.edit")}
+                    onClick={() => setEditOpen(true)}
+                  >
+                    <Pencil />
+                  </PageAction>
+                ) : null}
+                {!builtIn ? (
+                  <PageAction
+                    intent="delete"
+                    disabled={!connector}
+                    label={t("detail.delete")}
+                    onClick={() => setDeleteOpen(true)}
+                  >
+                    <Trash2 />
+                  </PageAction>
+                ) : null}
               </div>
               {toggleConnector.isError ? (
                 <p role="alert" className="text-destructive type-body">
@@ -206,6 +206,7 @@ export function ConnectorDetailPage() {
         <main className="mt-6 grid min-w-0 gap-8">
           {!connector ? (
             <QueryState
+              loadingLayout="detail"
               pending={detailQuery.isPending}
               error={detailQuery.error}
               emptyLabel={t("detail.notFound")}

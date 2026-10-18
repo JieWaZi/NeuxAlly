@@ -15,6 +15,7 @@ export function AuthorizationCode({ code }: { code: string }) {
       <div className="flex flex-wrap items-center gap-3">
         <code className="type-title font-semibold">{code}</code>
         <Button
+          type="button"
           variant="secondary"
           onClick={() => {
             setFailed(false);
@@ -50,7 +51,9 @@ export function PluginAuthorizationDialog({
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="secondary">{t("showQR")}</Button>
+        <Button type="button" variant="secondary">
+          {t("showQR")}
+        </Button>
       </DialogTrigger>
       <DialogContent
         title={t("scanTitle")}
@@ -58,18 +61,26 @@ export function PluginAuthorizationDialog({
         size="sm"
       >
         <div className="space-y-4 overflow-auto px-6 pb-6">
-          <div className="flex justify-center">
-            <QRCodeSVG
-              value={url}
-              size={192}
-              marginSize={4}
-              level="M"
-              title={t("scanTitle")}
-            />
-          </div>
+          <AuthorizationQRCode url={url} />
           {code && <AuthorizationCode key={code} code={code} />}
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** 二维码保持原始官方 URL；浅色底保证暗色主题下仍可识别。 */
+export function AuthorizationQRCode({ url }: { url: string }) {
+  const { t } = useTranslation("plugin");
+  return (
+    <div className="flex justify-center">
+      <QRCodeSVG
+        value={url}
+        size={192}
+        marginSize={4}
+        level="M"
+        title={t("scanTitle")}
+      />
+    </div>
   );
 }

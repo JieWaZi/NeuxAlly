@@ -270,3 +270,159 @@ func TestExecutionEnvironmentClearsHostAndRuntimeIdentityOverrides(t *testing.T)
 		t.Fatalf("managed environment did not retain profile authority: %+v", got)
 	}
 }
+
+func TestLogoutWithoutPrivateProfileIsIdempotent(t *testing.T) {
+	called := false
+	auth := New(Config{ProfileDirectory: filepath.Join(t.TempDir(), "missing-profile"), Run: func(context.Context, []string, string) ([]byte, error) {
+		called = true
+		return nil, nil
+	}})
+	if err := auth.Logout(context.Background()); err != nil || called {
+		t.Fatalf("missing private profile invoked official logout: called=%v err=%v", called, err)
+	}
+}
+
+func TestFirstLoginInitializesAppWithQRThenAuthorizesUser(t *testing.T) {
+	profile := t.TempDir()
+	initialized, completed := make(chan struct{}), make(chan struct{})
+	var ready atomic.Bool
+	auth := New(Config{ProfileDirectory: profile, Initialize: func(ctx context.Context, report func(authorization.Device) error) error {
+		if err := report(authorization.Device{VerificationURL: "https://open.feishu.cn/page/cli?user_code=setup", ExpiresAt: time.Now().Add(time.Minute).UnixMilli()}); err != nil {
+			return err
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-initialized:
+		}
+		return os.WriteFile(filepath.Join(profile, "config.json"), []byte("{}"), 0o600)
+	}, Run: func(ctx context.Context, args []string, _ string) ([]byte, error) {
+		joined := strings.Join(args, " ")
+		if strings.Contains(joined, "--no-wait") {
+			return []byte(`{"verification_url":"https://example.com/user","device_code":"private","expires_in":300}`), nil
+		}
+		if strings.Contains(joined, "--device-code") {
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-completed:
+			}
+			ready.Store(true)
+			return []byte(`{"event":"authorization_complete"}`), nil
+		}
+		if ready.Load() {
+			return []byte(`{"appId":"app","identities":{"user":{"available":true,"verified":true,"scope":"offline_access"}}}`), nil
+		}
+		return []byte(`{"appId":"app","identities":{"user":{"available":false}}}`), nil
+	}})
+	auth.Open(context.Background())
+	defer auth.Close()
+	session, err := auth.Login(context.Background())
+	if err != nil || !strings.Contains(session.VerificationURL, "user_code=setup") {
+		t.Fatalf("first QR missing: %+v %v", session, err)
+	}
+	if release, err := auth.Acquire(); !errors.Is(err, status_error.PluginBusy) {
+		if release != nil {
+			release()
+		}
+		t.Fatalf("setup must hold identity: %v", err)
+	}
+	close(initialized)
+	deadline := time.Now().Add(2 * time.Second)
+	for auth.Snapshot().VerificationURL != "https://example.com/user" && time.Now().Before(deadline) {
+		time.Sleep(time.Millisecond)
+	}
+	if next := auth.Snapshot(); next.ID != session.ID || next.VerificationURL != "https://example.com/user" {
+		t.Fatalf("user QR not in same session: %+v", next)
+	}
+	close(completed)
+	for auth.Snapshot().State == constants.PluginAuthorizationStateWaiting && time.Now().Before(deadline) {
+		time.Sleep(time.Millisecond)
+	}
+	if result := auth.Snapshot(); result.State != constants.PluginAuthorizationStateReady || result.VerificationURL != "" {
+		t.Fatalf("identity not verified: %+v", result)
+	}
+}
+
+func TestInitializationURLUsesOnlyOriginalOfficialURL(t *testing.T) {
+	original := "https://open.feishu.cn/page/cli?user_code=a%2Fb&lpv=v1&from=cli"
+	var devices []authorization.Device
+	err := readInitializationURL(strings.NewReader("https://evil.example/page/cli?user_code=secret\n  "+original+"\nprivate credential output\n"), func(device authorization.Device) error { devices = append(devices, device); return nil })
+	if err != nil || len(devices) != 1 || devices[0].VerificationURL != original {
+		t.Fatalf("unexpected URL projection: %+v %v", devices, err)
+	}
+	if err := readInitializationURL(strings.NewReader("https://open.feishu.cn.evil.example/page/cli?user_code=bad\n"), func(authorization.Device) error { t.Fatal("unsafe URL delivered"); return nil }); !errors.Is(err, status_error.PluginAuthorizationFailed) {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestCancelDuringFirstSetupStopsInitialization(t *testing.T) {
+	stopped := make(chan struct{})
+	auth := New(Config{ProfileDirectory: t.TempDir(), Initialize: func(ctx context.Context, report func(authorization.Device) error) error {
+		if err := report(authorization.Device{VerificationURL: "https://open.feishu.cn/page/cli?user_code=cancel", ExpiresAt: time.Now().Add(time.Minute).UnixMilli()}); err != nil {
+			return err
+		}
+		<-ctx.Done()
+		close(stopped)
+		return ctx.Err()
+	}, Run: func(context.Context, []string, string) ([]byte, error) {
+		t.Error("user login started before setup completed")
+		return nil, status_error.PluginAuthorizationFailed
+	}})
+	auth.Open(context.Background())
+	defer auth.Close()
+	session, err := auth.Login(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := auth.Cancel(session.ID); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case <-stopped:
+	case <-time.After(time.Second):
+		t.Fatal("setup still running")
+	}
+	if s := auth.Snapshot(); s.State != constants.PluginAuthorizationStateCancelled || s.VerificationURL != "" {
+		t.Fatalf("setup not cancelled: %+v", s)
+	}
+}
+
+func TestQRRefreshWaitsForTheOldDeviceProcess(t *testing.T) {
+	cancelled, finish := make(chan struct{}), make(chan struct{})
+	var attempts atomic.Int32
+	auth := New(Config{ProfileDirectory: t.TempDir(), Initialize: func(ctx context.Context, report func(authorization.Device) error) error {
+		first := attempts.Add(1) == 1
+		if err := report(authorization.Device{VerificationURL: "https://open.feishu.cn/page/cli?user_code=refresh", ExpiresAt: time.Now().Add(time.Minute).UnixMilli()}); err != nil {
+			return err
+		}
+		<-ctx.Done()
+		if first {
+			close(cancelled)
+			<-finish
+		}
+		return ctx.Err()
+	}})
+	auth.Open(context.Background())
+	t.Cleanup(auth.Close)
+	session, err := auth.Login(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	done := make(chan error, 1)
+	go func() { done <- auth.CancelAndWait(context.Background(), session.ID) }()
+	<-cancelled
+	select {
+	case <-done:
+		t.Error("refresh returned before the old process exited")
+	default:
+	}
+	close(finish)
+	if err := <-done; err != nil {
+		t.Fatal(err)
+	}
+	next, err := auth.Login(context.Background())
+	if err != nil || next.ID == session.ID {
+		t.Fatalf("new QR was not available immediately after cancellation: %+v %v", next, err)
+	}
+}

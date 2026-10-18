@@ -11,6 +11,7 @@ import {
   loadLock,
   verifyDigest,
   prepareCatalog,
+  syncPluginGuides,
   selectAsset,
 } from "./plugin-resources.mjs";
 
@@ -41,6 +42,16 @@ test("independent Git bundle builds catalog completely offline", async () => {
   try {
     const catalog = await prepareCatalog(output);
     assert.equal(catalog.entries.length, 2);
+    await syncPluginGuides(catalog, true);
+    for (const item of catalog.entries) {
+      assert.match(item.package.readme, /### 可以做什么/);
+      assert.match(item.package.readme, /### 典型用途/);
+      assert.ok(item.package.readme.length < 600);
+      assert.doesNotMatch(
+        item.package.readme,
+        /源码提交|钥匙串|工具链|隔离补丁|NeuxAlly|\bAlly\b|伙伴|安装|扫码|开始使用/i,
+      );
+    }
     const github = catalog.entries.find((entry) => entry.key === "github");
     assert.ok(github);
     assert.equal(

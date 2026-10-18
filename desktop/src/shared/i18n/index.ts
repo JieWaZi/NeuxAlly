@@ -1,4 +1,3 @@
-import { pluginZh, pluginEn } from "./plugin";
 import i18n from "i18next";
 import { notificationZh, notificationEn } from "./notification";
 import { initReactI18next } from "react-i18next";
@@ -11,7 +10,6 @@ import { workBoardZh, workBoardEn } from "./work-board";
 
 const resources = {
   "zh-CN": {
-    plugin: pluginZh,
     notification: notificationZh,
     im: imZh,
     workBoard: workBoardZh,
@@ -238,6 +236,10 @@ const resources = {
         teamChat: "团队会话",
       },
       resourceSelection: {
+        refreshFailed: "刷新失败，当前显示上次加载的内容。",
+        loadMore: "加载更多",
+        loadingMore: "正在加载…",
+        loadMoreFailed: "加载失败，请重试。",
         select: "选择",
         count: "已选择 {{count}} 项",
         delete: "删除所选",
@@ -1223,6 +1225,7 @@ const resources = {
         builtInCannotUninstall: "内置技能不能卸载",
         overview: "概览",
         tabs: "技能详情内容",
+        content: "内容",
         explanation: "说明",
         resources: "资源文件",
         versions: "版本",
@@ -1237,6 +1240,7 @@ const resources = {
         versionHistory: "版本历史",
         versionHistoryDescription:
           "已保留 {{count}} 个版本。点击版本可查看与当前 v{{version}} 的差异。",
+        viewVersion: "查看 v{{version}}",
         viewVersionDiff: "查看 v{{version}} 与当前版本的差异",
         diffTitle: "版本差异",
         diffDescription:
@@ -2103,7 +2107,6 @@ const resources = {
     },
   },
   "en-US": {
-    plugin: pluginEn,
     notification: notificationEn,
     im: imEn,
     workBoard: workBoardEn,

@@ -18,6 +18,8 @@ type PluginDetailResponse struct {
 	ComponentIDs map[string]string `json:"componentIds"`
 	// 安装伙伴名称
 	PartnerNames map[string]string `json:"partnerNames"`
+	// 伙伴头像
+	PartnerAvatars map[string]string `json:"partnerAvatars"`
 	// 安装关系
 	Installations []models.WakerPlugin `json:"installations"`
 	// 普通配置

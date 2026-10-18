@@ -38,6 +38,11 @@ func TestPluginControllerSeparatesLibraryFromInstalledPartnerAndPinsVersion(t *t
 	if err != nil || total != 2 {
 		t.Fatalf("global total: %d %v", total, err)
 	}
+	matched, count, err := c.List(ctx, "", "", "source-a", 0, 50)
+	if err != nil || count != 1 || len(matched) != 1 || matched[0].ID != "plugin-a" {
+		t.Fatalf("renamed source lookup: %+v %d %v", matched, count, err)
+	}
+
 	items, total, err := c.List(ctx, "", "w1", "", 0, 50)
 	if err != nil || total != 1 || items[0].ID != "private" {
 		t.Fatalf("uninstalled resources leaked: %+v %d %v", items, total, err)
@@ -281,7 +286,7 @@ func TestInstalledPluginSnapshotContainsIdentityAndPartnerNames(t *testing.T) {
 	ctx := context.Background()
 	db := newTestDB(t)
 	c := NewPluginController(db)
-	if err := NewWakerController(db).Create(ctx, models.Waker{ID: "w1", Name: "伙伴一"}); err != nil {
+	if err := NewWakerController(db).Create(ctx, models.Waker{ID: "w1", Name: "伙伴一", Avatar: "companion:fixture-avatar"}); err != nil {
 		t.Fatal(err)
 	}
 	if err := c.Create(ctx, models.Plugin{ID: "p1", Name: "办公", SourceKey: "source"}); err != nil {
@@ -297,7 +302,7 @@ func TestInstalledPluginSnapshotContainsIdentityAndPartnerNames(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(states) != 1 || states[0].Plugin.ID != "p1" || states[0].Plugin.Name != "办公" || states[0].PartnerNames["w1"] != "伙伴一" {
+	if len(states) != 1 || states[0].Plugin.ID != "p1" || states[0].Plugin.Name != "办公" || states[0].PartnerNames["w1"] != "伙伴一" || states[0].PartnerAvatars["w1"] != "companion:fixture-avatar" {
 		t.Fatalf("execution snapshot lacks resource identity: %+v", states)
 	}
 }
