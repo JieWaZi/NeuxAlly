@@ -1,4 +1,4 @@
-import feishu from "../assets/feishu.png";
+import feishu from "@/shared/assets/brands/feishu.png";
 import wechat from "../assets/wechat.svg";
 
 export function PlatformIcon({
