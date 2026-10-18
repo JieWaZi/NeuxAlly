@@ -580,6 +580,8 @@ const (
 	PluginFormatPortable = "agent-plugins"
 	// PluginFormatClaude 表示仅导入可支持组件的 Claude 插件包。
 	PluginFormatClaude = "claude"
+	// PluginFormatCodex 表示仅导入可支持组件的 Codex 兼容插件包。
+	PluginFormatCodex = "codex"
 	// PluginExtensionNamespace 是客户端扩展空间。
 	PluginExtensionNamespace = "com.ally"
 )

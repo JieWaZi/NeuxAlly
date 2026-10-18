@@ -109,7 +109,7 @@ func ClientExtension(pkg Package) (Extension, error) {
 			result.Config = append(result.Config, ConfigurationField{Key: key, Label: key, Secret: true, Required: true})
 		}
 	}
-	if pkg.Format == constants.PluginFormatClaude {
+	if pkg.compatibilityFormat() {
 		for _, server := range pkg.Servers {
 			values := []string{server.Command, server.Cwd, server.URL}
 			values = append(values, server.Args...)

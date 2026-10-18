@@ -73,7 +73,7 @@ func ResolveServer(pkg Package, input Server, root, data string, values map[stri
 		}
 		return Expand(value, variables)
 	}
-	if pkg.Format == constants.PluginFormatClaude {
+	if pkg.compatibilityFormat() {
 		server.Command, err = Expand(input.Command, variables)
 		if err != nil {
 			return result, err
@@ -98,7 +98,7 @@ func ResolveServer(pkg Package, input Server, root, data string, values map[stri
 		}
 	}
 	for key, value := range input.Headers {
-		if pkg.Format == constants.PluginFormatClaude {
+		if pkg.compatibilityFormat() {
 			server.Headers[key], err = Expand(value, variables)
 			if err != nil {
 				return result, err
@@ -107,7 +107,7 @@ func ResolveServer(pkg Package, input Server, root, data string, values map[stri
 			server.Headers[key] = value
 		}
 	}
-	if pkg.Format == constants.PluginFormatClaude {
+	if pkg.compatibilityFormat() {
 		server.URL, err = Expand(input.URL, variables)
 		if err != nil {
 			return result, err
