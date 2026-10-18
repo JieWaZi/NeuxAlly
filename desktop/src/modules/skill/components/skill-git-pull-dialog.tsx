@@ -34,6 +34,7 @@ export function SkillGitPullDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <PageAction
+        intent="secondary"
         label={t("detail.update")}
         onClick={() => {
           setVersion(suggestNextPatchVersion(currentVersion));

@@ -231,7 +231,11 @@ describe("SkillDetailPage", () => {
     ).not.toHaveClass("border-b");
     expect(screen.getByText("code-review")).toBeInTheDocument();
     expect(screen.getByText("Review real changes")).toBeInTheDocument();
-    await screen.findByText("# 代码审查", { exact: false });
+    await screen.findByText(
+      "检查真实改动。",
+      { exact: true },
+      { timeout: 5000 },
+    );
     expect(
       screen.getByRole("button", { name: "返回技能列表" }),
     ).toBeInTheDocument();
@@ -252,7 +256,7 @@ describe("SkillDetailPage", () => {
   it("从标题区返回当前伙伴的技能列表", async () => {
     const user = userEvent.setup();
     renderPage();
-    await user.hover(await screen.findByRole("heading", { name: "代码审查" }));
+    await user.hover(screen.getByRole("button", { name: "返回技能列表" }));
     await user.click(screen.getByRole("button", { name: "返回技能列表" }));
     expect(screen.getByText("技能列表页")).toBeInTheDocument();
   });
@@ -261,7 +265,11 @@ describe("SkillDetailPage", () => {
     const user = userEvent.setup();
     renderPage();
     await screen.findByRole("heading", { name: "代码审查" });
-    await screen.findByText("# 代码审查", { exact: false });
+    await screen.findByText(
+      "检查真实改动。",
+      { exact: true },
+      { timeout: 5000 },
+    );
 
     expect(
       screen.queryByRole("button", { name: "编辑 SKILL.md" }),

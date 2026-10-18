@@ -19,7 +19,7 @@ export function SkillMetadataCard({
   return (
     <DetailSection className="mt-6" title={t("detail.metadata")} surface="wash">
       <div className="grid gap-5">
-        <dl className="flex min-w-0 flex-wrap gap-x-8 gap-y-4">
+        <dl className="grid min-w-0 grid-cols-2 gap-x-8 gap-y-4">
           <ReadOnlyField
             label={
               <span className="font-medium">{t("detail.metadataName")}</span>
@@ -35,7 +35,7 @@ export function SkillMetadataCard({
             {source || "-"}
           </ReadOnlyField>
         </dl>
-        <dl className="max-w-[72ch] min-w-0">
+        <dl className="min-w-0">
           <ReadOnlyField
             label={
               <span className="font-medium">
