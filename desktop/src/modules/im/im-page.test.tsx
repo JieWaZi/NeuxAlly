@@ -548,8 +548,9 @@ it("卡片展示实际对话数量，勾选不增加外轮廓", async () => {
     .getByRole("link", { name: "查看我的微信连接详情" })
     .closest("article");
   await user.click(screen.getByRole("checkbox", { name: "选择我的微信连接" }));
-  expect(card).not.toHaveAttribute("data-state", "selected");
-  expect(card).toHaveClass("bg-accent-surface");
+  expect(card).toHaveAttribute("data-state", "selected");
+  expect(card).toHaveClass("data-[state=selected]:bg-accent-surface");
+  expect(card).not.toHaveClass("ring-1", "data-[state=selected]:ring-1");
 });
 
 it("登录失效错误替换配置摘要，底栏仍保留实际对话数", async () => {

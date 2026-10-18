@@ -146,16 +146,16 @@ export function WakerDetailPage() {
                 actions={
                   <>
                     <PageAction
-                      variant="secondary"
+                      intent="edit"
+                      label={t("detail.editProfile")}
                       onClick={() => setEditing(true)}
-                      aria-label={t("detail.editProfile")}
                     >
                       <Pencil />
                       <PageActionLabel>
                         {t("detail.editProfile")}
                       </PageActionLabel>
                     </PageAction>
-                    <PageAction asChild>
+                    <PageAction asChild intent="primary" label={t("detail.startChat")}>
                       <Link
                         to={chatDraftHref(wakerId)}
                         aria-label={t("detail.startChat")}

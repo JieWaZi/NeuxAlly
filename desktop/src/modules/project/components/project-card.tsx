@@ -1,4 +1,4 @@
-import { Card, CardFooter } from "@/shared/ui/card";
+import { Card, CardBody, CardFooter } from "@/shared/ui/card";
 import { Checkbox } from "@/shared/ui/checkbox";
 import { Folder, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -41,7 +41,7 @@ export function ProjectCard({
         data-state={selected ? "selected" : undefined}
       >
         <article>
-          <div className="hover:bg-surface-subtle relative">
+          <CardBody className="relative">
             <Link
               to={`/wakers/${wakerId}/projects/${project.id}`}
               aria-label={t("viewProject", { name: project.name })}
@@ -89,7 +89,7 @@ export function ProjectCard({
                 />
               ) : null}
             </div>
-          </div>
+          </CardBody>
 
           <CardFooter className="grid grid-cols-[minmax(0,1fr)_44px] gap-0 px-0">
             <span className="text-muted-foreground type-caption truncate px-4">
