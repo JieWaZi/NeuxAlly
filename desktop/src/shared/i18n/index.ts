@@ -1,4 +1,3 @@
-import { pluginZh, pluginEn } from "./plugin";
 import i18n from "i18next";
 import { notificationZh, notificationEn } from "./notification";
 import { initReactI18next } from "react-i18next";
@@ -11,7 +10,6 @@ import { workBoardZh, workBoardEn } from "./work-board";
 
 const resources = {
   "zh-CN": {
-    plugin: pluginZh,
     notification: notificationZh,
     im: imZh,
     workBoard: workBoardZh,
@@ -2103,7 +2101,6 @@ const resources = {
     },
   },
   "en-US": {
-    plugin: pluginEn,
     notification: notificationEn,
     im: imEn,
     workBoard: workBoardEn,

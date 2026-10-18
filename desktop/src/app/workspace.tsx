@@ -2,6 +2,7 @@ import type { Root } from "react-dom/client";
 import { StrictMode } from "react";
 import { RouterProvider } from "react-router-dom";
 
+import "@/app/workspace-i18n";
 import { ErrorBoundary } from "@/app/error-boundary";
 import { AppProviders, appQueryClient } from "@/app/providers";
 import { router } from "@/app/router";
