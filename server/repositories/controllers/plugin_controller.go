@@ -41,6 +41,8 @@ type PluginController interface {
 	Install(context.Context, models.WakerPlugin) error
 	// Installations 按插件或伙伴查询真实安装。
 	Installations(context.Context, string, string) ([]models.WakerPlugin, error)
+	// InstalledVersionsExcept 返回移除指定伙伴关系或整个资源后仍被安装引用的版本。
+	InstalledVersionsExcept(context.Context, string, string) ([]models.PluginVersion, error)
 	// SetEnabled 修改已有安装的启停。
 	SetEnabled(context.Context, string, string, bool) error
 	// SwitchVersion 按旧版本条件切换已有安装。
@@ -190,6 +192,22 @@ func (c *pluginController) Versions(ctx context.Context, id string) ([]models.Pl
 		return nil, databaseError("list_plugin_versions", id, err)
 	}
 	return result, nil
+}
+
+// InstalledVersionsExcept 用安装子查询限定当前版本，不展开历史或使用 JOIN。
+func (c *pluginController) InstalledVersionsExcept(ctx context.Context, plugin, waker string) ([]models.PluginVersion, error) {
+	db := controllerDB(ctx, c.db)
+	installed := db.Model(&models.WakerPlugin{}).Select("version_id")
+	if waker == "" {
+		installed = installed.Where("plugin_id <> ?", plugin)
+	} else {
+		installed = installed.Where("plugin_id <> ? OR waker_id <> ?", plugin, waker)
+	}
+	versions := []models.PluginVersion{}
+	if err := db.Select("id", "package").Where("id IN (?)", installed).Find(&versions).Error; err != nil {
+		return nil, databaseError("remaining_plugin_installation_versions", plugin, err)
+	}
+	return versions, nil
 }
 
 // Install 校验归属和版本，重复安装不重启停用关系。

@@ -63,6 +63,10 @@ type Authorizer struct {
 	active int
 	// deviceRunning 在真实进程退出前阻止身份变更与新工作。
 	deviceRunning bool
+	// deviceDone 在真实授权进程和完成通知全部退出后关闭。
+	deviceDone <-chan struct{}
+	// resetting 阻止最后引用清理期间接纳新的身份使用或授权。
+	resetting bool
 	// workers 等待授权进程完整结束。
 	workers sync.WaitGroup
 }
@@ -134,7 +138,7 @@ func (a *Authorizer) AuthorizeServer(ctx context.Context, address string) (map[s
 
 func (a *Authorizer) Acquire(uses ...Usage) (func(), error) {
 	a.mu.Lock()
-	if a.deviceRunning {
+	if a.deviceRunning || a.resetting {
 		a.mu.Unlock()
 		return nil, status_error.PluginBusy
 	}
@@ -171,7 +175,7 @@ func (a *Authorizer) Usages() []Usage {
 func (a *Authorizer) Configure(ctx context.Context, id, secret string) error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	if a.active > 0 || a.deviceRunning {
+	if a.active > 0 || a.deviceRunning || a.resetting {
 		return status_error.PluginBusy
 	}
 	if err := a.config.Driver.Configure(ctx, id, secret); err != nil {
@@ -183,7 +187,7 @@ func (a *Authorizer) Configure(ctx context.Context, id, secret string) error {
 func (a *Authorizer) Logout(ctx context.Context) error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	if a.active > 0 || a.deviceRunning {
+	if a.active > 0 || a.deviceRunning || a.resetting {
 		return status_error.PluginBusy
 	}
 	if err := a.config.Driver.Logout(ctx); err != nil {
@@ -202,6 +206,10 @@ func (a *Authorizer) snapshotLocked() Session {
 // Login 的 HTTP 请求只等待确认入口；真实授权由 Core 根生命周期继续拥有。
 func (a *Authorizer) Login(ctx context.Context, requested ...string) (Session, error) {
 	a.mu.Lock()
+	if a.resetting {
+		a.mu.Unlock()
+		return Session{}, status_error.PluginBusy
+	}
 	if a.session.State == constants.PluginAuthorizationStateWaiting {
 		s := a.snapshotLocked()
 		a.mu.Unlock()
@@ -216,7 +224,10 @@ func (a *Authorizer) Login(ctx context.Context, requested ...string) (Session, e
 		return Session{}, status_error.PluginNotReady
 	}
 	account, err := a.Status(ctx, false)
-	if err != nil || !account.Configured {
+	_, canInitialize := a.config.Driver.(interface {
+		Initialize(context.Context, func(Device) error) error
+	})
+	if err != nil || (!account.Configured && !canInitialize) {
 		a.mu.Unlock()
 		if err != nil {
 			return Session{}, err
@@ -231,6 +242,7 @@ func (a *Authorizer) Login(ctx context.Context, requested ...string) (Session, e
 	scopes := a.RequiredScopes(requested...)
 	initialized := make(chan struct{}, 1)
 	finished := make(chan struct{})
+	a.deviceDone = finished
 	a.workers.Add(1)
 	a.mu.Unlock()
 	go func() {
@@ -239,7 +251,7 @@ func (a *Authorizer) Login(ctx context.Context, requested ...string) (Session, e
 		defer cancel(context.Canceled)
 		timeout := time.AfterFunc(30*time.Second, func() { cancel(context.DeadlineExceeded) })
 		defer timeout.Stop()
-		err := a.config.Driver.Login(work, scopes, func(device Device) error {
+		reportDevice := func(device Device) error {
 			parsed, err := url.Parse(device.VerificationURL)
 			duration := time.Until(time.UnixMilli(device.ExpiresAt))
 			if err != nil || parsed.Scheme != "https" || parsed.Host == "" || duration <= 0 || duration > 30*time.Minute {
@@ -262,7 +274,17 @@ func (a *Authorizer) Login(ctx context.Context, requested ...string) (Session, e
 			default:
 			}
 			return nil
-		})
+		}
+		var err error
+		if !account.Configured {
+			// 只有声明初始化能力的官方适配器才能在同一独占会话内先完成应用扫码。
+			err = a.config.Driver.(interface {
+				Initialize(context.Context, func(Device) error) error
+			}).Initialize(work, reportDevice)
+		}
+		if err == nil {
+			err = a.config.Driver.Login(work, scopes, reportDevice)
+		}
 		result := Account{Scopes: []string{}}
 		if err == nil {
 			result, err = a.Status(work, true)
@@ -314,10 +336,31 @@ func (a *Authorizer) Login(ctx context.Context, requested ...string) (Session, e
 
 // Cancel 立即清理短时交互信息，但占用必须留到真实进程结束。
 func (a *Authorizer) Cancel(id string) error {
+	_, err := a.cancelSession(id)
+	return err
+}
+
+// CancelAndWait 在刷新二维码前等待旧进程退出，避免新会话撞上仍在清理的身份占用。
+func (a *Authorizer) CancelAndWait(ctx context.Context, id string) error {
+	done, err := a.cancelSession(id)
+	if err != nil {
+		return err
+	}
+	if done != nil {
+		select {
+		case <-done:
+		case <-ctx.Done():
+			return status_error.OperationCanceled
+		}
+	}
+	return nil
+}
+
+func (a *Authorizer) cancelSession(id string) (<-chan struct{}, error) {
 	a.mu.Lock()
 	if a.session.ID != id {
 		a.mu.Unlock()
-		return status_error.PluginNotFound
+		return nil, status_error.PluginNotFound
 	}
 	if a.session.State == constants.PluginAuthorizationStateWaiting {
 		a.session.State = constants.PluginAuthorizationStateCancelled
@@ -327,13 +370,86 @@ func (a *Authorizer) Cancel(id string) error {
 			a.cancel(context.Canceled)
 		}
 	}
+	done := a.deviceDone
 	snapshot := a.snapshotLocked()
 	a.mu.Unlock()
 	a.publish(snapshot)
-	return nil
+	return done, nil
 }
 func (a *Authorizer) publish(session Session) {
 	if a.config.Changed != nil {
 		a.config.Changed(session)
 	}
+}
+
+// ReferenceGuard 让安装引用变更与身份清理共享原有占用边界。
+type ReferenceGuard struct {
+	// authorizer 是唯一受保护的共享身份。
+	authorizer *Authorizer
+	// once 保证清理边界只释放一次。
+	once sync.Once
+}
+
+// GuardReferences 阻止新的身份使用，已有工作继续持有原占用。
+func (a *Authorizer) GuardReferences() (*ReferenceGuard, error) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.resetting {
+		return nil, status_error.PluginBusy
+	}
+	a.resetting = true
+	return &ReferenceGuard{authorizer: a}, nil
+}
+
+// CanReset 表示当前没有仍在执行或安装的身份使用。
+func (g *ReferenceGuard) CanReset() bool {
+	g.authorizer.mu.Lock()
+	defer g.authorizer.mu.Unlock()
+	return g.authorizer.active == 0
+}
+
+// Reset 取消授权等待，等真实进程退出后通过原驱动清理官方本机授权。
+func (g *ReferenceGuard) Reset(ctx context.Context) error {
+	a := g.authorizer
+	a.mu.Lock()
+	if a.active > 0 {
+		a.mu.Unlock()
+		return status_error.PluginBusy
+	}
+	if a.session.State == constants.PluginAuthorizationStateWaiting {
+		a.session.State = constants.PluginAuthorizationStateCancelled
+		a.session.VerificationURL, a.session.UserCode = "", ""
+	}
+	if a.cancel != nil {
+		a.cancel(context.Canceled)
+	}
+	done := a.deviceDone
+	snapshot := a.snapshotLocked()
+	a.mu.Unlock()
+	a.publish(snapshot)
+	if done != nil {
+		select {
+		case <-done:
+		case <-ctx.Done():
+			return status_error.OperationCanceled
+		}
+	}
+	if err := a.config.Driver.Logout(ctx); err != nil {
+		return err
+	}
+	a.mu.Lock()
+	a.session = Session{Account: Account{Scopes: []string{}}}
+	snapshot = a.snapshotLocked()
+	a.mu.Unlock()
+	a.publish(snapshot)
+	return nil
+}
+
+// Close 释放短时清理边界；未退出的授权进程仍受 deviceRunning 保护。
+func (g *ReferenceGuard) Close() {
+	g.once.Do(func() {
+		g.authorizer.mu.Lock()
+		g.authorizer.resetting = false
+		g.authorizer.mu.Unlock()
+	})
 }
