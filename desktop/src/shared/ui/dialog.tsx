@@ -16,6 +16,8 @@ type DialogContentProps = Omit<
   description?: string;
   children: ReactNode;
   closing?: boolean;
+  visual?: ReactNode;
+  headingLayout?: "default" | "centered";
   container?: HTMLElement;
   layout?: "content" | "form" | "stage";
   size?: "sm" | "md" | "lg" | "xl";
@@ -37,6 +39,8 @@ export function DialogContent({
   children,
   className,
   closing = false,
+  visual,
+  headingLayout = "default",
   container,
   description,
   layout = "content",
@@ -90,19 +94,35 @@ export function DialogContent({
           </div>
         ) : (
           <>
-            <header className="flex shrink-0 items-start justify-between gap-4 px-6 pt-5 pb-3">
+            <header
+              className={cn(
+                "relative flex shrink-0 gap-4 px-6 pb-3",
+                headingLayout === "centered"
+                  ? "flex-col items-center pt-8 text-center"
+                  : "items-start justify-between pt-5",
+              )}
+            >
+              {visual}
               <DialogPrimitive.Title className="type-title min-w-0 pt-0.5 font-semibold">
                 {title}
               </DialogPrimitive.Title>
               <DialogPrimitive.Close
-                className="text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-ring size-control-sm grid shrink-0 place-items-center rounded-sm outline-none focus-visible:ring-2"
+                className={cn(
+                  "text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-ring size-control-sm grid shrink-0 place-items-center rounded-sm outline-none focus-visible:ring-2",
+                  headingLayout === "centered" && "absolute top-3 right-3",
+                )}
                 aria-label="关闭"
               >
                 <X className="size-icon-md" strokeWidth={1.5} />
               </DialogPrimitive.Close>
             </header>
             {description ? (
-              <DialogPrimitive.Description className="text-muted-foreground type-body px-6 pb-4">
+              <DialogPrimitive.Description
+                className={cn(
+                  "text-muted-foreground type-body px-6 pb-4",
+                  headingLayout === "centered" && "text-center",
+                )}
+              >
                 {description}
               </DialogPrimitive.Description>
             ) : null}
