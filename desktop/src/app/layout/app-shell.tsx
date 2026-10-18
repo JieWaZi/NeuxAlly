@@ -550,7 +550,7 @@ function AppShellContent({
           sceneNavigationVisible={sceneNavigationVisible}
           sceneContentFlush={
             (isChatSurface ||
-              /^\/(?:work-board|workflows|im|automatic-tasks)(?:\/|$)/.test(
+              /^\/(?:resources|work-board|workflows|im|automatic-tasks)(?:\/|$)/.test(
                 location.pathname,
               )) &&
             !settingsOpen

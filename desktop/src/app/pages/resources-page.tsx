@@ -1,20 +1,29 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Package, Sparkles, Cable, Upload, Plus } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, useParams, useSearchParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import {
   PluginResourceCollection,
+  PluginComponentCollection,
+  usePluginComponents,
   PartnerPicker,
   resourceCategory,
+  PluginImportDialog,
+  PluginInstallDialog,
+  type PluginDetail,
 } from "@/modules/plugin";
 import { SkillResourceCollection } from "@/modules/skill";
 import { ConnectorResourceCollection } from "@/modules/connector";
 import {
   ResourcePageSurface,
   ResourcePageHeader,
-  ResourcePageToolbar,
   ResourcePageSearchField,
+  PageActionLabel,
+  PageAction,
 } from "@/shared/ui/resource-page";
+import { ResourceFilterSelect } from "@/shared/ui/resource-filter-select";
+import { StatusNotice } from "@/shared/ui/status-notice";
 import { SegmentedControl } from "@/shared/ui/segmented-control";
 import { Button } from "@/shared/ui/button";
 import { Dialog, DialogContent, DialogFooter } from "@/shared/ui/dialog";
@@ -34,19 +43,76 @@ export function ResourcesPage() {
   const [params, setParams] = useSearchParams();
   const category = resourceCategory(params.get("category"));
   const search = params.get("search") ?? "";
-  const page = Math.max(1, Number(params.get("page")) || 1);
+  const source: "all" | "plugins" | "independent" =
+    params.get("source") === "plugins"
+      ? "plugins"
+      : params.get("source") === "independent"
+        ? "independent"
+        : "all";
   const view = params.get("view") === "mine" ? "mine" : "catalog";
+  const [importing, setImporting] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const components = usePluginComponents(
+    category === "connectors" ? "connectors" : "skills",
+    wakerId,
+    search,
+    category !== "plugins",
+  );
+  const [importedPlugin, setImportedPlugin] = useState<PluginDetail | null>(
+    null,
+  );
   const [installation, setInstallation] = useState<Installation | null>(null);
   const setParam = (key: string, value: string) =>
     setParams((current) => {
       const next = new URLSearchParams(current);
       if (value) next.set(key, value);
       else next.delete(key);
-      if (key !== "page") next.delete("page");
+      next.delete("page");
+      next.delete("componentPage");
       return next;
     });
-  const onPageChange = (next: number) =>
-    setParam("page", next === 1 ? "" : String(next));
+
+  const searchField = (
+    <ResourcePageSearchField
+      value={search}
+      aria-label={t("search")}
+      placeholder={t("search")}
+      onChange={(event) => setParam("search", event.target.value)}
+    />
+  );
+  const setSource = (value: "all" | "plugins" | "independent") =>
+    setParam("source", value === "all" ? "" : value);
+  const capabilityProps = {
+    source,
+    onSourceChange: setSource,
+    filters: (
+      <>
+        <ResourceFilterSelect
+          value={source}
+          onValueChange={setSource}
+          ariaLabel={t("sourceFilter")}
+          options={[
+            { value: "all", label: t("allSources") },
+            { value: "plugins", label: t("fromPlugins") },
+            { value: "independent", label: t("independentResources") },
+          ]}
+        />
+        {searchField}
+      </>
+    ),
+    pluginCount: components.items.length,
+    pluginEmpty: components.isSuccess && components.items.length === 0,
+    pluginContent: source !== "independent" && (
+      <PluginComponentCollection
+        key={`${category}:${search}:${source}`}
+        kind={category === "skills" ? "skills" : "connectors"}
+        wakerId={wakerId}
+        resources={components}
+        preview={source === "all"}
+        onSourceSelect={() => setSource("plugins")}
+      />
+    ),
+  };
   const targetPartner = params.get("partner") || undefined;
   return (
     <main
@@ -57,16 +123,57 @@ export function ResourcesPage() {
         <ResourcePageHeader
           title={wakerId ? t("partnerResources") : t("title")}
           description={t("description")}
-          actions={null}
+          actions={
+            <PageAction
+              intent="primary"
+              aria-label={t(
+                category === "plugins"
+                  ? "importPlugin"
+                  : category === "skills"
+                    ? "addSkill"
+                    : "addConnector",
+              )}
+              onClick={() =>
+                category === "plugins" ? setImporting(true) : setAdding(true)
+              }
+            >
+              {category === "plugins" ? <Upload /> : <Plus />}
+              <PageActionLabel>
+                {t(
+                  category === "plugins"
+                    ? "importPlugin"
+                    : category === "skills"
+                      ? "addSkill"
+                      : "addConnector",
+                )}
+              </PageActionLabel>
+            </PageAction>
+          }
         />
         <div className="mb-5">
           <SegmentedControl
+            appearance="resources"
             ariaLabel={t("title")}
             value={category}
             options={[
-              { value: "plugins", label: t("plugins") },
-              { value: "skills", label: t("skills") },
-              { value: "connectors", label: t("connectors") },
+              {
+                value: "plugins",
+                label: t("plugins"),
+                icon: <Package />,
+                description: t("pluginsHelp"),
+              },
+              {
+                value: "skills",
+                label: t("skills"),
+                icon: <Sparkles />,
+                description: t("skillsHelp"),
+              },
+              {
+                value: "connectors",
+                label: t("connectors"),
+                icon: <Cable />,
+                description: t("connectorsHelp"),
+              },
             ]}
             onValueChange={(value) =>
               setParams((current) => {
@@ -75,61 +182,65 @@ export function ResourcesPage() {
                 next.delete("page");
                 next.delete("search");
                 next.delete("view");
+                next.delete("componentPage");
+                next.delete("source");
+                setAdding(false);
                 return next;
               })
             }
           />
         </div>
-        <ResourcePageToolbar>
-          <ResourcePageSearchField
-            value={search}
-            aria-label={t("search")}
-            placeholder={t("search")}
-            onChange={(event) => setParam("search", event.target.value)}
-          />
-        </ResourcePageToolbar>
-        {wakerId && category !== "plugins" && (
-          <div className="mb-4 flex justify-end">
-            <Button asChild variant="secondary">
-              <Link to={`/resources?category=${category}&partner=${wakerId}`}>
-                {t("install")}
-              </Link>
-            </Button>
-          </div>
-        )}
-        <div key={category}>
+        <div key={category} className="space-y-5">
           {category === "plugins" ? (
             <PluginResourceCollection
               wakerId={wakerId}
               targetPartnerId={targetPartner}
+              searchField={searchField}
               search={search}
-              page={page}
               view={view}
               onViewChange={(value) => setParam("view", value)}
-              onPageChange={onPageChange}
             />
           ) : category === "skills" ? (
             <SkillResourceCollection
+              {...capabilityProps}
               wakerId={wakerId}
+              adding={adding}
+              onAddingChange={setAdding}
               search={search}
-              page={page}
-              onPageChange={onPageChange}
               onInstall={(id, name) =>
                 setInstallation({ kind: "skill", id, name })
               }
             />
           ) : (
             <ConnectorResourceCollection
+              {...capabilityProps}
               wakerId={wakerId}
+              adding={adding}
+              onAddingChange={setAdding}
               search={search}
-              page={page}
-              onPageChange={onPageChange}
               onInstall={(id, name) =>
                 setInstallation({ kind: "connector", id, name })
               }
             />
           )}
         </div>
+        {importing && (
+          <PluginImportDialog
+            wakerId={wakerId}
+            onClose={() => setImporting(false)}
+            onPrepared={(detail) => {
+              setImporting(false);
+              setImportedPlugin(detail);
+            }}
+          />
+        )}
+        {importedPlugin && (
+          <PluginInstallDialog
+            detail={importedPlugin}
+            wakerId={wakerId}
+            onClose={() => setImportedPlugin(null)}
+          />
+        )}
         {installation && (
           <IndependentInstallDialog
             resource={installation}
@@ -200,9 +311,7 @@ function IndependentInstallDialog({
       >
         <div className="min-h-0 space-y-4 overflow-y-auto px-6 pb-5">
           {done ? (
-            <p role="status" className="type-body">
-              {t("succeeded")}
-            </p>
+            <StatusNotice tone="success">{t("succeeded")}</StatusNotice>
           ) : (
             <PartnerPicker
               selected={selected}
