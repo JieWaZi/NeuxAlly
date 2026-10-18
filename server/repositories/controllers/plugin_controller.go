@@ -122,7 +122,7 @@ func (c *pluginController) List(ctx context.Context, owner, waker, query string,
 	}
 	if query = strings.TrimSpace(query); query != "" {
 		pattern := "%" + strings.ToLower(query) + "%"
-		db = db.Where("LOWER(name) LIKE ? OR LOWER(description) LIKE ?", pattern, pattern)
+		db = db.Where("LOWER(name) LIKE ? OR LOWER(description) LIKE ? OR source_key = ?", pattern, pattern, query)
 	}
 	var total int64
 	if err := db.Count(&total).Error; err != nil {
@@ -444,6 +444,7 @@ func (c *pluginController) ReadStates(ctx context.Context, ids []string) (map[st
 		item := result[resource.ID]
 		item.Plugin = resource
 		item.PartnerNames = map[string]string{}
+		item.PartnerAvatars = map[string]string{}
 		result[resource.ID] = item
 	}
 	for _, version := range versions {
@@ -464,14 +465,16 @@ func (c *pluginController) ReadStates(ctx context.Context, ids []string) (map[st
 		}
 	}
 	names := map[string]string{}
+	avatars := map[string]string{}
 	for start := 0; start < len(partnerIDs); start += 100 {
 		end := min(start+100, len(partnerIDs))
 		var partners []models.Waker
-		if err := db.Select("id", "name").Where("id IN ?", partnerIDs[start:end]).Find(&partners).Error; err != nil {
+		if err := db.Select("id", "name", "avatar").Where("id IN ?", partnerIDs[start:end]).Find(&partners).Error; err != nil {
 			return nil, databaseError("read_plugin_partners", "", err)
 		}
 		for _, partner := range partners {
 			names[partner.ID] = partner.Name
+			avatars[partner.ID] = partner.Avatar
 		}
 	}
 	for _, install := range installs {
@@ -480,7 +483,11 @@ func (c *pluginController) ReadStates(ctx context.Context, ids []string) (map[st
 		if item.PartnerNames == nil {
 			item.PartnerNames = map[string]string{}
 		}
+		if item.PartnerAvatars == nil {
+			item.PartnerAvatars = map[string]string{}
+		}
 		item.PartnerNames[install.WakerID] = names[install.WakerID]
+		item.PartnerAvatars[install.WakerID] = avatars[install.WakerID]
 		result[install.PluginID] = item
 	}
 	var configs []models.PluginConfiguration

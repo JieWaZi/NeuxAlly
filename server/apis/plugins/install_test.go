@@ -229,6 +229,77 @@ func TestLocalManifestRepositoryCannotMergeIntoAnotherResource(t *testing.T) {
 	}
 }
 
+func TestNativePluginUpgradePreservesPartnerPinsAndReturnsPreparedVersion(t *testing.T) {
+	ctx := pluginAPIContext(t)
+	prepare := func(target, version, body string) (PluginDetailResponse, error) {
+		source := t.TempDir()
+		for filename, content := range map[string]string{
+			".codex-plugin/plugin.json": `{"name":"upstream-tools","version":"` + version + `","skills":"./skills/","author":{"name":"Upstream"}}`,
+			"skills/reports/SKILL.md":   "---\nname: reports\ndescription: Reports\n---\n" + body,
+		} {
+			path := filepath.Join(source, filename)
+			if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+				t.Fatal(err)
+			}
+		}
+		stage, err := packageplugin.Stage(stagedRoot(), source)
+		if err != nil {
+			return PluginDetailResponse{}, err
+		}
+		value, err := (&PreparePlugin{Body: PreparePluginRequest{Token: stage.Token, PluginID: target}}).Output(ctx)
+		if err != nil {
+			return PluginDetailResponse{}, err
+		}
+		return value.(PluginDetailResponse), nil
+	}
+	old, err := prepare("", "1.0.0", "Original instructions")
+	if err != nil {
+		t.Fatal(err)
+	}
+	oldVersion := old.ResolvedVersionID
+	if _, err := (&InstallPlugin{PluginID: old.Plugin.ID, Body: InstallPluginRequest{VersionID: oldVersion, WakerIDs: []string{"w1", "w2"}}}).Output(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err := global.PluginControllerManager.SetEnabled(ctx, "w2", old.Plugin.ID, false); err != nil {
+		t.Fatal(err)
+	}
+	next, err := prepare(old.Plugin.ID, "2.0.0", "New instructions")
+	if err != nil || len(next.Versions) != 2 {
+		t.Fatalf("new version not retained: %+v %v", next, err)
+	}
+	newVersion := next.ResolvedVersionID
+	for _, relation := range next.Installations {
+		if relation.VersionID != oldVersion {
+			t.Fatal("preparation silently updated an installed partner")
+		}
+	}
+	if _, err := (&UpdatePluginConfiguration{PluginID: old.Plugin.ID, Body: UpdateConfigurationRequest{Switches: []VersionSwitch{{WakerID: "w1", ExpectedVersionID: oldVersion, VersionID: newVersion}}}}).Output(ctx); err != nil {
+		t.Fatal(err)
+	}
+	relations, err := global.PluginControllerManager.Installations(ctx, old.Plugin.ID, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, relation := range relations {
+		if relation.WakerID == "w1" && (relation.VersionID != newVersion || !relation.Enabled) {
+			t.Fatalf("selected partner did not update: %+v", relation)
+		}
+		if relation.WakerID == "w2" && (relation.VersionID != oldVersion || relation.Enabled) {
+			t.Fatalf("unselected disabled partner changed: %+v", relation)
+		}
+	}
+	if _, err := prepare(old.Plugin.ID, "2.0.0", "Changed content under the same version"); !errors.Is(err, status_error.PluginVersionConflict) {
+		t.Fatalf("same version overwrote immutable content: %v", err)
+	}
+	preparedOld, err := prepare(old.Plugin.ID, "1.0.0", "Original instructions")
+	if err != nil || preparedOld.ResolvedVersionID != oldVersion {
+		t.Fatalf("prepared response selected another version: %+v %v", preparedOld, err)
+	}
+}
+
 func TestSupplementalAuthorizationScopesMustBeExplicitIdentifiers(t *testing.T) {
 	for _, scope := range []string{"", "scope with spaces", "scope\n--domain all", "permission;command"} {
 		operator := StartPluginAuthorization{Body: AuthorizationScopeRequest{AdditionalScopes: []string{scope}}}

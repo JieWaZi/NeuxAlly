@@ -1709,6 +1709,12 @@ export type GithubComJieWaZiNeuxAllyServerApisPluginsPluginDetailResponse = {
      */
     installations?: Array<GithubComJieWaZiNeuxAllyServerRepositoriesModelsWakerPlugin>;
     /**
+     * 伙伴头像
+     */
+    partnerAvatars?: {
+        [key: string]: string;
+    };
+    /**
      * 安装伙伴名称
      */
     partnerNames?: {
@@ -1743,6 +1749,46 @@ export type GithubComJieWaZiNeuxAllyServerApisPluginsPluginEnabledRequest = {
      * 启用状态
      */
     enabled?: boolean;
+};
+
+/**
+ * 插件技能正文
+ */
+export type GithubComJieWaZiNeuxAllyServerApisPluginsPluginSkillResponse = {
+    /**
+     * 技能正文
+     */
+    content?: string;
+    file?: GithubComJieWaZiNeuxAllyServerInternalPackagefilesResourceFile & unknown;
+    /**
+     * 资源列表
+     */
+    resources?: Array<GithubComJieWaZiNeuxAllyServerInternalPackagefilesResourceEntry>;
+    skill?: GithubComJieWaZiNeuxAllyServerInternalPluginsSkill & unknown;
+    version?: GithubComJieWaZiNeuxAllyServerApisPluginsPluginSkillVersion & unknown;
+    /**
+     * 历史版本
+     */
+    versions?: Array<GithubComJieWaZiNeuxAllyServerApisPluginsPluginSkillVersion>;
+};
+
+/**
+ * 插件技能版本
+ */
+export type GithubComJieWaZiNeuxAllyServerApisPluginsPluginSkillVersion = {
+    /**
+     * 登记时间
+     */
+    createdAt?: number;
+    /**
+     * 版本标识
+     */
+    id?: string;
+    skill?: GithubComJieWaZiNeuxAllyServerInternalPluginsSkill & unknown;
+    /**
+     * 插件版本
+     */
+    version?: string;
 };
 
 /**
@@ -2482,6 +2528,24 @@ export type GithubComJieWaZiNeuxAllyServerApisSkillsSkillImportCandidate = {
 };
 
 /**
+ * 技能安装伙伴
+ */
+export type GithubComJieWaZiNeuxAllyServerApisSkillsSkillPartnerResponse = {
+    /**
+     * 伙伴头像
+     */
+    avatar?: string;
+    /**
+     * 伙伴标识
+     */
+    id?: string;
+    /**
+     * 伙伴名称
+     */
+    name?: string;
+};
+
+/**
  * 资源条目
  */
 export type GithubComJieWaZiNeuxAllyServerApisSkillsSkillResourceEntry = {
@@ -2598,6 +2662,10 @@ export type GithubComJieWaZiNeuxAllyServerApisSkillsWakerSkillResponse = {
      * 启用状态
      */
     enabled?: boolean;
+    /**
+     * 安装伙伴预览
+     */
+    installedPartners?: Array<GithubComJieWaZiNeuxAllyServerApisSkillsSkillPartnerResponse>;
     skill?: GithubComJieWaZiNeuxAllyServerRepositoriesModelsSkillPackage & unknown;
 };
 
@@ -4553,6 +4621,62 @@ export type GithubComJieWaZiNeuxAllyServerInternalChatMessageviewToolSafeSummary
 };
 
 /**
+ * 资源条目
+ */
+export type GithubComJieWaZiNeuxAllyServerInternalPackagefilesResourceEntry = {
+    /**
+     * 内容摘要
+     */
+    digest?: string;
+    /**
+     * 是否目录
+     */
+    directory?: boolean;
+    /**
+     * 可执行权限
+     */
+    executable?: boolean;
+    /**
+     * 资源路径
+     */
+    path?: string;
+    /**
+     * 字节数
+     */
+    size?: number;
+};
+
+/**
+ * 资源文件
+ */
+export type GithubComJieWaZiNeuxAllyServerInternalPackagefilesResourceFile = {
+    /**
+     * 是否二进制
+     */
+    binary?: boolean;
+    /**
+     * 文件内容
+     */
+    content?: string;
+    /**
+     * 编码内容
+     */
+    contentBase64?: string;
+    /**
+     * 可执行权限
+     */
+    executable?: boolean;
+    /**
+     * 资源路径
+     */
+    path?: string;
+    /**
+     * 字节数
+     */
+    size?: number;
+};
+
+/**
  * Author 保存包作者的公开署名资料。
  */
 export type GithubComJieWaZiNeuxAllyServerInternalPluginsAuthor = {
@@ -4755,26 +4879,73 @@ export type GithubComJieWaZiNeuxAllyServerInternalPluginsManifest = {
 };
 
 /**
- * Package 是对原始包的一次确定性解析结果。
+ * 插件包
  */
 export type GithubComJieWaZiNeuxAllyServerInternalPluginsPackage = {
     /**
-     * Diagnostics 是不阻断其他组件的逐项诊断。
+     * 兼容性说明
      */
     diagnostics?: Array<GithubComJieWaZiNeuxAllyServerInternalPluginsDiagnostic>;
     /**
-     * Format 是实际采用的包格式。
+     * 包格式
      */
     format?: string;
-    manifest?: GithubComJieWaZiNeuxAllyServerInternalPluginsManifest & unknown;
     /**
-     * Servers 是可交付 MCP 定义，按组件键排序。
+     * 软件图标
+     */
+    icon?: string;
+    manifest?: GithubComJieWaZiNeuxAllyServerInternalPluginsManifest & unknown;
+    presentation?: GithubComJieWaZiNeuxAllyServerInternalPluginsPresentation & unknown;
+    /**
+     * 插件说明
+     */
+    readme?: string;
+    /**
+     * 包含连接器
      */
     servers?: Array<GithubComJieWaZiNeuxAllyServerInternalPluginsServer>;
     /**
-     * Skills 是可交付技能，按组件键排序。
+     * 包含技能
      */
     skills?: Array<GithubComJieWaZiNeuxAllyServerInternalPluginsSkill>;
+};
+
+/**
+ * 插件展示资料
+ */
+export type GithubComJieWaZiNeuxAllyServerInternalPluginsPresentation = {
+    /**
+     * 分类
+     */
+    category?: string;
+    /**
+     * 开发者
+     */
+    developerName?: string;
+    /**
+     * 展示名称
+     */
+    displayName?: string;
+    /**
+     * 完整介绍
+     */
+    longDescription?: string;
+    /**
+     * 隐私政策
+     */
+    privacyPolicyURL?: string;
+    /**
+     * 简短介绍
+     */
+    shortDescription?: string;
+    /**
+     * 服务条款
+     */
+    termsOfServiceURL?: string;
+    /**
+     * 官方网站
+     */
+    websiteURL?: string;
 };
 
 /**
@@ -14710,6 +14881,61 @@ export type PrepareCatalogPluginResponses = {
 
 export type PrepareCatalogPluginResponse = PrepareCatalogPluginResponses[keyof PrepareCatalogPluginResponses];
 
+export type GetCatalogPluginSkillData = {
+    body?: never;
+    path: {
+        /**
+         * 目录条目
+         */
+        key: string;
+    };
+    query: {
+        /**
+         * 资源路径
+         */
+        path?: string;
+        /**
+         * 组件标识
+         */
+        skillKey: string;
+    };
+    url: '/api/v1/plugins/catalog/{key}/skill';
+};
+
+export type GetCatalogPluginSkillErrors = {
+    /**
+     * >
+     * * `[PluginContentInvalid][40000006502]`
+     * * `[PluginContentLimitExceeded][40000006503]`
+     * * `[PluginManifestInvalid][40000006501]`
+     * * `[SkillContentInvalid][40000000013]`
+     * * `[SkillContentLimitExceeded][40000000014]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[PluginNotFound][40400006501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[PluginStorageError][50000006501]`
+     * * `[SkillUnavailable][50000000008]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type GetCatalogPluginSkillError = GetCatalogPluginSkillErrors[keyof GetCatalogPluginSkillErrors];
+
+export type GetCatalogPluginSkillResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisPluginsPluginSkillResponse;
+};
+
+export type GetCatalogPluginSkillResponse = GetCatalogPluginSkillResponses[keyof GetCatalogPluginSkillResponses];
+
 export type PreparePluginData = {
     body: GithubComJieWaZiNeuxAllyServerApisPluginsPreparePluginRequest & unknown;
     path?: never;
@@ -14994,6 +15220,7 @@ export type ScanPluginErrors = {
     /**
      * >
      * * `[PluginContentInvalid][40000006502]`
+     * * `[PluginContentLimitExceeded][40000006503]`
      * * `[PluginManifestInvalid][40000006501]`
      * * `[SkillContentInvalid][40000000013]`
      * * `[SkillContentLimitExceeded][40000000014]`
@@ -15038,6 +15265,7 @@ export type DeletePluginErrors = {
     /**
      * >
      * * `[BadRequest][40000000001]`
+     * * `[PluginManifestInvalid][40000006501]`
      *
      */
     400: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -15049,6 +15277,13 @@ export type DeletePluginErrors = {
     403: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
+     * * `[OperationCanceled][40800000001]`
+     *
+     */
+    408: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[PluginBusy][40900006505]`
      * * `[PluginVersionConflict][40900006501]`
      *
      */
@@ -15677,6 +15912,12 @@ export type CancelPluginAuthorizationErrors = {
     404: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
+     * * `[OperationCanceled][40800000001]`
+     *
+     */
+    408: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
      * * `[PluginNotReady][40900006503]`
      * * `[PluginVersionConflict][40900006501]`
      *
@@ -16032,6 +16273,72 @@ export type InstallPluginResponses = {
 };
 
 export type InstallPluginResponse = InstallPluginResponses[keyof InstallPluginResponses];
+
+export type GetPluginSkillData = {
+    body?: never;
+    path: {
+        /**
+         * 插件标识
+         */
+        pluginId: string;
+    };
+    query: {
+        /**
+         * 组件标识
+         */
+        key: string;
+        /**
+         * 资源路径
+         */
+        path?: string;
+        /**
+         * 版本标识
+         */
+        versionId: string;
+        /**
+         * 所属伙伴
+         */
+        wakerId?: string;
+    };
+    url: '/api/v1/plugins/{pluginId}/skill';
+};
+
+export type GetPluginSkillErrors = {
+    /**
+     * >
+     * * `[PluginContentInvalid][40000006502]`
+     * * `[PluginContentLimitExceeded][40000006503]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[PluginForbidden][40300006501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[PluginNotReady][40900006503]`
+     * * `[PluginVersionConflict][40900006501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[PluginStorageError][50000006501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type GetPluginSkillError = GetPluginSkillErrors[keyof GetPluginSkillErrors];
+
+export type GetPluginSkillResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisPluginsPluginSkillResponse;
+};
+
+export type GetPluginSkillResponse = GetPluginSkillResponses[keyof GetPluginSkillResponses];
 
 export type ListRolePresetsData = {
     body?: never;
@@ -20114,10 +20421,29 @@ export type UninstallWakerPluginData = {
 export type UninstallWakerPluginErrors = {
     /**
      * >
+     * * `[PluginManifestInvalid][40000006501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
      * * `[PluginForbidden][40300006501]`
      *
      */
     403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[OperationCanceled][40800000001]`
+     *
+     */
+    408: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[PluginBusy][40900006505]`
+     * * `[PluginVersionConflict][40900006501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
 };
 
 export type UninstallWakerPluginError = UninstallWakerPluginErrors[keyof UninstallWakerPluginErrors];
