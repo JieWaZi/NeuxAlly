@@ -39,6 +39,9 @@ const ChatForkDirectoryName = "forks"
 // WorkflowFileMaximumBytes 限制单次上传或下载的文件字节数。
 const WorkflowFileMaximumBytes int64 = 100 << 20
 
+// SkillPartnerPreviewLimit 是独立技能卡片最多返回的安装伙伴预览数。
+const SkillPartnerPreviewLimit = 4
+
 const (
 	// WorkflowInstanceBudget 标识整次工作流累计节点实例数的预算错误。
 	WorkflowInstanceBudget = "instances"

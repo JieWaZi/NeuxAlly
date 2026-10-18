@@ -20,6 +20,18 @@ type WakerSkillResponse struct {
 	Enabled bool `json:"enabled"`
 	// 影响伙伴数
 	AffectedWakerCount int64 `json:"affectedWakerCount"`
+	// 安装伙伴预览
+	InstalledPartners []SkillPartnerResponse `json:"installedPartners"`
+}
+
+// 技能安装伙伴
+type SkillPartnerResponse struct {
+	// 伙伴标识
+	ID string `json:"id"`
+	// 伙伴名称
+	Name string `json:"name"`
+	// 伙伴头像
+	Avatar string `json:"avatar"`
 }
 
 func visibleSkill(ctx context.Context, wakerID string, skillID string) (models.SkillPackage, error) {
@@ -56,18 +68,36 @@ func wakerSkillResponses(
 	for _, item := range items {
 		ids = append(ids, item.SkillPackage.ID)
 	}
-	counts, err := global.SkillControllerManager.InstalledCounts(ctx, ids)
+	if len(ids) == 0 {
+		return []WakerSkillResponse{}, nil
+	}
+	var counts map[string]int64
+	var partners map[string][]models.Waker
+	err := global.TransactionControllerManager.Transaction(ctx, func(txctx context.Context) error {
+		var err error
+		counts, err = global.SkillControllerManager.InstalledCounts(txctx, ids)
+		if err != nil {
+			return err
+		}
+		partners, err = global.SkillControllerManager.InstalledPartnerPreviews(txctx, ids)
+		return err
+	})
 	if err != nil {
 		return nil, err
 	}
 	responses := make([]WakerSkillResponse, 0, len(items))
 	for _, item := range items {
 		affectedWakerCount := counts[item.SkillPackage.ID]
+		preview := []SkillPartnerResponse{}
+		for _, partner := range partners[item.SkillPackage.ID] {
+			preview = append(preview, SkillPartnerResponse{ID: partner.ID, Name: partner.Name, Avatar: partner.Avatar})
+		}
 		responses = append(responses, WakerSkillResponse{
 			Skill:              item.SkillPackage,
 			CurrentVersion:     item.CurrentVersion,
 			Enabled:            item.Enabled,
 			AffectedWakerCount: affectedWakerCount,
+			InstalledPartners:  preview,
 		})
 	}
 	return responses, nil
