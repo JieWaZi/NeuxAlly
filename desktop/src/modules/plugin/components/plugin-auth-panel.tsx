@@ -1,14 +1,22 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { StatusNotice } from "@/shared/ui/status-notice";
+import {
+  hashKey,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import { useState, useEffect, useEffectEvent, useRef } from "react";
+import { RefreshCw, Unplug } from "lucide-react";
+import type { GetPluginAuthorizationResponse } from "@/shared/api/generated/types.gen";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import {
   AuthorizationCode,
   PluginAuthorizationDialog,
+  AuthorizationQRCode,
 } from "./plugin-authorization-dialog";
 import { openExternalURL } from "@/shared/desktop";
 import { Button } from "@/shared/ui/button";
-import { Input } from "@/shared/ui/input";
 import { QueryState } from "@/shared/ui/query-state";
 import { useQueryEvents } from "@/shared/api/use-query-events";
 import { useRouteSceneActive } from "@/shared/workspace/app-scene-workspace";
@@ -20,7 +28,6 @@ import {
 import {
   getPluginAuthorizationOptions,
   startPluginAuthorizationMutation,
-  configurePluginAuthorizationMutation,
   cancelPluginAuthorizationMutation,
   logoutPluginAuthorizationMutation,
   invalidatePluginQueries,
@@ -31,11 +38,15 @@ export function PluginAuthPanel({
   wakerId = "",
   versionId,
   onReady,
+  installation = false,
+  starting = false,
 }: {
   pluginId: string;
   wakerId?: string;
   versionId?: string;
   onReady?: () => void;
+  installation?: boolean;
+  starting?: boolean;
 }) {
   const { t } = useTranslation("plugin");
   const client = useQueryClient();
@@ -52,26 +63,11 @@ export function PluginAuthPanel({
     queryKeys: [options.queryKey],
     active,
   });
-  const [editingApp, setEditingApp] = useState(false);
-  const [appId, setAppId] = useState("");
-  const [additionalScopes, setAdditionalScopes] = useState("");
-  const [appSecret, setAppSecret] = useState("");
   const [openError, setOpenError] = useState("");
+  const [expiredDevice, setExpiredDevice] = useState("");
   const refresh = async () => {
     await invalidatePluginQueries(client);
-    onReady?.();
   };
-  const configure = useMutation({
-    ...withLocalErrorMutation(configurePluginAuthorizationMutation()),
-    onError: () => {
-      void status.refetch();
-    },
-    onSuccess: async () => {
-      setAppSecret("");
-      setEditingApp(false);
-      await refresh();
-    },
-  });
   const login = useMutation({
     ...withLocalErrorMutation(startPluginAuthorizationMutation()),
     onError: () => {
@@ -95,22 +91,173 @@ export function PluginAuthPanel({
   const activeUses = status.data?.activeUses ?? [];
   const session = status.data?.session;
   const verificationURL = session?.verificationUrl ?? "";
-  const waiting = session?.state === "waiting";
+  const deviceKey = `${session?.id ?? ""}:${session?.expiresAt ?? ""}`;
+  const expired = session?.state === "expired" || expiredDevice === deviceKey;
+  const waiting = session?.state === "waiting" && !expired;
   const ready = Boolean(account?.available);
   const pending =
-    configure.isPending ||
-    login.isPending ||
-    cancel.isPending ||
-    logout.isPending;
-  const error = configure.error ?? login.error ?? cancel.error ?? logout.error;
-  const message =
-    session?.state === "expired"
-      ? t("authExpired")
-      : session?.state === "failed"
-        ? t("authFailed")
-        : session?.state === "cancelled"
-          ? t("authCancelled")
-          : t("authUnknown");
+    starting || login.isPending || cancel.isPending || logout.isPending;
+  const error = login.error ?? cancel.error ?? logout.error;
+  const message = expired
+    ? t("authExpired")
+    : session?.state === "failed"
+      ? t("authFailed")
+      : session?.state === "cancelled"
+        ? t("authCancelled")
+        : t("authUnknown");
+  const notifyReady = useEffectEvent(() => onReady?.());
+  const notifiedSession = useRef("");
+  const statusHash = hashKey(options.queryKey);
+  useEffect(() => {
+    const cache = client.getQueryCache();
+    const notify = () => {
+      const current =
+        cache.get<GetPluginAuthorizationResponse>(statusHash)?.state.data;
+      const id = current?.session?.id;
+      if (
+        id &&
+        current.session?.state === "ready" &&
+        current.account?.available &&
+        notifiedSession.current !== id
+      ) {
+        notifiedSession.current = id;
+        notifyReady();
+      }
+    };
+    const close = cache.subscribe((event) => {
+      if (
+        event.type === "updated" &&
+        event.action.type === "success" &&
+        event.query.queryHash === statusHash
+      )
+        notify();
+    });
+    notify();
+    return close;
+  }, [client, statusHash]);
+  const onDeadline = useEffectEvent((expiredKey: string) => {
+    setExpiredDevice(expiredKey);
+    void status.refetch();
+  });
+  useEffect(() => {
+    if (session?.state !== "waiting" || !session.expiresAt) return;
+    // 当前设备期限只唤醒一次：移除旧二维码并对账，不轮询认证状态。
+    const timer = setTimeout(
+      () => onDeadline(deviceKey),
+      Math.max(0, session.expiresAt - Date.now()),
+    );
+    return () => clearTimeout(timer);
+  }, [deviceKey, session?.expiresAt, session?.state]);
+  async function restart() {
+    setOpenError("");
+    if (session?.state === "waiting") setExpiredDevice(deviceKey);
+    try {
+      if (session?.state === "waiting" && session.id) {
+        await cancel.mutateAsync({
+          path: { pluginId, sessionId: session.id },
+          query: { wakerId, versionId },
+        });
+      }
+      await login.mutateAsync({
+        path: { pluginId },
+        query: { wakerId, versionId },
+        body: { additionalScopes: status.data?.missingScopes ?? [] },
+      });
+    } catch {
+      // Mutation 的稳定错误在当前面板统一呈现。
+    }
+  }
+  if (installation)
+    return (
+      <section className="space-y-4">
+        {status.isPending || status.isError ? (
+          <QueryState
+            loadingLayout="content"
+            pending={status.isPending}
+            error={status.error}
+            onRetry={() => void status.refetch()}
+          />
+        ) : (
+          <>
+            <StatusNotice>
+              {t(
+                github
+                  ? "githubAuthorizationNotice"
+                  : "feishuAuthorizationNotice",
+              )}
+            </StatusNotice>
+            {waiting && verificationURL ? (
+              <>
+                {github ? (
+                  <>
+                    <AuthorizationCode code={session?.userCode ?? ""} />
+                    <Button
+                      type="button"
+                      className="w-full"
+                      onClick={() => {
+                        setOpenError("");
+                        void openExternalURL(verificationURL).catch(() =>
+                          setOpenError(t("failed")),
+                        );
+                      }}
+                    >
+                      {t("authorizeOnWebsite")}
+                    </Button>
+                  </>
+                ) : (
+                  <AuthorizationQRCode url={verificationURL} />
+                )}
+                <p
+                  role="status"
+                  className="type-caption text-content-caption text-center"
+                >
+                  {t(github ? "githubWaiting" : "authWaiting")}
+                </p>
+                {!github && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="mx-auto flex"
+                    disabled={pending || activeUses.length > 0}
+                    onClick={() => void restart()}
+                  >
+                    <RefreshCw />
+                    {t("refreshQR")}
+                  </Button>
+                )}
+              </>
+            ) : (
+              !ready && (
+                <div className="space-y-3">
+                  <p role="status" className="type-body text-content-secondary">
+                    {pending ? t("busy") : message}
+                  </p>
+                  <Button
+                    type="button"
+                    className="w-full"
+                    disabled={pending || activeUses.length > 0}
+                    onClick={() => void restart()}
+                  >
+                    <RefreshCw />
+                    {t(github ? "retryAuthorization" : "refreshQR")}
+                  </Button>
+                </div>
+              )
+            )}
+            {activeUses.length > 0 && (
+              <p className="type-body text-content-secondary">
+                {t("accountInUse")}
+              </p>
+            )}
+          </>
+        )}
+        {(error || openError) && (
+          <p role="alert" className="type-body text-destructive">
+            {openError || localApiErrorMessage(error, t("failed"))}
+          </p>
+        )}
+      </section>
+    );
   return (
     <section className="space-y-4">
       <div>
@@ -121,71 +268,22 @@ export function PluginAuthPanel({
       </div>
       {status.isPending || status.isError ? (
         <QueryState
+          loadingLayout="content"
           pending={status.isPending}
           error={status.error}
           onRetry={() => void status.refetch()}
         />
       ) : (
         <>
-          {!github && (!account?.configured || editingApp) && (
-            <div className="space-y-3">
-              <p className="type-caption text-muted-foreground">
-                {t("appCredentialsHelp")}
-              </p>
-              <label className="type-body grid gap-2">
-                {t("appId")}
-                <Input
-                  value={appId}
-                  placeholder={t("appIdExample")}
-                  autoComplete="off"
-                  onChange={(event) => setAppId(event.target.value)}
-                />
-              </label>
-              <label className="type-body grid gap-2">
-                {t("appSecret")}
-                <Input
-                  type="password"
-                  value={appSecret}
-                  placeholder={t("appSecretHelp")}
-                  autoComplete="new-password"
-                  onChange={(event) => setAppSecret(event.target.value)}
-                />
-              </label>
-              <Button
-                disabled={
-                  pending ||
-                  activeUses.length > 0 ||
-                  !appId.trim() ||
-                  !appSecret.trim()
-                }
-                onClick={() =>
-                  configure.mutate({
-                    path: { pluginId },
-                    query: { wakerId, versionId },
-                    body: { appId: appId.trim(), appSecret },
-                  })
-                }
-              >
-                {t("configureApp")}
-              </Button>
-              {editingApp && (
-                <Button
-                  variant="ghost"
-                  disabled={pending}
-                  onClick={() => {
-                    setEditingApp(false);
-                    setAppSecret("");
-                  }}
-                >
-                  {t("cancel")}
-                </Button>
-              )}
-            </div>
+          {!github && !account?.configured && (
+            <p className="type-body text-content-secondary">
+              {t("setupScanHelp")}
+            </p>
           )}
           {ready ? (
-            <p className="type-body">
+            <StatusNotice tone="success">
               {t("sharedIdentity", { name: account?.name || account?.id })}
-            </p>
+            </StatusNotice>
           ) : (
             <p className="type-body text-muted-foreground" role="status">
               {waiting ? t(github ? "githubWaiting" : "authWaiting") : message}
@@ -193,6 +291,18 @@ export function PluginAuthPanel({
           )}
           {waiting && session?.verificationUrl && (
             <div className="space-y-3">
+              {!github && <AuthorizationQRCode url={verificationURL} />}
+              {!github && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={pending || activeUses.length > 0}
+                  onClick={() => void restart()}
+                >
+                  <RefreshCw />
+                  {t("refreshQR")}
+                </Button>
+              )}
               {session.userCode && (
                 <AuthorizationCode
                   key={session.userCode}
@@ -206,6 +316,7 @@ export function PluginAuthPanel({
                   code={session.userCode}
                 />
                 <Button
+                  type="button"
                   variant="secondary"
                   onClick={() => {
                     setOpenError("");
@@ -219,54 +330,37 @@ export function PluginAuthPanel({
               </div>
               {session.expiresAt && (
                 <p className="type-caption text-muted-foreground">
-                  {t(github ? "localWaitUntil" : "expires", {
+                  {t("localWaitUntil", {
                     time: new Date(session.expiresAt).toLocaleTimeString(),
                   })}
                 </p>
               )}
             </div>
           )}
-          {account?.configured && !waiting && (
-            <label className="type-body grid gap-2">
-              {t("additionalScopes")}
-              <span className="type-caption text-muted-foreground">
-                {t("additionalScopesHelp")}
-              </span>
-              <Input
-                value={additionalScopes}
-                aria-label={t("additionalScopes")}
-                disabled={pending}
-                placeholder={t("additionalScopesHelp")}
-                onChange={(event) => setAdditionalScopes(event.target.value)}
-              />
-            </label>
-          )}
           {Boolean(status.data?.missingScopes?.length) && (
-            <p className="type-caption text-muted-foreground break-all">
-              {t("missingScopes")} {status.data?.missingScopes?.join("、")}
+            <p className="type-body text-content-secondary">
+              {t("missingScopesHelp")}
             </p>
           )}
           <div className="flex flex-wrap gap-2">
-            {account?.configured && !waiting && !editingApp && (
+            {!waiting && !ready && (
               <Button
+                type="button"
                 disabled={pending || activeUses.length > 0}
-                onClick={() =>
-                  login.mutate({
-                    path: { pluginId },
-                    query: { wakerId, versionId },
-                    body: {
-                      additionalScopes: additionalScopes
-                        .split(/[,\s]+/)
-                        .filter(Boolean),
-                    },
-                  })
-                }
+                onClick={() => void restart()}
               >
-                {t("login")}
+                {t(
+                  account?.configured
+                    ? "retryAuthorization"
+                    : github
+                      ? "login"
+                      : "scanLogin",
+                )}
               </Button>
             )}
             {waiting && session?.id && (
               <Button
+                type="button"
                 variant="secondary"
                 disabled={pending}
                 onClick={() =>
@@ -279,27 +373,18 @@ export function PluginAuthPanel({
                 {t("cancelAuth")}
               </Button>
             )}
-            {!github && account?.configured && !waiting && !editingApp && (
-              <Button
-                variant="ghost"
-                disabled={pending || activeUses.length > 0}
-                onClick={() => {
-                  setAppId(account.appId ?? "");
-                  setEditingApp(true);
-                }}
-              >
-                {t("changeApp")}
-              </Button>
-            )}
             <Button
+              type="button"
               variant="ghost"
               disabled={pending}
               onClick={() => void status.refetch().then(refresh)}
             >
+              <RefreshCw aria-hidden="true" strokeWidth={1.5} />
               {t("authRefresh")}
             </Button>
             {ready && (
               <Button
+                type="button"
                 variant="ghost"
                 disabled={pending || activeUses.length > 0}
                 onClick={() =>
@@ -309,6 +394,7 @@ export function PluginAuthPanel({
                   })
                 }
               >
+                <Unplug aria-hidden="true" strokeWidth={1.5} />
                 {t("logout")}
               </Button>
             )}

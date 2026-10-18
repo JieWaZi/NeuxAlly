@@ -25,6 +25,7 @@ const fixture = vi.hoisted(() => ({
       state: "waiting",
       userCode: "",
       verificationUrl: "https://example.com/device?code=a%2Fb&x=1+2",
+      expiresAt: Date.now() + 60_000,
     },
     activeUses: [] as {
       chatId: string;
@@ -40,6 +41,8 @@ const fixture = vi.hoisted(() => ({
     .mockResolvedValue({}),
   cancel: vi.fn().mockResolvedValue({}),
   open: vi.fn().mockResolvedValue(undefined),
+  submit: vi.fn(),
+  statusError: null as Error | null,
 }));
 vi.mock("@/shared/api/use-query-events", () => ({
   useQueryEvents: () => undefined,
@@ -56,7 +59,10 @@ vi.mock("qrcode.react", () => ({
 vi.mock("../api/plugin-queries", () => ({
   getPluginAuthorizationOptions: () => ({
     queryKey: [{ _id: "getPluginAuthorization" }],
-    queryFn: async () => fixture.status,
+    queryFn: async () => {
+      if (fixture.statusError) throw fixture.statusError;
+      return structuredClone(fixture.status);
+    },
   }),
   startPluginAuthorizationMutation: () => ({ mutationFn: fixture.login }),
   configurePluginAuthorizationMutation: () => ({
@@ -64,34 +70,115 @@ vi.mock("../api/plugin-queries", () => ({
   }),
   cancelPluginAuthorizationMutation: () => ({ mutationFn: fixture.cancel }),
   logoutPluginAuthorizationMutation: () => ({ mutationFn: vi.fn() }),
-  invalidatePluginQueries: async () => undefined,
+  invalidatePluginQueries: async (client: QueryClient) =>
+    client.invalidateQueries(),
 }));
 afterEach(cleanup);
 beforeEach(() => {
   fixture.login.mockClear();
+  fixture.submit.mockClear();
+  fixture.statusError = null;
   fixture.configure.mockClear();
   fixture.open.mockClear();
   fixture.status.activeUses = [];
+  fixture.status.missingScopes = [];
   fixture.status.provider = "feishu";
   fixture.status.account.available = true;
+  fixture.status.account.configured = true;
   fixture.status.session.userCode = "";
   fixture.cancel.mockClear();
   fixture.status.session.state = "waiting";
+  fixture.status.session.id = "session";
+  fixture.status.session.expiresAt = Date.now() + 60_000;
+  fixture.status.session.verificationUrl =
+    "https://example.com/device?code=a%2Fb&x=1+2";
 });
-function show() {
+function show(installation = false, onReady = vi.fn()) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
   render(
     <QueryClientProvider client={client}>
       <MemoryRouter>
-        <PluginAuthPanel pluginId="p" />
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            fixture.submit();
+          }}
+        >
+          <PluginAuthPanel
+            pluginId="p"
+            installation={installation}
+            onReady={onReady}
+          />
+        </form>
       </MemoryRouter>
     </QueryClientProvider>,
   );
   return client;
 }
 describe("shared plugin authorization", () => {
+  it("retries account loading without submitting the surrounding settings form", async () => {
+    fixture.statusError = new Error("offline");
+    show();
+    const retry = await screen.findByRole("button", { name: "重试" });
+    fixture.statusError = null;
+    fireEvent.click(retry);
+    expect(await screen.findByText("已连接：用户")).toBeVisible();
+    expect(fixture.submit).not.toHaveBeenCalled();
+  });
+  it("notifies completion only after an authoritative ready snapshot", async () => {
+    const onReady = vi.fn();
+    const client = show(true, onReady);
+    await screen.findByLabelText("二维码内容");
+    expect(onReady).not.toHaveBeenCalled();
+    const completed = {
+      ...fixture.status,
+      session: {
+        ...fixture.status.session,
+        state: "ready",
+        verificationUrl: "",
+      },
+    };
+    client.setQueryData([{ _id: "getPluginAuthorization" }], completed);
+    await waitFor(() => expect(onReady).toHaveBeenCalledOnce());
+    client.setQueryData([{ _id: "getPluginAuthorization" }], completed);
+    expect(onReady).toHaveBeenCalledOnce();
+  });
+  it("removes an expired QR without a server push, then waits for cancellation before refreshing", async () => {
+    fixture.status.account.available = false;
+    fixture.status.session.expiresAt = Date.now() + 250;
+    let finishCancel: (() => void) | undefined;
+    fixture.cancel.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          finishCancel = resolve;
+        }),
+    );
+    fixture.login.mockImplementationOnce(async () => {
+      fixture.status.session = {
+        ...fixture.status.session,
+        id: "new-session",
+        verificationUrl: "https://example.com/new-device",
+        expiresAt: Date.now() + 60_000,
+      };
+      return {};
+    });
+    show(true);
+    await screen.findByLabelText("二维码内容");
+    await waitFor(() =>
+      expect(screen.queryByLabelText("二维码内容")).not.toBeInTheDocument(),
+    );
+    expect(screen.getByRole("status")).toHaveTextContent("二维码已过期");
+    fireEvent.click(screen.getByRole("button", { name: "刷新二维码" }));
+    await waitFor(() => expect(fixture.cancel).toHaveBeenCalledOnce());
+    expect(fixture.login).not.toHaveBeenCalled();
+    finishCancel?.();
+    await waitFor(() => expect(fixture.login).toHaveBeenCalledOnce());
+    expect(await screen.findByLabelText("二维码内容")).toHaveTextContent(
+      "https://example.com/new-device",
+    );
+  });
   it("preserves the original URL in QR and external link", async () => {
     show();
     fireEvent.click(
@@ -100,24 +187,38 @@ describe("shared plugin authorization", () => {
     expect(fixture.open).toHaveBeenCalledWith(
       fixture.status.session.verificationUrl,
     );
-    fireEvent.click(screen.getByRole("button", { name: "显示二维码" }));
     expect(await screen.findByLabelText("二维码内容")).toHaveTextContent(
       fixture.status.session.verificationUrl,
     );
   });
-  it("requests explicit supplemental scopes without replacing the app", async () => {
+  it("requests server-reported missing permissions without a manual scope field", async () => {
     fixture.status.session.state = "idle";
+    fixture.status.account.available = false;
+    fixture.status.missingScopes = ["docx:document", "bitable:app"];
     show();
-    fireEvent.change(await screen.findByLabelText("补充权限（可选）"), {
-      target: { value: "docx:document, bitable:app" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "开始授权" }));
+    fireEvent.click(await screen.findByRole("button", { name: "重新授权" }));
     await waitFor(() =>
       expect(fixture.login.mock.calls[0]?.[0]).toMatchObject({
         body: { additionalScopes: ["docx:document", "bitable:app"] },
       }),
     );
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
     expect(fixture.configure).not.toHaveBeenCalled();
+    expect(fixture.submit).not.toHaveBeenCalled();
+  });
+  it("shows a connected account without asking users to connect or enter permissions again", async () => {
+    fixture.status.provider = "github";
+    fixture.status.session.state = "ready";
+    show();
+    expect(await screen.findByText("已连接：用户")).toBeVisible();
+    expect(screen.getByRole("heading", { name: "账号连接" })).toBeVisible();
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "连接账号" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "重新授权" }),
+    ).not.toBeInTheDocument();
   });
   it("shows account leases as work links and blocks identity changes", async () => {
     fixture.status.session.state = "idle";
@@ -133,33 +234,28 @@ describe("shared plugin authorization", () => {
     expect(
       await screen.findByRole("link", { name: "读取会议文档" }),
     ).toHaveAttribute("href", "/chats/chat-1");
-    expect(screen.getByRole("button", { name: "更换飞书应用" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "开始授权" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "退出共享账号" })).toBeDisabled();
+    expect(
+      screen.queryByRole("button", { name: "更换飞书应用" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "重新授权" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "断开连接" })).toBeDisabled();
   });
-  it("submits app secrets only from the explicit app configuration form", async () => {
+  it("starts first-time Feishu setup through QR authorization without app credentials", async () => {
+    fixture.status.account.configured = false;
+    fixture.status.account.available = false;
     fixture.status.session.state = "idle";
     show();
     fireEvent.click(
-      await screen.findByRole("button", { name: "更换飞书应用" }),
+      await screen.findByRole("button", { name: "扫码连接飞书" }),
     );
-    fireEvent.change(screen.getByLabelText("飞书应用 App ID"), {
-      target: { value: "cli_next" },
-    });
-    fireEvent.change(screen.getByLabelText("飞书应用 App Secret"), {
-      target: { value: "test-secret" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "保存应用配置" }));
-    await waitFor(() =>
-      expect(fixture.configure.mock.calls[0]?.[0]).toMatchObject({
-        body: { appId: "cli_next", appSecret: "test-secret" },
-      }),
-    );
-    await waitFor(() =>
-      expect(
-        screen.queryByLabelText("飞书应用 App Secret"),
-      ).not.toBeInTheDocument(),
-    );
+    await waitFor(() => expect(fixture.login).toHaveBeenCalledTimes(1));
+    expect(screen.queryByLabelText("飞书应用 App ID")).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("飞书应用 App Secret"),
+    ).not.toBeInTheDocument();
+    expect(fixture.configure).not.toHaveBeenCalled();
   });
 });
 

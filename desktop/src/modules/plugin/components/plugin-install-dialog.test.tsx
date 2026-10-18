@@ -9,6 +9,7 @@ import {
 import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import "@/shared/i18n";
+import type { GlobalEventObserver } from "@/shared/api/global-events";
 import { PluginInstallDialog } from "./plugin-install-dialog";
 const fixture = vi.hoisted(() => ({
   detail: {
@@ -20,10 +21,19 @@ const fixture = vi.hoisted(() => ({
         package: { manifest: { name: "office" }, skills: [] },
       },
     ],
-    installations: [],
+    installations: new Array<{
+      wakerId: string;
+      versionId: string;
+      enabled: boolean;
+    }>(),
+    account: { available: false },
     configurationRevision: 3,
     ready: true,
   },
+  observers: new Set<GlobalEventObserver>(),
+  readDelay: 0,
+  authorization: vi.fn().mockResolvedValue({}),
+  prepare: vi.fn(),
   install: vi
     .fn<
       (
@@ -32,13 +42,37 @@ const fixture = vi.hoisted(() => ({
     >()
     .mockResolvedValue({ results: [{ wakerId: "p1", installed: true }] }),
 }));
-vi.mock("@/shared/api/use-query-events", () => ({
-  useQueryEvents: () => undefined,
+vi.mock("@/shared/api/global-events", () => ({
+  subscribeGlobalEvents: (
+    _topic: string,
+    _resource: unknown,
+    observer: GlobalEventObserver,
+  ) => {
+    fixture.observers.add(observer);
+    return () => {
+      fixture.observers.delete(observer);
+    };
+  },
 }));
 vi.mock("../api/plugin-queries", () => ({
   getPluginOptions: () => ({
     queryKey: [{ _id: "getPlugin", path: { pluginId: "plugin-1" } }],
-    queryFn: async () => fixture.detail,
+    queryFn: async ({ signal }: { signal: AbortSignal }) => {
+      const current = structuredClone(fixture.detail);
+      if (fixture.readDelay)
+        await new Promise<void>((resolve, reject) => {
+          const timer = setTimeout(resolve, fixture.readDelay);
+          signal.addEventListener(
+            "abort",
+            () => {
+              clearTimeout(timer);
+              reject(signal.reason);
+            },
+            { once: true },
+          );
+        });
+      return current;
+    },
   }),
   listWakersOptions: () => ({
     queryKey: [{ _id: "listWakers" }],
@@ -55,11 +89,21 @@ vi.mock("../api/plugin-queries", () => ({
     queryFn: async () => ({ id: "p1", name: "伙伴一" }),
   }),
   installPluginMutation: () => ({ mutationFn: fixture.install }),
-  prepareCatalogPluginMutation: () => ({ mutationFn: vi.fn() }),
+  prepareCatalogPluginMutation: () => ({ mutationFn: fixture.prepare }),
+  startPluginAuthorizationMutation: () => ({
+    mutationFn: fixture.authorization,
+  }),
   updatePluginConfigurationMutation: () => ({ mutationFn: vi.fn() }),
   invalidatePluginQueries: async () => undefined,
 }));
-vi.mock("./plugin-auth-panel", () => ({ PluginAuthPanel: () => null }));
+vi.mock("./plugin-auth-panel", () => ({
+  PluginAuthPanel: ({ onReady }: { onReady?: () => void }) => (
+    <div>
+      <p>扫码授权区域</p>
+      <button onClick={onReady}>完成设备授权</button>
+    </div>
+  ),
+}));
 afterEach(cleanup);
 beforeEach(() => {
   fixture.install.mockReset();
@@ -67,21 +111,68 @@ beforeEach(() => {
     results: [{ wakerId: "p1", installed: true }],
   });
   fixture.detail.ready = true;
+  fixture.readDelay = 0;
+  fixture.detail.account.available = false;
+  fixture.detail.installations = [];
+  fixture.authorization.mockClear();
+  for (const version of fixture.detail.versions)
+    version.package = {
+      manifest: { name: "office" },
+      skills: [],
+    };
 });
-function show(onClose = vi.fn()) {
+function show(onClose = vi.fn(), authorizeOnly = false) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   render(
     <QueryClientProvider client={client}>
       <MemoryRouter>
-        <PluginInstallDialog detail={fixture.detail} onClose={onClose} />
+        <PluginInstallDialog
+          detail={fixture.detail}
+          onClose={onClose}
+          authorizeOnly={authorizeOnly}
+        />
       </MemoryRouter>
     </QueryClientProvider>,
   );
   return onClose;
 }
 describe("plugin installation", () => {
+  it("marks real existing installations as checked and disabled", async () => {
+    fixture.detail.installations = [
+      { wakerId: "p1", versionId: "version-1", enabled: true },
+    ];
+    show();
+    fireEvent.click(await screen.findByRole("button", { name: "选择伙伴" }));
+    expect(
+      await screen.findByRole("checkbox", { name: "伙伴一" }),
+    ).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "伙伴一" })).toBeDisabled();
+    expect(screen.getByRole("checkbox", { name: "伙伴二" })).not.toBeDisabled();
+    expect(screen.getByText("已安装")).toBeVisible();
+  });
+  it("reauthorizes the shared account without reinstalling existing partners", async () => {
+    fixture.detail.ready = false;
+    fixture.detail.installations = [
+      { wakerId: "p1", versionId: "version-1", enabled: true },
+    ];
+    Object.assign(fixture.detail.versions[0]?.package.manifest ?? {}, {
+      extensions: { "com.ally": { provider: "feishu" } },
+    });
+    const close = show(vi.fn(), true);
+    const authorize = await screen.findByRole("button", { name: "授权" });
+    await waitFor(() => expect(authorize).toBeEnabled());
+    fireEvent.click(authorize);
+    await waitFor(() => expect(fixture.authorization).toHaveBeenCalledOnce());
+    await waitFor(() => expect(fixture.observers.size).toBeGreaterThan(0));
+    fixture.detail.account.available = true;
+    fixture.detail.ready = true;
+    for (const observer of fixture.observers) observer.onResync?.("test");
+    expect(await screen.findByRole("status")).toHaveTextContent("授权完成");
+    expect(fixture.install).not.toHaveBeenCalled();
+    await waitFor(() => expect(close).toHaveBeenCalledOnce());
+  });
   it("retries only failed partners after a partial installation", async () => {
     fixture.install
       .mockResolvedValueOnce({
@@ -92,8 +183,12 @@ describe("plugin installation", () => {
       })
       .mockResolvedValueOnce({ results: [{ wakerId: "p2", installed: true }] });
     show();
+    fireEvent.click(await screen.findByRole("button", { name: "选择伙伴" }));
     fireEvent.click(await screen.findByRole("checkbox", { name: "伙伴一" }));
     fireEvent.click(screen.getByRole("checkbox", { name: "伙伴二" }));
+    fireEvent.keyDown(screen.getByRole("checkbox", { name: "伙伴一" }), {
+      key: "Escape",
+    });
     fireEvent.click(screen.getByRole("button", { name: "安装" }));
     fireEvent.click(await screen.findByRole("button", { name: "重试" }));
     await waitFor(() => expect(fixture.install).toHaveBeenCalledTimes(2));
@@ -102,9 +197,13 @@ describe("plugin installation", () => {
     });
   });
   it("selects partners only after readiness and submits real version/revision", async () => {
-    show();
+    const close = show();
+    fireEvent.click(await screen.findByRole("button", { name: "选择伙伴" }));
     const checkbox = await screen.findByRole("checkbox", { name: "伙伴一" });
     fireEvent.click(checkbox);
+    fireEvent.keyDown(screen.getByRole("checkbox", { name: "伙伴一" }), {
+      key: "Escape",
+    });
     fireEvent.click(screen.getByRole("button", { name: "安装" }));
     await waitFor(() => expect(fixture.install).toHaveBeenCalledTimes(1));
     expect(fixture.install.mock.calls[0]?.[0]).toMatchObject({
@@ -115,26 +214,83 @@ describe("plugin installation", () => {
         wakerIds: ["p1"],
       },
     });
-    expect(await screen.findByText(/伙伴一 · 安装成功/)).toBeVisible();
+    expect(await screen.findByRole("status")).toHaveTextContent("安装成功");
+    await waitFor(() => expect(close).toHaveBeenCalledOnce());
   });
   it("does not create an installation when the user closes the prepared resource", async () => {
     const close = show();
-    fireEvent.click(
-      await screen.findByRole("button", { name: "仅保存到本机" }),
-    );
+    fireEvent.click(await screen.findByRole("button", { name: "关闭" }));
     expect(close).toHaveBeenCalledTimes(1);
     expect(fixture.install).not.toHaveBeenCalled();
   });
-  it("hides partner selection and installation action until shared setup completes", async () => {
+  it("selects partners before authorization and installs them after the completion event", async () => {
     fixture.detail.ready = false;
+    for (const version of fixture.detail.versions)
+      Object.assign(version.package.manifest, {
+        extensions: { "com.ally": { provider: "feishu" } },
+      });
     show();
-    expect(await screen.findByText("需要完成设置")).toBeVisible();
+    fireEvent.click(await screen.findByRole("button", { name: "选择伙伴" }));
+    fireEvent.click(await screen.findByRole("checkbox", { name: "伙伴一" }));
+    fireEvent.keyDown(screen.getByRole("checkbox", { name: "伙伴一" }), {
+      key: "Escape",
+    });
+    fireEvent.click(screen.getByRole("button", { name: "继续" }));
+    await screen.findByText("扫码授权区域");
     expect(
-      screen.queryByRole("checkbox", { name: "伙伴一" }),
+      screen.queryByText("伙伴一", { exact: true }),
     ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: "安装" }),
-    ).not.toBeInTheDocument();
+    await waitFor(() => expect(fixture.authorization).toHaveBeenCalledTimes(1));
     expect(fixture.install).not.toHaveBeenCalled();
+    await waitFor(() => expect(fixture.observers.size).toBeGreaterThan(0));
+    fixture.detail.ready = true;
+    fixture.readDelay = 400;
+    for (const observer of fixture.observers) observer.onResync?.("test");
+    await waitFor(() => expect(fixture.install).toHaveBeenCalledTimes(1), {
+      timeout: 3000,
+    });
+    expect(fixture.install.mock.calls[0]?.[0]).toMatchObject({
+      body: { wakerIds: ["p1"] },
+    });
+  });
+  it("never installs after the authorization dialog is closed", async () => {
+    fixture.detail.ready = false;
+    for (const version of fixture.detail.versions)
+      Object.assign(version.package.manifest, {
+        extensions: { "com.ally": { provider: "feishu" } },
+      });
+    show();
+    fireEvent.click(await screen.findByRole("button", { name: "选择伙伴" }));
+    fireEvent.click(await screen.findByRole("checkbox", { name: "伙伴一" }));
+    fireEvent.keyDown(screen.getByRole("checkbox", { name: "伙伴一" }), {
+      key: "Escape",
+    });
+    fireEvent.click(screen.getByRole("button", { name: "继续" }));
+    await screen.findByText("扫码授权区域");
+    await waitFor(() => expect(fixture.observers.size).toBeGreaterThan(0));
+    const observers = [...fixture.observers];
+    cleanup();
+    fixture.detail.ready = true;
+    for (const observer of observers) observer.onResync?.("test");
+    expect(fixture.install).not.toHaveBeenCalled();
+  });
+  it("continues from the verified completion callback without waiting for another push", async () => {
+    fixture.detail.ready = false;
+    Object.assign(fixture.detail.versions[0]?.package.manifest ?? {}, {
+      extensions: { "com.ally": { provider: "feishu" } },
+    });
+    show();
+    fireEvent.click(await screen.findByRole("button", { name: "选择伙伴" }));
+    fireEvent.click(await screen.findByRole("checkbox", { name: "伙伴一" }));
+    fireEvent.keyDown(screen.getByRole("checkbox", { name: "伙伴一" }), {
+      key: "Escape",
+    });
+    fireEvent.click(screen.getByRole("button", { name: "继续" }));
+    await screen.findByText("扫码授权区域");
+    await waitFor(() => expect(fixture.authorization).toHaveBeenCalledOnce());
+    fixture.detail.ready = true;
+    fireEvent.click(screen.getByRole("button", { name: "完成设备授权" }));
+    await waitFor(() => expect(fixture.install).toHaveBeenCalledOnce());
+    expect(await screen.findByRole("status")).toHaveTextContent("安装成功");
   });
 });

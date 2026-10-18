@@ -16,6 +16,16 @@ import {
   invalidatePluginQueries,
 } from "../api/plugin-queries";
 import type { PluginDetail } from "../model/plugin-view";
+import { pluginDisplayName } from "../model/plugin-view";
+import { PluginIcon } from "./plugin-icon";
+
+const diagnosticLabels = {
+  unsupported_component: "diagnosticUnsupported",
+  invalid_asset: "diagnosticAsset",
+  invalid_documentation: "diagnosticDocumentation",
+  unsupported_schema: "diagnosticSchema",
+  unknown_field: "diagnosticUnknown",
+} as const;
 export function PluginImportDialog({
   wakerId = "",
   targetPluginId,
@@ -42,8 +52,10 @@ export function PluginImportDialog({
   });
   const pkg = scan.data?.package;
   const hasMCP = (pkg?.servers?.length ?? 0) > 0;
+  const busy = scan.isPending || prepare.isPending;
   const choose = async (kind: "folder" | "archive") => {
     try {
+      setSelectionError("");
       const selected =
         kind === "folder" ? await selectDirectory() : (await selectFiles())[0];
       if (selected) {
@@ -63,31 +75,48 @@ export function PluginImportDialog({
       }}
     >
       <DialogContent
-        title={t("importLocal")}
-        description={t("chooseImport")}
+        title={t(targetPluginId ? "addPluginVersion" : "importPlugin")}
+        description={t("importCompatibility")}
         size="lg"
       >
         <div className="min-h-0 space-y-4 overflow-y-auto px-6 pb-5">
           <div className="flex flex-wrap gap-2">
-            <Button variant="secondary" onClick={() => void choose("folder")}>
+            <Button
+              variant="secondary"
+              disabled={busy}
+              onClick={() => void choose("folder")}
+            >
               {t("folder")}
             </Button>
-            <Button variant="secondary" onClick={() => void choose("archive")}>
+            <Button
+              variant="secondary"
+              disabled={busy}
+              onClick={() => void choose("archive")}
+            >
               {t("archive")}
             </Button>
           </div>
-          <Input
-            value={location}
-            aria-label={t("source")}
-            onChange={(event) => {
-              setLocation(event.target.value);
-              scan.reset();
-              setTrusted(false);
-            }}
-          />
+          <label className="type-body grid gap-2">
+            {t("importLocation")}
+            <Input
+              value={location}
+              disabled={busy}
+              placeholder={t("importLocationExample")}
+              onChange={(event) => {
+                setLocation(event.target.value);
+                scan.reset();
+                prepare.reset();
+                setSelectionError("");
+                setTrusted(false);
+              }}
+            />
+            <span className="type-caption text-muted-foreground">
+              {t("chooseImport")}
+            </span>
+          </label>
           <Button
             variant="secondary"
-            disabled={!location.trim() || scan.isPending}
+            disabled={!location.trim() || busy}
             onClick={() => {
               setTrusted(false);
               scan.mutate({ body: { location: location.trim() } });
@@ -97,16 +126,58 @@ export function PluginImportDialog({
           </Button>
           {pkg && (
             <>
-              <h3 className="type-title">
-                {pkg.manifest?.name} · {pkg.manifest?.version}
-              </h3>
-              <p className="type-body text-muted-foreground">
-                {pkg.manifest?.description}
-              </p>
+              <div className="flex items-start gap-3">
+                <PluginIcon pkg={pkg} />
+                <div className="min-w-0 space-y-1">
+                  <h3 className="type-title font-medium break-words">
+                    {pluginDisplayName(pkg)}
+                  </h3>
+                  <p className="type-body text-muted-foreground">
+                    {pkg.presentation?.shortDescription ||
+                      pkg.manifest?.description}
+                  </p>
+                  <p className="type-caption text-muted-foreground">
+                    {t("packageSummary", {
+                      skills: pkg.skills?.length ?? 0,
+                      connectors: pkg.servers?.length ?? 0,
+                    })}
+                  </p>
+                </div>
+              </div>
+              <dl className="type-body grid gap-2">
+                {[
+                  [t("packageFormat"), pkg.format],
+                  [t("version"), pkg.manifest?.version || t("unknown")],
+                  [
+                    t("developer"),
+                    pkg.presentation?.developerName ||
+                      pkg.manifest?.author?.name ||
+                      t("unknown"),
+                  ],
+                  [t("license"), pkg.manifest?.license || t("unknown")],
+                ].map(([label, value]) => (
+                  <div
+                    key={label}
+                    className="flex flex-wrap justify-between gap-x-4 gap-y-1"
+                  >
+                    <dt className="text-muted-foreground">{label}</dt>
+                    <dd className="min-w-0 break-words">{value}</dd>
+                  </div>
+                ))}
+              </dl>
               <ul className="type-body space-y-2">
                 {pkg.skills?.map((skill) => (
-                  <li key={skill.key}>
-                    {skill.name} · {skill.description}
+                  <li
+                    key={skill.key}
+                    className="flex min-w-0 items-center gap-3"
+                    title={skill.description}
+                  >
+                    <span className="w-40 shrink-0 truncate font-medium">
+                      {skill.name}
+                    </span>
+                    <span className="text-content-secondary min-w-0 truncate">
+                      {skill.description}
+                    </span>
                   </li>
                 ))}
                 {pkg.servers?.map((server) => (
@@ -136,7 +207,15 @@ export function PluginImportDialog({
                       className="type-caption text-muted-foreground"
                       key={`${item.component}:${item.code}`}
                     >
-                      {item.component} · {item.code}
+                      <span className="font-medium">{item.component}</span>
+                      {" · "}
+                      <span>
+                        {t(
+                          diagnosticLabels[
+                            item.code as keyof typeof diagnosticLabels
+                          ] ?? "diagnosticInvalid",
+                        )}
+                      </span>
                     </p>
                   ))}
                 </section>
@@ -145,6 +224,7 @@ export function PluginImportDialog({
                 <label className="type-body flex items-start gap-2">
                   <Checkbox
                     checked={trusted}
+                    disabled={busy}
                     onCheckedChange={(value) => setTrusted(value === true)}
                   />
                   {t("trust")}
