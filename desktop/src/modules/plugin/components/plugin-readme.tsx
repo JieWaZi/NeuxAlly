@@ -32,6 +32,7 @@ export function PluginReadme({
   const preview = useRef<HTMLDivElement>(null);
   const body = useRef<HTMLDivElement>(null);
   const [overflowing, setOverflowing] = useState(false);
+  const readable = status === undefined || status === "available";
   useLayoutEffect(() => {
     const element = preview.current;
     const inner = body.current;
@@ -61,12 +62,15 @@ export function PluginReadme({
             {t("readmeInvalid")}
           </p>
         )}
-        <div ref={preview} className="max-h-60 overflow-hidden">
+        <div
+          ref={preview}
+          className={readable ? "max-h-60 overflow-hidden" : undefined}
+        >
           <div ref={body}>
             <MarkdownContent content={content} />
           </div>
         </div>
-        {overflowing && (
+        {overflowing && readable && (
           <DialogTrigger asChild>
             <Button type="button" variant="ghost">
               {t("viewFullReadme")}
@@ -75,11 +79,13 @@ export function PluginReadme({
         )}
         {status === "too-large" && source && <ReadmeDownload source={source} />}
       </div>
-      <DialogContent title={t("fullReadme")} size="xl" layout="form">
-        <div className="min-h-0 overflow-auto px-6 pb-6">
-          <MarkdownContent content={content} />
-        </div>
-      </DialogContent>
+      {readable && (
+        <DialogContent title={t("fullReadme")} size="xl" layout="form">
+          <div className="min-h-0 overflow-auto px-6 pb-6">
+            <MarkdownContent content={content} />
+          </div>
+        </DialogContent>
+      )}
     </Dialog>
   );
 }

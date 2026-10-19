@@ -84,7 +84,9 @@ export function PluginOverview({
             <PluginReadme
               key={`${resourceSource ?? ""}:${readmeVersion?.id ?? manifest?.version ?? ""}:${explanation}`}
               content={explanation}
-              status={pkg?.readmeStatus}
+              status={
+                pkg?.readmeStatus ?? (pkg?.readme ? "available" : "missing")
+              }
               source={
                 readmeSource ??
                 (detail?.plugin?.id && readmeVersion?.id

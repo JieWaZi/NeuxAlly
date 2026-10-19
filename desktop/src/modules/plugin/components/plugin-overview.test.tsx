@@ -194,6 +194,16 @@ it("keeps a short README inline without an unnecessary full-content action", () 
   ).not.toBeInTheDocument();
 });
 
+it("never presents an oversized README fallback as the complete README", () => {
+  vi.spyOn(HTMLElement.prototype, "scrollHeight", "get").mockReturnValue(500);
+  vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(240);
+  render(<PluginReadme content="备用长简介" status="too-large" />);
+  expect(screen.getByText("备用长简介")).toBeVisible();
+  expect(
+    screen.queryByRole("button", { name: "查看完整内容" }),
+  ).not.toBeInTheDocument();
+});
+
 it("downloads the complete oversized README from its fixed version instead of showing a truncated dialog", async () => {
   readmeFixture.load.mockResolvedValue({
     data: { content: "原文".repeat(600_000) },
