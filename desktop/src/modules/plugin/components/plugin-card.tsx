@@ -16,6 +16,7 @@ import { DropdownMenuItem } from "@/shared/ui/dropdown-menu";
 import { PluginIcon } from "./plugin-icon";
 import {
   pluginDisplayName,
+  pluginInstalledVersion,
   pluginSummary,
   pluginNeedsAuthorization,
   type PluginDetail,
@@ -26,6 +27,7 @@ export function PluginCard({
   catalog,
   wakerId = "",
   onInstall,
+  onUpdate,
   onToggle,
   onRemove,
   pending = false,
@@ -36,6 +38,7 @@ export function PluginCard({
   catalog?: PluginCatalogEntry;
   wakerId?: string;
   onInstall: () => void;
+  onUpdate?: () => void;
   onToggle?: (enabled: boolean) => void;
   onRemove?: () => void;
   pending?: boolean;
@@ -46,9 +49,7 @@ export function PluginCard({
   const relation = detail?.installations?.find(
     (item) => item.wakerId === wakerId,
   );
-  const version =
-    detail?.versions?.find((item) => item.id === relation?.versionId) ??
-    detail?.versions?.[0];
+  const version = pluginInstalledVersion(detail, wakerId);
   const pkg = catalog?.package ?? version?.package;
   const needsAuthorization = pluginNeedsAuthorization(pkg, detail);
   const mine = Boolean(detail && !catalog);
@@ -88,15 +89,27 @@ export function PluginCard({
           )
         }
         control={
-          relation && onToggle ? (
-            <Switch
-              hitArea="comfortable"
-              checked={relation.enabled ?? false}
-              disabled={pending}
-              aria-label={t("enable")}
-              onClick={() => onToggle(!relation.enabled)}
-            />
-          ) : undefined
+          <div className="flex items-center gap-2">
+            {detail?.update?.available && onUpdate && (
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={pending}
+                onClick={onUpdate}
+              >
+                {t("updateAvailable")}
+              </Button>
+            )}
+            {relation && onToggle && (
+              <Switch
+                hitArea="comfortable"
+                checked={relation.enabled ?? false}
+                disabled={pending}
+                aria-label={t("enable")}
+                onClick={() => onToggle(!relation.enabled)}
+              />
+            )}
+          </div>
         }
         usage={
           <ResourcePartnerUsage

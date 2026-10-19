@@ -41,6 +41,8 @@ type storedIndex struct {
 
 // remoteIndex 在一次 Core 生命周期内共享一个来源的更新和读取快照。
 type remoteIndex struct {
+	// flight 合并同来源当前在途的条件请求。
+	flight *indexRefresh
 	// recoveryMutex 串行合并显式详情/准备触发的分发恢复。
 	recoveryMutex sync.Mutex
 	// recoveryAt 限制同来源失败恢复的频率，稍后重试仍可重新核验。
@@ -73,9 +75,17 @@ type remoteIndex struct {
 	changed func()
 }
 
+// indexRefresh 只保存一次在途核验的完成信号和最终结果。
+type indexRefresh struct {
+	// done 在结果发布后关闭。
+	done chan struct{}
+	// err 是本次核验错误，不被下一次核验覆盖。
+	err error
+}
+
 var remoteIndexes sync.Map
 
-// Start 注册持久缓存并在后台同步一次；返回的关闭函数取消并等待本次同步退出。
+// Start 注册持久缓存并在后台同步一次；关闭时取消并等待全部在途核验退出。
 func Start(ctx context.Context, source, directory string, changed func()) func() {
 	if !httpAddress(source) {
 		return func() {}
@@ -84,7 +94,16 @@ func Start(ctx context.Context, source, directory string, changed func()) func()
 	index := newRemoteIndex(ctx, source, cacheFilename(directory, source), changed)
 	remoteIndexes.Store(source, index)
 	go index.refresh()
-	return func() { cancel(); <-index.done }
+	return func() {
+		cancel()
+		<-index.done
+		index.mu.RLock()
+		flight := index.flight
+		index.mu.RUnlock()
+		if flight != nil {
+			<-flight.done
+		}
+	}
 }
 
 func cacheFilename(directory, source string) string {
@@ -138,6 +157,82 @@ func State(source string) SourceState {
 	return SourceState{State: "local"}
 }
 
+// Snapshot 返回当前可读的轻量目录与同批来源状态，不启动远程同步或下载归档。
+func Snapshot(source string) ([]Entry, SourceState) {
+	if !httpAddress(source) {
+		entries, err := List(source)
+		if err != nil {
+			return nil, SourceState{State: "unavailable", ErrorCode: sourceErrorCode(err)}
+		}
+		return entries, SourceState{State: "local"}
+	}
+	index := remoteSource(source)
+	index.mu.RLock()
+	data, state := index.snapshot.Content, index.state
+	index.mu.RUnlock()
+	if len(data) == 0 {
+		return nil, state
+	}
+	entries, err := parseIndex(data)
+	if err != nil {
+		return nil, SourceState{State: "unavailable", ErrorCode: sourceErrorCode(err)}
+	}
+	for i := range entries {
+		entries[i].SourceKey = SourceKey(source, entries[i].Key)
+	}
+	return entries, state
+}
+
+func sourceErrorCode(err error) string {
+	if coded, ok := err.(interface{ Key() string }); ok {
+		return coded.Key()
+	}
+	return status_error.PluginStorageError.Key()
+}
+
+// Refresh 显式核验当前目录；并发请求共享同一次同步，失败继续保留旧快照。
+func Refresh(ctx context.Context, source string) error {
+	if !httpAddress(source) {
+		_, err := List(source)
+		return err
+	}
+	return remoteSource(source).refreshCurrent(ctx)
+}
+
+func (index *remoteIndex) refreshCurrent(ctx context.Context) error {
+	index.mu.Lock()
+	if index.ctx.Err() != nil {
+		index.mu.Unlock()
+		return status_error.PluginDistributionUnavailable
+	}
+	if flight := index.flight; flight != nil {
+		index.mu.Unlock()
+		select {
+		case <-flight.done:
+			return flight.err
+		case <-ctx.Done():
+			return status_error.PluginDistributionUnavailable
+		}
+	}
+	flight := &indexRefresh{done: make(chan struct{})}
+	index.flight = flight
+	index.mu.Unlock()
+	// 显式请求和 Core 退出都能结束本次网络等待。
+	fetchCtx, cancel := context.WithCancel(ctx)
+	stop := context.AfterFunc(index.ctx, cancel)
+	flight.err = index.fetch(fetchCtx)
+	stop()
+	cancel()
+	if index.changed != nil && index.ctx.Err() == nil {
+		index.changed()
+	}
+	index.mu.Lock()
+	close(flight.done)
+	index.flight = nil
+	index.mu.Unlock()
+	return flight.err
+}
+
 func readIndex(source string) ([]byte, error) {
 	if !httpAddress(source) {
 		data, err := os.ReadFile(filepath.Join(source, "catalog.json"))
@@ -164,10 +259,7 @@ func readIndex(source string) ([]byte, error) {
 func (index *remoteIndex) refresh() {
 	index.once.Do(func() {
 		defer close(index.done)
-		index.fetch()
-		if index.changed != nil && index.ctx.Err() == nil {
-			index.changed()
-		}
+		_ = index.refreshCurrent(index.ctx)
 	})
 }
 
@@ -186,11 +278,11 @@ func (index *remoteIndex) fail(err error) error {
 	return err
 }
 
-func (index *remoteIndex) fetch() error {
+func (index *remoteIndex) fetch(ctx context.Context) error {
 	index.mu.RLock()
 	next := index.snapshot
 	index.mu.RUnlock()
-	request, err := http.NewRequestWithContext(index.ctx, http.MethodGet, index.source, nil)
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, index.source, nil)
 	if err != nil {
 		return index.fail(status_error.PluginContentInvalid)
 	}
@@ -225,7 +317,7 @@ func (index *remoteIndex) fetch() error {
 	default:
 		return index.fail(status_error.PluginDistributionUnavailable)
 	}
-	if index.ctx.Err() != nil {
+	if ctx.Err() != nil {
 		return index.fail(status_error.PluginDistributionUnavailable)
 	}
 	next.FetchedAt = time.Now().UnixMilli()

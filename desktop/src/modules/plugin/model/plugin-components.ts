@@ -1,5 +1,6 @@
 import {
   pluginDisplayName,
+  pluginInstalledVersion,
   pluginSummary,
   type PluginDetail,
 } from "./plugin-view";
@@ -18,7 +19,7 @@ export function pluginComponents(
     );
     const version = wakerId
       ? detail.versions?.find((item) => item.id === relation?.versionId)
-      : detail.versions?.[0];
+      : pluginInstalledVersion(detail);
     const pkg = version?.package;
     const pluginId = detail.plugin?.id;
     if (!pluginId || !version?.id || !pkg || (wakerId && !relation)) return [];

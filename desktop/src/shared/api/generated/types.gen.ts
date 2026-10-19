@@ -1618,6 +1618,7 @@ export type GithubComJieWaZiNeuxAllyServerApisPluginsListPluginCatalogResponse =
  * 插件列表响应
  */
 export type GithubComJieWaZiNeuxAllyServerApisPluginsListPluginsResponse = {
+    catalogSource?: GithubComJieWaZiNeuxAllyServerInternalPluginsCatalogSourceState & unknown;
     /**
      * 当前页码
      */
@@ -1687,6 +1688,7 @@ export type GithubComJieWaZiNeuxAllyServerApisPluginsPluginDetailResponse = {
      * 阻塞原因
      */
     blockers?: Array<string>;
+    catalogSource?: GithubComJieWaZiNeuxAllyServerInternalPluginsCatalogSourceState & unknown;
     /**
      * 组件授权标识
      */
@@ -1730,6 +1732,7 @@ export type GithubComJieWaZiNeuxAllyServerApisPluginsPluginDetailResponse = {
      * 当前解析版本
      */
     resolvedVersionId?: string;
+    update?: GithubComJieWaZiNeuxAllyServerApisPluginsPluginUpdateResponse & unknown;
     /**
      * 普通配置
      */
@@ -1803,9 +1806,39 @@ export type GithubComJieWaZiNeuxAllyServerApisPluginsPluginSkillVersion = {
 };
 
 /**
+ * 插件更新摘要
+ */
+export type GithubComJieWaZiNeuxAllyServerApisPluginsPluginUpdateResponse = {
+    /**
+     * 归档摘要
+     */
+    archiveSHA256?: string;
+    /**
+     * 存在更新
+     */
+    available?: boolean;
+    /**
+     * 目录标识
+     */
+    catalogKey?: string;
+    /**
+     * 目标版本
+     */
+    version?: string;
+    /**
+     * 落后伙伴
+     */
+    wakerIds?: Array<string>;
+};
+
+/**
  * 目录准备请求
  */
 export type GithubComJieWaZiNeuxAllyServerApisPluginsPrepareCatalogPluginRequest = {
+    /**
+     * 预期归档摘要
+     */
+    expectedArchiveSHA256?: string;
     /**
      * 所属伙伴
      */
@@ -14947,6 +14980,43 @@ export type ListPluginCatalogResponses = {
 };
 
 export type ListPluginCatalogResponse = ListPluginCatalogResponses[keyof ListPluginCatalogResponses];
+
+export type RefreshPluginCatalogData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/plugins/catalog/refresh';
+};
+
+export type RefreshPluginCatalogErrors = {
+    /**
+     * >
+     * * `[PluginContentInvalid][40000006502]`
+     * * `[PluginContentLimitExceeded][40000006503]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[PluginStorageError][50000006501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[PluginDistributionUnavailable][50200006502]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type RefreshPluginCatalogError = RefreshPluginCatalogErrors[keyof RefreshPluginCatalogErrors];
+
+export type RefreshPluginCatalogResponses = {
+    200: GithubComShrewxGinxCommonResponse;
+};
+
+export type RefreshPluginCatalogResponse = RefreshPluginCatalogResponses[keyof RefreshPluginCatalogResponses];
 
 export type GetCatalogPluginData = {
     body?: never;

@@ -109,6 +109,7 @@ function show(
   installation = false,
   onReady = vi.fn(),
   preferredAction: "show-qr" | "open-url" | "" = "",
+  onSessionStarted = vi.fn(),
 ) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -127,6 +128,7 @@ function show(
             preferredAction={preferredAction}
             installation={installation}
             onReady={onReady}
+            onSessionStarted={onSessionStarted}
           />
         </form>
       </MemoryRouter>
@@ -629,3 +631,26 @@ it("places centered challenges before the full-width authorization action regard
     ) & Node.DOCUMENT_POSITION_FOLLOWING,
   ).toBeTruthy();
 });
+
+it.each(["session", "new-session"])(
+  "reports only newly started authorization sessions to its owner (%s)",
+  async (id) => {
+    const onSessionStarted = vi.fn();
+    fixture.login.mockResolvedValueOnce({ id, state: "waiting" });
+    show(false, vi.fn(), "show-qr", onSessionStarted);
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "刷新二维码" })).toBeEnabled(),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "刷新二维码" }));
+    await waitFor(() => expect(fixture.login).toHaveBeenCalledOnce());
+    await waitFor(() =>
+      expect(screen.queryByText("正在处理…")).not.toBeInTheDocument(),
+    );
+    if (id === "session") expect(onSessionStarted).not.toHaveBeenCalled();
+    else
+      expect(onSessionStarted).toHaveBeenCalledWith({
+        id: "new-session",
+        state: "waiting",
+      });
+  },
+);

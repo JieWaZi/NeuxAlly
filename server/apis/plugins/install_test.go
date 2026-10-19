@@ -63,6 +63,7 @@ func pluginAPIContext(t *testing.T) *gin.Context {
 		_ = sqlDB.Close()
 	})
 	ctx, _ := gin.CreateTestContext(nil)
+	ctx.Request = httptest.NewRequest(http.MethodGet, "/", nil)
 	for _, id := range []string{"w1", "w2"} {
 		if err := global.WakerControllerManager.Create(ctx, models.Waker{ID: id, Name: id}); err != nil {
 			t.Fatal(err)
@@ -114,15 +115,16 @@ func TestFirstInstallationRequiresConfigurationAndReportsPartnerFailures(t *test
 	}
 }
 
-func TestConfigurationUpgradeIncludesDisabledUnselectedVersions(t *testing.T) {
+func TestConfigurationUpgradeRequiresAllInstallationsIncludingDisabled(t *testing.T) {
 	ctx := pluginAPIContext(t)
 	store := global.PluginControllerManager
 	if err := store.Create(ctx, models.Plugin{ID: "p", Name: "Plugin", SourceKey: catalog.SourceKey(global.PluginCatalogSource(), "tools")}); err != nil {
 		t.Fatal(err)
 	}
 	for _, name := range []string{"old", "new"} {
+		semanticVersion := map[string]string{"old": "1.0.0", "new": "2.0.0"}[name]
 		root := t.TempDir()
-		manifest := `{"$schema":"https://agent-plugins.org/schemas/1.0.0/plugin.schema.json","name":"tools","version":"` + name + `","extensions":{"com.ally":{"config":[{"key":"` + name + `","required":true}]}}}`
+		manifest := `{"$schema":"https://agent-plugins.org/schemas/1.0.0/plugin.schema.json","name":"tools","version":"` + semanticVersion + `","extensions":{"com.ally":{"config":[{"key":"` + name + `","required":true}]}}}`
 		if err := os.WriteFile(filepath.Join(root, "plugin.json"), []byte(manifest), 0o600); err != nil {
 			t.Fatal(err)
 		}
@@ -138,7 +140,7 @@ func TestConfigurationUpgradeIncludesDisabledUnselectedVersions(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, err := store.PutVersion(ctx, models.PluginVersion{ID: name, PluginID: "p", Version: name, Digest: staged.Digest, ContentPath: filepath.ToSlash(relative), Package: staged.Package, Provenance: map[string]any{"sourceCommit": strings.Repeat("a", 40), "archiveSHA256": strings.Repeat("b", 64)}}); err != nil {
+		if _, err := store.PutVersion(ctx, models.PluginVersion{ID: name, PluginID: "p", Version: semanticVersion, Digest: staged.Digest, ContentPath: filepath.ToSlash(relative), Package: staged.Package, Provenance: map[string]any{"sourceCommit": strings.Repeat("a", 40), "archiveSHA256": strings.Repeat("b", 64)}}); err != nil {
 			t.Fatal(err)
 		}
 		if _, err := prepareCatalogFixture(t, ctx, staged, "", "p", false); err != nil {
@@ -154,8 +156,8 @@ func TestConfigurationUpgradeIncludesDisabledUnselectedVersions(t *testing.T) {
 		}
 	}
 	body := UpdateConfigurationRequest{ExpectedRevision: 1, Values: map[string]string{"new": "value"}, Switches: []VersionSwitch{{WakerID: "w1", ExpectedVersionID: "old", VersionID: "new"}}}
-	if _, err := (&UpdatePluginConfiguration{PluginID: "p", Body: body}).Output(ctx); !errors.Is(err, status_error.PluginConfigurationConflict) {
-		t.Fatalf("incompatible unselected version ignored: %v", err)
+	if _, err := (&UpdatePluginConfiguration{PluginID: "p", Body: body}).Output(ctx); !errors.Is(err, status_error.PluginVersionConflict) {
+		t.Fatalf("incomplete installation set accepted: %v", err)
 	}
 	got, err := store.Configuration(ctx, "p")
 	if err != nil || got.Revision != 1 || got.Values["old"] != "value" {
@@ -220,7 +222,7 @@ func TestInstallRejectsMutatedManagedVersion(t *testing.T) {
 	}
 }
 
-func TestNativePluginUpgradePreservesPartnerPinsAndReturnsPreparedVersion(t *testing.T) {
+func TestNativePluginUpgradeUpdatesAllPartnerPinsAndReturnsPreparedVersion(t *testing.T) {
 	ctx := pluginAPIContext(t)
 	prepare := func(target, version, body string) (PluginDetailResponse, error) {
 		source := t.TempDir()
@@ -267,7 +269,7 @@ func TestNativePluginUpgradePreservesPartnerPinsAndReturnsPreparedVersion(t *tes
 			t.Fatal("preparation silently updated an installed partner")
 		}
 	}
-	if _, err := (&UpdatePluginConfiguration{PluginID: old.Plugin.ID, Body: UpdateConfigurationRequest{Switches: []VersionSwitch{{WakerID: "w1", ExpectedVersionID: oldVersion, VersionID: newVersion}}}}).Output(ctx); err != nil {
+	if _, err := (&UpdatePluginConfiguration{PluginID: old.Plugin.ID, Body: UpdateConfigurationRequest{Switches: []VersionSwitch{{WakerID: "w1", ExpectedVersionID: oldVersion, VersionID: newVersion}, {WakerID: "w2", ExpectedVersionID: oldVersion, VersionID: newVersion}}}}).Output(ctx); err != nil {
 		t.Fatal(err)
 	}
 	relations, err := global.PluginControllerManager.Installations(ctx, old.Plugin.ID, "")
@@ -278,8 +280,8 @@ func TestNativePluginUpgradePreservesPartnerPinsAndReturnsPreparedVersion(t *tes
 		if relation.WakerID == "w1" && (relation.VersionID != newVersion || !relation.Enabled) {
 			t.Fatalf("selected partner did not update: %+v", relation)
 		}
-		if relation.WakerID == "w2" && (relation.VersionID != oldVersion || relation.Enabled) {
-			t.Fatalf("unselected disabled partner changed: %+v", relation)
+		if relation.WakerID == "w2" && (relation.VersionID != newVersion || relation.Enabled) {
+			t.Fatalf("disabled partner did not update while preserving disabled state: %+v", relation)
 		}
 	}
 	if _, err := prepare(old.Plugin.ID, "2.0.0", "Changed content under the same version"); !errors.Is(err, status_error.PluginVersionConflict) {
@@ -688,6 +690,11 @@ func TestExistingPinSurvivesUnavailableCatalogAndNewInstallRejects(t *testing.T)
 	if err := os.RemoveAll(global.PluginCatalogSource()); err != nil {
 		t.Fatal(err)
 	}
+	visible, readErr := (&GetPlugin{PluginID: detail.Plugin.ID}).Output(ctx)
+	if readErr != nil || visible.(PluginDetailResponse).CatalogSource.State != "unavailable" || visible.(PluginDetailResponse).Update.Available || len(visible.(PluginDetailResponse).Installations) != 1 {
+		t.Fatalf("unavailable catalog blocked saved plugin detail: %+v %v", visible, readErr)
+	}
+
 	_, err = (&InstallPlugin{PluginID: detail.Plugin.ID, Body: InstallPluginRequest{VersionID: detail.ResolvedVersionID, WakerIDs: []string{"w2"}}}).Output(ctx)
 	if !errors.Is(err, status_error.PluginStorageError) {
 		t.Fatalf("new installation accepted an unverifiable source: %v", err)

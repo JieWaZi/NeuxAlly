@@ -13,7 +13,8 @@ import { it, expect, vi, afterEach } from "vitest";
 import { i18n } from "@/shared/i18n";
 import { PluginDetailPage } from "./plugin-detail-page";
 
-const { togglePlugin, renamePlugin } = vi.hoisted(() => ({
+const { togglePlugin, renamePlugin, fixture } = vi.hoisted(() => ({
+  fixture: { updateAvailable: false },
   togglePlugin: vi.fn(),
   renamePlugin: vi.fn<(input: unknown) => Promise<{ success: boolean }>>(
     async () => ({ success: true }),
@@ -24,12 +25,19 @@ vi.mock("@/shared/api/use-query-events", () => ({
   useQueryEvents: () => undefined,
 }));
 vi.mock("../api/plugin-queries", () => ({
+  cancelPluginAuthorizationMutation: () => ({ mutationFn: vi.fn() }),
+  prepareCatalogPluginMutation: () => ({ mutationFn: vi.fn() }),
   getPluginOptions: (options: { query?: { locale?: string } }) => ({
     queryKey: ["test-plugin", options.query?.locale],
     queryFn: async () => ({
       plugin: { id: "p", name: "办公室" },
       resolvedVersionId: "v1",
       ready: true,
+      update: {
+        available: fixture.updateAvailable,
+        catalogKey: "office",
+        archiveSHA256: "fixed",
+      },
       installations: [{ wakerId: "w1", versionId: "v1", enabled: true }],
       partnerNames: { w1: "工作伙伴" },
       versions: [
@@ -83,6 +91,7 @@ vi.mock("../components/plugin-removal-dialog", () => ({
 afterEach(async () => {
   cleanup();
   vi.clearAllMocks();
+  fixture.updateAvailable = false;
   await i18n.changeLanguage("zh-CN");
 });
 function open(path: string) {
@@ -200,3 +209,17 @@ it("reloads installed documentation by locale while preserving a user resource n
   expect(screen.getByRole("heading", { name: "办公室" })).toBeVisible();
   expect(screen.getByText("Office tasks")).toBeVisible();
 });
+
+it.each(["/resources/plugins/p", "/wakers/w1/plugins/p"])(
+  "%s exposes the update entry while retaining installed information",
+  async (path) => {
+    fixture.updateAvailable = true;
+    open(path);
+    await screen.findByRole("heading", { name: "办公室" });
+    expect(screen.getByText("1.0")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "可更新" }));
+    expect(screen.getByRole("dialog", { name: "更新 办公室" })).toBeVisible();
+    expect(screen.getByText("将更新全部 1 个伙伴")).toBeVisible();
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+  },
+);

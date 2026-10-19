@@ -1,5 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, type ReactNode } from "react";
+import { Info, RefreshCw } from "lucide-react";
+import { Button } from "@/shared/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui/popover";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useRouteSceneActive } from "@/shared/workspace/app-scene-workspace";
 import { useQueryEvents } from "@/shared/api/use-query-events";
@@ -32,6 +35,7 @@ import { ResourceBatchDeleteDialog } from "@/shared/ui/resource-batch-delete-dia
 import { SegmentedControl } from "@/shared/ui/segmented-control";
 import { QueryRefreshError, QueryState } from "@/shared/ui/query-state";
 import {
+  refreshPluginCatalogMutation,
   listPluginCatalogQueryKey,
   listPluginsQueryKey,
   listWakerPluginsQueryKey,
@@ -41,6 +45,7 @@ import {
   uninstallWakerPluginMutation,
 } from "../api/plugin-queries";
 import {
+  pluginInstalledVersion,
   pluginNeedsAuthorization,
   pluginDisplayName,
   type PluginCatalogEntry,
@@ -51,6 +56,7 @@ import { StatusNotice } from "@/shared/ui/status-notice";
 import { PluginRemovalDialog } from "../components/plugin-removal-dialog";
 import { PluginIcon } from "../components/plugin-icon";
 import { PluginCard } from "../components/plugin-card";
+import { PluginUpdateDialog } from "../components/plugin-update-dialog";
 import { PluginInstallDialog } from "../components/plugin-install-dialog";
 
 type Props = {
@@ -79,6 +85,11 @@ export function PluginResourceCollection({
   const uninstall = useMutation(
     withLocalErrorMutation(uninstallWakerPluginMutation()),
   );
+  const [updating, setUpdating] = useState<PluginDetail | null>(null);
+  const refresh = useMutation({
+    ...withLocalErrorMutation(refreshPluginCatalogMutation()),
+    onSettled: () => invalidatePluginQueries(client),
+  });
   const [removing, setRemoving] = useState<PluginDetail | null>(null);
   const [installation, setInstallation] = useState<{
     catalog?: PluginCatalogEntry;
@@ -142,7 +153,11 @@ export function PluginResourceCollection({
           throwOnError: true as const,
         }),
       );
-      return { items: data.resources ?? [], total: data.totalSize ?? 0 };
+      return {
+        items: data.resources ?? [],
+        total: data.totalSize ?? 0,
+        metadata: data.catalogSource,
+      };
     },
     enabled: active && !wakerId && view === "mine",
   });
@@ -157,7 +172,11 @@ export function PluginResourceCollection({
           throwOnError: true as const,
         }),
       );
-      return { items: data.resources ?? [], total: data.totalSize ?? 0 };
+      return {
+        items: data.resources ?? [],
+        total: data.totalSize ?? 0,
+        metadata: data.catalogSource,
+      };
     },
     enabled: active && Boolean(wakerId),
   });
@@ -181,6 +200,7 @@ export function PluginResourceCollection({
     (item) => (item.plugin?.id ? [{ ...item, id: item.plugin.id }] : []),
   );
   const total = query.total;
+  const source = query.metadata;
   const selection = useResourceSelection(
     details,
     JSON.stringify([wakerId, search, view]),
@@ -188,7 +208,16 @@ export function PluginResourceCollection({
   return (
     <div className="space-y-5">
       <ResourcePageToolbar
-        filters={searchField}
+        filters={
+          <>
+            <PluginCatalogUpdateInfo
+              checkedAt={source?.fetchedAt}
+              pending={refresh.isPending}
+              onRefresh={() => refresh.mutate({})}
+            />
+            {searchField}
+          </>
+        }
         appearance={wakerId ? "default" : "navigation"}
       >
         {wakerId ? (
@@ -221,11 +250,19 @@ export function PluginResourceCollection({
           />
         )}
       </ResourcePageToolbar>
-      {!wakerId &&
-        view === "catalog" &&
-        catalog.metadata?.state === "stale" && (
-          <StatusNotice>{t("catalogStale")}</StatusNotice>
+      {source?.state === "stale" && (
+        <StatusNotice>{t("catalogStale")}</StatusNotice>
+      )}
+      {source &&
+        source.state !== "stale" &&
+        (source.errorCode || source.state === "unavailable") && (
+          <StatusNotice>{t("catalogUnavailable")}</StatusNotice>
         )}
+      {refresh.error && (
+        <p role="alert" className="type-body text-destructive">
+          {localApiErrorMessage(refresh.error, t("catalogUnavailable"))}
+        </p>
+      )}
       <ResourceSelectionActions
         count={selection.selected.length}
         onClear={selection.clear}
@@ -283,11 +320,12 @@ export function PluginResourceCollection({
                     setInstallation({
                       detail,
                       authorizeOnly: pluginNeedsAuthorization(
-                        detail.versions?.[0]?.package,
+                        pluginInstalledVersion(detail, wakerId)?.package,
                         detail,
                       ),
                     })
                   }
+                  onUpdate={() => setUpdating(detail)}
                   onRemove={() => setRemoving(detail)}
                   onToggle={
                     wakerId
@@ -335,10 +373,14 @@ export function PluginResourceCollection({
           items={batchTargets.map((detail) => ({
             id: detail.id,
             name: pluginDisplayName(
-              detail.versions?.[0]?.package,
+              pluginInstalledVersion(detail, wakerId)?.package,
               detail.plugin?.name,
             ),
-            icon: <PluginIcon pkg={detail.versions?.[0]?.package} />,
+            icon: (
+              <PluginIcon
+                pkg={pluginInstalledVersion(detail, wakerId)?.package}
+              />
+            ),
             description: t("partnerUsage", {
               count: detail.installations?.length ?? 0,
             }),
@@ -390,6 +432,13 @@ export function PluginResourceCollection({
           onClose={() => setRemoving(null)}
         />
       )}
+      {updating && (
+        <PluginUpdateDialog
+          detail={updating}
+          wakerId={wakerId}
+          onClose={() => setUpdating(null)}
+        />
+      )}
       {installation && (
         <PluginInstallDialog
           {...installation}
@@ -398,5 +447,158 @@ export function PluginResourceCollection({
         />
       )}
     </div>
+  );
+}
+
+/** 检查信息与手动刷新共用可交互浮层，悬停不抢占当前输入焦点。 */
+function PluginCatalogUpdateInfo({
+  checkedAt,
+  pending,
+  onRefresh,
+}: {
+  checkedAt?: number;
+  pending: boolean;
+  onRefresh: () => void;
+}) {
+  const { t } = useTranslation("plugin");
+  const [open, setOpen] = useState(false);
+  const content = useRef<HTMLDivElement>(null);
+  const trigger = useRef<HTMLButtonElement | null>(null);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
+  const focusOnOpen = useRef(false);
+  const restoreOnClose = useRef(false);
+  const suppressFocusOpen = useRef(false);
+  function cancelClose() {
+    clearTimeout(closeTimer.current);
+    closeTimer.current = undefined;
+  }
+  useEffect(
+    () => () => {
+      clearTimeout(closeTimer.current);
+    },
+    [],
+  );
+  function show() {
+    cancelClose();
+    setOpen(true);
+  }
+  function scheduleClose() {
+    cancelClose();
+    // 留出从图标跨过浮层间隔的时间；键盘正在操作浮层时保持展开。
+    closeTimer.current = setTimeout(() => {
+      closeTimer.current = undefined;
+      if (
+        document.activeElement === trigger.current ||
+        content.current?.contains(document.activeElement)
+      )
+        return;
+      setOpen(false);
+    }, 120);
+  }
+  function enterContent() {
+    focusOnOpen.current = true;
+    show();
+    content.current
+      ?.querySelector<HTMLButtonElement>("button:not(:disabled)")
+      ?.focus();
+  }
+  return (
+    <Popover
+      open={open}
+      onOpenChange={(next) => {
+        cancelClose();
+        setOpen(next);
+      }}
+    >
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="plain"
+          size="icon"
+          aria-label={t("catalogUpdateInfo")}
+          onPointerEnter={(event) => {
+            trigger.current = event.currentTarget;
+            focusOnOpen.current = false;
+            show();
+          }}
+          onPointerLeave={scheduleClose}
+          onFocus={(event) => {
+            trigger.current = event.currentTarget;
+            if (suppressFocusOpen.current) {
+              suppressFocusOpen.current = false;
+              return;
+            }
+            focusOnOpen.current = false;
+            show();
+          }}
+          onBlur={scheduleClose}
+          onClick={(event) => {
+            event.preventDefault();
+            trigger.current = event.currentTarget;
+            enterContent();
+          }}
+          onKeyDown={(event) => {
+            if (["ArrowDown", "Enter", " "].includes(event.key)) {
+              event.preventDefault();
+              enterContent();
+            }
+          }}
+        >
+          <Info aria-hidden="true" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        ref={content}
+        width="default"
+        align="end"
+        aria-label={t("catalogUpdateInfo")}
+        onPointerEnter={cancelClose}
+        onPointerLeave={scheduleClose}
+        onFocusCapture={cancelClose}
+        onBlur={scheduleClose}
+        onOpenAutoFocus={(event) => {
+          if (!focusOnOpen.current) event.preventDefault();
+          focusOnOpen.current = false;
+        }}
+        onEscapeKeyDown={() => {
+          restoreOnClose.current = true;
+          cancelClose();
+        }}
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          if (restoreOnClose.current) {
+            restoreOnClose.current = false;
+            suppressFocusOpen.current =
+              document.activeElement !== trigger.current;
+            trigger.current?.focus();
+          }
+        }}
+      >
+        <div className="flex items-center gap-2">
+          <p className="type-ui text-content-secondary min-w-0 flex-1">
+            {checkedAt
+              ? t("catalogCheckedAt", {
+                  time: new Date(checkedAt).toLocaleString(),
+                })
+              : t("catalogUnchecked")}
+          </p>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label={t(pending ? "checkingUpdates" : "checkUpdates")}
+            disabled={pending}
+            onClick={onRefresh}
+          >
+            <RefreshCw
+              aria-hidden="true"
+              className={pending ? "motion-safe:animate-spin" : undefined}
+            />
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }

@@ -471,7 +471,8 @@ func TestSlowArchiveDoesNotBlockCurrentDocumentation(t *testing.T) {
 			}))
 			defer source.Close()
 			// 失败路径先释放下载，再关闭服务，避免回归超时后等待慢连接。
-			defer close(gate)
+			var releaseGate sync.Once
+			defer releaseGate.Do(func() { close(gate) })
 			location := source.URL + "/catalog.json"
 			stop := Start(context.Background(), location, t.TempDir(), nil)
 			defer stop()
@@ -481,7 +482,8 @@ func TestSlowArchiveDoesNotBlockCurrentDocumentation(t *testing.T) {
 				}
 			}
 			archiveDone := make(chan error, 1)
-			go func() { _, _, err := ResolveCurrent(location, "current"); archiveDone <- err }()
+			go func() { _, _, err := ResolveCurrent(location, "current"); archiveDone <- err; close(archiveDone) }()
+			defer func() { releaseGate.Do(func() { close(gate) }); <-archiveDone }()
 			awaitCatalogSignal(t, entered)
 			documentationDone := make(chan error, 1)
 			go func() { _, _, err := ResolveDocumentation(location, "current"); documentationDone <- err }()
@@ -499,5 +501,122 @@ func TestSlowArchiveDoesNotBlockCurrentDocumentation(t *testing.T) {
 			default:
 			}
 		})
+	}
+}
+
+func TestExplicitRefreshCoalescesAndPreservesConditionalStaleSnapshot(t *testing.T) {
+	var requests atomic.Int32
+	var unavailable atomic.Bool
+	gate, entered := make(chan struct{}), make(chan struct{})
+	source := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		count := requests.Add(1)
+		if count == 1 {
+			w.Header().Set("ETag", "fixed-v1")
+			fmt.Fprint(w, `{"schemaVersion":2,"entries":[]}`)
+			return
+		}
+		if unavailable.Load() {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
+		if r.Header.Get("If-None-Match") != "fixed-v1" {
+			t.Error("refresh lost entity validator")
+		}
+		if count == 2 {
+			close(entered)
+		}
+		<-gate
+		w.WriteHeader(http.StatusNotModified)
+	}))
+	defer source.Close()
+	location := source.URL + "/catalog.json"
+	if _, err := List(location); err != nil {
+		t.Fatal(err)
+	}
+	done := make(chan error, 8)
+	for range 8 {
+		go func() { done <- Refresh(context.Background(), location) }()
+	}
+	awaitCatalogSignal(t, entered)
+	// 等待其余并发调用进入同一在途同步，不引入生产冷却或常驻计时器。
+	time.Sleep(30 * time.Millisecond)
+	close(gate)
+	for range 8 {
+		if err := <-done; err != nil {
+			t.Fatal(err)
+		}
+	}
+	if requests.Load() != 2 {
+		t.Fatalf("concurrent refresh duplicated network: %d", requests.Load())
+	}
+	unavailable.Store(true)
+	if err := Refresh(context.Background(), location); !errors.Is(err, status_error.PluginDistributionUnavailable) {
+		t.Fatalf("refresh hid failure: %v", err)
+	}
+	entries, state := Snapshot(location)
+	if len(entries) != 0 || state.State != "stale" || state.ErrorCode == "" || state.FetchedAt == 0 {
+		t.Fatalf("lost old snapshot or source failure: %+v", state)
+	}
+	if _, err := List(location); err != nil {
+		t.Fatal("failed refresh discarded readable snapshot", err)
+	}
+}
+
+func TestSnapshotDoesNotSynchronizeColdRemote(t *testing.T) {
+	t.Setenv("TMPDIR", t.TempDir())
+	var requests atomic.Int32
+	source := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests.Add(1)
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}))
+	defer source.Close()
+	entries, state := Snapshot(source.URL + "/catalog.json")
+	if len(entries) != 0 || state.State != "unavailable" || requests.Load() != 0 {
+		t.Fatalf("snapshot contacted upstream: %+v requests=%d", state, requests.Load())
+	}
+}
+
+func TestCloseWaitsForExplicitRefreshAfterStartup(t *testing.T) {
+	var requests atomic.Int32
+	entered := make(chan struct{})
+	source := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if requests.Add(1) == 1 {
+			fmt.Fprint(w, `{"schemaVersion":2,"entries":[]}`)
+			return
+		}
+		close(entered)
+		<-r.Context().Done()
+	}))
+	defer source.Close()
+	location := source.URL + "/catalog.json"
+	stop := Start(context.Background(), location, t.TempDir(), nil)
+	if _, err := List(location); err != nil {
+		t.Fatal(err)
+	}
+	index := remoteSource(location)
+	<-index.done
+	refreshed := make(chan error, 1)
+	go func() { refreshed <- Refresh(context.Background(), location) }()
+	awaitCatalogSignal(t, entered)
+	// 阻止被取消的请求发布最终状态，验证关闭确实等待本次核验退出。
+	index.mu.Lock()
+	closed := make(chan struct{})
+	go func() { stop(); close(closed) }()
+	select {
+	case <-closed:
+		index.mu.Unlock()
+		t.Fatal("close returned while explicit refresh still owned state publication")
+	case <-time.After(40 * time.Millisecond):
+	}
+	index.mu.Unlock()
+	awaitCatalogSignal(t, closed)
+	if err := <-refreshed; !errors.Is(err, status_error.PluginDistributionUnavailable) {
+		t.Fatalf("close did not cancel explicit refresh: %v", err)
+	}
+	if err := Refresh(context.Background(), location); !errors.Is(err, status_error.PluginDistributionUnavailable) {
+		t.Fatalf("closed source accepted new refresh: %v", err)
+	}
+	if requests.Load() != 2 {
+		t.Fatalf("closed source started another request: %d", requests.Load())
 	}
 }

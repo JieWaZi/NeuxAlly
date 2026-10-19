@@ -2,12 +2,14 @@ package plugins
 
 import (
 	"context"
+
 	"github.com/JieWaZi/NeuxAlly/server/constants/status_error"
 	"github.com/JieWaZi/NeuxAlly/server/global"
 	packageplugin "github.com/JieWaZi/NeuxAlly/server/internal/plugins"
 	"github.com/JieWaZi/NeuxAlly/server/repositories/models"
 	"github.com/gin-gonic/gin"
 	"github.com/shrewx/ginx"
+	"golang.org/x/mod/semver"
 )
 
 // 保存插件配置
@@ -24,7 +26,7 @@ type UpdatePluginConfiguration struct {
 // Path 返回共享配置及原子版本变更入口。
 func (*UpdatePluginConfiguration) Path() string { return "/:pluginId/configuration" }
 
-// Output 在完整安装集合通过兼容校验后原子提交配置和明确选择的版本。
+// Output 在完整安装集合通过校验后原子保存配置，并将全部伙伴切换到同一目标版本。
 func (o *UpdatePluginConfiguration) Output(ctx *gin.Context) (interface{}, error) {
 	resource, err := visiblePlugin(ctx, o.PluginID, o.WakerID)
 	if err != nil {
@@ -56,10 +58,10 @@ func (o *UpdatePluginConfiguration) Output(ctx *gin.Context) (interface{}, error
 			if !exists {
 				return nil, ginx.WithStack(status_error.PluginVersionConflict)
 			}
-			if err := validateCatalogInstallation(resource, version); err != nil {
-				return nil, ginx.WithStack(err)
-			}
 			if !seen[version.ID] {
+				if err := validateCatalogInstallation(resource, version); err != nil {
+					return nil, ginx.WithStack(err)
+				}
 				targets = append(targets, version)
 				seen[version.ID] = true
 			}
@@ -92,11 +94,20 @@ func (o *UpdatePluginConfiguration) Output(ctx *gin.Context) (interface{}, error
 			return err
 		}
 		switches := map[string]VersionSwitch{}
+		targetVersionID := ""
 		for _, item := range o.Body.Switches {
 			if _, exists := switches[item.WakerID]; exists {
 				return status_error.PluginVersionConflict
 			}
+			if targetVersionID != "" && targetVersionID != item.VersionID {
+				return status_error.PluginVersionConflict
+			}
+			targetVersionID = item.VersionID
 			switches[item.WakerID] = item
+		}
+		// 更新固定确认时的全体安装；新增、移除和版本变化均须重新确认。
+		if len(switches) > 0 && len(switches) != len(installed) {
+			return status_error.PluginVersionConflict
 		}
 		checked := map[string]bool{}
 		for _, relation := range installed {
@@ -104,6 +115,14 @@ func (o *UpdatePluginConfiguration) Output(ctx *gin.Context) (interface{}, error
 			if change, exists := switches[relation.WakerID]; exists {
 				if change.ExpectedVersionID != relation.VersionID {
 					return status_error.PluginVersionConflict
+				}
+				if change.VersionID != relation.VersionID {
+					current, hasCurrent := byID[relation.VersionID]
+					next, hasNext := byID[change.VersionID]
+					currentVersion, nextVersion := normalizedPluginVersion(current.Version), normalizedPluginVersion(next.Version)
+					if !hasCurrent || !hasNext || !semver.IsValid(currentVersion) || !semver.IsValid(nextVersion) || semver.Compare(nextVersion, currentVersion) <= 0 {
+						return status_error.PluginVersionConflict
+					}
 				}
 				target = change.VersionID
 				checked[relation.WakerID] = true

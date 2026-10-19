@@ -338,11 +338,8 @@ func resolveCurrent(root, key string, documentation bool) (Entry, string, error)
 			return rememberFailure(entry, firstErr)
 		}
 		index.recoveryAt = time.Now()
-		if err := index.fetch(); err != nil {
+		if err := index.refreshCurrent(index.ctx); err != nil {
 			return rememberFailure(entry, err)
-		}
-		if index.changed != nil && index.ctx.Err() == nil {
-			index.changed()
 		}
 		current, err = Find(root, key)
 		if err != nil {

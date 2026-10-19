@@ -115,3 +115,22 @@ export function pluginPreferredAuthAction(
   const action = pkg?.integration?.authentication?.preferredAction;
   return action === "show-qr" || action === "open-url" ? action : undefined;
 }
+
+/** 显示已解析安装版本；准备的新内容不能覆盖伙伴仍在使用的快照。 */
+export function pluginInstalledVersion(
+  detail: PluginDetail | undefined,
+  wakerId = "",
+) {
+  if (!detail) return undefined;
+  const relation = detail.installations?.find(
+    (item) => item.wakerId === wakerId,
+  );
+  const selected = wakerId ? relation?.versionId : detail.resolvedVersionId;
+  return (
+    detail.versions?.find((item) => item.id === selected) ??
+    detail.versions?.find((item) =>
+      detail.installations?.some((relation) => relation.versionId === item.id),
+    ) ??
+    detail.versions?.[0]
+  );
+}

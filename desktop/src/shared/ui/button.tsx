@@ -19,6 +19,8 @@ export const buttonVariants = cva(
           "bg-surface-scene text-foreground hover:bg-action-quiet-hover active:bg-action-quiet-pressed",
         ghost:
           "text-action-quiet hover:bg-action-quiet-hover hover:text-foreground active:bg-action-quiet-pressed",
+        // 说明性图标仅强调颜色，悬停与按下不增加背景表面。
+        plain: "text-action-quiet hover:text-foreground active:text-foreground",
         choice:
           "text-foreground hover:bg-action-quiet-hover active:bg-action-quiet-pressed aria-pressed:bg-selection-surface",
         launcher:

@@ -3,6 +3,7 @@ package plugins
 import (
 	"github.com/JieWaZi/NeuxAlly/server/global"
 	packageplugin "github.com/JieWaZi/NeuxAlly/server/internal/plugins"
+	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/catalog"
 	"github.com/gin-gonic/gin"
 	"github.com/shrewx/ginx"
 )
@@ -45,6 +46,8 @@ func (o *GetPlugin) Output(ctx *gin.Context) (interface{}, error) {
 	if err != nil {
 		return nil, ginx.WithStack(err)
 	}
+	entries, source := catalog.Snapshot(global.PluginCatalogSource())
+	applyPluginUpdate(&result, entries, source)
 	for index, version := range result.Versions {
 		if version.ID != result.ResolvedVersionID {
 			continue

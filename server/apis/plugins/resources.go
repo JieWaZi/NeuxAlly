@@ -4,14 +4,18 @@ package plugins
 import (
 	"context"
 	"errors"
-	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/authorization"
-	"github.com/JieWaZi/NeuxAlly/server/services/plugininstallation"
 	"path/filepath"
+	"sort"
+	"strings"
 
 	"github.com/JieWaZi/NeuxAlly/server/constants/status_error"
 	"github.com/JieWaZi/NeuxAlly/server/global"
 	packageplugin "github.com/JieWaZi/NeuxAlly/server/internal/plugins"
+	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/authorization"
+	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/catalog"
 	"github.com/JieWaZi/NeuxAlly/server/repositories/models"
+	"github.com/JieWaZi/NeuxAlly/server/services/plugininstallation"
+	"golang.org/x/mod/semver"
 )
 
 func visiblePlugin(ctx context.Context, id, waker string) (models.Plugin, error) {
@@ -39,7 +43,10 @@ func pluginDetail(ctx context.Context, resource models.Plugin, selectedVersion .
 	if err != nil {
 		return result, err
 	}
-	return detailFromState(ctx, resource, states[resource.ID], selectedVersion...)
+	result, err = detailFromState(ctx, resource, states[resource.ID], selectedVersion...)
+	entries, source := catalog.Snapshot(global.PluginCatalogSource())
+	applyPluginUpdate(&result, entries, source)
+	return result, err
 }
 func detailFromState(ctx context.Context, resource models.Plugin, state models.PluginState, selectedVersion ...string) (PluginDetailResponse, error) {
 	result := PluginDetailResponse{Plugin: resource, PartnerNames: state.PartnerNames, PartnerAvatars: state.PartnerAvatars, Versions: state.Versions, Installations: state.Installations, Values: map[string]string{}, Fields: []packageplugin.ConfigurationField{}, ConfiguredSecrets: []string{}, Blockers: []string{}, Account: authorization.Account{Scopes: []string{}}}
@@ -57,6 +64,19 @@ func detailFromState(ctx context.Context, resource models.Plugin, state models.P
 		return result, nil
 	}
 	version := result.Versions[0]
+	// 普通全局入口优先展示真实安装中最近登记的版本；准备结果仍显式固定目标版本。
+	if len(selectedVersion) == 0 || selectedVersion[0] == "" {
+		installed := map[string]bool{}
+		for _, relation := range state.Installations {
+			installed[relation.VersionID] = true
+		}
+		for _, candidate := range result.Versions {
+			if installed[candidate.ID] {
+				version = candidate
+				break
+			}
+		}
+	}
 	if len(selectedVersion) > 0 && selectedVersion[0] != "" {
 		found := false
 		for _, candidate := range result.Versions {
@@ -137,7 +157,8 @@ func listPluginResources(ctx context.Context, waker, query string, page, size in
 		return ListPluginsResponse{}, err
 	}
 
-	result := ListPluginsResponse{Resources: []PluginDetailResponse{}, TotalSize: total, PageNum: page, PageSize: size}
+	entries, source := catalog.Snapshot(global.PluginCatalogSource())
+	result := ListPluginsResponse{CatalogSource: source, Resources: []PluginDetailResponse{}, TotalSize: total, PageNum: page, PageSize: size}
 	for _, resource := range resources {
 		selectedVersion := ""
 		if waker != "" {
@@ -151,12 +172,55 @@ func listPluginResources(ctx context.Context, waker, query string, page, size in
 		if err != nil {
 			return result, err
 		}
+		applyPluginUpdate(&detail, entries, source)
 		for index := range detail.Versions {
 			detail.Versions[index].Package.Readme = ""
 		}
 		result.Resources = append(result.Resources, detail)
 	}
 	return result, nil
+}
+
+// applyPluginUpdate 仅从同来源目录和真实伙伴安装派生更新，不读取包文件或变更安装。
+func applyPluginUpdate(detail *PluginDetailResponse, entries []catalog.Entry, source catalog.SourceState) {
+	detail.CatalogSource = source
+	detail.Update = PluginUpdateResponse{WakerIDs: []string{}}
+	for _, entry := range entries {
+		if entry.SourceKey != detail.Plugin.SourceKey {
+			continue
+		}
+		target := normalizedPluginVersion(entry.Package.Manifest.Version)
+		if !semver.IsValid(target) {
+			return
+		}
+		versions := map[string]string{}
+		for _, version := range detail.Versions {
+			versions[version.ID] = normalizedPluginVersion(version.Version)
+		}
+		for _, relation := range detail.Installations {
+			current := versions[relation.VersionID]
+			// 更新会覆盖全体伙伴，未知版本或目录回退不能让其他伙伴被动降级。
+			if !semver.IsValid(current) || semver.Compare(target, current) < 0 {
+				detail.Update.WakerIDs = []string{}
+				return
+			}
+			if semver.Compare(target, current) > 0 {
+				detail.Update.WakerIDs = append(detail.Update.WakerIDs, relation.WakerID)
+			}
+		}
+		if len(detail.Update.WakerIDs) > 0 {
+			sort.Strings(detail.Update.WakerIDs)
+			detail.Update.Available = true
+			detail.Update.CatalogKey = entry.Key
+			detail.Update.Version = entry.Package.Manifest.Version
+			detail.Update.ArchiveSHA256 = entry.ArchiveSHA256
+		}
+		return
+	}
+}
+
+func normalizedPluginVersion(version string) string {
+	return "v" + strings.TrimPrefix(version, "v")
 }
 
 // acquirePluginPresentation 只固定文件读取的占用，不扫描完整包；执行入口仍独立复验。

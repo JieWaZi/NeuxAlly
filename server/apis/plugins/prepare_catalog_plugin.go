@@ -32,6 +32,8 @@ type PrepareCatalogPluginRequest struct {
 	OwnerWakerID string `json:"ownerWakerId,omitempty"`
 	// 运行确认
 	TrustConfirmed bool `json:"trustConfirmed"`
+	// 预期归档摘要
+	ExpectedArchiveSHA256 string `json:"expectedArchiveSHA256,omitempty"`
 }
 
 // Path 返回目录项安装准备入口。
@@ -42,6 +44,10 @@ func (o *PrepareCatalogPlugin) Output(ctx *gin.Context) (interface{}, error) {
 	entry, directory, err := catalog.ResolveCurrent(global.PluginCatalogSource(), o.Key)
 	if err != nil {
 		return nil, ginx.WithStack(err)
+	}
+	// 分发恢复可能重新解析目录；必须核验最终归档，不能静默替换用户确认的目标。
+	if o.Body.ExpectedArchiveSHA256 != "" && o.Body.ExpectedArchiveSHA256 != entry.ArchiveSHA256 {
+		return nil, ginx.WithStack(status_error.PluginVersionConflict)
 	}
 	stage, err := packageplugin.StageSource(stagedRoot(), directory, entry.PackagePath)
 	if err != nil {

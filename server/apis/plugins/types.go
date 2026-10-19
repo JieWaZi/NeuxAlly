@@ -3,6 +3,7 @@ package plugins
 import (
 	packageplugin "github.com/JieWaZi/NeuxAlly/server/internal/plugins"
 	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/authorization"
+	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/catalog"
 	"github.com/JieWaZi/NeuxAlly/server/repositories/models"
 )
 
@@ -36,10 +37,30 @@ type PluginDetailResponse struct {
 	Blockers []string `json:"blockers"`
 	// 共享身份
 	Account authorization.Account `json:"account"`
+	// 更新摘要
+	Update PluginUpdateResponse `json:"update"`
+	// 目录状态
+	CatalogSource catalog.SourceState `json:"catalogSource"`
+}
+
+// 插件更新摘要
+type PluginUpdateResponse struct {
+	// 存在更新
+	Available bool `json:"available"`
+	// 目录标识
+	CatalogKey string `json:"catalogKey"`
+	// 目标版本
+	Version string `json:"version"`
+	// 归档摘要
+	ArchiveSHA256 string `json:"archiveSHA256"`
+	// 落后伙伴
+	WakerIDs []string `json:"wakerIds"`
 }
 
 // 插件列表响应
 type ListPluginsResponse struct {
+	// 目录状态
+	CatalogSource catalog.SourceState `json:"catalogSource"`
 	// 资源列表
 	Resources []PluginDetailResponse `json:"resources"`
 	// 总数

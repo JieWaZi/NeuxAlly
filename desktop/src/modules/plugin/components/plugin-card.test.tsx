@@ -105,3 +105,60 @@ it.each([
       expect(screen.queryByText("授权")).not.toBeInTheDocument();
   },
 );
+
+it("shows a separate update action beside the disabled partner switch and retains installed content", () => {
+  const onUpdate = vi.fn();
+  render(
+    <MemoryRouter>
+      <PluginCard
+        detail={{
+          plugin: { id: "p", name: "办公" },
+          resolvedVersionId: "old",
+          versions: [
+            {
+              id: "prepared",
+              package: { manifest: { description: "尚未安装的新内容" } },
+            },
+            {
+              id: "old",
+              package: { manifest: { description: "实际安装的内容" } },
+            },
+          ],
+          installations: [{ wakerId: "w1", versionId: "old", enabled: false }],
+          update: { available: true, wakerIds: ["w1"] },
+        }}
+        wakerId="w1"
+        onInstall={vi.fn()}
+        onToggle={vi.fn()}
+        onUpdate={onUpdate}
+      />
+    </MemoryRouter>,
+  );
+  expect(screen.getByText("实际安装的内容")).toBeVisible();
+  expect(screen.queryByText("尚未安装的新内容")).not.toBeInTheDocument();
+  expect(screen.getByRole("switch")).not.toBeChecked();
+  fireEvent.click(screen.getByRole("button", { name: "可更新" }));
+  expect(onUpdate).toHaveBeenCalledOnce();
+});
+
+it("uses the resolved installed version for a global card instead of a prepared version", () => {
+  render(
+    <MemoryRouter>
+      <PluginCard
+        detail={{
+          plugin: { id: "p", name: "办公" },
+          resolvedVersionId: "old",
+          versions: [
+            {
+              id: "prepared",
+              package: { manifest: { description: "准备内容" } },
+            },
+            { id: "old", package: { manifest: { description: "已安装内容" } } },
+          ],
+        }}
+        onInstall={vi.fn()}
+      />
+    </MemoryRouter>,
+  );
+  expect(screen.getByText("已安装内容")).toBeVisible();
+});

@@ -10,6 +10,7 @@ var WakerRouter = ginx.NewRouter(ginx.Group("/wakers"))
 
 func init() {
 	Router.Register(&ListPluginCatalog{})
+	Router.Register(&RefreshPluginCatalog{})
 	Router.Register(&GetCatalogPlugin{})
 	Router.Register(&GetCatalogPluginReadme{})
 	Router.Register(&GetPluginReadme{})

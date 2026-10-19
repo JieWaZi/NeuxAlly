@@ -61,3 +61,30 @@ describe("pluginComponents", () => {
     expect(pluginComponents(resources, "skills", "missing")).toEqual([]);
   });
 });
+
+it("uses the installed snapshot for global components after a newer version has only been prepared", () => {
+  const result = pluginComponents(
+    [
+      {
+        plugin: { id: "p" },
+        resolvedVersionId: "old",
+        installations: [{ wakerId: "w1", versionId: "old", enabled: false }],
+        versions: [
+          {
+            id: "prepared",
+            package: { skills: [{ key: "new", name: "未安装能力" }] },
+          },
+          {
+            id: "old",
+            package: { skills: [{ key: "old", name: "实际安装能力" }] },
+          },
+        ],
+      },
+    ],
+    "skills",
+    "",
+  );
+  expect(result.map((item) => [item.name, item.versionId])).toEqual([
+    ["实际安装能力", "old"],
+  ]);
+});

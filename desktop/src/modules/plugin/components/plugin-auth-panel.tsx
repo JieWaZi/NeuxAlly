@@ -7,7 +7,10 @@ import {
 } from "@tanstack/react-query";
 import { useState, useEffect, useEffectEvent, useRef } from "react";
 import { RefreshCw, Unplug } from "lucide-react";
-import type { GetPluginAuthorizationResponse } from "@/shared/api/generated/types.gen";
+import type {
+  GetPluginAuthorizationResponse,
+  StartPluginAuthorizationResponse,
+} from "@/shared/api/generated/types.gen";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { PluginAuthorizationActions } from "./plugin-authorization-dialog";
@@ -38,11 +41,15 @@ export function PluginAuthPanel({
   starting = false,
   preferredAction,
   onRestart,
+  onSessionStarted,
+  onAvailabilityChange,
 }: {
   pluginId: string;
   wakerId?: string;
   versionId?: string;
   onReady?: () => void;
+  onAvailabilityChange?: (available: boolean) => void;
+  onSessionStarted?: (session: StartPluginAuthorizationResponse) => void;
   installation?: boolean;
   starting?: boolean;
   preferredAction?: "show-qr" | "open-url" | "";
@@ -68,12 +75,17 @@ export function PluginAuthPanel({
   const refresh = async () => {
     await invalidatePluginQueries(client);
   };
+  const previousWaitingSession = useRef("");
   const login = useMutation({
     ...withLocalErrorMutation(startPluginAuthorizationMutation()),
     onError: () => {
       void status.refetch();
     },
-    onSuccess: refresh,
+    onSuccess: async (session) => {
+      if (session.id && session.id !== previousWaitingSession.current)
+        onSessionStarted?.(session);
+      await refresh();
+    },
   });
   const cancel = useMutation({
     ...withLocalErrorMutation(cancelPluginAuthorizationMutation()),
@@ -131,6 +143,9 @@ export function PluginAuthPanel({
         ? t("authCancelled")
         : t("authUnknown");
   const notifyReady = useEffectEvent(() => onReady?.());
+  const notifyAvailability = useEffectEvent((available: boolean) =>
+    onAvailabilityChange?.(available),
+  );
   const notifiedSession = useRef("");
   const statusHash = hashKey(options.queryKey);
   useEffect(() => {
@@ -138,6 +153,10 @@ export function PluginAuthPanel({
     const notify = () => {
       const current =
         cache.get<GetPluginAuthorizationResponse>(statusHash)?.state.data;
+      notifyAvailability(
+        Boolean(current?.account?.available) &&
+          current?.session?.state !== "waiting",
+      );
       const id = current?.session?.id;
       if (
         id &&
@@ -156,6 +175,12 @@ export function PluginAuthPanel({
         event.query.queryHash === statusHash
       )
         notify();
+      if (
+        event.type === "updated" &&
+        event.action.type === "error" &&
+        event.query.queryHash === statusHash
+      )
+        notifyAvailability(false);
     });
     notify();
     return close;
@@ -175,8 +200,11 @@ export function PluginAuthPanel({
   }, [deviceKey, session?.expiresAt, session?.state]);
   async function restart() {
     setOpenError("");
+    onAvailabilityChange?.(false);
     if (session?.state === "waiting") setExpiredDevice(deviceKey);
     try {
+      previousWaitingSession.current =
+        session?.state === "waiting" ? (session.id ?? "") : "";
       if (onRestart) {
         await onRestart(status.data?.missingScopes ?? []);
         return;

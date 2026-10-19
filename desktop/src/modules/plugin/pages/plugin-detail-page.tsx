@@ -7,7 +7,7 @@ import {
   useSearchParams,
 } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Plus, Trash2, Pencil } from "lucide-react";
+import { Plus, Trash2, Pencil, RefreshCw } from "lucide-react";
 import { Switch } from "@/shared/ui/switch";
 import { ResourcePageSurface, PageAction } from "@/shared/ui/resource-page";
 import { QueryState } from "@/shared/ui/query-state";
@@ -23,6 +23,7 @@ import {
   setWakerPluginEnabledMutation,
   invalidatePluginQueries,
 } from "../api/plugin-queries";
+import { PluginUpdateDialog } from "../components/plugin-update-dialog";
 import { PluginInstallDialog } from "../components/plugin-install-dialog";
 import { PluginRemovalDialog } from "../components/plugin-removal-dialog";
 import { PluginOverview } from "../components/plugin-overview";
@@ -40,6 +41,7 @@ export function PluginDetailPage() {
   const active = useRouteSceneActive();
   const client = useQueryClient();
   const [install, setInstall] = useState(false);
+  const [updating, setUpdating] = useState(false);
   const [editing, setEditing] = useState(false);
   const [removing, setRemoving] = useState<{
     mode: "resource" | "installation";
@@ -147,11 +149,22 @@ export function PluginDetailPage() {
                   )}
                   {!wakerId && (
                     <PageAction
-                      intent="primary"
+                      intent={
+                        detail?.update?.available ? "secondary" : "primary"
+                      }
                       onClick={() => setInstall(true)}
                     >
                       <Plus />
                       {t("installToPartners")}
+                    </PageAction>
+                  )}
+                  {detail?.update?.available && (
+                    <PageAction
+                      intent="primary"
+                      onClick={() => setUpdating(true)}
+                    >
+                      <RefreshCw />
+                      {t("updateAvailable")}
                     </PageAction>
                   )}
                 </div>
@@ -203,6 +216,13 @@ export function PluginDetailPage() {
             detail={detail}
             versionId={version?.id}
             onClose={() => setEditing(false)}
+          />
+        )}
+        {updating && detail && (
+          <PluginUpdateDialog
+            detail={detail}
+            wakerId={wakerId}
+            onClose={() => setUpdating(false)}
           />
         )}
         {install && detail && (

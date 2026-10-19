@@ -9818,6 +9818,67 @@
         }
       }
     },
+    "/api/v1/plugins/catalog/refresh": {
+      "post": {
+        "tags": [
+          "github.com/JieWaZi/NeuxAlly/server/apis/plugins"
+        ],
+        "summary": "检查插件更新",
+        "operationId": "RefreshPluginCatalog",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComShrewxGinxCommonResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": ">\n* `[PluginContentInvalid][40000006502]`\n* `[PluginContentLimitExceeded][40000006503]`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
+                }
+              }
+            },
+            "x-status-errors": [
+              "[PluginContentInvalid][40000006502]",
+              "[PluginContentLimitExceeded][40000006503]"
+            ]
+          },
+          "500": {
+            "description": ">\n* `[PluginStorageError][50000006501]`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
+                }
+              }
+            },
+            "x-status-errors": [
+              "[PluginStorageError][50000006501]"
+            ]
+          },
+          "502": {
+            "description": ">\n* `[PluginDistributionUnavailable][50200006502]`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
+                }
+              }
+            },
+            "x-status-errors": [
+              "[PluginDistributionUnavailable][50200006502]"
+            ]
+          }
+        }
+      }
+    },
     "/api/v1/plugins/catalog/{key}": {
       "get": {
         "tags": [
@@ -29257,6 +29318,17 @@
       "GithubComJieWaZiNeuxAllyServerApisPluginsListPluginsResponse": {
         "type": "object",
         "properties": {
+          "catalogSource": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GithubComJieWaZiNeuxAllyServerInternalPluginsCatalogSourceState"
+              },
+              {
+                "description": "目录状态",
+                "x-go-field-name": "CatalogSource"
+              }
+            ]
+          },
           "pageNum": {
             "type": "integer",
             "format": "int32",
@@ -29393,6 +29465,17 @@
             "description": "阻塞原因",
             "x-go-field-name": "Blockers"
           },
+          "catalogSource": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GithubComJieWaZiNeuxAllyServerInternalPluginsCatalogSourceState"
+              },
+              {
+                "description": "目录状态",
+                "x-go-field-name": "CatalogSource"
+              }
+            ]
+          },
           "componentIds": {
             "type": "object",
             "additionalProperties": {
@@ -29476,6 +29559,17 @@
             "type": "string",
             "description": "当前解析版本",
             "x-go-field-name": "ResolvedVersionID"
+          },
+          "update": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GithubComJieWaZiNeuxAllyServerApisPluginsPluginUpdateResponse"
+              },
+              {
+                "description": "更新摘要",
+                "x-go-field-name": "Update"
+              }
+            ]
           },
           "values": {
             "type": "object",
@@ -29628,9 +29722,51 @@
         "x-go-struct-name": "GithubComJieWaZiNeuxAllyServerApisPluginsPluginSkillVersion",
         "x-go-vendor-type": "github.com/JieWaZi/NeuxAlly/server/apis/plugins.PluginSkillVersion"
       },
+      "GithubComJieWaZiNeuxAllyServerApisPluginsPluginUpdateResponse": {
+        "type": "object",
+        "properties": {
+          "archiveSHA256": {
+            "type": "string",
+            "description": "归档摘要",
+            "x-go-field-name": "ArchiveSHA256"
+          },
+          "available": {
+            "type": "boolean",
+            "description": "存在更新",
+            "x-go-field-name": "Available"
+          },
+          "catalogKey": {
+            "type": "string",
+            "description": "目录标识",
+            "x-go-field-name": "CatalogKey"
+          },
+          "version": {
+            "type": "string",
+            "description": "目标版本",
+            "x-go-field-name": "Version"
+          },
+          "wakerIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "落后伙伴",
+            "x-go-field-name": "WakerIDs"
+          }
+        },
+        "description": "插件更新摘要",
+        "x-go-struct-name": "GithubComJieWaZiNeuxAllyServerApisPluginsPluginUpdateResponse",
+        "x-go-vendor-type": "github.com/JieWaZi/NeuxAlly/server/apis/plugins.PluginUpdateResponse"
+      },
       "GithubComJieWaZiNeuxAllyServerApisPluginsPrepareCatalogPluginRequest": {
         "type": "object",
         "properties": {
+          "expectedArchiveSHA256": {
+            "type": "string",
+            "description": "预期归档摘要",
+            "x-go-field-name": "ExpectedArchiveSHA256",
+            "x-tag-json": "expectedArchiveSHA256,omitempty"
+          },
           "ownerWakerId": {
             "type": "string",
             "description": "所属伙伴",

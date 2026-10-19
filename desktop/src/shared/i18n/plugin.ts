@@ -142,7 +142,26 @@ export const pluginZh = {
   cancelAuth: "取消本次认证",
   sharedIdentity: "已连接：{{name}}",
   scopeHelp: "实际可用能力还取决于飞书应用权限、租户策略和资源权限。",
-  update: "更新所选伙伴",
+  update: "更新全部伙伴",
+  updateAvailable: "可更新",
+  updateNamed: "更新 {{name}}",
+  updateHelp:
+    "更新此插件的全部已安装伙伴，保留各伙伴当前的启停状态。已接纳的工作继续使用原版本。",
+  updatePartners: "将更新全部 {{count}} 个伙伴",
+  prepareUpdate: "确认并准备更新",
+  prepareUpdateHelp:
+    "准备新版本后可以核对插件说明、共享设置与账号，确认后才会更新伙伴。继续即同意运行此插件提供的授权程序及工具组件。",
+  updateReadyHelp: "请完成新版本需要的共享设置与账号连接，再确认更新全部伙伴。",
+  updateRetryHelp:
+    "更新未完成，原安装保持不变。若安装关系或共享设置已变化，请重新读取后确认。",
+  reloadUpdate: "重新读取并确认",
+  checkUpdates: "检查更新",
+  checkingUpdates: "正在检查更新…",
+  catalogUnavailable:
+    "无法连接插件库，当前无法确认是否有更新。已安装插件仍可使用。",
+  catalogUpdateInfo: "插件库更新信息",
+  catalogUnchecked: "尚未核验插件库更新",
+  catalogCheckedAt: "上次成功检查：{{time}}",
   name: "展示名称",
   license: "许可",
   unknown: "未声明",
@@ -308,7 +327,27 @@ export const pluginEn: { [K in keyof typeof pluginZh]: string } = {
   sharedIdentity: "Connected: {{name}}",
   scopeHelp:
     "Available operations also depend on app permissions, tenant policy and resource access.",
-  update: "Update selected partners",
+  update: "Update all partners",
+  updateAvailable: "Update available",
+  updateNamed: "Update {{name}}",
+  updateHelp:
+    "Update this plugin for every installed partner, preserving each enabled state. Accepted work continues with its original version.",
+  updatePartners: "Update all {{count}} partners",
+  prepareUpdate: "Confirm and prepare update",
+  prepareUpdateHelp:
+    "Review the new plugin description, shared settings and account before updating partners. Continuing allows the plugin’s authorization programs and tool components to run.",
+  updateReadyHelp:
+    "Complete the new version’s shared settings and account connection, then confirm the update for all partners.",
+  updateRetryHelp:
+    "The update did not complete; original installations are unchanged. Reload and confirm if installations or shared settings have changed.",
+  reloadUpdate: "Reload and confirm again",
+  checkUpdates: "Check for updates",
+  checkingUpdates: "Checking for updates…",
+  catalogUnavailable:
+    "The plugin library is unavailable, so updates cannot be verified. Installed plugins remain available.",
+  catalogUpdateInfo: "Plugin update information",
+  catalogUnchecked: "Plugin updates have not been verified yet.",
+  catalogCheckedAt: "Last successful check: {{time}}",
   name: "Display name",
   license: "License",
   unknown: "Not declared",
