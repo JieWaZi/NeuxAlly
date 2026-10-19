@@ -116,7 +116,7 @@ func TestAutomaticEntriesExecuteAndDeleteThroughRealCore(t *testing.T) {
 			return ctx, func() {}, nil
 		}
 		return teams.AcquireChatInput(ctx, chatID, userInput)
-	}, Runtime: runtime, Journal: chats, DormantChats: chats, Wakers: wakers, Profiles: profiles, Projects: projects, RuntimeEnvironments: integrationEnvironment{}, StorageDirectory: dataDirectory})
+	}, Runtime: runtime, Journal: chats, DormantChats: chats, Wakers: wakers, Profiles: profiles, Projects: projects, RuntimeEnvironments: integrationEnvironment{}, StorageDirectory: dataDirectory, SkillDataDirectory: dataDirectory})
 	if err != nil {
 		t.Fatal(err)
 	}
