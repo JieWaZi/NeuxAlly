@@ -100,6 +100,7 @@ export const pluginZh = {
   skills: "技能",
   connectors: "连接器",
   catalog: "插件库",
+  catalogStale: "插件库暂未连接，当前显示缓存内容，可能不是最新版本。",
   mine: "我的插件",
   partnerResources: "已安装资源",
   search: "搜索资源…",
@@ -293,6 +294,8 @@ export const pluginEn: { [K in keyof typeof pluginZh]: string } = {
   skills: "Skills",
   connectors: "Connectors",
   catalog: "Plugin library",
+  catalogStale:
+    "The plugin library is unavailable. Cached content may be out of date.",
   mine: "My plugins",
   partnerResources: "Installed resources",
   search: "Search resources…",

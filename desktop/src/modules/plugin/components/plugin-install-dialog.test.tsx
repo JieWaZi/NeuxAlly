@@ -139,6 +139,42 @@ function show(onClose = vi.fn(), authorizeOnly = false) {
   return onClose;
 }
 describe("plugin installation", () => {
+  it("uses the freshly downloaded authorization declaration when a catalog item only contains metadata", async () => {
+    fixture.detail.ready = false;
+    Object.assign(fixture.detail.versions[0]?.package ?? {}, {
+      integration: {
+        authentication: {
+          strategy: "plugin-command",
+          protocol: "neuxally-auth/1",
+          command: "node",
+          args: ["./.neuxally/auth/authorize.mjs"],
+        },
+      },
+    });
+    fixture.prepare.mockResolvedValue(structuredClone(fixture.detail));
+    render(
+      <QueryClientProvider
+        client={
+          new QueryClient({ defaultOptions: { queries: { retry: false } } })
+        }
+      >
+        <MemoryRouter>
+          <PluginInstallDialog
+            catalog={{
+              key: "office",
+              package: { manifest: { name: "office" } },
+            }}
+            wakerId="p1"
+            onClose={vi.fn()}
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    fireEvent.click(await screen.findByRole("button", { name: "继续" }));
+    await waitFor(() => expect(fixture.authorization).toHaveBeenCalledOnce());
+    expect(await screen.findByText("扫码授权区域")).toBeVisible();
+    expect(fixture.install).not.toHaveBeenCalled();
+  });
   it("marks real existing installations as checked and disabled", async () => {
     fixture.detail.installations = [
       { wakerId: "p1", versionId: "version-1", enabled: true },

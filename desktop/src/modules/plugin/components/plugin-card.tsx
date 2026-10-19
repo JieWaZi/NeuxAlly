@@ -61,7 +61,9 @@ export function PluginCard({
   const description = pluginSummary(
     pkg,
     detail?.plugin?.description,
-    catalog ? `catalog:${catalog.key}` : detail?.plugin?.sourceKey,
+    catalog
+      ? (catalog.sourceKey ?? `catalog:${catalog.key}`)
+      : detail?.plugin?.sourceKey,
   );
   const installations = (detail?.installations ?? []).filter(
     (item) => !wakerId || item.wakerId === wakerId,

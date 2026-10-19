@@ -47,6 +47,7 @@ import {
   type PluginDetail,
 } from "../model/plugin-view";
 import { usePluginResources } from "../api/use-plugin-resources";
+import { StatusNotice } from "@/shared/ui/status-notice";
 import { PluginRemovalDialog } from "../components/plugin-removal-dialog";
 import { PluginIcon } from "../components/plugin-icon";
 import { PluginCard } from "../components/plugin-card";
@@ -114,7 +115,11 @@ export function PluginResourceCollection({
           throwOnError: true as const,
         }),
       );
-      return { items: data.entries ?? [], total: data.totalSize ?? 0 };
+      return {
+        items: data.entries ?? [],
+        total: data.totalSize ?? 0,
+        metadata: data.source,
+      };
     },
     enabled: active && !wakerId && view === "catalog",
   });
@@ -206,6 +211,11 @@ export function PluginResourceCollection({
           />
         )}
       </ResourcePageToolbar>
+      {!wakerId &&
+        view === "catalog" &&
+        catalog.metadata?.state === "stale" && (
+          <StatusNotice>{t("catalogStale")}</StatusNotice>
+        )}
       <ResourceSelectionActions
         count={selection.selected.length}
         onClear={selection.clear}
@@ -224,7 +234,9 @@ export function PluginResourceCollection({
           {!wakerId && view === "catalog"
             ? entries.map((entry) => {
                 const detail = catalogResources.data?.find(
-                  (item) => item.plugin?.sourceKey === `catalog:${entry.key}`,
+                  (item) =>
+                    item.plugin?.sourceKey ===
+                    (entry.sourceKey ?? `catalog:${entry.key}`),
                 );
                 return (
                   <PluginCard

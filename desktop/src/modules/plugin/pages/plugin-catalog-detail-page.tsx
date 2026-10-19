@@ -38,10 +38,11 @@ export function PluginCatalogDetailPage() {
   );
   const entry = query.data;
   const pkg = entry?.package;
+  const sourceKey = entry?.sourceKey ?? `catalog:${catalogKey}`;
   const active = useRouteSceneActive();
   const installedOptions = listPluginsOptions(
     withLocalErrorSurface({
-      query: { query: `catalog:${catalogKey}`, pageNum: 1, pageSize: 100 },
+      query: { query: sourceKey, pageNum: 1, pageSize: 100 },
     }),
   );
   const installed = useQuery({
@@ -55,14 +56,14 @@ export function PluginCatalogDetailPage() {
     active,
   });
   const detail = installed.data?.resources?.find(
-    (item) => item.plugin?.sourceKey === `catalog:${catalogKey}`,
+    (item) => item.plugin?.sourceKey === sourceKey,
   );
 
   return (
     <ResourcePageSurface>
       <PluginDetailHeader
         pkg={pkg}
-        sourceKey={`catalog:${catalogKey}`}
+        sourceKey={sourceKey}
         backAction={{ label: t("back"), onClick: () => navigate(back) }}
         actions={
           entry && (
@@ -110,7 +111,7 @@ export function PluginCatalogDetailPage() {
         ) : (
           <PluginOverview
             pkg={pkg}
-            sourceKey={`catalog:${catalogKey}`}
+            sourceKey={sourceKey}
             readmeSource={{
               catalogKey,
               sourceCommit: entry.sourceCommit,

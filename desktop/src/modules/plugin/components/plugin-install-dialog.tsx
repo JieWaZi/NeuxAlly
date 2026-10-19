@@ -121,7 +121,6 @@ function Installation({
     detail?.versions?.find((item) => item.id === detail.resolvedVersionId) ??
     detail?.versions?.[0];
   const pkg = version?.package ?? catalog?.package;
-  const needsAuthorization = pluginHasAuthorization(pkg);
   const prepare = useMutation({
     ...withLocalErrorMutation(prepareCatalogPluginMutation()),
   });
@@ -241,7 +240,13 @@ function Installation({
         setPhase("authorization");
         await installReady(current);
       } else if (current.ready && !authorizeOnly) await installReady(current);
-      else if (needsAuthorization) {
+      else if (
+        pluginHasAuthorization(
+          current.versions?.find(
+            (item) => item.id === current.resolvedVersionId,
+          )?.package ?? current.versions?.[0]?.package,
+        )
+      ) {
         setPhase("authorization");
         await authorization.mutateAsync({
           path: { pluginId: current.plugin?.id ?? "" },
