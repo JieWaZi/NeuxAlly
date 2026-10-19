@@ -27,6 +27,7 @@ afterEach(cleanup);
 beforeEach(() => {
   fixture.scan.mockReset().mockResolvedValue({
     token: "staged-snapshot",
+    trustRequired: true,
     package: {
       format: "codex",
       manifest: {
@@ -80,7 +81,9 @@ describe("plugin package import", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "检查内容" }));
     expect(await screen.findByText("MIT")).toBeInTheDocument();
-    expect(screen.getByText("此组件暂不支持，不会启用")).toBeInTheDocument();
+    expect(
+      screen.getByText("此组件保留原文，是否加载取决于当前智能体。"),
+    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "添加到本机" })).toBeDisabled();
     fireEvent.click(screen.getByRole("checkbox"));
     fireEvent.click(screen.getByRole("button", { name: "添加到本机" }));
@@ -98,6 +101,35 @@ describe("plugin package import", () => {
       ),
     );
     await waitFor(() => expect(onPrepared).toHaveBeenCalled());
+  });
+  it("uses the reviewed trust requirement for native components and authorization bridges", async () => {
+    fixture.scan.mockResolvedValue({
+      token: "native-snapshot",
+      trustRequired: true,
+      package: {
+        format: "claude",
+        manifest: { name: "native-commands" },
+        skills: [],
+        servers: [],
+      },
+    });
+    show();
+    fireEvent.change(screen.getByRole("textbox"), {
+      target: { value: "/plugins/native.zip" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "检查内容" }));
+    expect(await screen.findByText("native-commands")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "添加到本机" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("checkbox"));
+    fireEvent.click(screen.getByRole("button", { name: "添加到本机" }));
+    await waitFor(() =>
+      expect(fixture.prepare).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.objectContaining({ trustConfirmed: true }),
+        }),
+        expect.anything(),
+      ),
+    );
   });
   it("invalidates the reviewed snapshot when the source changes", async () => {
     show();

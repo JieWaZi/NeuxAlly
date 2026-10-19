@@ -35,13 +35,13 @@ export const pluginZh = {
   importPlugin: "导入插件",
   addPluginVersion: "添加新版本",
   importCompatibility:
-    "支持 NeuxAlly、Claude Code、Codex 插件目录或 ZIP，保留技能、连接器和原作者资料，并说明不支持的组件。",
+    "支持 NeuxAlly、Claude Code、Codex 插件目录或 ZIP，保留技能、连接器、原生组件和原作者资料。",
   importLocation: "插件位置",
   importLocationExample: "选择插件根目录或 .zip 文件",
   packageFormat: "包格式",
   packageSummary: "{{skills}} 个技能 · {{connectors}} 个连接器",
-  diagnosticUnsupported: "此组件暂不支持，不会启用",
-  diagnosticInvalid: "此组件未通过校验，不会启用",
+  diagnosticUnsupported: "此组件保留原文，是否加载取决于当前智能体。",
+  diagnosticInvalid: "此组件未通过系统校验，请查看来源声明。",
   diagnosticAsset: "图标格式、大小或内容不受支持，将使用默认图标",
   diagnosticDocumentation: "说明文件未通过校验，未加载",
   diagnosticSchema: "此组件的规范版本暂不支持",
@@ -221,13 +221,15 @@ export const pluginEn: { [K in keyof typeof pluginZh]: string } = {
   importPlugin: "Import plugin",
   addPluginVersion: "Add version",
   importCompatibility:
-    "Supports NeuxAlly, Claude Code, and Codex folders or ZIPs. Preserves skills, connectors, and authors; lists unsupported components.",
+    "Supports NeuxAlly, Claude Code, and Codex folders or ZIPs. Preserves skills, connectors, native components, and author information.",
   importLocation: "Plugin location",
   importLocationExample: "Choose a plugin root folder or .zip file",
   packageFormat: "Package format",
   packageSummary: "{{skills}} skills · {{connectors}} connectors",
-  diagnosticUnsupported: "This component is not supported and will not run",
-  diagnosticInvalid: "This component failed validation and will not run",
+  diagnosticUnsupported:
+    "Original component preserved; loading depends on the selected agent.",
+  diagnosticInvalid:
+    "This component did not pass system validation; review its source declaration.",
   diagnosticAsset:
     "Unsupported icon format, size, or content; using the default icon",
   diagnosticDocumentation:

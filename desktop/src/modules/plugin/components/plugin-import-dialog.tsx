@@ -51,7 +51,7 @@ export function PluginImportDialog({
     },
   });
   const pkg = scan.data?.package;
-  const hasMCP = (pkg?.servers?.length ?? 0) > 0;
+  const requiresTrust = scan.data?.trustRequired ?? false;
   const busy = scan.isPending || prepare.isPending;
   const choose = async (kind: "folder" | "archive") => {
     try {
@@ -220,7 +220,7 @@ export function PluginImportDialog({
                   ))}
                 </section>
               )}
-              {hasMCP && (
+              {requiresTrust && (
                 <label className="type-body flex items-start gap-2">
                   <Checkbox
                     checked={trusted}
@@ -248,7 +248,7 @@ export function PluginImportDialog({
               !scan.data?.token ||
               scan.isPending ||
               prepare.isPending ||
-              (hasMCP && !trusted)
+              (requiresTrust && !trusted)
             }
             onClick={() =>
               prepare.mutate({
