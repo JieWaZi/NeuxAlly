@@ -4,10 +4,14 @@ import (
 	"archive/zip"
 	"bytes"
 	"crypto/sha256"
+	"encoding/json"
 	"errors"
 	"fmt"
+	packageplugin "github.com/JieWaZi/NeuxAlly/server/internal/plugins"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -23,7 +27,7 @@ func TestCatalogDetailAndRawReadmeAreReadOnlyAndSourceBound(t *testing.T) {
 			readme := strings.Repeat("Readme正文\n", size/13+1)
 			var archive bytes.Buffer
 			writer := zip.NewWriter(&archive)
-			for name, content := range map[string]string{"neuxally-plugin/demo/.codex-plugin/plugin.json": `{"name":"demo","version":"2"}`, "neuxally-plugin/demo/README.md": readme} {
+			for name, content := range map[string]string{"neuxally-plugin/demo/.codex-plugin/plugin.json": `{"name":"demo","version":"2"}`, "neuxally-plugin/demo/README.md": readme, "neuxally-plugin/demo/README.zh-CN.md": "目录中文说明"} {
 				file, err := writer.Create(name)
 				if err != nil {
 					t.Fatal(err)
@@ -61,6 +65,14 @@ func TestCatalogDetailAndRawReadmeAreReadOnlyAndSourceBound(t *testing.T) {
 			if err != nil || raw.(PluginReadmeResponse).Content != readme {
 				t.Fatalf("raw content changed: %v", err)
 			}
+			localizedOutput, err := (&GetCatalogPlugin{Key: "demo", Locale: "zh-CN"}).Output(ctx)
+			if err != nil || localizedOutput.(catalog.Entry).Package.Readme != "目录中文说明" {
+				t.Fatalf("catalog locale not selected: %v", err)
+			}
+			localizedRaw, err := (&GetCatalogPluginReadme{Key: "demo", Locale: "zh-CN", SourceCommit: entry.SourceCommit, ArchiveSHA256: entry.ArchiveSHA256}).Output(ctx)
+			if err != nil || localizedRaw.(PluginReadmeResponse).Content != "目录中文说明" {
+				t.Fatalf("catalog raw locale diverged: %v", err)
+			}
 			_, err = (&GetCatalogPluginReadme{Key: "demo", SourceCommit: "2222222222222222222222222222222222222222"}).Output(ctx)
 			if !errors.Is(err, status_error.PluginVersionConflict) {
 				t.Fatalf("accepted mismatched displayed version: %v", err)
@@ -70,5 +82,43 @@ func TestCatalogDetailAndRawReadmeAreReadOnlyAndSourceBound(t *testing.T) {
 				t.Fatalf("read-only preview created system resources: %d %v", total, err)
 			}
 		})
+	}
+}
+
+func TestCatalogAndInstalledReadmeLocaleKeepsPinnedSource(t *testing.T) {
+	ctx := pluginAPIContext(t)
+	root := t.TempDir()
+	for name, content := range map[string]string{".codex-plugin/plugin.json": `{"name":"office","version":"0.1.0"}`, "README.md": "Work with documents", "README.zh-CN.md": "处理办公资料"} {
+		path := filepath.Join(root, name)
+		if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(content), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	stage, err := packageplugin.Stage(stagedRoot(), root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	detail, err := prepareResource(ctx, stage, "", "", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request := &GetPlugin{PluginID: detail.Plugin.ID, VersionID: detail.ResolvedVersionID}
+	_ = json.Unmarshal([]byte(`{"Locale":"zh-CN"}`), request)
+	value, err := request.Output(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	localized := value.(PluginDetailResponse)
+	if localized.Versions[0].Package.Readme != "处理办公资料" {
+		t.Fatal("installed locale returned another language")
+	}
+	raw := &GetPluginReadme{PluginID: detail.Plugin.ID, VersionID: detail.ResolvedVersionID}
+	_ = json.Unmarshal([]byte(`{"Locale":"zh-CN"}`), raw)
+	value, err = raw.Output(ctx)
+	if err != nil || value.(PluginReadmeResponse).Content != "处理办公资料" {
+		t.Fatalf("raw locale diverged: %+v %v", value, err)
 	}
 }

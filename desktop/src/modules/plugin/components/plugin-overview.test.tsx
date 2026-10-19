@@ -17,6 +17,7 @@ const readmeFixture = vi.hoisted(() => ({ load: vi.fn(), save: vi.fn() }));
 vi.mock("@/shared/api/generated/sdk.gen", async (importOriginal) => ({
   ...(await importOriginal<object>()),
   getPluginReadme: readmeFixture.load,
+  getCatalogPluginReadme: readmeFixture.load,
 }));
 vi.mock("@/shared/desktop", () => ({
   saveBlob: readmeFixture.save,
@@ -231,7 +232,7 @@ it("downloads the complete oversized README from its fixed version instead of sh
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 });
 
-it("shows preserved native components and the exact implementations behind one logical plugin", () => {
+it("keeps native implementation paths and digests out of the public plugin overview", () => {
   render(
     <MemoryRouter>
       <PluginOverview
@@ -264,9 +265,39 @@ it("shows preserved native components and the exact implementations behind one l
       />
     </MemoryRouter>,
   );
-  expect(screen.getByRole("heading", { name: "原生组件" })).toBeVisible();
-  expect(screen.getByText("hooks/hooks.json")).toBeVisible();
-  expect(screen.getByText("codex-plugins/github")).toBeVisible();
-  expect(screen.getByText("claude-plugins/github")).toBeVisible();
-  expect(screen.getByText("0.1.12")).toBeVisible();
+  expect(
+    screen.queryByRole("heading", { name: "原生组件" }),
+  ).not.toBeInTheDocument();
+  expect(screen.queryByText("hooks/hooks.json")).not.toBeInTheDocument();
+  expect(screen.queryByText("codex-plugins/github")).not.toBeInTheDocument();
+  expect(screen.queryByText("claude-plugins/github")).not.toBeInTheDocument();
+  expect(screen.queryByText("0.1.12")).not.toBeInTheDocument();
+});
+
+it("downloads the displayed locale from the same pinned catalog source", async () => {
+  readmeFixture.load.mockClear();
+  readmeFixture.load.mockResolvedValue({ data: { content: "中文完整说明" } });
+  const source = {
+    catalogKey: "office",
+    sourceCommit: "a".repeat(40),
+    archiveSHA256: "b".repeat(64),
+    locale: "zh-CN",
+  };
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <PluginReadme content="" status="too-large" source={source} />
+    </QueryClientProvider>,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "下载原始说明" }));
+  await waitFor(() => expect(readmeFixture.load).toHaveBeenCalledOnce());
+  expect(readmeFixture.load).toHaveBeenCalledWith(
+    expect.objectContaining({
+      path: { key: "office" },
+      query: {
+        sourceCommit: source.sourceCommit,
+        archiveSHA256: source.archiveSHA256,
+        locale: "zh-CN",
+      },
+    }),
+  );
 });

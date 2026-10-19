@@ -27,10 +27,12 @@ import { PluginInstallDialog } from "../components/plugin-install-dialog";
 import { PluginRemovalDialog } from "../components/plugin-removal-dialog";
 import { PluginOverview } from "../components/plugin-overview";
 import { PluginDetailHeader } from "../components/plugin-detail-header";
+import { pluginLocale } from "../model/plugin-view";
 import { PluginSettingsDialog } from "../components/plugin-settings-dialog";
 
 export function PluginDetailPage() {
-  const { t } = useTranslation("plugin");
+  const { t, i18n } = useTranslation("plugin");
+  const locale = pluginLocale(i18n.resolvedLanguage ?? i18n.language);
   const { pluginId = "", wakerId = "" } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -47,6 +49,7 @@ export function PluginDetailPage() {
     withLocalErrorSurface({
       path: { pluginId },
       query: {
+        locale,
         wakerId,
         versionId: wakerId ? undefined : (params.get("version") ?? ""),
       },
@@ -182,7 +185,7 @@ export function PluginDetailPage() {
                 detail={detail}
                 readmeSource={
                   version?.id
-                    ? { pluginId, versionId: version.id, wakerId }
+                    ? { pluginId, versionId: version.id, wakerId, locale }
                     : undefined
                 }
                 scope={wakerId ? "partner" : "global"}

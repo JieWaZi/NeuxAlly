@@ -14,6 +14,8 @@ import (
 // 查看目录插件
 type GetCatalogPlugin struct {
 	ginx.MethodGet
+	// 展示语言
+	Locale string `in:"query" name:"locale"`
 	// 目录条目
 	Key string `in:"path" name:"key" validate:"required"`
 }
@@ -36,6 +38,9 @@ func (o *GetCatalogPlugin) Output(ctx *gin.Context) (interface{}, error) {
 		return nil, ginx.WithStack(err)
 	}
 	defer os.RemoveAll(filepath.Join(stagedRoot(), stage.Token))
-	entry.Package = stage.Package
+	entry.Package, err = packageplugin.LocalizeReadme(stage.Root, stage.Package, o.Locale)
+	if err != nil {
+		return nil, ginx.WithStack(err)
+	}
 	return entry, nil
 }

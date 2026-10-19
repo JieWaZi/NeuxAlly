@@ -9701,7 +9701,7 @@
         "tags": [
           "github.com/JieWaZi/NeuxAlly/server/apis/plugins"
         ],
-        "summary": "本地插件目录",
+        "summary": "插件目录",
         "operationId": "ListPluginCatalog",
         "parameters": [
           {
@@ -10102,6 +10102,18 @@
               "x-tag-in": "path",
               "x-tag-name": "key",
               "x-tag-validate": "required"
+            }
+          },
+          {
+            "name": "locale",
+            "in": "query",
+            "description": "展示语言",
+            "schema": {
+              "type": "string",
+              "description": "展示语言",
+              "x-go-field-name": "Locale",
+              "x-tag-in": "query",
+              "x-tag-name": "locale"
             }
           }
         ],
@@ -10857,6 +10869,18 @@
               "x-go-field-name": "ArchiveSHA256",
               "x-tag-in": "query",
               "x-tag-name": "archiveSHA256"
+            }
+          },
+          {
+            "name": "locale",
+            "in": "query",
+            "description": "展示语言",
+            "schema": {
+              "type": "string",
+              "description": "展示语言",
+              "x-go-field-name": "Locale",
+              "x-tag-in": "query",
+              "x-tag-name": "locale"
             }
           },
           {
@@ -12191,6 +12215,18 @@
               "x-tag-in": "path",
               "x-tag-name": "pluginId",
               "x-tag-validate": "required"
+            }
+          },
+          {
+            "name": "locale",
+            "in": "query",
+            "description": "展示语言",
+            "schema": {
+              "type": "string",
+              "description": "展示语言",
+              "x-go-field-name": "Locale",
+              "x-tag-in": "query",
+              "x-tag-name": "locale"
             }
           },
           {
@@ -13929,6 +13965,18 @@
             }
           },
           {
+            "name": "locale",
+            "in": "query",
+            "description": "展示语言",
+            "schema": {
+              "type": "string",
+              "description": "展示语言",
+              "x-go-field-name": "Locale",
+              "x-tag-in": "query",
+              "x-tag-name": "locale"
+            }
+          },
+          {
             "name": "versionId",
             "in": "query",
             "description": "版本标识",
@@ -13967,7 +14015,7 @@
             }
           },
           "400": {
-            "description": ">\n* `[PluginContentInvalid][40000006502]`\n",
+            "description": ">\n* `[PluginContentInvalid][40000006502]`\n* `[PluginContentLimitExceeded][40000006503]`\n",
             "content": {
               "application/json": {
                 "schema": {
@@ -13976,7 +14024,8 @@
               }
             },
             "x-status-errors": [
-              "[PluginContentInvalid][40000006502]"
+              "[PluginContentInvalid][40000006502]",
+              "[PluginContentLimitExceeded][40000006503]"
             ]
           },
           "403": {
@@ -36747,6 +36796,30 @@
             "description": "展示名称",
             "x-go-field-name": "DisplayName",
             "x-tag-json": "displayName,omitempty"
+          },
+          "displayNames": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "propertyNames": {
+              "type": "string"
+            },
+            "description": "本地名称",
+            "x-go-field-name": "DisplayNames",
+            "x-tag-json": "displayNames,omitempty"
+          },
+          "localizedDescriptions": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "propertyNames": {
+              "type": "string"
+            },
+            "description": "本地简介",
+            "x-go-field-name": "LocalizedDescriptions",
+            "x-tag-json": "localizedDescriptions,omitempty"
           },
           "longDescription": {
             "type": "string",

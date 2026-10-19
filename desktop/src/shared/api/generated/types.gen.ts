@@ -5134,6 +5134,18 @@ export type GithubComJieWaZiNeuxAllyServerInternalPluginsPresentation = {
      */
     displayName?: string;
     /**
+     * 本地名称
+     */
+    displayNames?: {
+        [key: string]: string;
+    };
+    /**
+     * 本地简介
+     */
+    localizedDescriptions?: {
+        [key: string]: string;
+    };
+    /**
      * 完整介绍
      */
     longDescription?: string;
@@ -15084,7 +15096,12 @@ export type GetCatalogPluginData = {
          */
         key: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * 展示语言
+         */
+        locale?: string;
+    };
     url: '/api/v1/plugins/catalog/{key}';
 };
 
@@ -15645,6 +15662,10 @@ export type GetCatalogPluginReadmeData = {
          * 压缩摘要
          */
         archiveSHA256?: string;
+        /**
+         * 展示语言
+         */
+        locale?: string;
         /**
          * 来源提交
          */
@@ -16586,6 +16607,10 @@ export type GetPluginData = {
         pluginId: string;
     };
     query?: {
+        /**
+         * 展示语言
+         */
+        locale?: string;
         /**
          * 所选版本
          */
@@ -17605,6 +17630,10 @@ export type GetPluginReadmeData = {
     };
     query: {
         /**
+         * 展示语言
+         */
+        locale?: string;
+        /**
          * 版本标识
          */
         versionId: string;
@@ -17620,6 +17649,7 @@ export type GetPluginReadmeErrors = {
     /**
      * >
      * * `[PluginContentInvalid][40000006502]`
+     * * `[PluginContentLimitExceeded][40000006503]`
      *
      */
     400: GithubComShrewxGinxPkgStatuserrorStatusErr;

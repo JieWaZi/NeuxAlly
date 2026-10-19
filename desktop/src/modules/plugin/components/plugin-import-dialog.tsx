@@ -16,7 +16,7 @@ import {
   invalidatePluginQueries,
 } from "../api/plugin-queries";
 import type { PluginDetail } from "../model/plugin-view";
-import { pluginDisplayName } from "../model/plugin-view";
+import { pluginDisplayName, pluginSummary } from "../model/plugin-view";
 import { PluginIcon } from "./plugin-icon";
 
 const diagnosticLabels = {
@@ -133,8 +133,7 @@ export function PluginImportDialog({
                     {pluginDisplayName(pkg)}
                   </h3>
                   <p className="type-body text-muted-foreground">
-                    {pkg.presentation?.shortDescription ||
-                      pkg.manifest?.description}
+                    {pluginSummary(pkg)}
                   </p>
                   <p className="type-caption text-muted-foreground">
                     {t("packageSummary", {

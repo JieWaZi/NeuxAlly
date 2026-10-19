@@ -612,6 +612,10 @@ const (
 const PluginStdioMode = "plugin-stdio"
 
 const (
+	// PluginLocaleEnglish 是插件英文展示与默认文档语言。
+	PluginLocaleEnglish = "en"
+	// PluginLocaleChinese 是插件简体中文展示与文档语言。
+	PluginLocaleChinese = "zh-CN"
 	// PluginCatalogHTTPSource 是默认公开软件目录。
 	PluginCatalogHTTPSource = "https://github.com/JieWaZi/NeuAally-Plugins/releases/latest/download/catalog.json"
 	// PluginAuthCommandStrategy 是包内授权桥接策略。

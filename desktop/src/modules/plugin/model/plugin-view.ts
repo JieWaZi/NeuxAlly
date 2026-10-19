@@ -1,3 +1,4 @@
+import { i18n } from "@/shared/i18n";
 import type {
   GithubComJieWaZiNeuxAllyServerApisPluginsPluginDetailResponse as PluginDetail,
   GithubComJieWaZiNeuxAllyServerRepositoriesModelsPluginVersion as PluginVersion,
@@ -11,10 +12,13 @@ export function pluginSummary(
   pkg: PluginCatalogEntry["package"],
   fallback?: string,
   _sourceKey?: string,
+  locale = pluginLocale(),
 ): string {
   // 来源身份不参与替换包内的标准简介。
   void _sourceKey;
   return (
+    pkg?.presentation?.localizedDescriptions?.[pluginLocale(locale)]?.trim() ||
+    pkg?.presentation?.localizedDescriptions?.en?.trim() ||
     pkg?.presentation?.shortDescription?.trim() ||
     pkg?.manifest?.description?.trim() ||
     fallback?.trim() ||
@@ -72,8 +76,14 @@ export function pluginNeedsAuthorization(
 export function pluginDisplayName(
   pkg: PluginCatalogEntry["package"],
   name?: string,
+  locale = pluginLocale(),
 ): string {
-  if (name && name !== pkg?.manifest?.name) return name;
+  const authoredNames = [pkg?.manifest?.name, pkg?.presentation?.displayName];
+  if (name && !authoredNames.includes(name)) return name;
+  const localized =
+    pkg?.presentation?.displayNames?.[pluginLocale(locale)]?.trim() ||
+    pkg?.presentation?.displayNames?.en?.trim();
+  if (localized) return localized;
   if (pkg?.presentation?.displayName) return pkg.presentation.displayName;
   const extension = pkg?.manifest?.extensions?.["com.ally"];
   return extension &&
@@ -97,4 +107,11 @@ export function pluginUsesHostedVersion(
       ),
     )
   );
+}
+
+/** 展示与正文请求共用同一语言选择，未知界面语言回退英文。 */
+export function pluginLocale(
+  locale = i18n.resolvedLanguage ?? i18n.language,
+): "en" | "zh-CN" {
+  return locale.toLowerCase().startsWith("zh") ? "zh-CN" : "en";
 }

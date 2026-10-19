@@ -52,6 +52,12 @@ type document struct {
 		ArchiveURL string `json:"archiveURL"`
 		// PackagePath 是逻辑入口目录。
 		PackagePath string `json:"packagePath"`
+		// 图标
+		Icon string `json:"icon"`
+		// 本地名称
+		DisplayNames map[string]string `json:"displayNames"`
+		// 本地简介
+		LocalizedDescriptions map[string]string `json:"localizedDescriptions"`
 		// Name 是目录显示名称。
 		Name string `json:"name"`
 		// Version 是入口版本。
@@ -73,7 +79,7 @@ type document struct {
 	} `json:"entries"`
 }
 
-// List 从本地分发清单读取全部条目；未分发目录显示准确空状态。
+// List 读取HTTP或显式本地目录清单，不预取插件归档。
 func List(root string) ([]Entry, error) {
 	data, err := readIndex(root)
 	if err != nil {
@@ -119,6 +125,14 @@ func parseIndex(data []byte) ([]Entry, error) {
 				return nil, status_error.PluginContentInvalid
 			}
 			item.Package = plugins.Package{Manifest: plugins.Manifest{Name: item.Name, Version: item.Version, Description: item.Description}, Format: item.Format}
+			item.Package.Icon = item.Icon
+			item.Package.Presentation = plugins.Presentation{DisplayName: item.Name, ShortDescription: item.Description}
+			item.Package.Presentation.DisplayNames = item.DisplayNames
+			item.Package.Presentation.LocalizedDescriptions = item.LocalizedDescriptions
+		}
+		item.Package.Icon = plugins.SanitizeIcon(item.Package.Icon)
+		if item.Package.Presentation.SetLocalization(item.Package.Presentation.DisplayNames, item.Package.Presentation.LocalizedDescriptions) != nil {
+			return nil, status_error.PluginContentInvalid
 		}
 		if item.Package.Manifest.Name == "" {
 			return nil, status_error.PluginContentInvalid

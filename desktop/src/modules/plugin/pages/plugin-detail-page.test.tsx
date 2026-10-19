@@ -1,5 +1,6 @@
 import {
   render,
+  act,
   screen,
   fireEvent,
   cleanup,
@@ -9,7 +10,7 @@ import {
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { it, expect, vi, afterEach } from "vitest";
-import "@/shared/i18n";
+import { i18n } from "@/shared/i18n";
 import { PluginDetailPage } from "./plugin-detail-page";
 
 const { togglePlugin, renamePlugin } = vi.hoisted(() => ({
@@ -23,8 +24,8 @@ vi.mock("@/shared/api/use-query-events", () => ({
   useQueryEvents: () => undefined,
 }));
 vi.mock("../api/plugin-queries", () => ({
-  getPluginOptions: () => ({
-    queryKey: ["test-plugin"],
+  getPluginOptions: (options: { query?: { locale?: string } }) => ({
+    queryKey: ["test-plugin", options.query?.locale],
     queryFn: async () => ({
       plugin: { id: "p", name: "办公室" },
       resolvedVersionId: "v1",
@@ -44,9 +45,16 @@ vi.mock("../api/plugin-queries", () => ({
             },
             presentation: {
               shortDescription: "整理笔记和办公资料",
+              localizedDescriptions: {
+                en: "Office tasks",
+                "zh-CN": "整理笔记和办公资料",
+              },
               developerName: "作者",
             },
-            readme: "按任务整理笔记，协助处理办公资料。",
+            readme:
+              options.query?.locale === "en"
+                ? "English business guide"
+                : "按任务整理笔记，协助处理办公资料。",
             skills: [{ key: "notes", name: "笔记" }],
           },
         },
@@ -71,9 +79,10 @@ vi.mock("../components/plugin-removal-dialog", () => ({
     </div>
   ),
 }));
-afterEach(() => {
+afterEach(async () => {
   cleanup();
   vi.clearAllMocks();
+  await i18n.changeLanguage("zh-CN");
 });
 function open(path: string) {
   const client = new QueryClient({
@@ -162,4 +171,15 @@ it("global detail keeps its reading layout and opens shared settings from the ed
   await waitFor(() =>
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
   );
+});
+
+it("reloads installed documentation by locale while preserving a user resource name", async () => {
+  open("/resources/plugins/p");
+  expect(
+    await screen.findByText("按任务整理笔记，协助处理办公资料。"),
+  ).toBeVisible();
+  await act(() => i18n.changeLanguage("en-US"));
+  expect(await screen.findByText("English business guide")).toBeVisible();
+  expect(screen.getByRole("heading", { name: "办公室" })).toBeVisible();
+  expect(screen.getByText("Office tasks")).toBeVisible();
 });

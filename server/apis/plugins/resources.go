@@ -252,3 +252,23 @@ func listPluginResources(ctx context.Context, waker, query string, page, size in
 	}
 	return result, nil
 }
+
+// acquirePluginReadme 让语言预览与原文下载复用固定快照校验和文件占用边界。
+func acquirePluginReadme(version models.PluginVersion) (string, func(), error) {
+	source, err := packageplugin.ContentPath(global.Config.DataDirectory, version.ContentPath)
+	if err != nil {
+		return "", nil, err
+	}
+	release := func() {}
+	if global.PluginContents != nil {
+		release, err = global.PluginContents.Acquire(source)
+		if err != nil {
+			return "", nil, err
+		}
+	}
+	if err = packageplugin.VerifyContent(source, version.Digest); err != nil {
+		release()
+		return "", nil, err
+	}
+	return source, release, nil
+}

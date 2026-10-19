@@ -1,6 +1,7 @@
 import { expect, it } from "vitest";
 import {
   pluginSummary,
+  pluginDisplayName,
   pluginExplanation,
   pluginHasAuthorization,
   type PluginCatalogEntry,
@@ -58,4 +59,29 @@ it("uses the same summary fallback for every entry and never substitutes the aut
   expect(
     pluginSummary({ presentation: { developerName: "开发者" } }, "保存的简介"),
   ).toBe("保存的简介");
+});
+
+it("localizes authored names and descriptions while preserving a user rename", () => {
+  const bilingual = {
+    manifest: { name: "feishu-office", description: "Office tools" },
+    presentation: {
+      displayName: "Feishu Office",
+      displayNames: { en: "Feishu Office", "zh-CN": "飞书办公" },
+      localizedDescriptions: {
+        en: "Work with documents",
+        "zh-CN": "处理办公资料",
+      },
+    },
+  };
+  expect(pluginDisplayName(bilingual, "Feishu Office", "zh-CN")).toBe(
+    "飞书办公",
+  );
+  expect(pluginDisplayName(bilingual, "我的办公室", "en")).toBe("我的办公室");
+  expect(pluginDisplayName(bilingual, "飞书办公", "en")).toBe("飞书办公");
+  expect(pluginSummary(bilingual, undefined, undefined, "zh-CN")).toBe(
+    "处理办公资料",
+  );
+  expect(pluginSummary(bilingual, undefined, undefined, "en")).toBe(
+    "Work with documents",
+  );
 });

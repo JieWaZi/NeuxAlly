@@ -1,10 +1,8 @@
-import Github from "@lobehub/icons/es/Github/components/Mono";
 import { Package } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import type { PluginCatalogEntry } from "../model/plugin-view";
-import feishuIcon from "@/shared/assets/brands/feishu.png";
 
-/** 品牌来自本地资源，未知插件使用统一包图标。 */
+/** 只呈现包内已校验图标，缺失时使用统一包占位。 */
 export function PluginIcon({
   pkg,
   hero = false,
@@ -12,11 +10,6 @@ export function PluginIcon({
   pkg?: PluginCatalogEntry["package"];
   hero?: boolean;
 }) {
-  const provider = pkg?.manifest?.extensions?.["com.ally"];
-  const name =
-    provider && typeof provider === "object" && "provider" in provider
-      ? provider.provider
-      : "";
   return (
     <span
       aria-hidden="true"
@@ -31,14 +24,6 @@ export function PluginIcon({
           alt=""
           className={hero ? "size-10 object-contain" : "size-8 object-contain"}
         />
-      ) : name === "feishu" ? (
-        <img
-          src={feishuIcon}
-          alt=""
-          className={hero ? "size-10 object-contain" : "size-8 object-contain"}
-        />
-      ) : name === "github" ? (
-        <Github />
       ) : (
         <Package />
       )}

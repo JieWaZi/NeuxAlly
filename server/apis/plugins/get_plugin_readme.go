@@ -6,13 +6,13 @@ import (
 	packageplugin "github.com/JieWaZi/NeuxAlly/server/internal/plugins"
 	"github.com/gin-gonic/gin"
 	"github.com/shrewx/ginx"
-	"os"
-	"path/filepath"
 )
 
 // 查看插件原文
 type GetPluginReadme struct {
 	ginx.MethodGet
+	// 展示语言
+	Locale string `in:"query" name:"locale"`
 	// 插件标识
 	PluginID string `in:"path" name:"pluginId" validate:"required"`
 	// 版本标识
@@ -37,33 +37,16 @@ func (o *GetPluginReadme) Output(ctx *gin.Context) (interface{}, error) {
 	if version.PluginID != resource.ID {
 		return nil, ginx.WithStack(status_error.PluginVersionConflict)
 	}
-	source, err := packageplugin.ContentPath(global.Config.DataDirectory, version.ContentPath)
+	source, release, err := acquirePluginReadme(version)
 	if err != nil {
 		return nil, ginx.WithStack(err)
 	}
-	if global.PluginContents != nil {
-		release, err := global.PluginContents.Acquire(source)
-		if err != nil {
-			return nil, ginx.WithStack(err)
-		}
-		defer release()
-	}
-	if err := packageplugin.VerifyContent(source, version.Digest); err != nil {
-		return nil, ginx.WithStack(err)
-	}
-	root, err := packageplugin.PackageRoot(source, version.Package)
+	defer release()
+	content, err := packageplugin.ReadRawReadme(source, version.Package, o.Locale)
 	if err != nil {
 		return nil, ginx.WithStack(err)
 	}
-	if version.Package.ReadmePath != "README.md" && version.Package.ReadmePath != "readme.md" {
-		return nil, ginx.WithStack(status_error.PluginContentInvalid)
-	}
-	// 快照校验已拒绝越界链接，路径只来自解析器的固定文件名。
-	content, err := os.ReadFile(filepath.Join(root, version.Package.ReadmePath))
-	if err != nil {
-		return nil, ginx.WithStack(status_error.PluginStorageError)
-	}
-	return PluginReadmeResponse{Content: string(content)}, nil
+	return PluginReadmeResponse{Content: content}, nil
 }
 
 // 插件原文响应

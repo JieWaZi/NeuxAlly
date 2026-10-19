@@ -14,9 +14,10 @@ import {
   localApiErrorMessage,
 } from "@/shared/api/local-error-surface";
 
-export type ReadmeSource =
+export type ReadmeSource = { locale?: string } & (
   | { pluginId: string; versionId: string; wakerId?: string }
-  | { catalogKey: string; sourceCommit?: string; archiveSHA256?: string };
+  | { catalogKey: string; sourceCommit?: string; archiveSHA256?: string }
+);
 
 /** 只限制预览布局，完整 Markdown 与弹窗始终使用同一份来源正文。 */
 export function PluginReadme({
@@ -103,6 +104,7 @@ function ReadmeDownload({ source }: { source: ReadmeSource }) {
                 query: {
                   sourceCommit: source.sourceCommit,
                   archiveSHA256: source.archiveSHA256,
+                  locale: source.locale,
                 },
               }),
               throwOnError: true,
@@ -110,7 +112,11 @@ function ReadmeDownload({ source }: { source: ReadmeSource }) {
           : await getPluginReadme({
               ...withLocalErrorSurface({
                 path: { pluginId: source.pluginId },
-                query: { versionId: source.versionId, wakerId: source.wakerId },
+                query: {
+                  versionId: source.versionId,
+                  wakerId: source.wakerId,
+                  locale: source.locale,
+                },
               }),
               throwOnError: true,
             });

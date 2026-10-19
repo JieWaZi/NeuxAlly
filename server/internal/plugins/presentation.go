@@ -26,6 +26,10 @@ const maxReadmeBytes = 1024 * 1024
 
 // 插件展示资料
 type Presentation struct {
+	// 本地名称
+	DisplayNames map[string]string `json:"displayNames,omitempty"`
+	// 本地简介
+	LocalizedDescriptions map[string]string `json:"localizedDescriptions,omitempty"`
 	// 展示名称
 	DisplayName string `json:"displayName,omitempty"`
 	// 简短介绍
@@ -121,27 +125,15 @@ func (p *Package) loadPresentation(root string, raw map[string]json.RawMessage) 
 			p.diagnose("icon", "invalid_asset")
 		}
 	}
-	p.ReadmeStatus = "missing"
-	for _, filename := range []string{"README.md", "readme.md"} {
-		if _, err := os.Lstat(filepath.Join(root, filename)); os.IsNotExist(err) {
-			continue
+	if content, err := readBounded(root, ".neuxally/presentation.json", 32*1024); err == nil {
+		var localized Presentation
+		if json.Unmarshal(content, &localized) != nil || p.Presentation.SetLocalization(localized.DisplayNames, localized.LocalizedDescriptions) != nil {
+			p.diagnose(".neuxally/presentation.json", "invalid_asset")
 		}
-		if content, err := readBounded(root, filename, maxReadmeBytes); err == nil && utf8.Valid(content) && !bytes.ContainsRune(content, 0) {
-			p.Readme = string(content)
-			p.ReadmeStatus = "available"
-			if len(content) == 0 {
-				p.ReadmeStatus = "empty"
-			}
-		} else {
-			p.ReadmeStatus = "invalid"
-			if err == status_error.PluginContentLimitExceeded {
-				p.ReadmeStatus = "too-large"
-			}
-			p.diagnose(filename, "invalid_documentation")
-		}
-		p.ReadmePath = filename
-		break
+	} else if _, statErr := os.Lstat(filepath.Join(root, ".neuxally/presentation.json")); !os.IsNotExist(statErr) {
+		p.diagnose(".neuxally/presentation.json", "invalid_asset")
 	}
+	p.loadReadme(root, constants.PluginLocaleEnglish)
 }
 
 func metadataString(fields map[string]json.RawMessage, key string) string {
@@ -190,8 +182,32 @@ func readIcon(root, relative string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	return sanitizeIcon(content, strings.EqualFold(filepath.Ext(relative), ".svg"))
+}
+
+// SanitizeIcon 只接受有界内嵌图标，目录展示与包内资产复用同一内容校验。
+func SanitizeIcon(value string) string {
+	if len(value) > maxPresentationBytes*2 {
+		return ""
+	}
+	prefix, encoded, ok := strings.Cut(value, ",")
+	if !ok || (prefix != "data:image/svg+xml;base64" && prefix != "data:image/png;base64" && prefix != "data:image/jpeg;base64" && prefix != "data:image/gif;base64") {
+		return ""
+	}
+	content, err := base64.StdEncoding.DecodeString(encoded)
+	if err != nil || len(content) > maxPresentationBytes {
+		return ""
+	}
+	result, err := sanitizeIcon(content, prefix == "data:image/svg+xml;base64")
+	if err != nil || !strings.HasPrefix(result, prefix+",") {
+		return ""
+	}
+	return result
+}
+
+func sanitizeIcon(content []byte, svg bool) (string, error) {
 	mime := ""
-	if strings.EqualFold(filepath.Ext(relative), ".svg") {
+	if svg {
 		if !staticSVG(content) {
 			return "", status_error.PluginContentInvalid
 		}
@@ -321,4 +337,95 @@ func ReadSkillResources(root string, pkg Package, key, requested string) ([]pack
 		return resources, &file, nil
 	}
 	return nil, nil, status_error.PluginContentInvalid
+}
+
+// SetLocalization 校验外部本地化展示；身份与组件始终取正式清单。
+func (p *Presentation) SetLocalization(names, descriptions map[string]string) error {
+	for _, fields := range []map[string]string{names, descriptions} {
+		if len(fields) > 2 {
+			return status_error.PluginContentInvalid
+		}
+		for locale, value := range fields {
+			if (locale != constants.PluginLocaleEnglish && locale != constants.PluginLocaleChinese) || len(value) > 4096 || !utf8.ValidString(value) || strings.ContainsRune(value, 0) {
+				return status_error.PluginContentInvalid
+			}
+		}
+	}
+	p.DisplayNames = names
+	p.LocalizedDescriptions = descriptions
+	return nil
+}
+
+// ReadmeLocale 将展示语言收敛到受支持的两种固定文档。
+func ReadmeLocale(locale string) string {
+	if strings.HasPrefix(strings.ToLower(locale), "zh") {
+		return constants.PluginLocaleChinese
+	}
+	return constants.PluginLocaleEnglish
+}
+
+func readmeFilename(root, locale string) string {
+	filenames := []string{"README.md", "readme.md"}
+	if ReadmeLocale(locale) == constants.PluginLocaleChinese {
+		filenames = append([]string{"README.zh-CN.md"}, filenames...)
+	}
+	for _, filename := range filenames {
+		if _, err := os.Lstat(filepath.Join(root, filename)); !os.IsNotExist(err) {
+			return filename
+		}
+	}
+	return ""
+}
+
+func (p *Package) loadReadme(root, locale string) {
+	p.Readme = ""
+	p.ReadmePath = readmeFilename(root, locale)
+	p.ReadmeStatus = "missing"
+	if p.ReadmePath == "" {
+		return
+	}
+	content, err := readBounded(root, p.ReadmePath, maxReadmeBytes)
+	if err == nil && utf8.Valid(content) && !bytes.ContainsRune(content, 0) {
+		p.Readme = string(content)
+		p.ReadmeStatus = "available"
+		if len(content) == 0 {
+			p.ReadmeStatus = "empty"
+		}
+		return
+	}
+	p.ReadmeStatus = "invalid"
+	if err == status_error.PluginContentLimitExceeded {
+		p.ReadmeStatus = "too-large"
+	}
+	p.diagnose(p.ReadmePath, "invalid_documentation")
+}
+
+// LocalizeReadme 只从当前完整快照内的固定文件名读取所选语言，缺失时回退英文。
+func LocalizeReadme(source string, pkg Package, locale string) (Package, error) {
+	root, err := PackageRoot(source, pkg)
+	if err != nil {
+		return pkg, err
+	}
+	pkg.loadReadme(root, locale)
+	return pkg, nil
+}
+
+// ReadRawReadme 用同一语言选择返回有界完整原文，不接受请求提供文件路径。
+func ReadRawReadme(source string, pkg Package, locale string) (string, error) {
+	root, err := PackageRoot(source, pkg)
+	if err != nil {
+		return "", err
+	}
+	filename := readmeFilename(root, locale)
+	if filename == "" {
+		return "", status_error.PluginContentInvalid
+	}
+	content, err := readBounded(root, filename, 100*1024*1024)
+	if err != nil {
+		return "", err
+	}
+	if !utf8.Valid(content) || bytes.ContainsRune(content, 0) {
+		return "", status_error.PluginContentInvalid
+	}
+	return string(content), nil
 }

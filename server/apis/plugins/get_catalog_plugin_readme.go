@@ -14,6 +14,8 @@ import (
 // 查看目录插件原文
 type GetCatalogPluginReadme struct {
 	ginx.MethodGet
+	// 展示语言
+	Locale string `in:"query" name:"locale"`
 	// 来源提交
 	SourceCommit string `in:"query" name:"sourceCommit"`
 	// 压缩摘要
@@ -43,16 +45,9 @@ func (o *GetCatalogPluginReadme) Output(ctx *gin.Context) (interface{}, error) {
 		return nil, ginx.WithStack(err)
 	}
 	defer os.RemoveAll(filepath.Join(stagedRoot(), stage.Token))
-	root, err := packageplugin.PackageRoot(stage.Root, stage.Package)
+	content, err := packageplugin.ReadRawReadme(stage.Root, stage.Package, o.Locale)
 	if err != nil {
 		return nil, ginx.WithStack(err)
 	}
-	if stage.Package.ReadmePath != "README.md" && stage.Package.ReadmePath != "readme.md" {
-		return nil, ginx.WithStack(status_error.PluginContentInvalid)
-	}
-	content, err := os.ReadFile(filepath.Join(root, stage.Package.ReadmePath))
-	if err != nil {
-		return nil, ginx.WithStack(status_error.PluginStorageError)
-	}
-	return PluginReadmeResponse{Content: string(content)}, nil
+	return PluginReadmeResponse{Content: content}, nil
 }

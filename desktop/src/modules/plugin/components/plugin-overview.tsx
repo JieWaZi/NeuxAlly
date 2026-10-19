@@ -23,6 +23,7 @@ import {
   pluginUsesHostedVersion,
   pluginExplanation,
   pluginDisplayName,
+  pluginLocale,
 } from "../model/plugin-view";
 import type { PluginCatalogEntry, PluginDetail } from "../model/plugin-view";
 
@@ -48,7 +49,8 @@ export function PluginOverview({
   uninstalling?: boolean;
   readmeSource?: ReadmeSource;
 }) {
-  const { t } = useTranslation("plugin");
+  const { t, i18n } = useTranslation("plugin");
+  const locale = pluginLocale(i18n.resolvedLanguage ?? i18n.language);
   const [linkError, setLinkError] = useState(false);
   const manifest = pkg?.manifest;
   const [showSkills, setShowSkills] = useState(false);
@@ -82,16 +84,21 @@ export function PluginOverview({
         <div className="grid items-start gap-6 @[48rem]/plugin-overview:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
           <DetailSection title={t("pluginReadme")}>
             <PluginReadme
-              key={`${resourceSource ?? ""}:${readmeVersion?.id ?? manifest?.version ?? ""}:${explanation}`}
+              key={`${locale}:${resourceSource ?? ""}:${readmeVersion?.id ?? manifest?.version ?? ""}:${explanation}`}
               content={explanation}
               status={
                 pkg?.readmeStatus ?? (pkg?.readme ? "available" : "missing")
               }
               source={
-                readmeSource ??
-                (detail?.plugin?.id && readmeVersion?.id
-                  ? { pluginId: detail.plugin.id, versionId: readmeVersion.id }
-                  : undefined)
+                readmeSource
+                  ? { ...readmeSource, locale }
+                  : detail?.plugin?.id && readmeVersion?.id
+                    ? {
+                        pluginId: detail.plugin.id,
+                        versionId: readmeVersion.id,
+                        locale,
+                      }
+                    : undefined
               }
             />
           </DetailSection>
@@ -147,84 +154,9 @@ export function PluginOverview({
                 {t("failed")}
               </p>
             )}
-            {!!pkg?.diagnostics?.length && (
-              <div className="mt-4 space-y-2">
-                <h3 className="type-label font-medium">{t("diagnostics")}</h3>
-                {pkg.diagnostics.map((item) => (
-                  <p
-                    key={`${item.component}:${item.code}`}
-                    className="type-caption text-content-secondary [overflow-wrap:anywhere]"
-                  >
-                    {item.component} · {item.code}
-                  </p>
-                ))}
-              </div>
-            )}
           </DetailSection>
         </div>
       </SurfacePatternPanel>
-      {!!pkg?.nativeComponents?.length && (
-        <DetailSection title={t("nativeComponents")}>
-          <dl className="grid min-w-0 gap-3">
-            {pkg.nativeComponents.map((component) => (
-              <ReadOnlyField
-                key={component.kind}
-                label={component.kind ?? t("unknown")}
-              >
-                {(component.paths ?? []).join(" · ") ||
-                  t("nativeInlineComponent")}
-              </ReadOnlyField>
-            ))}
-          </dl>
-        </DetailSection>
-      )}
-      {!!Object.keys(pkg?.nativeImplementations ?? {}).length && (
-        <DetailSection title={t("nativeImplementations")}>
-          <p className="type-body text-content-secondary">
-            {t("nativeImplementationsHelp")}
-          </p>
-          <div className="grid min-w-0 gap-6 @[36rem]/plugin-overview:grid-cols-2">
-            {Object.entries(pkg?.nativeImplementations ?? {}).map(
-              ([cli, implementation]) => (
-                <section key={cli} className="min-w-0 space-y-3">
-                  <h3 className="type-label font-medium">
-                    {cli === "claude" ? "Claude Code" : "Codex"}
-                  </h3>
-                  <dl className="space-y-3">
-                    <ReadOnlyField label={t("name")}>
-                      {implementation.name}
-                    </ReadOnlyField>
-                    <ReadOnlyField label={t("version")}>
-                      {implementation.version || t("unknown")}
-                    </ReadOnlyField>
-                    <ReadOnlyField label={t("sourceFilter")}>
-                      <span className="[overflow-wrap:anywhere]">
-                        {implementation.path}
-                      </span>
-                    </ReadOnlyField>
-                    <ReadOnlyField label={t("contentDigest")}>
-                      <code className="type-caption [overflow-wrap:anywhere]">
-                        {implementation.digest}
-                      </code>
-                    </ReadOnlyField>
-                    <ReadOnlyField label={t("capabilities")}>
-                      {t("packageSummary", {
-                        skills: implementation.skillCount ?? 0,
-                        connectors: implementation.serverCount ?? 0,
-                      })}
-                      {(implementation.components ?? []).map((component) => (
-                        <span key={component.kind} className="block">
-                          {component.kind}
-                        </span>
-                      ))}
-                    </ReadOnlyField>
-                  </dl>
-                </section>
-              ),
-            )}
-          </div>
-        </DetailSection>
-      )}
       {!!pkg?.skills?.length && (
         <DetailSection
           title={

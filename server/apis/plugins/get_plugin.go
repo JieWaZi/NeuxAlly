@@ -2,6 +2,7 @@ package plugins
 
 import (
 	"github.com/JieWaZi/NeuxAlly/server/global"
+	packageplugin "github.com/JieWaZi/NeuxAlly/server/internal/plugins"
 	"github.com/gin-gonic/gin"
 	"github.com/shrewx/ginx"
 )
@@ -9,6 +10,8 @@ import (
 // 插件详情
 type GetPlugin struct {
 	ginx.MethodGet
+	// 展示语言
+	Locale string `in:"query" name:"locale"`
 	// 插件标识
 	PluginID string `in:"path" name:"pluginId" validate:"required"`
 	// 所选版本
@@ -41,6 +44,23 @@ func (o *GetPlugin) Output(ctx *gin.Context) (interface{}, error) {
 	result, err := detailFromState(ctx, resource, states[resource.ID], selected)
 	if err != nil {
 		return nil, ginx.WithStack(err)
+	}
+	if o.Locale != "" {
+		for index, version := range result.Versions {
+			if version.ID != result.ResolvedVersionID {
+				continue
+			}
+			source, release, readErr := acquirePluginReadme(version)
+			if readErr != nil {
+				return nil, ginx.WithStack(readErr)
+			}
+			localized, readErr := packageplugin.LocalizeReadme(source, version.Package, o.Locale)
+			release()
+			if readErr != nil {
+				return nil, ginx.WithStack(readErr)
+			}
+			result.Versions[index].Package = localized
+		}
 	}
 	return result, nil
 }

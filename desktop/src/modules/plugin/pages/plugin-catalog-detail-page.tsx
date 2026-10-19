@@ -7,7 +7,7 @@ import { Plus, Pencil } from "lucide-react";
 import { PluginDetailHeader } from "../components/plugin-detail-header";
 import { PluginSettingsDialog } from "../components/plugin-settings-dialog";
 import { PluginOverview } from "../components/plugin-overview";
-import { pluginNeedsAuthorization } from "../model/plugin-view";
+import { pluginNeedsAuthorization, pluginLocale } from "../model/plugin-view";
 import { useQueryEvents } from "@/shared/api/use-query-events";
 import { useRouteSceneActive } from "@/shared/workspace/app-scene-workspace";
 import { QueryState } from "@/shared/ui/query-state";
@@ -19,7 +19,8 @@ import {
 import { PluginRemovalDialog } from "../components/plugin-removal-dialog";
 import { PluginInstallDialog } from "../components/plugin-install-dialog";
 export function PluginCatalogDetailPage() {
-  const { t } = useTranslation("plugin");
+  const { t, i18n } = useTranslation("plugin");
+  const locale = pluginLocale(i18n.resolvedLanguage ?? i18n.language);
   const [removingPartner, setRemovingPartner] = useState("");
   const { catalogKey = "" } = useParams();
   const navigate = useNavigate();
@@ -33,6 +34,7 @@ export function PluginCatalogDetailPage() {
     getCatalogPluginOptions(
       withLocalErrorSurface({
         path: { key: catalogKey },
+        query: { locale },
       }),
     ),
   );
@@ -113,6 +115,7 @@ export function PluginCatalogDetailPage() {
             pkg={pkg}
             sourceKey={sourceKey}
             readmeSource={{
+              locale,
               catalogKey,
               sourceCommit: entry.sourceCommit,
               archiveSHA256: entry.archiveSHA256,
