@@ -21,6 +21,8 @@
 
 通用清单的 Schema 要求 `$schema` 与 `name`，其余标准属性包括 `version`、`description`、`author`、`homepage`、`repository`、`license`、`keywords` 和 `extensions`。根级别不添加 `allyPluginVersion`、自定义组件列表或新的格式标识。`extensions` 使用规范允许的命名空间，原生清单仍遵循各自规范。
 
+自有包的标准主体直接沿用 OpenAI 支持的布局和字段，NeuxAlly 专属资料放在可选 `.neuxally/` 附加目录，不向官方清单增加新的私有必填字段。标准平台已有的展示、MCP 认证或原生组件声明继续留在其官方位置，不因增加附加文件而搬走。
+
 授权额外依据 [OpenAI MCP 认证](https://developers.openai.com/plugins/build/auth)、[MCP Authorization](https://modelcontextprotocol.io/specification/2025-11-25/basic/authorization)、[MCP URL Elicitation](https://modelcontextprotocol.io/specification/2025-11-25/client/elicitation)、[CC MCP 认证](https://code.claude.com/docs/en/mcp) 与 [RFC 8628 设备授权](https://www.rfc-editor.org/rfc/rfc8628)。优先解释这些既有声明和协议；非标准 CLI 授权桥接明确属于可选业务扩展。
 
 ## 2. 标准目录与识别
@@ -73,6 +75,31 @@ CC 的默认目录合并规则不能统一处理成“所有目录相加”。�
 
 生成 CC 清单时可以在 `.claude-plugin/plugin.json` 中使用同一身份元数据及 `"mcpServers": "./.mcp.json"`，把 `.mcp.json` 中该服务的传输值转为目标使用的 `http`。生成 Codex 兼容清单时使用 `.codex-plugin/plugin.json`，技能与 MCP 的原生字段由对应 adapter 声明。根 README、技能正文及不需要改写的其他文件保持原样。
 
+### 2.2 NeuxAlly 可选附加目录
+
+自有通用包的结构示例：
+
+```text
+issue-helper/
+  plugin.json
+  mcp.json
+  skills/
+  README.md
+  LICENSE
+  .neuxally/
+    integration.json
+    auth/
+      authorize
+```
+
+`skills/`、`mcp.json` 和其他组件按插件实际内容存在，不是本软件新增的必填项。采用 Codex 兼容样例时，主清单仍在 `.codex-plugin/plugin.json`，MCP 仍按原生 `.mcp.json` 或声明位置存放；不会为了统一展示而强制改名。
+
+`.neuxally/integration.json` 只记录本软件专属的 `nativePlugins`、`authentication` 等附加集成信息。插件身份、版本、作者、README、技能和 MCP 仍只有标准包中的一份权威来源；附加文件不是第二份插件清单。授权桥接路径相对于插件根解释，例如 `./.neuxally/auth/authorize`。
+
+第三方标准插件没有 `.neuxally/` 时直接按原生规范导入，附加目录缺失本身不能导致包无效。增加该目录不改变官方清单的校验结果；移除它只移除 NeuxAlly 专属辅助信息，不承诺所有账号依赖仍已满足。原生 CLI 可忽略附加文件，实际授权仍需它自身的机制或 adapter 交付，不能假设它会执行 NeuxAlly 的桥接。
+
+现有 v1 包中的 `extensions.com.ally` 按现有约定保持可读；本轮不改写已发布包或增加历史迁移。新增 v2 专属声明以附加目录为入口，同类信息不同时维护两份。遇到附加文件和旧扩展的重复或冲突声明时返回明确诊断，不静默合并；官方平台扩展继续遵循自身优先级。
+
 ## 3. 用于软件展示的标准字段
 
 下表的 OpenAI `interface` 表示选定的 `extensions.com.openai.interface`，或符合上一节优先级的兼容清单 `interface`。CC 字段依据其原生清单；仅服务目录展示的字段，不因此成为运行依赖。
@@ -109,9 +136,9 @@ CC 的默认目录合并规则不能统一处理成“所有目录相加”。�
 
 OpenAI 和 CC 没有共同定义“另一个生态中的对应插件”字段。该信息必须清楚标注为 NeuxAlly 维护的业务关联，不能包装成官方通用字段。
 
-自有通用包可在现有 `extensions.com.ally.nativePlugins` 中携带关联；导入第三方包时，由 Core 登记同样的信息，不修改上游文件。该扩展缺失不影响普通导入、转换和使用。它不要求第三方包存在 `plugin.json`、README 或任何 NeuxAlly 特有文件。
+自有包可在 `.neuxally/integration.json` 的 `nativePlugins` 中携带关联；导入第三方包时，由 Core 登记同样的信息，不修改上游文件。该附加文件缺失不影响普通导入、转换和使用。它不要求第三方包存在根 `plugin.json`、README 或任何 NeuxAlly 特有文件。
 
-此可选扩展的每个目标以现有 Runtime 基础身份为键，例如 `codex`、`claude`；值采用以下最小业务资料：
+`nativePlugins` 的每个目标以现有 Runtime 基础身份为键，例如 `codex`、`claude`；值采用以下最小业务资料：
 
 | 资料          | 含义                                                                    |
 | ------------- | ----------------------------------------------------------------------- |
@@ -259,14 +286,14 @@ agent 调用原生安装命令时，原生命令完成真正的下载。Core 通
 
 新插件接入已支持授权策略时，不得要求向 NeuxAlly 新增提供者常量、供应商专用 Go 分支或前端组件。通用宿主负责协议与会话，供应商特殊流程归插件。声明来源按以下规则解释：
 
-| 授权来源            | 声明 / 发现位置                                                      | 通用处理                                                       |
-| ------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------- |
-| 标准远程 MCP OAuth  | MCP 401 挑战、受保护资源与授权服务器元数据                           | 通用发现、客户端注册、PKCE、回调和凭据刷新                     |
-| OpenAI MCP 认证扩展 | 服务级 `extensions.com.openai.auth`，或原生兼容认证定义              | 映射已有 none、oauth、mixed、api_key 语义；不误读到插件根清单  |
-| CC OAuth 配置       | 原生 `.mcp.json` 中相应服务的 `oauth` 等字段                         | 由 CC adapter 保留或映射客户端与元数据配置                     |
-| 原生 CLI 授权       | 原生插件与 CLI 机制                                                  | CLI adapter 接收结构化动作与实际结果；没有证据则保持等待或未知 |
-| 标准设备授权        | 插件声明的服务器、公开 client ID、scope 与 RFC 8628 参数             | 通用设备授权模块发起、等待并遵循 interval、slow_down 和到期    |
-| 插件专用授权        | 现有 `com.ally` 命名空间内新增的 `authentication` 可选声明及包内桥接 | 桥接封装上游差异，宿主只解释统一交互协议                       |
+| 授权来源            | 声明 / 发现位置                                                  | 通用处理                                                       |
+| ------------------- | ---------------------------------------------------------------- | -------------------------------------------------------------- |
+| 标准远程 MCP OAuth  | MCP 401 挑战、受保护资源与授权服务器元数据                       | 通用发现、客户端注册、PKCE、回调和凭据刷新                     |
+| OpenAI MCP 认证扩展 | 服务级 `extensions.com.openai.auth`，或原生兼容认证定义          | 映射已有 none、oauth、mixed、api_key 语义；不误读到插件根清单  |
+| CC OAuth 配置       | 原生 `.mcp.json` 中相应服务的 `oauth` 等字段                     | 由 CC adapter 保留或映射客户端与元数据配置                     |
+| 原生 CLI 授权       | 原生插件与 CLI 机制                                              | CLI adapter 接收结构化动作与实际结果；没有证据则保持等待或未知 |
+| 标准设备授权        | 插件声明的服务器、公开 client ID、scope 与 RFC 8628 参数         | 通用设备授权模块发起、等待并遵循 interval、slow_down 和到期    |
+| 插件专用授权        | 可选 `.neuxally/integration.json` 的 `authentication` 及包内桥接 | 桥接封装上游差异，宿主只解释统一交互协议                       |
 
 MCP 标准 OAuth 面向 HTTP 传输，不把 STDIO 的环境凭据当成需要发起同一 OAuth 流程。客户端注册或回调域名有上游要求时由声明及安装配置满足；插件清单不能替代服务方的应用注册。
 
@@ -293,23 +320,17 @@ Core 向前端提供统一的会话身份、挑战身份、状态、可用动作
 
 OpenAI、CC 与标准 MCP 没有共同定义任意 CLI 扫码程序的启动与结果协议。下述 `neuxally-auth/1` 是待实现的可选交互扩展；它不替代现有插件格式，也不要求普通标准 MCP 包实现。
 
-插件在 `extensions.com.ally.authentication` 中选择 `strategy: plugin-command`，声明 `protocol: neuxally-auth/1`、`command` 与 `args`。入口固定在已安装的包及其依赖内；执行文件与参数分开传递，不把清单内容拼成 shell 命令。平台依赖与入口的选择由包声明和原有资产机制完成。
+插件在 `.neuxally/integration.json` 的 `authentication` 中选择 `strategy: plugin-command`，声明 `protocol: neuxally-auth/1`、`command` 与 `args`。入口固定在已安装的包及其依赖内；执行文件与参数分开传递，不把清单内容拼成 shell 命令。平台依赖与入口的选择由包声明和原有资产机制完成。
 
-下例是虚构插件的可选扩展，不是 OpenAI 或 CC 的标准授权字段，也不是已实现功能：
+下例是虚构插件的 `.neuxally/integration.json`，不是 OpenAI 或 CC 的标准清单，也不是已实现功能；它只补充授权入口，不重复标准身份字段：
 
 ```json
 {
-  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
-  "name": "office-example",
-  "extensions": {
-    "com.ally": {
-      "authentication": {
-        "strategy": "plugin-command",
-        "protocol": "neuxally-auth/1",
-        "command": "./auth/authorize",
-        "args": []
-      }
-    }
+  "authentication": {
+    "strategy": "plugin-command",
+    "protocol": "neuxally-auth/1",
+    "command": "./.neuxally/auth/authorize",
+    "args": []
   }
 }
 ```
@@ -446,6 +467,8 @@ Core 请求携带请求身份与会话身份，响应对应原请求；插件通
 | V2-34 | 对公开 Git 索引进行搜索与安装                | 搜索读取本地目录缓存；安装固定来源版本并核对摘要，不在每次键入时 clone |
 | V2-35 | OpenAI 可下载插件缺少当前授权或兼容验证      | 目录存在、可安装与已验证分别表达，不将整个上游目录宣称为已支持         |
 | V2-36 | 桥接返回秘密值或越范围绑定                   | 秘密不进入 UI/模型/日志，越范围身份、地址或组件绑定被拒绝              |
+
+附加文件验收：新 v2 包包含 `.neuxally/` 时，官方清单及原生目录仍按对应规范校验；不重复插件身份与组件定义。没有该目录的第三方包同样可导入；未知 NeuxAlly 功能不影响它的标准格式识别。v1 与附加目录的同类声明冲突必须可诊断。
 
 ## 11. 实现者可自行决定的事项
 
