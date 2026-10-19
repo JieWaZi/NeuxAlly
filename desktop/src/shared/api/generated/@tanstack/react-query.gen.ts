@@ -1835,7 +1835,7 @@ export const listPluginsOptions = (options?: Options<ListPluginsData>) => queryO
 export const listPluginCatalogQueryKey = (options?: Options<ListPluginCatalogData>) => createQueryKey('listPluginCatalog', options);
 
 /**
- * 本地插件目录
+ * 插件目录
  */
 export const listPluginCatalogOptions = (options?: Options<ListPluginCatalogData>) => queryOptions<ListPluginCatalogResponse, ListPluginCatalogError, ListPluginCatalogResponse, ReturnType<typeof listPluginCatalogQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {

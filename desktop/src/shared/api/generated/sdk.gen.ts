@@ -698,7 +698,7 @@ export const viewNotification = <ThrowOnError extends boolean = false>(options: 
 export const listPlugins = <ThrowOnError extends boolean = false>(options?: Options<ListPluginsData, ThrowOnError>): RequestResult<ListPluginsResponses, ListPluginsErrors, ThrowOnError> => (options?.client ?? client).get<ListPluginsResponses, ListPluginsErrors, ThrowOnError>({ url: '/api/v1/plugins', ...options });
 
 /**
- * 本地插件目录
+ * 插件目录
  */
 export const listPluginCatalog = <ThrowOnError extends boolean = false>(options?: Options<ListPluginCatalogData, ThrowOnError>): RequestResult<ListPluginCatalogResponses, ListPluginCatalogErrors, ThrowOnError> => (options?.client ?? client).get<ListPluginCatalogResponses, ListPluginCatalogErrors, ThrowOnError>({ url: '/api/v1/plugins/catalog', ...options });
 
