@@ -156,6 +156,7 @@ export function PluginResourceCollection({
     topic: "plugins",
     resource: { kind: "global" },
     queryKeys: [
+      [...catalogKey, "infinite"],
       [...libraryKey, "infinite"],
       [...installedKey, "infinite"],
     ],

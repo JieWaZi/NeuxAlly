@@ -25,6 +25,7 @@ import (
 	"github.com/JieWaZi/NeuxAlly/server/internal/memory"
 	"github.com/JieWaZi/NeuxAlly/server/internal/notification/events"
 	"github.com/JieWaZi/NeuxAlly/server/internal/plugins"
+	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/catalog"
 	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/feishu"
 	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/github"
 	"github.com/JieWaZi/NeuxAlly/server/internal/runtimes"
@@ -276,6 +277,13 @@ func Load(ctx context.Context, configuration *Configuration, handlerFactory sche
 		func() error { return loadRuntime(ctx) },
 		func() error { return loadChat(ctx, configuration, handlerFactory) },
 		func() error { return loadNotifications(ctx) },
+		func() error {
+			hub := EventHub
+			closePluginCatalog = catalog.Start(ctx, PluginCatalogSource(), filepath.Join(configuration.DataDirectory, "plugins", "catalog"), func() {
+				_ = events.Emit(hub, constants.PluginEventTopic, "plugins.changed", events.Resource{Kind: "global"}, nil)
+			})
+			return nil
+		},
 	)
 }
 
@@ -608,6 +616,10 @@ func loadChat(ctx context.Context, configuration *Configuration, handlerFactory 
 // Close 按依赖逆序停止后台流程并关闭数据库连接。
 func Close() error {
 	var result error
+	if closePluginCatalog != nil {
+		closePluginCatalog()
+		closePluginCatalog = nil
+	}
 	if AgentCapabilities != nil {
 		AgentCapabilities.Close()
 		AgentCapabilities = nil
@@ -758,6 +770,9 @@ var PluginBridgeEnvironment []string
 
 // PluginContents 保存当前 Core 的短期内容使用计数。
 var PluginContents *plugins.ContentStore
+
+// closePluginCatalog 取消并等待启动时的目录更新，先于事件通道关闭。
+var closePluginCatalog func()
 
 // PluginCatalogSource 返回HTTP分发入口；显式本地目录用于镜像与测试。
 func PluginCatalogSource() string {

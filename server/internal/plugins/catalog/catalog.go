@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/JieWaZi/NeuxAlly/server/constants"
@@ -163,104 +162,6 @@ func Resolve(root, key string) (string, error) {
 func httpAddress(value string) bool {
 	parsed, err := url.Parse(value)
 	return err == nil && (parsed.Scheme == "https" || parsed.Scheme == "http") && parsed.Host != "" && parsed.User == nil && parsed.Fragment == ""
-}
-
-// SourceState 描述目录缓存与本次同步状态，不把同步失败伪装为空库。
-type SourceState struct {
-	// State 是available/cached/stale/local。
-	State string `json:"state"`
-	// FetchedAt 是最后成功同步的毫秒时间。
-	FetchedAt int64 `json:"fetchedAt"`
-	// ErrorCode 是同步失败的稳定错误。
-	ErrorCode string `json:"errorCode,omitempty"`
-}
-
-var sourceStates sync.Map
-
-// State 返回本次目录读取的来源状态。
-func State(root string) SourceState {
-	if value, ok := sourceStates.Load(root); ok {
-		return value.(SourceState)
-	}
-	return SourceState{State: "local"}
-}
-
-func indexCache(root string) string {
-	sum := sha256.Sum256([]byte(root))
-	return filepath.Join(os.TempDir(), "neuxally-plugin-catalog", hex.EncodeToString(sum[:])+".json")
-}
-
-func readIndex(root string) ([]byte, error) {
-	if !httpAddress(root) {
-		return os.ReadFile(filepath.Join(root, "catalog.json"))
-	}
-	cache := indexCache(root)
-	previous, readErr := os.ReadFile(cache)
-	info, statErr := os.Stat(cache)
-	cached := readErr == nil && statErr == nil
-	if cached {
-		if _, err := parseIndex(previous); err != nil {
-			cached = false
-		}
-	}
-	state := SourceState{}
-	if cached {
-		state.FetchedAt = info.ModTime().UnixMilli()
-		if time.Since(info.ModTime()) < 5*time.Minute {
-			state.State = "cached"
-			sourceStates.Store(root, state)
-			return previous, nil
-		}
-	}
-	failed := func() ([]byte, error) {
-		state.State = "unavailable"
-		state.ErrorCode = status_error.PluginNotReady.Key()
-		if cached {
-			state.State = "stale"
-			sourceStates.Store(root, state)
-			return previous, nil
-		}
-		sourceStates.Store(root, state)
-		return nil, status_error.PluginNotReady
-	}
-	client := http.Client{Timeout: 15 * time.Second}
-	response, err := client.Get(root)
-	if err != nil {
-		return failed()
-	}
-	defer response.Body.Close()
-	if response.StatusCode != http.StatusOK {
-		return failed()
-	}
-	data, err := io.ReadAll(io.LimitReader(response.Body, 4*1024*1024+1))
-	if err != nil {
-		return failed()
-	}
-	if _, err := parseIndex(data); err != nil {
-		if cached {
-			return failed()
-		}
-		return nil, err
-	}
-	if os.MkdirAll(filepath.Dir(cache), 0700) != nil {
-		return nil, status_error.PluginStorageError
-	}
-	temporary, err := os.CreateTemp(filepath.Dir(cache), "index-")
-	if err != nil {
-		return nil, status_error.PluginStorageError
-	}
-	defer os.Remove(temporary.Name())
-	if _, err := temporary.Write(data); err != nil {
-		temporary.Close()
-		return nil, status_error.PluginStorageError
-	}
-	if temporary.Close() != nil || os.Rename(temporary.Name(), cache) != nil {
-		return nil, status_error.PluginStorageError
-	}
-	state.State = "available"
-	state.FetchedAt = time.Now().UnixMilli()
-	sourceStates.Store(root, state)
-	return data, nil
 }
 
 func download(entry Entry) (string, error) {

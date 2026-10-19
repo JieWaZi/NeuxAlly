@@ -1,8 +1,17 @@
-import { render, screen, fireEvent, cleanup } from "@testing-library/react";
+import {
+  act,
+  render,
+  screen,
+  fireEvent,
+  cleanup,
+  waitFor,
+} from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { it, expect, vi, afterEach, beforeEach } from "vitest";
 import "@/shared/i18n";
+import type { GlobalEventObserver } from "@/shared/api/global-events";
+import { listPluginCatalog } from "@/shared/api/generated/sdk.gen";
 import type * as ResourceSdk from "@/shared/api/generated/sdk.gen";
 import type { PluginDetail } from "../model/plugin-view";
 import { PluginResourceCollection } from "./plugin-resource-collection";
@@ -12,9 +21,18 @@ const fixture = vi.hoisted(() => ({
   sourceKey: "catalog:office",
   entrySourceKey: undefined as string | undefined,
   sourceState: "available",
+  displayName: "飞书办公",
+  listeners: new Set<GlobalEventObserver>(),
 }));
-vi.mock("@/shared/api/use-query-events", () => ({
-  useQueryEvents: () => undefined,
+vi.mock("@/shared/api/global-events", () => ({
+  subscribeGlobalEvents: (
+    _topic: string,
+    _resource: unknown,
+    observer: GlobalEventObserver,
+  ) => {
+    fixture.listeners.add(observer);
+    return () => fixture.listeners.delete(observer);
+  },
 }));
 vi.mock("../api/use-plugin-resources", () => ({
   usePluginResources: () => ({
@@ -43,7 +61,7 @@ vi.mock("@/shared/api/generated/sdk.gen", async (original) => ({
               name: "office",
               extensions: { "com.ally": { provider: "feishu" } },
             },
-            presentation: { displayName: "飞书办公" },
+            presentation: { displayName: fixture.displayName },
           },
         },
       ],
@@ -65,8 +83,13 @@ vi.mock("../components/plugin-install-dialog", () => ({
     </div>
   ),
 }));
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  fixture.listeners.clear();
+});
 beforeEach(() => {
+  vi.clearAllMocks();
+  fixture.displayName = "飞书办公";
   fixture.available = true;
   fixture.sourceKey = "catalog:office";
   fixture.entrySourceKey = undefined;
@@ -133,3 +156,31 @@ it.each([
     expect(screen.getByRole("dialog")).toHaveTextContent(`existing:w1:${mode}`);
   },
 );
+
+it("refreshes the active catalog when a background catalog update emits plugins.changed", async () => {
+  showCatalog();
+  expect(
+    await screen.findByRole("button", { name: "安装 飞书办公" }),
+  ).toBeVisible();
+  expect(listPluginCatalog).toHaveBeenCalledTimes(1);
+  fixture.displayName = "更新后的插件";
+  act(() => {
+    for (const listener of fixture.listeners)
+      listener.onEvent({
+        protocolVersion: 1,
+        epoch: "epoch",
+        connectionId: "connection",
+        deliverySequence: 1,
+        topic: "plugins",
+        type: "plugins.changed",
+        resource: { kind: "global" },
+        eventId: "catalog-update",
+        transient: false,
+        payload: {},
+      });
+  });
+  await waitFor(() => expect(listPluginCatalog).toHaveBeenCalledTimes(2));
+  expect(
+    await screen.findByRole("button", { name: "安装 更新后的插件" }),
+  ).toBeVisible();
+});
