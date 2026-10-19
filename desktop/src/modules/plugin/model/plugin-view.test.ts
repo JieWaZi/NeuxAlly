@@ -1,9 +1,8 @@
 import { expect, it } from "vitest";
-import guides from "./builtin-plugin-guides.gen.json";
 import {
-  builtinPluginGuide,
   pluginSummary,
   pluginExplanation,
+  pluginHasAuthorization,
   type PluginCatalogEntry,
 } from "./plugin-view";
 
@@ -19,29 +18,32 @@ const pkg: PluginCatalogEntry["package"] = {
   readme: "旧版构建与隔离细节",
 };
 
-it("uses source-generated user guides for matching installed capabilities without changing the package", () => {
-  const guide = guides.find((item) => item.key === "github");
-  expect(guide).toBeDefined();
-  expect(pluginSummary(pkg, "本地摘要", "catalog:github")).toBe(guide?.summary);
-  expect(pluginExplanation(pkg, "catalog:github")).toBe(guide?.readme);
+it("keeps the selected source README and summary when a generated guide has matching capabilities", () => {
+  expect(pluginSummary(pkg, "本地摘要", "catalog:github")).toBe("旧版摘要");
+  expect(pluginExplanation(pkg, "catalog:github")).toBe("旧版构建与隔离细节");
   expect(pkg.readme).toBe("旧版构建与隔离细节");
   expect(pkg.manifest?.version).toBe("1.0.1");
 });
 
+it("recognizes authorization declarations without a provider allowlist", () => {
+  expect(
+    pluginHasAuthorization({
+      integration: {
+        authentication: {
+          strategy: "plugin-command",
+          protocol: "neuxally-auth/1",
+          command: "./.neuxally/auth/authorize",
+        },
+      },
+    }),
+  ).toBe(true);
+  expect(pluginHasAuthorization({ manifest: { name: "skills-only" } })).toBe(
+    false,
+  );
+});
+
 it("keeps third-party and mismatching snapshots on their own documentation", () => {
   expect(pluginExplanation(pkg)).toBe(pkg.readme);
-  expect(
-    builtinPluginGuide({ ...pkg, servers: [] }, "catalog:github"),
-  ).toBeUndefined();
-  expect(
-    builtinPluginGuide(
-      {
-        ...pkg,
-        manifest: { ...pkg.manifest, repository: "https://example.com" },
-      },
-      "catalog:github",
-    ),
-  ).toBeUndefined();
   expect(pluginExplanation({ ...pkg, servers: [] }, "catalog:github")).toBe(
     pkg.readme,
   );

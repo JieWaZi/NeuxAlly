@@ -3,6 +3,52 @@ import { useTranslation } from "react-i18next";
 import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/shared/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/shared/ui/dialog";
+import { openExternalURL } from "@/shared/desktop";
+
+/** 交互只依据桥接动作；普通浏览器链接不推导成可跨设备扫码的内容。 */
+export function PluginAuthorizationActions({
+  actions,
+  onOpenError,
+}: {
+  actions: { type?: string; url?: string; value?: string }[];
+  onOpenError: () => void;
+}) {
+  const { t } = useTranslation("plugin");
+  return (
+    <div className="space-y-3">
+      {actions.map((action, index) => {
+        const key = `${action.type}:${index}:${action.value ?? action.url ?? ""}`;
+        if (action.type === "copy-code" && action.value)
+          return <AuthorizationCode key={key} code={action.value} />;
+        if (action.type === "show-qr" && action.value)
+          return (
+            <div key={key} className="space-y-3">
+              <AuthorizationQRCode url={action.value} />
+              <PluginAuthorizationDialog url={action.value} />
+            </div>
+          );
+        if (
+          action.type === "open-url" &&
+          action.url &&
+          /^https?:\/\//.test(action.url)
+        )
+          return (
+            <Button
+              key={key}
+              type="button"
+              variant="secondary"
+              onClick={() =>
+                void openExternalURL(action.url ?? "").catch(onOpenError)
+              }
+            >
+              {t("openAuth")}
+            </Button>
+          );
+        return null;
+      })}
+    </div>
+  );
+}
 
 /** 验证码是官方要求用户输入的短时信息，不能拼进未经官方提供的 URL。 */
 export function AuthorizationCode({ code }: { code: string }) {
@@ -57,7 +103,7 @@ export function PluginAuthorizationDialog({
       </DialogTrigger>
       <DialogContent
         title={t("scanTitle")}
-        description={code ? t("githubWaiting") : t("authWaiting")}
+        description={t("authorizationWaiting")}
         size="sm"
       >
         <div className="space-y-4 overflow-auto px-6 pb-6">

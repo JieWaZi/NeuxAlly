@@ -23,9 +23,9 @@ vi.mock("../api/plugin-queries", () => {
     readme: "源码与钥匙串隔离",
   };
   return {
-    listPluginCatalogOptions: () => ({
+    getCatalogPluginOptions: () => ({
       queryKey: ["catalog"],
-      queryFn: async () => ({ entries: [{ key: "github", package: pkg }] }),
+      queryFn: async () => ({ key: "github", package: pkg }),
     }),
     listPluginsOptions: () => ({
       queryKey: ["installed"],
@@ -48,7 +48,7 @@ vi.mock("../components/plugin-settings-dialog", () => ({
   ),
 }));
 
-it("catalog details use the shared summary and explanation and edit the actual installed resource", async () => {
+it("catalog details use the selected source summary and README and edit the actual installed resource", async () => {
   render(
     <QueryClientProvider
       client={
@@ -66,14 +66,12 @@ it("catalog details use the shared summary and explanation and edit the actual i
     </QueryClientProvider>,
   );
   await screen.findByRole("heading", { name: "GitHub" });
-  const summary = screen.getByText(
-    "检索仓库代码、跟进 Issue，协助整理与评审 Pull Request。",
-  );
+  const summary = screen.getByText("旧简介");
   expect(summary).toHaveClass("truncate");
   expect(summary).toHaveAttribute("title", summary.textContent);
   expect(screen.queryByRole("radiogroup")).not.toBeInTheDocument();
   expect(screen.getByRole("heading", { name: "说明" })).toBeVisible();
-  expect(screen.queryByText("源码与钥匙串隔离")).not.toBeInTheDocument();
+  expect(screen.getByText("源码与钥匙串隔离")).toBeVisible();
   fireEvent.click(await screen.findByRole("button", { name: "编辑插件" }));
   expect(screen.getByRole("dialog")).toHaveTextContent("p");
 });

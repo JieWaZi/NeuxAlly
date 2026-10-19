@@ -1,15 +1,36 @@
-import { render, screen, fireEvent, cleanup } from "@testing-library/react";
+import {
+  render,
+  screen,
+  fireEvent,
+  cleanup,
+  within,
+  waitFor,
+} from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { expect, it, vi, afterEach } from "vitest";
 import "@/shared/i18n";
 import { PluginOverview } from "./plugin-overview";
 import type { PluginCatalogEntry } from "../model/plugin-view";
+import { PluginReadme } from "./plugin-readme";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+const readmeFixture = vi.hoisted(() => ({ load: vi.fn(), save: vi.fn() }));
+vi.mock("@/shared/api/generated/sdk.gen", async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  getPluginReadme: readmeFixture.load,
+}));
+vi.mock("@/shared/desktop", () => ({
+  saveBlob: readmeFixture.save,
+  openExternalURL: vi.fn(),
+}));
 vi.mock("./plugin-skill-dialog", () => ({
   PluginSkillDialog: ({ name }: { name: string }) => (
     <section aria-label="技能正文">{name}</section>
   ),
 }));
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 const pkg: PluginCatalogEntry["package"] = {
   manifest: {
     name: "github",
@@ -136,4 +157,106 @@ it("groups the explanation and plugin information before capabilities", () => {
     screen.queryByRole("heading", { name: "插件说明" }),
   ).not.toBeInTheDocument();
   expect(screen.getByText("说明正文")).toBeVisible();
+});
+
+it("opens the complete long README and closes it when the source changes", async () => {
+  vi.spyOn(HTMLElement.prototype, "scrollHeight", "get").mockReturnValue(500);
+  vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(240);
+  const readme =
+    "# 完整说明\n\n| 能力 | 说明 |\n| --- | --- |\n| 检索 | 查询 |\n\n```text\n不可截断的结尾\n```";
+  const view = render(
+    <MemoryRouter>
+      <PluginOverview pkg={{ ...pkg, readme }} />
+    </MemoryRouter>,
+  );
+  fireEvent.click(await screen.findByRole("button", { name: "查看完整内容" }));
+  const dialog = await screen.findByRole("dialog", { name: "完整说明" });
+  expect(await within(dialog).findByText("不可截断的结尾")).toBeInTheDocument();
+  view.rerender(
+    <MemoryRouter>
+      <PluginOverview pkg={{ ...pkg, readme: "另一个来源的说明" }} />
+    </MemoryRouter>,
+  );
+  await waitFor(() =>
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+  );
+});
+
+it("keeps a short README inline without an unnecessary full-content action", () => {
+  render(
+    <MemoryRouter>
+      <PluginOverview pkg={{ ...pkg, readme: "简短说明" }} />
+    </MemoryRouter>,
+  );
+  expect(screen.getByText("简短说明")).toBeVisible();
+  expect(
+    screen.queryByRole("button", { name: "查看完整内容" }),
+  ).not.toBeInTheDocument();
+});
+
+it("downloads the complete oversized README from its fixed version instead of showing a truncated dialog", async () => {
+  readmeFixture.load.mockResolvedValue({
+    data: { content: "原文".repeat(600_000) },
+  });
+  readmeFixture.save.mockResolvedValue(true);
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <PluginReadme
+        content="插件简介"
+        status="too-large"
+        source={{ pluginId: "p", versionId: "v-frozen" }}
+      />
+    </QueryClientProvider>,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "下载原始说明" }));
+  await waitFor(() => expect(readmeFixture.save).toHaveBeenCalledOnce());
+  expect(readmeFixture.load).toHaveBeenCalledWith(
+    expect.objectContaining({
+      path: { pluginId: "p" },
+      query: { versionId: "v-frozen", wakerId: undefined },
+    }),
+  );
+  const blob = readmeFixture.save.mock.calls[0]?.[0];
+  expect(blob.size).toBe(3_600_000);
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+});
+
+it("shows preserved native components and the exact implementations behind one logical plugin", () => {
+  render(
+    <MemoryRouter>
+      <PluginOverview
+        pkg={{
+          manifest: { name: "logical", version: "2.0.0" },
+          nativeComponents: [{ kind: "hooks", paths: ["hooks/hooks.json"] }],
+          nativeImplementations: {
+            codex: {
+              path: "codex-plugins/github",
+              name: "github",
+              version: "0.1.12",
+              format: "codex",
+              digest: "a".repeat(64),
+              components: [],
+              skillCount: 0,
+              serverCount: 1,
+            },
+            claude: {
+              path: "claude-plugins/github",
+              name: "github",
+              version: "1.0.0",
+              format: "claude",
+              digest: "b".repeat(64),
+              components: [],
+              skillCount: 0,
+              serverCount: 1,
+            },
+          },
+        }}
+      />
+    </MemoryRouter>,
+  );
+  expect(screen.getByRole("heading", { name: "原生组件" })).toBeVisible();
+  expect(screen.getByText("hooks/hooks.json")).toBeVisible();
+  expect(screen.getByText("codex-plugins/github")).toBeVisible();
+  expect(screen.getByText("claude-plugins/github")).toBeVisible();
+  expect(screen.getByText("0.1.12")).toBeVisible();
 });

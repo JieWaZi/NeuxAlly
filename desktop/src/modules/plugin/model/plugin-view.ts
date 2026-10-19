@@ -3,39 +3,18 @@ import type {
   GithubComJieWaZiNeuxAllyServerRepositoriesModelsPluginVersion as PluginVersion,
   GithubComJieWaZiNeuxAllyServerInternalPluginsCatalogEntry as PluginCatalogEntry,
 } from "@/shared/api/generated/types.gen";
-import builtinGuides from "./builtin-plugin-guides.gen.json";
 export type { PluginDetail, PluginVersion, PluginCatalogEntry };
 export type ResourceCategory = "plugins" | "skills" | "connectors";
-
-/** 阅读资料可独立完善；来源、包身份与能力集合不匹配时保留原版本说明。 */
-export function builtinPluginGuide(
-  pkg: PluginCatalogEntry["package"],
-  sourceKey?: string,
-) {
-  return builtinGuides.find(
-    (guide) =>
-      sourceKey === `catalog:${guide.key}` &&
-      pkg?.manifest?.name === guide.name &&
-      pkg.manifest.repository === guide.repository &&
-      (pkg.skills ?? [])
-        .map((item) => item.key ?? "")
-        .sort()
-        .join("\n") === guide.skills.join("\n") &&
-      (pkg.servers ?? [])
-        .map((item) => item.key ?? "")
-        .sort()
-        .join("\n") === guide.connectors.join("\n"),
-  );
-}
 
 /** 三种详情和列表共用同一简介来源，作者与名称不再占用简介位置。 */
 export function pluginSummary(
   pkg: PluginCatalogEntry["package"],
   fallback?: string,
-  sourceKey?: string,
+  _sourceKey?: string,
 ): string {
+  // 来源身份不参与替换包内的标准简介。
+  void _sourceKey;
   return (
-    builtinPluginGuide(pkg, sourceKey)?.summary ||
     pkg?.presentation?.shortDescription?.trim() ||
     pkg?.manifest?.description?.trim() ||
     fallback?.trim() ||
@@ -45,11 +24,12 @@ export function pluginSummary(
 
 export function pluginExplanation(
   pkg: PluginCatalogEntry["package"],
-  sourceKey?: string,
+  _sourceKey?: string,
 ): string {
+  // 保留调用入口的来源参数，正文始终来自当前包。
+  void _sourceKey;
   return (
-    builtinPluginGuide(pkg, sourceKey)?.readme ||
-    pkg?.readme?.trim() ||
+    pkg?.readme ||
     pkg?.presentation?.longDescription?.trim() ||
     pluginSummary(pkg)
   );
@@ -68,15 +48,23 @@ export function pluginProvider(version: PluginVersion | undefined): string {
     : "";
 }
 
+/** 新包按授权声明接入，旧包沿原有扩展读取，不维护供应商名单。 */
+export function pluginHasAuthorization(
+  pkg: PluginCatalogEntry["package"],
+): boolean {
+  return Boolean(
+    pkg?.integration?.authentication?.strategy ||
+    pluginProvider({ package: pkg }),
+  );
+}
+
 /** 仅已存在实际安装且共享身份明确失效时，目录操作才是重新授权。 */
 export function pluginNeedsAuthorization(
-  pkg: PluginCatalogEntry["package"],
+  _pkg: PluginCatalogEntry["package"],
   detail?: PluginDetail,
 ): boolean {
   return Boolean(
-    detail?.installations?.length &&
-    detail.account?.available === false &&
-    ["feishu", "github"].includes(pluginProvider({ package: pkg })),
+    detail?.installations?.length && detail.account?.available === false,
   );
 }
 

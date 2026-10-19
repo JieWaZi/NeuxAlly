@@ -13,7 +13,7 @@ import { useRouteSceneActive } from "@/shared/workspace/app-scene-workspace";
 import { QueryState } from "@/shared/ui/query-state";
 import { withLocalErrorSurface } from "@/shared/api/local-error-surface";
 import {
-  listPluginCatalogOptions,
+  getCatalogPluginOptions,
   listPluginsOptions,
 } from "../api/plugin-queries";
 import { PluginRemovalDialog } from "../components/plugin-removal-dialog";
@@ -30,13 +30,13 @@ export function PluginCatalogDetailPage() {
   const [install, setInstall] = useState(false);
   const [editing, setEditing] = useState(false);
   const query = useQuery(
-    listPluginCatalogOptions(
+    getCatalogPluginOptions(
       withLocalErrorSurface({
-        query: { query: catalogKey, pageNum: 1, pageSize: 100 },
+        path: { key: catalogKey },
       }),
     ),
   );
-  const entry = query.data?.entries?.find((item) => item.key === catalogKey);
+  const entry = query.data;
   const pkg = entry?.package;
   const active = useRouteSceneActive();
   const installedOptions = listPluginsOptions(
@@ -111,6 +111,11 @@ export function PluginCatalogDetailPage() {
           <PluginOverview
             pkg={pkg}
             sourceKey={`catalog:${catalogKey}`}
+            readmeSource={{
+              catalogKey,
+              sourceCommit: entry.sourceCommit,
+              archiveSHA256: entry.archiveSHA256,
+            }}
             skillContext={{ catalogKey }}
             detail={detail}
             onUninstall={setRemovingPartner}

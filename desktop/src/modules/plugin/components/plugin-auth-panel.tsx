@@ -10,12 +10,7 @@ import { RefreshCw, Unplug } from "lucide-react";
 import type { GetPluginAuthorizationResponse } from "@/shared/api/generated/types.gen";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
-import {
-  AuthorizationCode,
-  PluginAuthorizationDialog,
-  AuthorizationQRCode,
-} from "./plugin-authorization-dialog";
-import { openExternalURL } from "@/shared/desktop";
+import { PluginAuthorizationActions } from "./plugin-authorization-dialog";
 import { Button } from "@/shared/ui/button";
 import { QueryState } from "@/shared/ui/query-state";
 import { useQueryEvents } from "@/shared/api/use-query-events";
@@ -86,12 +81,10 @@ export function PluginAuthPanel({
     },
     onSuccess: refresh,
   });
-  const github = status.data?.provider === "github";
   const account = status.data?.account;
   const activeUses = status.data?.activeUses ?? [];
   const session = status.data?.session;
-  const verificationURL = session?.verificationUrl ?? "";
-  const deviceKey = `${session?.id ?? ""}:${session?.expiresAt ?? ""}`;
+  const deviceKey = `${session?.id ?? ""}:${session?.challengeId ?? ""}:${session?.expiresAt ?? ""}`;
   const expired = session?.state === "expired" || expiredDevice === deviceKey;
   const waiting = session?.state === "waiting" && !expired;
   const ready = Boolean(account?.available);
@@ -167,105 +160,16 @@ export function PluginAuthPanel({
       // Mutation 的稳定错误在当前面板统一呈现。
     }
   }
-  if (installation)
-    return (
-      <section className="space-y-4">
-        {status.isPending || status.isError ? (
-          <QueryState
-            loadingLayout="content"
-            pending={status.isPending}
-            error={status.error}
-            onRetry={() => void status.refetch()}
-          />
-        ) : (
-          <>
-            <StatusNotice>
-              {t(
-                github
-                  ? "githubAuthorizationNotice"
-                  : "feishuAuthorizationNotice",
-              )}
-            </StatusNotice>
-            {waiting && verificationURL ? (
-              <>
-                {github ? (
-                  <>
-                    <AuthorizationCode code={session?.userCode ?? ""} />
-                    <Button
-                      type="button"
-                      className="w-full"
-                      onClick={() => {
-                        setOpenError("");
-                        void openExternalURL(verificationURL).catch(() =>
-                          setOpenError(t("failed")),
-                        );
-                      }}
-                    >
-                      {t("authorizeOnWebsite")}
-                    </Button>
-                  </>
-                ) : (
-                  <AuthorizationQRCode url={verificationURL} />
-                )}
-                <p
-                  role="status"
-                  className="type-caption text-content-caption text-center"
-                >
-                  {t(github ? "githubWaiting" : "authWaiting")}
-                </p>
-                {!github && (
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="mx-auto flex"
-                    disabled={pending || activeUses.length > 0}
-                    onClick={() => void restart()}
-                  >
-                    <RefreshCw />
-                    {t("refreshQR")}
-                  </Button>
-                )}
-              </>
-            ) : (
-              !ready && (
-                <div className="space-y-3">
-                  <p role="status" className="type-body text-content-secondary">
-                    {pending ? t("busy") : message}
-                  </p>
-                  <Button
-                    type="button"
-                    className="w-full"
-                    disabled={pending || activeUses.length > 0}
-                    onClick={() => void restart()}
-                  >
-                    <RefreshCw />
-                    {t(github ? "retryAuthorization" : "refreshQR")}
-                  </Button>
-                </div>
-              )
-            )}
-            {activeUses.length > 0 && (
-              <p className="type-body text-content-secondary">
-                {t("accountInUse")}
-              </p>
-            )}
-          </>
-        )}
-        {(error || openError) && (
-          <p role="alert" className="type-body text-destructive">
-            {openError || localApiErrorMessage(error, t("failed"))}
-          </p>
-        )}
-      </section>
-    );
   return (
     <section className="space-y-4">
-      <div>
-        <h3 className="type-label font-medium">{t("authentication")}</h3>
-        <p className="type-body text-muted-foreground mt-1">
-          {t(github ? "githubAccountHelp" : "accountHelp")}
-        </p>
-      </div>
+      {!installation && (
+        <div>
+          <h3 className="type-label font-medium">{t("authentication")}</h3>
+          <p className="type-body text-muted-foreground mt-1">
+            {t("sharedAuthorizationHelp")}
+          </p>
+        </div>
+      )}
       {status.isPending || status.isError ? (
         <QueryState
           loadingLayout="content"
@@ -275,67 +179,37 @@ export function PluginAuthPanel({
         />
       ) : (
         <>
-          {!github && !account?.configured && (
-            <p className="type-body text-content-secondary">
-              {t("setupScanHelp")}
-            </p>
+          {installation && (
+            <StatusNotice>{t("sharedAuthorizationHelp")}</StatusNotice>
           )}
-          {ready ? (
+          {ready && !waiting ? (
             <StatusNotice tone="success">
               {t("sharedIdentity", { name: account?.name || account?.id })}
             </StatusNotice>
           ) : (
-            <p className="type-body text-muted-foreground" role="status">
-              {waiting ? t(github ? "githubWaiting" : "authWaiting") : message}
+            <p className="type-body text-content-secondary" role="status">
+              {waiting
+                ? t("authorizationWaiting")
+                : pending
+                  ? t("busy")
+                  : message}
             </p>
           )}
-          {waiting && session?.verificationUrl && (
-            <div className="space-y-3">
-              {!github && <AuthorizationQRCode url={verificationURL} />}
-              {!github && (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  disabled={pending || activeUses.length > 0}
-                  onClick={() => void restart()}
-                >
-                  <RefreshCw />
-                  {t("refreshQR")}
-                </Button>
-              )}
-              {session.userCode && (
-                <AuthorizationCode
-                  key={session.userCode}
-                  code={session.userCode}
-                />
-              )}
-              <div className="flex flex-wrap gap-2">
-                <PluginAuthorizationDialog
-                  key={session.id}
-                  url={verificationURL}
-                  code={session.userCode}
-                />
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => {
-                    setOpenError("");
-                    void openExternalURL(verificationURL).catch(() =>
-                      setOpenError(t("failed")),
-                    );
-                  }}
-                >
-                  {t("openAuth")}
-                </Button>
-              </div>
-              {session.expiresAt && (
-                <p className="type-caption text-muted-foreground">
-                  {t("localWaitUntil", {
-                    time: new Date(session.expiresAt).toLocaleTimeString(),
-                  })}
-                </p>
-              )}
-            </div>
+          {waiting && (
+            <PluginAuthorizationActions
+              key={deviceKey}
+              actions={session?.actions ?? []}
+              onOpenError={() => setOpenError(t("failed"))}
+            />
+          )}
+          {waiting && session?.expiresAt && (
+            <p className="type-caption text-muted-foreground">
+              {t("localWaitUntil", {
+                time: new Intl.DateTimeFormat(undefined, {
+                  timeStyle: "medium",
+                }).format(session.expiresAt),
+              })}
+            </p>
           )}
           {Boolean(status.data?.missingScopes?.length) && (
             <p className="type-body text-content-secondary">
@@ -343,18 +217,16 @@ export function PluginAuthPanel({
             </p>
           )}
           <div className="flex flex-wrap gap-2">
-            {!waiting && !ready && (
+            {(!ready || waiting) && (
               <Button
                 type="button"
                 disabled={pending || activeUses.length > 0}
                 onClick={() => void restart()}
               >
                 {t(
-                  account?.configured
+                  account?.configured || expired || waiting
                     ? "retryAuthorization"
-                    : github
-                      ? "login"
-                      : "scanLogin",
+                    : "login",
                 )}
               </Button>
             )}
@@ -379,10 +251,10 @@ export function PluginAuthPanel({
               disabled={pending}
               onClick={() => void status.refetch().then(refresh)}
             >
-              <RefreshCw aria-hidden="true" strokeWidth={1.5} />
+              <RefreshCw aria-hidden="true" />
               {t("authRefresh")}
             </Button>
-            {ready && (
+            {ready && !installation && (
               <Button
                 type="button"
                 variant="ghost"
@@ -394,7 +266,7 @@ export function PluginAuthPanel({
                   })
                 }
               >
-                <Unplug aria-hidden="true" strokeWidth={1.5} />
+                <Unplug aria-hidden="true" />
                 {t("logout")}
               </Button>
             )}
@@ -411,10 +283,13 @@ export function PluginAuthPanel({
                   {use.title || t("viewActiveWork")}
                 </Link>
               ))}
+              <p className="type-body text-content-secondary">
+                {t("accountInUse")}
+              </p>
             </section>
           )}
           <p className="type-caption text-muted-foreground">
-            {t(github ? "githubScopeHelp" : "scopeHelp")}
+            {t("authorizationScopeHelp")}
           </p>
         </>
       )}

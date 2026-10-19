@@ -180,6 +180,11 @@ export function PluginDetailPage() {
               <PluginOverview
                 pkg={pkg}
                 detail={detail}
+                readmeSource={
+                  version?.id
+                    ? { pluginId, versionId: version.id, wakerId }
+                    : undefined
+                }
                 scope={wakerId ? "partner" : "global"}
                 skillContext={{ pluginId, versionId: version?.id, wakerId }}
                 onUninstall={(id) =>

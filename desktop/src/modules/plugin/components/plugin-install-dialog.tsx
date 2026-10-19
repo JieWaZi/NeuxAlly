@@ -33,7 +33,7 @@ import {
 } from "../api/plugin-queries";
 import {
   pluginDisplayName,
-  pluginProvider,
+  pluginHasAuthorization,
   type PluginDetail,
   type PluginCatalogEntry,
 } from "../model/plugin-view";
@@ -121,7 +121,7 @@ function Installation({
     detail?.versions?.find((item) => item.id === detail.resolvedVersionId) ??
     detail?.versions?.[0];
   const pkg = version?.package ?? catalog?.package;
-  const provider = pluginProvider({ package: pkg });
+  const needsAuthorization = pluginHasAuthorization(pkg);
   const prepare = useMutation({
     ...withLocalErrorMutation(prepareCatalogPluginMutation()),
   });
@@ -241,7 +241,7 @@ function Installation({
         setPhase("authorization");
         await installReady(current);
       } else if (current.ready && !authorizeOnly) await installReady(current);
-      else if (provider === "feishu" || provider === "github") {
+      else if (needsAuthorization) {
         setPhase("authorization");
         await authorization.mutateAsync({
           path: { pluginId: current.plugin?.id ?? "" },

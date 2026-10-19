@@ -7,8 +7,6 @@ import {
   mkdir,
   mkdtemp,
   readFile,
-  readdir,
-  stat,
   rename,
   rm,
   writeFile,
@@ -149,134 +147,30 @@ export function selectAsset(lock, target, name = "feishu") {
   return { ...asset, target: key };
 }
 
-// 固定源打成标准 ZIP，保留 Unix 执行位和完整相对目录。
-async function packageZIP(directory) {
-  const files = {};
-  async function collect(relative = "") {
-    for (const entry of await readdir(path.join(directory, relative), {
-      withFileTypes: true,
-    })) {
-      const name = relative ? `${relative}/${entry.name}` : entry.name;
-      if (entry.isDirectory()) {
-        await collect(name);
-      } else if (entry.isFile()) {
-        const location = path.join(directory, name);
-        const mode = (await stat(location)).mode;
-        files[name] = [
-          new Uint8Array(await readFile(location)),
-          { os: 3, attrs: (((mode & 0o777) | 0o100000) << 16) >>> 0 },
-        ];
-      } else {
-        throw new Error("固定插件源不能包含符号链接或特殊文件");
-      }
-    }
-  }
-  await collect();
-  return Buffer.from(requireDesktop("fflate").zipSync(files));
-}
-
-// Git bundle 是独立源仓库的固定提交快照，只读取内容，不执行源仓库脚本。
+// 构建只保留目录入口，不内置安装包；插件由 Core 通过 HTTP 获取。
 export async function prepareCatalog(output) {
-  const lock = await loadLock();
-  const bundle = path.join(sourceRoot, lock.source.bundle);
-  verifyDigest(await readFile(bundle), lock.source.sha256);
-  const temporary = await mkdtemp(
-    path.join(os.tmpdir(), "neuxally-plugin-source-"),
-  );
-  try {
-    const checkout = path.join(temporary, "source");
-    execFileSync(
-      "git",
-      ["clone", "--quiet", "--no-checkout", bundle, checkout],
-      { stdio: "pipe" },
-    );
-    const archive = execFileSync(
-      "git",
-      ["-C", checkout, "archive", "--format=tar", lock.source.commit],
-      { maxBuffer: 32 * 1024 * 1024 },
-    );
-    const archivePath = path.join(temporary, "source.tar");
-    await writeFile(archivePath, archive);
-    const files = path.join(temporary, "files");
-    await mkdir(files);
-    execFileSync("tar", ["-xf", archivePath, "-C", files], { stdio: "pipe" });
-    const source = JSON.parse(
-      await readFile(path.join(files, "catalog.json"), "utf8"),
-    );
-    const metadata = JSON.parse(
-      execFileSync(
-        "go",
-        [
-          "run",
-          "./cmd/plugin-package",
-          ...source.map((entry) => path.join(files, entry.directory)),
+  await mkdir(output, { recursive: true });
+  await rm(path.join(output, "catalog"), { recursive: true, force: true });
+  await rm(path.join(output, "catalog.json"), { force: true });
+  await writeFile(
+    path.join(output, "sources.json"),
+    JSON.stringify(
+      {
+        schemaVersion: 1,
+        sources: [
+          {
+            url: "https://github.com/JieWaZi/NeuAally-Plugins/releases/latest/download/catalog.json",
+          },
         ],
-        {
-          cwd: path.join(root, "server"),
-          encoding: "utf8",
-          maxBuffer: 4 * 1024 * 1024,
-        },
-      ),
-    );
-    const seen = new Set();
-    const entries = [];
-    for (const entry of source) {
-      if (
-        !/^[a-z0-9-]+$/.test(entry.key) ||
-        entry.directory !== `plugins/${entry.key}` ||
-        seen.has(entry.key)
-      )
-        throw new Error("插件目录来源无效");
-      seen.add(entry.key);
-      const directory = path.join(files, entry.directory);
-      const manifest = JSON.parse(
-        await readFile(path.join(directory, "plugin.json"), "utf8"),
-      );
-      const provider = lock.providers.find(
-        (provider) => provider.name === entry.provider,
-      );
-      const provenance = JSON.parse(
-        await readFile(path.join(directory, "provenance.json"), "utf8"),
-      );
-      if (
-        manifest.$schema !==
-          "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json" ||
-        provenance.upstream?.commit !== provider?.upstreamCommit ||
-        provenance.upstream?.license !== "MIT"
-      )
-        throw new Error("插件清单或来源声明不完整");
-      await readFile(path.join(directory, provider.licenseFile));
-      const destination = `catalog/${entry.key}.zip`;
-      const bytes = await packageZIP(directory);
-      await mkdir(path.dirname(path.join(output, destination)), {
-        recursive: true,
-      });
-      await writeFile(path.join(output, destination), bytes);
-      entries.push({
-        key: entry.key,
-        directory: destination,
-        sourceCommit: lock.source.commit,
-        archiveSHA256: hash(bytes),
-        package: metadata[entries.length],
-      });
-    }
-    const catalog = {
-      schemaVersion: 1,
-      sourceCommit: lock.source.commit,
-      entries,
-    };
-    await mkdir(output, { recursive: true });
-    await writeFile(
-      path.join(output, "catalog.json"),
-      JSON.stringify(catalog, null, 2) + "\n",
-    );
-    return catalog;
-  } finally {
-    await rm(temporary, { recursive: true, force: true });
-  }
+      },
+      null,
+      2,
+    ) + "\n",
+  );
+  return { schemaVersion: 2, entries: [] };
 }
 
-// 用户说明从固定源生成；仅在包身份和能力集合相同时用于已安装的旧快照。
+// 清空旧内置阅读资料；实际插件说明始终读取已安装的固定来源。
 export async function syncPluginGuides(catalog, checking = false) {
   const lock = await loadLock();
   const guides = catalog.entries.map((entry) => {

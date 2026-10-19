@@ -24,6 +24,8 @@ const fixture = vi.hoisted(() => ({
       id: "session",
       state: "waiting",
       userCode: "",
+      challengeId: "challenge",
+      actions: [] as { type: string; url?: string; value?: string }[],
       verificationUrl: "https://example.com/device?code=a%2Fb&x=1+2",
       expiresAt: Date.now() + 60_000,
     },
@@ -92,6 +94,11 @@ beforeEach(() => {
   fixture.status.session.expiresAt = Date.now() + 60_000;
   fixture.status.session.verificationUrl =
     "https://example.com/device?code=a%2Fb&x=1+2";
+  fixture.status.session.challengeId = "challenge";
+  fixture.status.session.actions = [
+    { type: "show-qr", value: fixture.status.session.verificationUrl },
+    { type: "open-url", url: fixture.status.session.verificationUrl },
+  ];
 });
 function show(installation = false, onReady = vi.fn()) {
   const client = new QueryClient({
@@ -120,6 +127,7 @@ function show(installation = false, onReady = vi.fn()) {
 describe("shared plugin authorization", () => {
   it("retries account loading without submitting the surrounding settings form", async () => {
     fixture.statusError = new Error("offline");
+    fixture.status.session.state = "ready";
     show();
     const retry = await screen.findByRole("button", { name: "重试" });
     fixture.statusError = null;
@@ -160,6 +168,7 @@ describe("shared plugin authorization", () => {
         ...fixture.status.session,
         id: "new-session",
         verificationUrl: "https://example.com/new-device",
+        actions: [{ type: "show-qr", value: "https://example.com/new-device" }],
         expiresAt: Date.now() + 60_000,
       };
       return {};
@@ -169,8 +178,8 @@ describe("shared plugin authorization", () => {
     await waitFor(() =>
       expect(screen.queryByLabelText("二维码内容")).not.toBeInTheDocument(),
     );
-    expect(screen.getByRole("status")).toHaveTextContent("二维码已过期");
-    fireEvent.click(screen.getByRole("button", { name: "刷新二维码" }));
+    expect(screen.getByRole("status")).toHaveTextContent("授权已过期");
+    fireEvent.click(screen.getByRole("button", { name: "重新授权" }));
     await waitFor(() => expect(fixture.cancel).toHaveBeenCalledOnce());
     expect(fixture.login).not.toHaveBeenCalled();
     finishCancel?.();
@@ -247,9 +256,7 @@ describe("shared plugin authorization", () => {
     fixture.status.account.available = false;
     fixture.status.session.state = "idle";
     show();
-    fireEvent.click(
-      await screen.findByRole("button", { name: "扫码连接飞书" }),
-    );
+    fireEvent.click(await screen.findByRole("button", { name: "连接账号" }));
     await waitFor(() => expect(fixture.login).toHaveBeenCalledTimes(1));
     expect(screen.queryByLabelText("飞书应用 App ID")).not.toBeInTheDocument();
     expect(
@@ -263,6 +270,10 @@ it("offers GitHub code and QR dialog without an app form; closing keeps authoriz
   fixture.status.provider = "github";
   fixture.status.account.available = false;
   fixture.status.session.userCode = "ABCD-EFGH";
+  fixture.status.session.actions.push({
+    type: "copy-code",
+    value: "ABCD-EFGH",
+  });
   fixture.status.session.verificationUrl = "https://github.com/login/device";
   const client = show();
   expect(await screen.findByText("ABCD-EFGH")).toBeInTheDocument();
@@ -299,6 +310,10 @@ it("copies the GitHub device code and reports clipboard failures locally", async
   const user = userEvent.setup();
   fixture.status.provider = "github";
   fixture.status.session.userCode = "ABCD-EFGH";
+  fixture.status.session.actions.push({
+    type: "copy-code",
+    value: "ABCD-EFGH",
+  });
   show();
   await user.click(await screen.findByRole("button", { name: "复制验证码" }));
   await waitFor(() =>
@@ -313,4 +328,60 @@ it("copies the GitHub device code and reports clipboard failures locally", async
     "复制未完成，请手动输入验证码。",
   );
   write.mockRestore();
+});
+
+it("uses declared actions for an unknown plugin and never turns a browser URL into a QR", async () => {
+  fixture.status.provider = "new-provider";
+  fixture.status.account.available = false;
+  fixture.status.session.actions = [
+    {
+      type: "open-url",
+      url: "https://example.com/oauth?redirect_uri=http://localhost/callback",
+    },
+  ];
+  show(true);
+  fireEvent.click(await screen.findByRole("button", { name: "打开授权页面" }));
+  expect(fixture.open).toHaveBeenCalledWith(
+    "https://example.com/oauth?redirect_uri=http://localhost/callback",
+  );
+  expect(screen.queryByLabelText("二维码内容")).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: "显示二维码" }),
+  ).not.toBeInTheDocument();
+  expect(screen.queryByText(/飞书/)).not.toBeInTheDocument();
+});
+
+it("replaces a challenge and removes all actions after cancellation", async () => {
+  fixture.status.provider = "new-provider";
+  fixture.status.account.available = false;
+  fixture.status.session.actions = [
+    { type: "show-qr", value: "custom://first" },
+    { type: "copy-code", value: "ONE-TIME" },
+  ];
+  const client = show(true);
+  expect(await screen.findByLabelText("二维码内容")).toHaveTextContent(
+    "custom://first",
+  );
+  const changed = {
+    ...fixture.status,
+    session: {
+      ...fixture.status.session,
+      challengeId: "second",
+      actions: [{ type: "show-qr", value: "custom://second" }],
+    },
+  };
+  client.setQueryData([{ _id: "getPluginAuthorization" }], changed);
+  await waitFor(() =>
+    expect(screen.getByLabelText("二维码内容")).toHaveTextContent(
+      "custom://second",
+    ),
+  );
+  expect(screen.queryByText("ONE-TIME")).not.toBeInTheDocument();
+  client.setQueryData([{ _id: "getPluginAuthorization" }], {
+    ...changed,
+    session: { ...changed.session, state: "cancelled" },
+  });
+  await waitFor(() =>
+    expect(screen.queryByLabelText("二维码内容")).not.toBeInTheDocument(),
+  );
 });

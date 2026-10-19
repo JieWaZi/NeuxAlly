@@ -4,7 +4,14 @@ const requireDesktop = createRequire(
 );
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import {
+  mkdtemp,
+  readFile,
+  rm,
+  mkdir,
+  writeFile,
+  readdir,
+} from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import {
@@ -37,50 +44,25 @@ test("target chooses only exact fixed native asset", async () => {
   );
   assert.throws(() => selectAsset(lock, "unknown"), /目标/);
 });
-test("independent Git bundle builds catalog completely offline", async () => {
+test("desktop catalog preparation emits only an HTTP source and removes stale embedded packages", async () => {
   const output = await mkdtemp(path.join(os.tmpdir(), "plugin-catalog-"));
   try {
-    const catalog = await prepareCatalog(output);
-    assert.equal(catalog.entries.length, 2);
-    await syncPluginGuides(catalog, true);
-    for (const item of catalog.entries) {
-      assert.match(item.package.readme, /### 可以做什么/);
-      assert.match(item.package.readme, /### 典型用途/);
-      assert.ok(item.package.readme.length < 600);
-      assert.doesNotMatch(
-        item.package.readme,
-        /源码提交|钥匙串|工具链|隔离补丁|NeuxAlly|\bAlly\b|伙伴|安装|扫码|开始使用/i,
-      );
-    }
-    const github = catalog.entries.find((entry) => entry.key === "github");
-    assert.ok(github);
-    assert.equal(
-      github.package.servers[0].url,
-      "https://api.githubcopilot.com/mcp/",
+    await mkdir(path.join(output, "catalog"), { recursive: true });
+    await writeFile(path.join(output, "catalog", "old.zip"), "old package");
+    await writeFile(path.join(output, "catalog.json"), "old index");
+    await prepareCatalog(output);
+    const sources = JSON.parse(
+      await readFile(path.join(output, "sources.json"), "utf8"),
     );
-    assert.equal(github.package.skills.length, 0);
-    const entry = catalog.entries[0];
-    assert.equal(entry.key, "feishu-office");
-    const files = requireDesktop("fflate").unzipSync(
-      new Uint8Array(await readFile(path.join(output, entry.directory))),
-    );
-    const text = (name) => Buffer.from(files[name]).toString("utf8");
-    const manifest = JSON.parse(text("plugin.json"));
-    assert.equal(manifest.extensions["com.ally"].provider, "feishu");
-    for (const skill of [
-      "lark-doc",
-      "lark-base",
-      "lark-calendar",
-      "lark-task",
-      "lark-shared",
-    ])
-      assert.match(text(`skills/${skill}/SKILL.md`), /name:/);
-    assert.match(text("skills/lark-doc/references/lark-doc-fetch.md"), /fetch/);
-    assert.equal(
-      JSON.parse(text("provenance.json")).upstream.commit,
-      "ac81f5056ab88f37d581d25916f3dab85abfca76",
-    );
-    assert.match(text("LICENSE.larksuite-cli"), /MIT License/);
+    assert.deepEqual(sources, {
+      schemaVersion: 1,
+      sources: [
+        {
+          url: "https://github.com/JieWaZi/NeuAally-Plugins/releases/latest/download/catalog.json",
+        },
+      ],
+    });
+    assert.deepEqual((await readdir(output)).sort(), ["sources.json"]);
   } finally {
     await rm(output, { recursive: true, force: true });
   }

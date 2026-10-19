@@ -20,7 +20,7 @@ import {
 } from "../api/plugin-queries";
 import {
   pluginDisplayName,
-  pluginProvider,
+  pluginHasAuthorization,
   type PluginDetail,
 } from "../model/plugin-view";
 import { PluginAuthPanel } from "./plugin-auth-panel";
@@ -123,7 +123,7 @@ export function PluginSettingsDialog({
                 {t("nameHelp")}
               </p>
             </section>
-            {["feishu", "github"].includes(pluginProvider(version)) && (
+            {pluginHasAuthorization(version?.package) && (
               <PluginAuthPanel
                 pluginId={pluginId}
                 versionId={version?.id}
