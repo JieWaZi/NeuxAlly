@@ -559,6 +559,7 @@ func acpAdapterConfigForRequest(
 		WorkingDirectory: request.Request.Workspace.Path,
 		PermissionMode:   string(request.Request.Policy.Execution.PermissionLevel),
 	}
+	config.NativePluginDirectories = cloneStrings(request.Request.Target.NativePluginDirectories)
 	if binding.stateDirectory != nil {
 		config.StateDirectory = binding.stateDirectory(request)
 	}
@@ -615,7 +616,10 @@ func acpAgentKey(request acpRunRequest) string {
 
 // acpAgentKeyForBinding 使用当前 Backend 实际绑定计算 Agent 隔离键。
 func acpAgentKeyForBinding(request acpRunRequest, binding acpRuntimeBinding) string {
-	prefixArgs := request.Prepared.definition.prefixArgs
+	prefixArgs := cloneStrings(request.Prepared.definition.prefixArgs)
+	for _, directory := range request.Request.Target.NativePluginDirectories {
+		prefixArgs = append(prefixArgs, directory)
+	}
 	workspace := ""
 	if binding.agentScope != nil {
 		workspace = binding.agentScope(request)

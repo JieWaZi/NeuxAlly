@@ -27,11 +27,15 @@ func (*GetCatalogPluginSkill) Path() string { return "/catalog/:key/skill" }
 
 // Output 复验分发归档并读取临时快照，不登记资源或安装关系。
 func (o *GetCatalogPluginSkill) Output(ctx *gin.Context) (interface{}, error) {
-	archive, err := catalog.Resolve(global.Config.PluginResourcesDirectory, o.Key)
+	entry, err := catalog.Find(global.PluginCatalogSource(), o.Key)
 	if err != nil {
 		return nil, ginx.WithStack(err)
 	}
-	stage, err := packageplugin.Stage(stagedRoot(), archive)
+	archive, err := catalog.ResolveEntry(global.PluginCatalogSource(), entry)
+	if err != nil {
+		return nil, ginx.WithStack(err)
+	}
+	stage, err := packageplugin.StageSource(stagedRoot(), archive, entry.PackagePath)
 	if err != nil {
 		return nil, ginx.WithStack(err)
 	}

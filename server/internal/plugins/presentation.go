@@ -22,6 +22,7 @@ import (
 )
 
 const maxPresentationBytes = 256 * 1024
+const maxReadmeBytes = 1024 * 1024
 
 // 插件展示资料
 type Presentation struct {
@@ -120,15 +121,25 @@ func (p *Package) loadPresentation(root string, raw map[string]json.RawMessage) 
 			p.diagnose("icon", "invalid_asset")
 		}
 	}
+	p.ReadmeStatus = "missing"
 	for _, filename := range []string{"README.md", "readme.md"} {
 		if _, err := os.Lstat(filepath.Join(root, filename)); os.IsNotExist(err) {
 			continue
 		}
-		if content, err := readBounded(root, filename, maxPresentationBytes); err == nil && utf8.Valid(content) && !bytes.ContainsRune(content, 0) {
+		if content, err := readBounded(root, filename, maxReadmeBytes); err == nil && utf8.Valid(content) && !bytes.ContainsRune(content, 0) {
 			p.Readme = string(content)
+			p.ReadmeStatus = "available"
+			if len(content) == 0 {
+				p.ReadmeStatus = "empty"
+			}
 		} else {
+			p.ReadmeStatus = "invalid"
+			if err == status_error.PluginContentLimitExceeded {
+				p.ReadmeStatus = "too-large"
+			}
 			p.diagnose(filename, "invalid_documentation")
 		}
+		p.ReadmePath = filename
 		break
 	}
 }
@@ -251,6 +262,11 @@ func staticSVG(content []byte) bool {
 
 // ReadSkill 返回版本已发现技能的正文，不接受任意文件路径。
 func ReadSkill(root string, pkg Package, key string) (Skill, string, error) {
+	var err error
+	root, err = PackageRoot(root, pkg)
+	if err != nil {
+		return Skill{}, "", err
+	}
 	for _, skill := range pkg.Skills {
 		if skill.Key != key {
 			continue
@@ -269,6 +285,11 @@ func ReadSkill(root string, pkg Package, key string) (Skill, string, error) {
 
 // ReadSkillResources 只暴露已发现技能目录的文件，根技能过滤插件清单与其他组件。
 func ReadSkillResources(root string, pkg Package, key, requested string) ([]packagefiles.ResourceEntry, *packagefiles.ResourceFile, error) {
+	var err error
+	root, err = PackageRoot(root, pkg)
+	if err != nil {
+		return nil, nil, err
+	}
 	for _, skill := range pkg.Skills {
 		if skill.Key != key {
 			continue

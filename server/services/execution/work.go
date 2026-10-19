@@ -2,6 +2,7 @@ package execution
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/authorization"
@@ -528,6 +529,78 @@ func (m *service) startMessage(
 		runRequest.Policy.Model = request.runtime.Model
 	}
 
+	if runRequest.Session.Mode == runtimes.SessionModeResume {
+		records, recordErr := m.journal.ReadRecords(state.chat.ID)
+		if recordErr != nil {
+			return AcceptedExecution{}, recordErr
+		}
+		previous := []plugins.Snapshot{}
+		session := state.runtimeSessions[request.runtime.RuntimeID]
+		for _, record := range records {
+			if record.Type == constants.ChatEventTypeExecutionCreated && record.ExecutionID == session.LastExecutionID {
+				var data eventlog.ExecutionCreatedData
+				if json.Unmarshal(record.Data, &data) != nil {
+					return AcceptedExecution{}, status_error.ChatLogCorrupted
+				}
+				previous = data.PluginResources
+				break
+			}
+		}
+		if nativePluginScope(previous) != nativePluginScope(pluginResources.snapshots) {
+			if state.chat.ForkSourceChatID != "" {
+				return AcceptedExecution{}, status_error.PluginNotReady
+			}
+			runRequest.Session = runtimes.SessionDirective{Mode: runtimes.SessionModeNew}
+		}
+	}
+	cliID := runtimeEnvironment.Detection.Runtime.BaseRuntimeID
+	if cliID == "" {
+		cliID = runtimeEnvironment.Detection.Runtime.ID
+	}
+	if cliID == runtimes.RuntimeIDCodex {
+		if err := plugins.PrepareCodexWorkspace(runRequest.Workspace.Path, pluginResources.native); err != nil {
+			return AcceptedExecution{}, err
+		}
+	}
+	if len(pluginResources.native) > 0 {
+		cli := runtimeEnvironment.Detection.Runtime.BaseRuntimeID
+		if cli == "" {
+			cli = runtimeEnvironment.Detection.Runtime.ID
+		}
+		if cli == runtimes.RuntimeIDClaude {
+			for _, target := range pluginResources.native {
+				runRequest.Target.NativePluginDirectories = append(runRequest.Target.NativePluginDirectories, target.Root)
+			}
+		}
+		if cli == runtimes.RuntimeIDCodex {
+			accountHome := runRequest.Target.Environment["CODEX_HOME"]
+			if accountHome == "" {
+				accountHome = runRequest.Target.ConfigHome
+			}
+			if accountHome == "" {
+				accountHome = os.Getenv("CODEX_HOME")
+			}
+			if accountHome == "" {
+				home, homeErr := os.UserHomeDir()
+				if homeErr != nil {
+					return AcceptedExecution{}, status_error.PluginStorageError
+				}
+				accountHome = filepath.Join(home, ".codex")
+				if _, err := os.Stat(accountHome); os.IsNotExist(err) {
+					accountHome = ""
+				}
+			}
+			nativeHome, prepareErr := plugins.PrepareCodexHome(filepath.Join(m.skillDataDirectory, "plugins", "native-homes"), accountHome, pluginResources.native)
+			if prepareErr != nil {
+				return AcceptedExecution{}, prepareErr
+			}
+			if runRequest.Target.Environment == nil {
+				runRequest.Target.Environment = map[string]string{}
+			}
+			runRequest.Target.Environment["CODEX_HOME"] = nativeHome
+			runRequest.Target.ConfigHome = nativeHome
+		}
+	}
 	runRequest.Skills, err = mergePluginSkills(runRequest.Skills, pluginResources.skills)
 	if err != nil {
 		return AcceptedExecution{}, err

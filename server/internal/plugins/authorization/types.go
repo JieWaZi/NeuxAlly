@@ -21,6 +21,12 @@ type Account struct {
 
 // Session 是本机授权等待的安全投影。
 type Session struct {
+	// ChallengeID 是本次唯一挑战身份。
+	ChallengeID string `json:"challengeId,omitempty"`
+	// Actions 是本次协议明确允许的通用交互。
+	Actions []Action `json:"actions,omitempty"`
+	// DeadlineAt 是本机等待上限，不表示上游有效期。
+	DeadlineAt int64 `json:"deadlineAt,omitempty"`
 	// ID 是本次等待身份。
 	ID string `json:"id"`
 	// State 是经过验证的授权阶段。
@@ -47,4 +53,14 @@ type Usage struct {
 	WakerID string `json:"wakerId"`
 	// Title 是接纳时的工作标题。
 	Title string `json:"title"`
+}
+
+// Action 是本次挑战提供的临时资料，不从插件名称推导。
+type Action struct {
+	// Type 是允许的交互动作。
+	Type string `json:"type"`
+	// URL 是实际授权页面。
+	URL string `json:"url,omitempty"`
+	// Value 是协议明确提供的二维码或验证码。
+	Value string `json:"value,omitempty"`
 }

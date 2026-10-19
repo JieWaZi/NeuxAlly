@@ -15,6 +15,7 @@ import (
 	"sync"
 
 	"github.com/BurntSushi/toml"
+	"github.com/JieWaZi/NeuxAlly/server/constants"
 	"github.com/JieWaZi/NeuxAlly/server/constants/status_error"
 	"github.com/JieWaZi/NeuxAlly/server/internal/logx"
 )
@@ -117,12 +118,12 @@ func PrepareCodexHome(parent, accountHome string, targets []NativeTarget) (strin
 	defer root.Close()
 	// 相同快照按完整内容验证后复用，避免替换其他活跃会话正在读取的原生包。
 	cache := filepath.Join(home, "plugins", "cache")
-	if err := codexPrivateSubdir(root, filepath.Join("plugins", "cache", "neuxally-managed")); err != nil {
+	if err := codexPrivateSubdir(root, filepath.Join("plugins", "cache", constants.PluginNativeMarketplace)); err != nil {
 		return "", err
 	}
 	for _, target := range targets {
-		destination := filepath.Join(cache, "neuxally-managed", target.Name, target.Version)
-		if err := codexPrivateSubdir(root, filepath.Join("plugins", "cache", "neuxally-managed", target.Name)); err != nil {
+		destination := filepath.Join(cache, constants.PluginNativeMarketplace, target.Name, target.Version)
+		if err := codexPrivateSubdir(root, filepath.Join("plugins", "cache", constants.PluginNativeMarketplace, target.Name)); err != nil {
 			return "", err
 		}
 		if _, err := os.Lstat(destination); err == nil {

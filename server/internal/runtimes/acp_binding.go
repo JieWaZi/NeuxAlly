@@ -17,6 +17,8 @@ type acpAdapterConfig struct {
 	Executable string
 	// PrefixArgs 是本地 Profile 配置的受控前置参数。
 	PrefixArgs []string
+	// NativePluginDirectories 是本轮已经固定的原生包目录。
+	NativePluginDirectories []string
 	// Environment 是 Adapter 与其 Session 进程使用的完整环境快照。
 	Environment []string
 	// WorkingDirectory 是原生 ACP 进程的隔离启动目录。

@@ -2,10 +2,15 @@ package execution
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/authorization"
+	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/commandbridge"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
+	"sort"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -19,6 +24,8 @@ import (
 
 // preparedPlugins 是本轮冻结的能力投射，不创建独立 Skill/MCP 资源。
 type preparedPlugins struct {
+	// native 是本轮独占的完整原生包，不能同时展开其Skill/MCP。
+	native []plugins.NativeTarget
 	// skills 是可按需读取的原始插件技能。
 	skills []runtimes.Skill
 	// connectors 是经过配置和传输能力检查的派生连接器。
@@ -117,7 +124,7 @@ func (m *service) preparePlugins(ctx context.Context, waker string, request pend
 		if readyErr == nil {
 			readyErr = extensionErr
 		}
-		if len(version.Package.Servers) > 0 && version.TrustedAt == 0 {
+		if version.Package.RequiresTrust() && version.TrustedAt == 0 {
 			readyErr = status_error.MCPConnectorTrustRequired
 		}
 		if extension.Provider == constants.PluginProviderFeishu && request.allowedConnectorIDs != nil {
@@ -157,6 +164,21 @@ func (m *service) preparePlugins(ctx context.Context, waker string, request pend
 			}
 			continue
 		}
+		logicalVersion := version
+		cli := detection.Runtime.BaseRuntimeID
+		if cli == "" {
+			cli = detection.Runtime.ID
+		}
+		selectedPackage, selectedRoot, selectErr := plugins.SelectTarget(root, version.Package, cli)
+		if selectErr != nil {
+			if required {
+				return result, selectErr
+			}
+			continue
+		}
+		root = selectedRoot
+		version.Package = selectedPackage
+		version.Package.Integration.Authentication = logicalVersion.Package.Integration.Authentication
 		values := map[string]string{}
 		for _, field := range extension.Config {
 			if !field.Secret {
@@ -169,7 +191,7 @@ func (m *service) preparePlugins(ctx context.Context, waker string, request pend
 		for key, value := range secrets {
 			values[key] = value
 		}
-		snapshot := plugins.Snapshot{ID: id, Name: state.Plugin.Name, VersionID: version.ID, Version: version.Version, ConfigurationRevision: state.Configuration.Revision, ComponentIDs: []string{}}
+		snapshot := plugins.Snapshot{TargetVersion: version.Package.Manifest.Version, Delivery: constants.PluginDeliveryProjection, LoadStage: constants.PluginLoadStagePrepared, ID: id, Name: state.Plugin.Name, VersionID: version.ID, Version: version.Version, ConfigurationRevision: state.Configuration.Revision, ComponentIDs: []string{}}
 
 		if extension.Provider != "" {
 			auth := m.pluginAuthorizers[extension.Provider]
@@ -208,6 +230,58 @@ func (m *service) preparePlugins(ctx context.Context, waker string, request pend
 				}
 				continue
 			}
+		}
+		var bridge *commandbridge.Driver
+		if version.Package.Integration.Authentication != nil {
+			if (request.allowedConnectorIDs != nil || request.allowedAgentDomains != nil) && len(version.Package.Skills) > 0 {
+				if required {
+					return result, status_error.PluginForbidden
+				}
+				continue
+			}
+			if m.pluginInstallations == nil {
+				if required {
+					return result, status_error.PluginNotReady
+				}
+				continue
+			}
+			auth, driver, authErr := m.pluginInstallations.Bridge(logicalVersion)
+			if authErr != nil {
+				if required {
+					return result, authErr
+				}
+				continue
+			}
+			retained, authErr := auth.Acquire(usage...)
+			if authErr != nil {
+				if required {
+					return result, authErr
+				}
+				continue
+			}
+			account, authErr := auth.Status(ctx, true)
+			if authErr != nil || !account.Available {
+				retained()
+				if required {
+					return result, status_error.PluginNotReady
+				}
+				continue
+			}
+			for _, scope := range version.Package.Integration.Authentication.Scopes {
+				if !auth.ScopeGranted(account.Scopes, scope) {
+					authErr = status_error.PluginNotReady
+				}
+			}
+			if authErr != nil {
+				retained()
+				if required {
+					return result, authErr
+				}
+				continue
+			}
+			releases = append(releases, retained)
+			bridge = driver
+			snapshot.ProviderAccountID = account.ID
 		}
 		candidateSkills := []runtimes.Skill{}
 		candidateConnectors := []models.MCPConnector{}
@@ -286,6 +360,75 @@ func (m *service) preparePlugins(ctx context.Context, waker string, request pend
 			candidateConnectors = append(candidateConnectors, connector)
 			available[server.Key] = true
 			snapshot.ComponentIDs = append(snapshot.ComponentIDs, componentID)
+		}
+		if bridge != nil {
+			components := []commandbridge.Component{}
+			for _, skill := range version.Package.Skills {
+				components = append(components, commandbridge.Component{ComponentID: plugins.ComponentID(id, "skill:"+skill.Key), Key: skill.Key, Target: "skill"})
+			}
+			for _, connector := range candidateConnectors {
+				components = append(components, commandbridge.Component{ComponentID: connector.ID, Key: connector.Name, Target: "mcp", URL: connector.URL})
+			}
+			bindings, bindErr := bridge.Resolve(ctx, components)
+			if bindErr != nil {
+				if required {
+					return result, bindErr
+				}
+				continue
+			}
+			for _, binding := range bindings {
+				{ // 所有返回项已经按本轮components校验。
+					isSkill := slices.ContainsFunc(components, func(c commandbridge.Component) bool {
+						return c.ComponentID == binding.ComponentID && c.Target == "skill"
+					})
+					if isSkill {
+						for key, value := range binding.Environment {
+							if old, ok := result.environment[key]; ok && old != value {
+								return result, status_error.PluginConfigurationConflict
+							}
+							result.environment[key] = value
+						}
+					} else {
+						for index := range candidateConnectors {
+							if candidateConnectors[index].ID != binding.ComponentID {
+								continue
+							}
+							for key, value := range binding.Environment {
+								candidateConnectors[index].Environment = append(candidateConnectors[index].Environment, models.MCPSecretDefinition{Name: key, Value: value, Configured: true})
+							}
+							for key, value := range binding.Headers {
+								candidateConnectors[index].Headers = append(candidateConnectors[index].Headers, models.MCPSecretDefinition{Name: key, Value: value, Configured: true})
+							}
+						}
+					}
+				}
+			}
+		}
+		nativeEligible := nativePluginVersionSupported(cli, detection.Version) && request.allowedConnectorIDs == nil && request.allowedAgentDomains == nil && extension.Provider == "" && len(extension.Bindings) == 0 && len(extension.Config) == 0 && (bridge == nil || len(version.Package.Servers) == 0)
+		if nativeEligible {
+			native, nativeErr := plugins.PrepareNativeTarget(filepath.Join(m.skillDataDirectory, "plugins", constants.PluginDeliveryNative), id, version.Package, root, cli)
+			if nativeErr == nil {
+				snapshot.Delivery = constants.PluginDeliveryNative
+				snapshot.NativePluginID = native.Name
+				if cli == runtimes.RuntimeIDCodex {
+					snapshot.NativePluginID += "@" + constants.PluginNativeMarketplace
+				}
+				snapshot.TargetDigest = native.Digest
+				snapshot.ComponentIDs = []string{}
+				for _, skill := range version.Package.Skills {
+					snapshot.ComponentIDs = append(snapshot.ComponentIDs, plugins.ComponentID(id, "skill:"+skill.Key))
+				}
+				for _, server := range version.Package.Servers {
+					snapshot.ComponentIDs = append(snapshot.ComponentIDs, plugins.ComponentID(id, "mcp:"+server.Key))
+				}
+				// 原生hooks/commands等完整保留，用插件身份记录整体交付。
+				if len(snapshot.ComponentIDs) == 0 {
+					snapshot.ComponentIDs = append(snapshot.ComponentIDs, plugins.ComponentID(id, constants.PluginDeliveryNative))
+				}
+				result.native = append(result.native, native)
+				candidateSkills = nil
+				candidateConnectors = nil
+			}
 		}
 		missingRequired := false
 		for _, key := range extension.RequiredComponents {
@@ -396,4 +539,44 @@ func pluginSelectionHint(selected []plugins.Snapshot) string {
 		names = append(names, item.Name+" ("+item.ID+")")
 	}
 	return "\n\n用户本轮明确选择插件：" + strings.Join(names, "、") + "。请按任务需要使用其可用技能或连接器。"
+}
+
+// nativePluginScope 只比较会改变原生会话能力的固定事实，顺序变化不触发重建。
+func nativePluginScope(snapshots []plugins.Snapshot) string {
+	entries := []string{}
+	for _, snapshot := range snapshots {
+		if snapshot.Delivery == constants.PluginDeliveryNative {
+			body, _ := json.Marshal([]any{snapshot.ID, snapshot.VersionID, snapshot.TargetDigest, snapshot.ConfigurationRevision, snapshot.ProviderAccountID})
+			entries = append(entries, string(body))
+		}
+	}
+	sort.Strings(entries)
+	return strings.Join(entries, "\n")
+}
+
+// nativePluginVersionSupported 仅使用已验证启动契约的CLI代际，未知或更旧版本保留Skill/MCP投射。
+func nativePluginVersionSupported(cli, version string) bool {
+	minimum := []int{}
+	switch cli {
+	case runtimes.RuntimeIDCodex:
+		minimum = []int{0, 161, 0}
+	case runtimes.RuntimeIDClaude:
+		minimum = []int{2, 1, 159}
+	default:
+		return false
+	}
+	match := regexp.MustCompile(`([0-9]+)\.([0-9]+)\.([0-9]+)`).FindStringSubmatch(version)
+	if len(match) != 4 {
+		return false
+	}
+	for index, wanted := range minimum {
+		value, err := strconv.Atoi(match[index+1])
+		if err != nil {
+			return false
+		}
+		if value != wanted {
+			return value > wanted
+		}
+	}
+	return true
 }

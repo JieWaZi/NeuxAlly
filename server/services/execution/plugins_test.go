@@ -414,3 +414,69 @@ func TestSkippedProviderDoesNotLeaseIdentityUntilWorkEnds(t *testing.T) {
 		})
 	}
 }
+
+func TestClaudeNativePluginDoesNotAlsoProjectSkills(t *testing.T) {
+	data := t.TempDir()
+	source := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(source, ".claude-plugin"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(source, ".claude-plugin/plugin.json"), []byte(`{"name":"native","version":"2"}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(source, "skills/probe"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(source, "skills/probe/SKILL.md"), []byte("---\nname: probe\ndescription: Probe native loading\n---\nProbe"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	stage, err := plugins.Stage(filepath.Join(data, "plugins/staging"), source)
+	if err != nil {
+		t.Fatal(err)
+	}
+	root, err := plugins.CopyContent(filepath.Join(data, "plugins/content"), stage.Root, stage.Digest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	relative, _ := filepath.Rel(data, root)
+	version := models.PluginVersion{ID: "v", PluginID: "p", Version: "2", Digest: stage.Digest, ContentPath: relative, Package: stage.Package, TrustedAt: 1}
+	state := models.PluginState{Plugin: models.Plugin{ID: "p"}, Versions: []models.PluginVersion{version}, Installations: []models.WakerPlugin{{WakerID: "w", PluginID: "p", VersionID: "v", Enabled: true}}, Configuration: models.PluginConfiguration{Values: map[string]string{}}}
+	manager := &service{pluginController: installedPluginFixture{states: []models.PluginState{state}}, skillDataDirectory: data}
+	detection := runtimes.DetectionResult{Runtime: runtimes.RuntimeSummary{BaseRuntimeID: runtimes.RuntimeIDClaude}, Version: "2.1.159", Capabilities: runtimes.CapabilitySet{runtimes.CapabilitySkillDirectory: true}}
+	prepared, err := manager.preparePlugins(context.Background(), "w", pendingMessage{}, detection)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer prepared.release()
+	if len(prepared.native) != 1 || len(prepared.skills) != 0 || len(prepared.connectors) != 0 {
+		t.Fatalf("duplicate or missing native delivery: %+v", prepared)
+	}
+}
+
+func TestNativeScopeTracksContentAndIgnoresOrdering(t *testing.T) {
+	a := plugins.Snapshot{ID: "a", VersionID: "v1", Delivery: "native", TargetDigest: "one"}
+	b := plugins.Snapshot{ID: "b", VersionID: "v2", Delivery: "native", TargetDigest: "two"}
+	if nativePluginScope([]plugins.Snapshot{a, b}) != nativePluginScope([]plugins.Snapshot{b, a}) {
+		t.Fatal("reordering changed native scope")
+	}
+	changed := a
+	changed.TargetDigest = "changed"
+	if nativePluginScope([]plugins.Snapshot{a}) == nativePluginScope([]plugins.Snapshot{changed}) || nativePluginScope([]plugins.Snapshot{a}) == nativePluginScope(nil) {
+		t.Fatal("native content change kept old session scope")
+	}
+}
+
+func TestUnknownOrOlderNativeCLIUsesProjection(t *testing.T) {
+	for _, item := range []struct {
+		// cli 是实际目标。
+		cli string
+		// version 是探测版本。
+		version string
+		// supported 表示固定原生契约是否可用。
+		supported bool
+	}{{"codex", "codex-cli 0.161.0", true}, {"claude", "2.1.159 (Claude Code)", true}, {"codex", "0.100.0", false}, {"claude", "", false}, {"kimi", "2.1.159", false}} {
+		if nativePluginVersionSupported(item.cli, item.version) != item.supported {
+			t.Fatalf("wrong capability: %+v", item)
+		}
+	}
+}

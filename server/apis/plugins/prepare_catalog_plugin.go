@@ -30,15 +30,19 @@ func (*PrepareCatalogPlugin) Path() string { return "/catalog/:key/prepare" }
 
 // Output 核验固定目录后复用同一受管快照和资源登记用例。
 func (o *PrepareCatalogPlugin) Output(ctx *gin.Context) (interface{}, error) {
-	directory, err := catalog.Resolve(global.Config.PluginResourcesDirectory, o.Key)
+	entry, err := catalog.Find(global.PluginCatalogSource(), o.Key)
 	if err != nil {
 		return nil, ginx.WithStack(err)
 	}
-	stage, err := packageplugin.Stage(stagedRoot(), directory)
+	directory, err := catalog.ResolveEntry(global.PluginCatalogSource(), entry)
 	if err != nil {
 		return nil, ginx.WithStack(err)
 	}
-	resource, err := prepareResource(ctx, stage, o.Body.OwnerWakerID, "", o.Body.TrustConfirmed, "catalog:"+o.Key)
+	stage, err := packageplugin.StageSource(stagedRoot(), directory, entry.PackagePath)
+	if err != nil {
+		return nil, ginx.WithStack(err)
+	}
+	resource, err := prepareResource(ctx, stage, o.Body.OwnerWakerID, "", o.Body.TrustConfirmed, entry.SourceKey, entry.SourceCommit, entry.ArchiveSHA256, entry.ArchiveURL)
 	if err != nil {
 		return nil, ginx.WithStack(err)
 	}

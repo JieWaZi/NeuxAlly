@@ -133,6 +133,7 @@ func TestCatalogSkillVerifiesArchiveAndReleasesTemporarySnapshot(t *testing.T) {
 	global.Config.PluginResourcesDirectory = t.TempDir()
 	t.Cleanup(func() { global.Config.PluginResourcesDirectory = previous })
 	root := global.Config.PluginResourcesDirectory
+	t.Setenv("ALLY_PLUGIN_CATALOG_URL", root)
 	if err := os.MkdirAll(filepath.Join(root, "catalog"), 0o700); err != nil {
 		t.Fatal(err)
 	}

@@ -610,3 +610,34 @@ const (
 
 // PluginStdioMode 是 Core 内部的原生 MCP 工作目录子进程模式。
 const PluginStdioMode = "plugin-stdio"
+
+const (
+	// PluginCatalogHTTPSource 是默认公开软件目录。
+	PluginCatalogHTTPSource = "https://github.com/JieWaZi/NeuAally-Plugins/releases/latest/download/catalog.json"
+	// PluginAuthCommandStrategy 是包内授权桥接策略。
+	PluginAuthCommandStrategy = "plugin-command"
+	// PluginAuthProtocol 是逐行JSON-RPC授权扩展版本。
+	PluginAuthProtocol = "neuxally-auth/1"
+	// PluginNativeMarketplace 是应用私有Codex原生索引身份。
+	PluginNativeMarketplace = "neuxally-managed"
+	// PluginDeliveryNative 是完整原生包交付。
+	PluginDeliveryNative = "native"
+	// PluginDeliveryProjection 是Skill/MCP投射交付。
+	PluginDeliveryProjection = "skill-mcp"
+	// PluginLoadStagePrepared 表示固定产物已准备，尚不代表模型调用成功。
+	PluginLoadStagePrepared = "prepared"
+	// PluginAuthStartMethod 发起桥接授权。
+	PluginAuthStartMethod = "auth/start"
+	// PluginAuthStatusMethod 核验实际身份。
+	PluginAuthStatusMethod = "auth/status"
+	// PluginAuthCancelMethod 停止上游等待。
+	PluginAuthCancelMethod = "auth/cancel"
+	// PluginAuthResolveMethod 解析获准组件秘密。
+	PluginAuthResolveMethod = "auth/resolve"
+	// PluginAuthLogoutMethod 清理插件私有身份。
+	PluginAuthLogoutMethod = "auth/logout"
+	// PluginAuthChallengeNotification 交付当前临时挑战。
+	PluginAuthChallengeNotification = "auth/challenge"
+	// PluginAuthStateNotification 交付协议实际阶段。
+	PluginAuthStateNotification = "auth/state"
+)

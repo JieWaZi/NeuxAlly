@@ -3,13 +3,11 @@ package plugins
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/authorization"
-	"github.com/JieWaZi/NeuxAlly/server/internal/util"
+	"github.com/JieWaZi/NeuxAlly/server/services/plugininstallation"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/JieWaZi/NeuxAlly/server/constants/status_error"
 	"github.com/JieWaZi/NeuxAlly/server/global"
@@ -38,7 +36,10 @@ func secretValues(config models.PluginConfiguration) map[string]string {
 }
 func readiness(ctx context.Context, version models.PluginVersion, config models.PluginConfiguration, verify bool) (authorization.Account, error) {
 	account := authorization.Account{Scopes: []string{}}
-	if len(version.Package.Servers) > 0 && version.TrustedAt == 0 {
+	if version.Package.Integration.Authentication != nil {
+		return installationService().Readiness(ctx, version, config, verify)
+	}
+	if version.Package.RequiresTrust() && version.TrustedAt == 0 {
 		return account, status_error.MCPConnectorTrustRequired
 	}
 	if err := packageplugin.ValidateValues(version.Package, config.Values, secretValues(config)); err != nil {
@@ -155,94 +156,15 @@ func errorKey(err error) string {
 	return status_error.InternalServerError.Key()
 }
 func stagedRoot() string { return filepath.Join(global.Config.DataDirectory, "plugins", "staging") }
-func prepareResource(ctx context.Context, stage packageplugin.StagedPackage, owner, target string, trusted bool, verifiedSource ...string) (PluginDetailResponse, error) {
-	if len(stage.Package.Servers) > 0 && !trusted {
-		return PluginDetailResponse{}, status_error.MCPConnectorTrustRequired
-	}
-	if owner != "" {
-		if _, err := global.WakerControllerManager.Get(ctx, owner); err != nil {
-			return PluginDetailResponse{}, err
-		}
-	}
-	extension, err := packageplugin.ClientExtension(stage.Package)
+func installationService() *plugininstallation.Service {
+	return plugininstallation.New(plugininstallation.Config{Store: global.PluginControllerManager, Wakers: global.WakerControllerManager, Transactions: global.TransactionControllerManager, Contents: global.PluginContents, DataDirectory: global.Config.DataDirectory, CatalogSource: global.PluginCatalogSource(), Authorizers: global.PluginAuthorizations, Bridges: global.PluginBridges, BridgeEnvironment: global.PluginBridgeEnvironment})
+}
+func prepareResource(ctx context.Context, stage packageplugin.StagedPackage, owner, target string, trusted bool, source ...string) (PluginDetailResponse, error) {
+	resource, version, err := installationService().Prepare(ctx, stage, owner, target, trusted, source...)
 	if err != nil {
 		return PluginDetailResponse{}, err
 	}
-	// 本地清单的 repository 只是作者声明，不能证明来源身份。
-	source := "local:" + stage.Digest
-	if len(verifiedSource) > 0 && verifiedSource[0] != "" {
-		source = verifiedSource[0]
-	}
-	resource := models.Plugin{}
-	if target != "" {
-		resource, err = visiblePlugin(ctx, target, owner)
-	} else {
-		resource, err = global.PluginControllerManager.FindSource(ctx, owner, source)
-	}
-	if err != nil {
-		return PluginDetailResponse{}, err
-	}
-	if resource.ID == "" {
-		name := extension.DisplayName
-		if name == "" {
-			name = stage.Package.Presentation.DisplayName
-		}
-		if name == "" {
-			name = stage.Package.Manifest.Name
-		}
-		resource = models.Plugin{ID: util.New(), Name: name, Description: stage.Package.Manifest.Description, SourceKey: source, OwnerWakerID: owner}
-	}
-	if global.PluginContents != nil {
-		release := global.PluginContents.Guard()
-		defer release()
-	}
-	content, err := packageplugin.CopyContent(filepath.Join(global.Config.DataDirectory, "plugins", "content"), stage.Root, stage.Digest)
-	if err != nil {
-		return PluginDetailResponse{}, err
-	}
-	relative, err := filepath.Rel(global.Config.DataDirectory, content)
-	if err != nil {
-		return PluginDetailResponse{}, status_error.PluginStorageError
-	}
-	versionName := stage.Package.Manifest.Version
-	if versionName == "" {
-		versionName = stage.Digest[:12]
-	}
-	version := models.PluginVersion{ID: util.New(), PluginID: resource.ID, Version: versionName, ContentPath: filepath.ToSlash(relative), Digest: stage.Digest, Package: stage.Package, Provenance: map[string]any{}}
-	if trusted {
-		version.TrustedAt = time.Now().UnixMilli()
-	}
-	if data, readErr := os.ReadFile(filepath.Join(stage.Root, "provenance.json")); readErr == nil {
-		if json.Unmarshal(data, &version.Provenance) != nil {
-			return PluginDetailResponse{}, status_error.PluginContentInvalid
-		}
-	}
-	preparedVersionID := ""
-	err = global.TransactionControllerManager.Transaction(ctx, func(txctx context.Context) error {
-		existing, err := global.PluginControllerManager.FindSource(txctx, resource.OwnerWakerID, resource.SourceKey)
-		if err != nil {
-			return err
-		}
-		if target == "" && existing.ID != "" {
-			resource = existing
-			version.PluginID = existing.ID
-		} else if existing.ID == "" {
-			if _, err := global.PluginControllerManager.Get(txctx, resource.ID); errors.Is(err, status_error.PluginNotFound) {
-				if err := global.PluginControllerManager.Create(txctx, resource); err != nil {
-					return err
-				}
-			} else if err != nil {
-				return err
-			}
-		}
-		stored, err := global.PluginControllerManager.PutVersion(txctx, version)
-		preparedVersionID = stored.ID
-		return err
-	})
-	if err != nil {
-		return PluginDetailResponse{}, err
-	}
-	return pluginDetail(ctx, resource, preparedVersionID)
+	return pluginDetail(ctx, resource, version)
 }
 
 // providerSnapshotKey 只在一次列表查询内复用官方身份结果。
@@ -322,6 +244,9 @@ func listPluginResources(ctx context.Context, waker, query string, page, size in
 		detail, err := detailFromState(ctx, resource, states[resource.ID], selectedVersion)
 		if err != nil {
 			return result, err
+		}
+		for index := range detail.Versions {
+			detail.Versions[index].Package.Readme = ""
 		}
 		result.Resources = append(result.Resources, detail)
 	}

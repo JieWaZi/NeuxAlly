@@ -76,3 +76,18 @@ func TestWorkflowSDKTopicsAreDiscoveredAndCheckedByKind(t *testing.T) {
 		t.Fatal("preparation accepted missing primitives or an unknown feature")
 	}
 }
+
+func TestPluginInstallContractCannotChooseAnotherPartnerOrLocalPath(t *testing.T) {
+	op, ok := Find("plugins.installations.install")
+	if !ok {
+		t.Fatal("missing system plugin installation operation")
+	}
+	if op.Validate(map[string]any{"key": "github", "trustConfirmed": true}) != nil {
+		t.Fatal("valid install rejected")
+	}
+	for _, field := range []string{"wakerId", "location", "nativeScope"} {
+		if op.Validate(map[string]any{"key": "github", "trustConfirmed": true, field: "outside"}) == nil {
+			t.Fatalf("accepted caller-selected scope %s", field)
+		}
+	}
+}

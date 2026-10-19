@@ -419,6 +419,8 @@ type RuntimeTarget struct {
 	Binary string
 	// PrefixArgs 是本地 Profile 配置的受控前置参数。
 	PrefixArgs []string
+	// NativePluginDirectories 是本轮已经核验且独占交付的Claude原生包目录。
+	NativePluginDirectories []string
 	// ConfigHome 是 Runtime 使用的受控配置目录。
 	ConfigHome string
 }

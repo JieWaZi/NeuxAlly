@@ -111,6 +111,18 @@ type Package struct {
 	Icon string `json:"icon,omitempty"`
 	// 插件说明
 	Readme string `json:"readme,omitempty"`
+	// 原生组成
+	NativeComponents []NativeComponent `json:"nativeComponents,omitempty"`
+	// 目标实现
+	NativeImplementations map[string]NativeImplementation `json:"nativeImplementations,omitempty"`
+	// 来源入口
+	SourcePath string `json:"sourcePath,omitempty"`
+	// 原生实现
+	Integration Integration `json:"integration,omitempty"`
+	// 正文状态
+	ReadmeStatus string `json:"readmeStatus,omitempty"`
+	// 正文路径
+	ReadmePath string `json:"readmePath,omitempty"`
 	// 包含技能
 	Skills []Skill `json:"skills"`
 	// 包含连接器
@@ -233,7 +245,11 @@ func Load(root string) (Package, error) {
 			pkg.loadDeclaredMCP(root, value)
 		}
 	}
+	pkg.loadNativeComponents(root, raw)
 	pkg.loadPresentation(root, raw)
+	if err := pkg.loadIntegration(root); err != nil {
+		return pkg, err
+	}
 	sort.Slice(pkg.Skills, func(i, j int) bool { return pkg.Skills[i].Key < pkg.Skills[j].Key })
 	sort.Slice(pkg.Servers, func(i, j int) bool { return pkg.Servers[i].Key < pkg.Servers[j].Key })
 	sort.Slice(pkg.Diagnostics, func(i, j int) bool {

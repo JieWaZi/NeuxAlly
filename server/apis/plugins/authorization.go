@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/authorization"
 	"slices"
+	"strings"
 
 	"github.com/JieWaZi/NeuxAlly/server/constants"
 	"github.com/JieWaZi/NeuxAlly/server/constants/status_error"
@@ -39,6 +40,10 @@ func pluginAuthorizer(ctx context.Context, id, waker string, selectedVersion ...
 			return nil, packageplugin.Extension{}, status_error.PluginVersionConflict
 		}
 	}
+	if declaration := version.Package.Integration.Authentication; declaration != nil {
+		auth, _, err := installationService().Bridge(version)
+		return auth, packageplugin.Extension{Provider: "plugin-command", Scopes: declaration.Scopes}, err
+	}
 	extension, err := packageplugin.ClientExtension(version.Package)
 	if err != nil {
 		return nil, extension, err
@@ -68,7 +73,20 @@ func removePluginReferences(ctx context.Context, plugin, waker string, versions 
 		}
 	}()
 	for _, provider := range providers {
-		if auth := global.PluginAuthorizations[provider]; auth != nil {
+		auth := global.PluginAuthorizations[provider]
+		if strings.HasPrefix(provider, "plugin:") {
+			for _, version := range versions {
+				if "plugin:"+version.PluginID == provider {
+					var bridgeErr error
+					auth, _, bridgeErr = installationService().Bridge(version)
+					if bridgeErr != nil {
+						return bridgeErr
+					}
+					break
+				}
+			}
+		}
+		if auth != nil {
 			guard, err := auth.GuardReferences()
 			if err != nil {
 				return err
@@ -119,6 +137,13 @@ func removePluginReferences(ctx context.Context, plugin, waker string, versions 
 func providerNames(versions []models.PluginVersion) ([]string, error) {
 	providers := []string{}
 	for _, version := range versions {
+		if version.Package.Integration.Authentication != nil {
+			identity := "plugin:" + version.PluginID
+			if !slices.Contains(providers, identity) {
+				providers = append(providers, identity)
+			}
+			continue
+		}
 		extension, err := packageplugin.ClientExtension(version.Package)
 		if err != nil {
 			return nil, err

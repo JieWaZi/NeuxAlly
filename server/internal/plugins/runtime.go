@@ -22,6 +22,16 @@ type Snapshot struct {
 	VersionID string `json:"versionId"`
 	// Version 是固定版本显示值。
 	Version string `json:"version"`
+	// NativePluginID 是目标原生插件命名空间，便于解释组件来源。
+	NativePluginID string `json:"nativePluginId,omitempty"`
+	// TargetVersion 是当前CLI实际交付版本。
+	TargetVersion string `json:"targetVersion,omitempty"`
+	// TargetDigest 是当前CLI实际完整内容摘要。
+	TargetDigest string `json:"targetDigest,omitempty"`
+	// Delivery 是原生插件或Skill/MCP投射。
+	Delivery string `json:"delivery,omitempty"`
+	// LoadStage 区分准备与实际会话加载。
+	LoadStage string `json:"loadStage,omitempty"`
 	// ConfigurationRevision 是本次使用的共享配置修订。
 	ConfigurationRevision int64 `json:"configurationRevision"`
 	// ProviderAccountID 是本次共享提供者账号身份，不含凭据。

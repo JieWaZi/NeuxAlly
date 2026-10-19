@@ -2,6 +2,7 @@ package authorization
 
 import (
 	"context"
+	"errors"
 	"net/url"
 	"slices"
 	"sort"
@@ -15,6 +16,12 @@ import (
 
 // Device 是适配器报告的用户确认入口，不包含内部设备凭据或访问令牌。
 type Device struct {
+	// ChallengeID 是桥接签发的唯一挑战。
+	ChallengeID string
+	// Actions 是桥接明确提供的交互。
+	Actions []Action
+	// DeadlineAt 是本机等待上限。
+	DeadlineAt int64
 	// VerificationURL 是官方原始确认地址。
 	VerificationURL string
 	// UserCode 是需用户输入的一次性验证码。
@@ -45,6 +52,8 @@ type Config struct {
 
 // Authorizer 拥有唯一共享 profile 的等待和工作占用，不持久化第二份账号。
 type Authorizer struct {
+	// driverMu 保护固定桥接版本的安全切换。
+	driverMu sync.RWMutex
 	// config 是提供者协议与最小权限。
 	config Config
 	// mu 保护会话和身份占用。
@@ -94,8 +103,8 @@ func (a *Authorizer) Close() {
 	a.mu.Unlock()
 	a.workers.Wait()
 }
-func (a *Authorizer) Binary() string                 { return a.config.Driver.Binary() }
-func (a *Authorizer) Environment() map[string]string { return a.config.Driver.Environment() }
+func (a *Authorizer) Binary() string                 { return a.driver().Binary() }
+func (a *Authorizer) Environment() map[string]string { return a.driver().Environment() }
 
 // RequiredScopes 合并提供者及插件权限，保持稳定顺序且不跨提供者追加权限。
 func (a *Authorizer) RequiredScopes(requested ...string) []string {
@@ -110,14 +119,14 @@ func (a *Authorizer) RequiredScopes(requested ...string) []string {
 
 // ScopeGranted 委托提供者解释权限包含关系，默认使用精确匹配。
 func (a *Authorizer) ScopeGranted(granted []string, required string) bool {
-	if driver, ok := a.config.Driver.(interface{ ScopeGranted([]string, string) bool }); ok {
+	if driver, ok := a.driver().(interface{ ScopeGranted([]string, string) bool }); ok {
 		return driver.ScopeGranted(granted, required)
 	}
 	return slices.Contains(granted, required)
 }
 
 func (a *Authorizer) Status(ctx context.Context, verify bool) (Account, error) {
-	result, err := a.config.Driver.Status(ctx, verify)
+	result, err := a.driver().Status(ctx, verify)
 	for _, scope := range a.config.Scopes {
 		if !a.ScopeGranted(result.Scopes, scope) {
 			result.Available = false
@@ -128,7 +137,7 @@ func (a *Authorizer) Status(ctx context.Context, verify bool) (Account, error) {
 
 // AuthorizeServer 仅由确实需要远程凭据的适配器提供，令牌不能进入共享配置或快照。
 func (a *Authorizer) AuthorizeServer(ctx context.Context, address string) (map[string]string, error) {
-	if driver, ok := a.config.Driver.(interface {
+	if driver, ok := a.driver().(interface {
 		AuthorizeServer(context.Context, string) (map[string]string, error)
 	}); ok {
 		return driver.AuthorizeServer(ctx, address)
@@ -178,7 +187,7 @@ func (a *Authorizer) Configure(ctx context.Context, id, secret string) error {
 	if a.active > 0 || a.deviceRunning || a.resetting {
 		return status_error.PluginBusy
 	}
-	if err := a.config.Driver.Configure(ctx, id, secret); err != nil {
+	if err := a.driver().Configure(ctx, id, secret); err != nil {
 		return err
 	}
 	a.session = Session{Account: Account{Scopes: []string{}}}
@@ -190,7 +199,7 @@ func (a *Authorizer) Logout(ctx context.Context) error {
 	if a.active > 0 || a.deviceRunning || a.resetting {
 		return status_error.PluginBusy
 	}
-	if err := a.config.Driver.Logout(ctx); err != nil {
+	if err := a.driver().Logout(ctx); err != nil {
 		return err
 	}
 	a.session = Session{Account: Account{Scopes: []string{}}}
@@ -200,6 +209,7 @@ func (a *Authorizer) Snapshot() Session { a.mu.Lock(); defer a.mu.Unlock(); retu
 func (a *Authorizer) snapshotLocked() Session {
 	s := a.session
 	s.Account.Scopes = append([]string{}, s.Account.Scopes...)
+	s.Actions = slices.Clone(s.Actions)
 	return s
 }
 
@@ -224,7 +234,7 @@ func (a *Authorizer) Login(ctx context.Context, requested ...string) (Session, e
 		return Session{}, status_error.PluginNotReady
 	}
 	account, err := a.Status(ctx, false)
-	_, canInitialize := a.config.Driver.(interface {
+	_, canInitialize := a.driver().(interface {
 		Initialize(context.Context, func(Device) error) error
 	})
 	if err != nil || (!account.Configured && !canInitialize) {
@@ -252,9 +262,22 @@ func (a *Authorizer) Login(ctx context.Context, requested ...string) (Session, e
 		timeout := time.AfterFunc(30*time.Second, func() { cancel(context.DeadlineExceeded) })
 		defer timeout.Stop()
 		reportDevice := func(device Device) error {
-			parsed, err := url.Parse(device.VerificationURL)
-			duration := time.Until(time.UnixMilli(device.ExpiresAt))
-			if err != nil || parsed.Scheme != "https" || parsed.Host == "" || duration <= 0 || duration > 30*time.Minute {
+			expiry := device.ExpiresAt
+			if expiry == 0 {
+				expiry = device.DeadlineAt
+			}
+			duration := time.Until(time.UnixMilli(expiry))
+			if len(device.Actions) == 0 {
+				parsed, err := url.Parse(device.VerificationURL)
+				if err != nil || parsed.Scheme != "https" || parsed.Host == "" {
+					return status_error.PluginAuthorizationFailed
+				}
+				device.Actions = []Action{{Type: "open-url", URL: device.VerificationURL}, {Type: "show-qr", Value: device.VerificationURL}}
+				if device.UserCode != "" {
+					device.Actions = append(device.Actions, Action{Type: "copy-code", Value: device.UserCode})
+				}
+			}
+			if duration <= 0 || duration > 30*time.Minute {
 				return status_error.PluginAuthorizationFailed
 			}
 			a.mu.Lock()
@@ -262,6 +285,12 @@ func (a *Authorizer) Login(ctx context.Context, requested ...string) (Session, e
 				a.mu.Unlock()
 				return context.Canceled
 			}
+			a.session.ChallengeID = device.ChallengeID
+			if a.session.ChallengeID == "" {
+				a.session.ChallengeID = util.New()
+			}
+			a.session.Actions = slices.Clone(device.Actions)
+			a.session.DeadlineAt = device.DeadlineAt
 			a.session.VerificationURL = device.VerificationURL
 			a.session.UserCode = device.UserCode
 			a.session.ExpiresAt = device.ExpiresAt
@@ -278,12 +307,18 @@ func (a *Authorizer) Login(ctx context.Context, requested ...string) (Session, e
 		var err error
 		if !account.Configured {
 			// 只有声明初始化能力的官方适配器才能在同一独占会话内先完成应用扫码。
-			err = a.config.Driver.(interface {
+			err = a.driver().(interface {
 				Initialize(context.Context, func(Device) error) error
 			}).Initialize(work, reportDevice)
 		}
 		if err == nil {
-			err = a.config.Driver.Login(work, scopes, reportDevice)
+			if driver, ok := a.driver().(interface {
+				LoginSession(context.Context, string, []string, func(Device) error) error
+			}); ok {
+				err = driver.LoginSession(work, id, scopes, reportDevice)
+			} else {
+				err = a.driver().Login(work, scopes, reportDevice)
+			}
 		}
 		result := Account{Scopes: []string{}}
 		if err == nil {
@@ -305,12 +340,14 @@ func (a *Authorizer) Login(ctx context.Context, requested ...string) (Session, e
 			if err != nil {
 				a.session.State = constants.PluginAuthorizationStateFailed
 				a.session.ErrorCode = "PluginAuthorizationFailed"
-				if context.Cause(work) == context.DeadlineExceeded {
+				if context.Cause(work) == context.DeadlineExceeded || errors.Is(err, context.DeadlineExceeded) {
 					a.session.State = constants.PluginAuthorizationStateExpired
-				} else if work.Err() != nil {
+				} else if work.Err() != nil || errors.Is(err, context.Canceled) {
 					a.session.State = constants.PluginAuthorizationStateCancelled
 				}
 			}
+			a.session.Actions = nil
+			a.session.ChallengeID = ""
 			a.session.VerificationURL = ""
 			a.session.UserCode = ""
 			a.session.Account = result
@@ -364,6 +401,8 @@ func (a *Authorizer) cancelSession(id string) (<-chan struct{}, error) {
 	}
 	if a.session.State == constants.PluginAuthorizationStateWaiting {
 		a.session.State = constants.PluginAuthorizationStateCancelled
+		a.session.Actions = nil
+		a.session.ChallengeID = ""
 		a.session.VerificationURL = ""
 		a.session.UserCode = ""
 		if a.cancel != nil {
@@ -419,6 +458,8 @@ func (g *ReferenceGuard) Reset(ctx context.Context) error {
 	if a.session.State == constants.PluginAuthorizationStateWaiting {
 		a.session.State = constants.PluginAuthorizationStateCancelled
 		a.session.VerificationURL, a.session.UserCode = "", ""
+		a.session.Actions = nil
+		a.session.ChallengeID = ""
 	}
 	if a.cancel != nil {
 		a.cancel(context.Canceled)
@@ -434,7 +475,7 @@ func (g *ReferenceGuard) Reset(ctx context.Context) error {
 			return status_error.OperationCanceled
 		}
 	}
-	if err := a.config.Driver.Logout(ctx); err != nil {
+	if err := a.driver().Logout(ctx); err != nil {
 		return err
 	}
 	a.mu.Lock()
@@ -452,4 +493,23 @@ func (g *ReferenceGuard) Close() {
 		g.authorizer.resetting = false
 		g.authorizer.mu.Unlock()
 	})
+}
+
+// ReplaceDriver 仅在授权与执行均空闲时切换固定入口，保留同一共享身份租约。
+func (a *Authorizer) ReplaceDriver(driver Driver) error {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.active > 0 || a.deviceRunning || a.resetting {
+		return status_error.PluginBusy
+	}
+	a.driverMu.Lock()
+	a.config.Driver = driver
+	a.driverMu.Unlock()
+	a.session = Session{Account: Account{Scopes: []string{}}}
+	return nil
+}
+func (a *Authorizer) driver() Driver {
+	a.driverMu.RLock()
+	defer a.driverMu.RUnlock()
+	return a.config.Driver
 }

@@ -3,6 +3,7 @@ package contract
 // DisplayLabel 返回不含模型数据的固定产品动作；完成语义不由文字推断。
 func (o Operation) DisplayLabel() string {
 	labels := map[string]string{
+		"plugins.catalog.search": "搜索插件", "plugins.catalog.get": "查看插件资料", "plugins.installations.install": "安装插件", "plugins.installations.get": "查看插件安装状态",
 		"workflow.authoring.prepare": "准备工作流创作",
 		"im.targets.list":            "查看可发送聊天", "im.deliveries.create": "提交消息交付", "im.deliveries.get": "查看交付状态", "im.deliveries.wait": "等待消息交付",
 		"workflow.source.get": "读取工作流", "workflow.source.validate": "检查工作流", "workflow.source.save": "保存工作流", "workflow.sdk.get": "了解工作流能力", "workflow.resources.list": "查看可用伙伴与资源", "workflow.annotations.list": "查看修改要求", "workflow.evidence.list": "查看执行记录",
