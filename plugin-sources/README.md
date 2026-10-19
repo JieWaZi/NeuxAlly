@@ -1,14 +1,10 @@
 # 固定插件源
 
-`neuxally-plugins.bundle` 是独立 Git 仓库的完整可恢复快照，固定提交和包来源在 `source.lock.json`。开发者可用 `git clone plugin-sources/neuxally-plugins.bundle` 在应用仓库之外恢复源仓库，审阅或维护 `catalog.json`、标准插件包和来源记录。应用运行时不访问 Git 或插件服务器。
+当前插件来自独立公开仓库 [JieWaZi/NeuAally-Plugins](https://github.com/JieWaZi/NeuAally-Plugins)。应用默认通过 HTTP Release 的 `catalog.json` 读取目录，按不可变下载地址和 SHA-256 获取安装 ZIP；运行期间不调用 Git。目录元数据与安装归档由插件仓库构建发布，应用不内置插件安装包。
 
-`pnpm plugins:prepare` 在构建时从该提交生成本地目录，并按目标平台获取已固定 URL 和 SHA-256 的飞书 CLI 发布资产与 GitHub CLI 源码。`pnpm plugins:check` 仅离线检查源快照和目录，不下载或执行 CLI。已经缓存原始发布资产后，可使用 `node scripts/plugin-resources.mjs --offline` 完成离线准备。
+`pnpm plugins:prepare` 只生成软件来源元数据并为旧版已安装资源准备固定 CLI 资产；不从历史 bundle 构建插件 ZIP，也不生成覆盖上游 README 的阅读指南。`pnpm plugins:check` 校验来源声明与本地资产规则。`ALLY_PLUGIN_CATALOG_URL` 可明确选择 HTTP 镜像或本地目录；默认不会因旧资源目录仍有 `catalog.json` 而回退旧目录。
 
-每个内置插件必须提供一句简短的能力简介和根 `README.md`。说明面向使用者，以精炼 Markdown 介绍插件本身的能力和典型用途，不包含应用项目介绍、伙伴使用流程或安装引导；构建、隔离补丁、源码摘要等维护细节保留在来源记录、许可证和本目录文档中。`node scripts/plugin-resources.mjs --guides-only` 从固定源生成客户端阅读资料，不下载 CLI；`pnpm plugins:check` 校验说明与固定源一致。完善阅读资料不会切换已经安装的执行版本。
-
-公开维护入口为 [JieWaZi/neuxally-plugins](https://github.com/JieWaZi/neuxally-plugins)，已从本目录的独立 bundle 恢复源码历史，并保留上游来源、许可和对应隔离补丁。公开仓库提供标准 OpenAI marketplace 来源索引；当前插件包仍依赖既有 NeuxAlly 授权集成，不代表 v2 原生加载和声明式授权已经验收。
-
-更新流程：在独立源仓库修改包并提交，重新导出 bundle，核对并更新来源锁，再执行生成和检查。应用当前仍只消费审核过的固定提交；公开仓库发布不会自动改变本机安装或触发运行时 Git 同步。在线目录与通用授权的目标行为见 [插件 v2 设计](../docs/superpowers/specs/2026-10-19-plugin-v2-design.md)。
+本目录的历史 bundle、来源锁和许可材料保留旧版包的来源证据与已安装资源兼容所需的依赖来源，不是新目录的运行权威。v2 插件的原生来源、授权桥接、依赖下载锁和发布流程以独立仓库为准；应用负责完整快照、来源选择和通用授权会话。
 
 飞书包保留官方固定提交的完整 `skills/` 与相对引用、许可证和 provenance；首版主验收路径为文档、多维表格、日程和任务。包维护者与上游作者分别记录。原生程序只进入构建产物，不提交大型程序文件，也不安装到全局 PATH。
 

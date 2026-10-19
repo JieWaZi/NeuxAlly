@@ -1,6 +1,6 @@
 ---
 name: ally
-description: Use NeuxAlly-provided capabilities through allycli for message and file delivery, workflow authoring or execution, team coordination, memory, and structured user questions. Apply when a task needs a platform operation advertised by allycli; ordinary file editing or shell work alone does not require this skill.
+description: Use NeuxAlly-provided capabilities through allycli for message and file delivery, workflow authoring or execution, team coordination, memory, plugins, and structured user questions. Apply when a task needs a platform operation advertised by allycli; ordinary file editing or shell work alone does not require this skill.
 ---
 
 # NeuxAlly
@@ -55,3 +55,7 @@ Use real file references for requested artifacts. Submit the actual candidate
 or report through the advertised result operation; a final chat message is
 not a submission receipt. Tell the user what was actually saved, accepted,
 completed, or delivered, preserving failures and uncertainty.
+
+## System plugins
+
+When advertised, use `plugins.catalog.search` and `plugins.catalog.get` to inspect the fixed software catalog, then `plugins.installations.install` for the current partner. Preserve the request ID on retries. Complete any returned authorization session in the plugin interface; temporary authorization material is not a chat result. An installed receipt records the system relationship and enables the next execution. Never replace this operation with native CLI global plugin installation or edit the user's Codex or Claude global registry.
