@@ -70,7 +70,12 @@ export function QueryRefreshError({
       <p className="min-w-0 flex-1 break-words">
         {localApiErrorMessage(error, t("resourceSelection.refreshFailed"))}
       </p>
-      <Button type="button" variant="secondary" disabled={pending} onClick={onRetry}>
+      <Button
+        type="button"
+        variant="secondary"
+        disabled={pending}
+        onClick={onRetry}
+      >
         {t("retry")}
       </Button>
     </StatusNotice>

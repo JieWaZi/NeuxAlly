@@ -155,7 +155,11 @@ export function WakerDetailPage() {
                         {t("detail.editProfile")}
                       </PageActionLabel>
                     </PageAction>
-                    <PageAction asChild intent="primary" label={t("detail.startChat")}>
+                    <PageAction
+                      asChild
+                      intent="primary"
+                      label={t("detail.startChat")}
+                    >
                       <Link
                         to={chatDraftHref(wakerId)}
                         aria-label={t("detail.startChat")}
