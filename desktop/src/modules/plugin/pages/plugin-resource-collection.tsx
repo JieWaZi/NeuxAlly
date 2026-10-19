@@ -552,6 +552,7 @@ function PluginCatalogUpdateInfo({
       <PopoverContent
         ref={content}
         width="default"
+        side="top"
         align="end"
         aria-label={t("catalogUpdateInfo")}
         onPointerEnter={cancelClose}
