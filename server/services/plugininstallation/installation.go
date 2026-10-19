@@ -451,9 +451,11 @@ func (s *Service) bridge(version models.PluginVersion, acquire bool, uses ...aut
 		return nil, nil, nil, err
 	}
 	config := commandbridge.Config{Command: command, Args: args, Directory: root, DataDirectory: filepath.Join(s.config.DataDirectory, "plugins", "data", version.PluginID), PluginID: version.PluginID, Environment: s.config.BridgeEnvironment}
+	// 同一来源快照的不同原生目录也必须各自固定入口，不能复用其他目标的Driver。
+	bridgeDigest := version.Digest + ":" + filepath.ToSlash(version.Package.SourcePath)
 	if acquire {
-		return s.config.Bridges.Acquire(version.PluginID, version.Digest, config, declaration.Scopes, uses...)
+		return s.config.Bridges.Acquire(version.PluginID, bridgeDigest, config, declaration.Scopes, uses...)
 	}
-	auth, driver, err := s.config.Bridges.Get(version.PluginID, version.Digest, config, declaration.Scopes)
+	auth, driver, err := s.config.Bridges.Get(version.PluginID, bridgeDigest, config, declaration.Scopes)
 	return auth, driver, nil, err
 }
