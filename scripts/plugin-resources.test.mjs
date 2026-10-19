@@ -18,7 +18,6 @@ import {
   loadLock,
   verifyDigest,
   prepareCatalog,
-  syncPluginGuides,
   selectAsset,
 } from "./plugin-resources.mjs";
 
@@ -58,7 +57,7 @@ test("desktop catalog preparation emits only an HTTP source and removes stale em
       schemaVersion: 1,
       sources: [
         {
-          url: "https://github.com/JieWaZi/NeuAally-Plugins/releases/latest/download/catalog.json",
+          url: "https://github.com/JieWaZi/NeuxAlly-Plugins/releases/latest/download/catalog.json",
         },
       ],
     });

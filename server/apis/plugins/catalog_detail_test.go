@@ -3,6 +3,7 @@ package plugins
 import (
 	"archive/zip"
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/json"
 	"errors"
@@ -49,7 +50,10 @@ func TestCatalogDetailAndRawReadmeAreReadOnlyAndSourceBound(t *testing.T) {
 				_, _ = w.Write(archive.Bytes())
 			}))
 			defer source.Close()
-			t.Setenv("ALLY_PLUGIN_CATALOG_URL", source.URL+"/catalog.json")
+			location := source.URL + "/catalog.json"
+			stopCatalog := catalog.Start(context.Background(), location, t.TempDir(), nil)
+			defer stopCatalog()
+			t.Setenv("ALLY_PLUGIN_CATALOG_URL", location)
 			output, err := (&GetCatalogPlugin{Key: "demo"}).Output(ctx)
 			if err != nil {
 				t.Fatal(err)
@@ -77,7 +81,7 @@ func TestCatalogDetailAndRawReadmeAreReadOnlyAndSourceBound(t *testing.T) {
 			if !errors.Is(err, status_error.PluginVersionConflict) {
 				t.Fatalf("accepted mismatched displayed version: %v", err)
 			}
-			_, total, err := global.PluginControllerManager.List(ctx, "", "", "", 0, 100)
+			_, total, err := global.PluginControllerManager.List(ctx, "", "", "", 0, 100, false)
 			if err != nil || total != 0 {
 				t.Fatalf("read-only preview created system resources: %d %v", total, err)
 			}
@@ -101,7 +105,7 @@ func TestCatalogAndInstalledReadmeLocaleKeepsPinnedSource(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	detail, err := prepareResource(ctx, stage, "", "", false)
+	detail, err := prepareCatalogFixture(t, ctx, stage, "", "", false)
 	if err != nil {
 		t.Fatal(err)
 	}

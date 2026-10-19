@@ -10,6 +10,5 @@ export { PluginSkillDetailPage } from "./pages/plugin-skill-detail-page";
 
 export { useInstalledPluginReferences } from "./api/use-installed-plugin-references";
 
-export { PluginImportDialog } from "./components/plugin-import-dialog";
 export { PluginInstallDialog } from "./components/plugin-install-dialog";
 export type { PluginDetail } from "./model/plugin-view";

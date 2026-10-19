@@ -50,24 +50,6 @@ type ListPluginsResponse struct {
 	PageSize int `json:"pageSize"`
 }
 
-// 插件扫描请求
-type ScanPluginRequest struct {
-	// 本地路径
-	Location string `json:"location" validate:"required"`
-}
-
-// 插件准备请求
-type PreparePluginRequest struct {
-	// 运行确认
-	TrustConfirmed bool `json:"trustConfirmed"`
-	// 批次令牌
-	Token string `json:"token" validate:"required"`
-	// 所属伙伴
-	OwnerWakerID string `json:"ownerWakerId,omitempty"`
-	// 目标插件
-	PluginID string `json:"pluginId,omitempty"`
-}
-
 // 插件安装请求
 type InstallPluginRequest struct {
 	// 目标版本

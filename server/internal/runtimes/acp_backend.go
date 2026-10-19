@@ -2,8 +2,10 @@ package runtimes
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
+	"maps"
 	"strconv"
 	"strings"
 	"sync"
@@ -560,6 +562,8 @@ func acpAdapterConfigForRequest(
 		PermissionMode:   string(request.Request.Policy.Execution.PermissionLevel),
 	}
 	config.NativePluginDirectories = cloneStrings(request.Request.Target.NativePluginDirectories)
+	config.CodexPluginConfiguration = maps.Clone(request.Request.Target.CodexPluginConfiguration)
+	config.ClaudeSettingsPath = request.Request.Target.ClaudeSettingsPath
 	if binding.stateDirectory != nil {
 		config.StateDirectory = binding.stateDirectory(request)
 	}
@@ -620,6 +624,7 @@ func acpAgentKeyForBinding(request acpRunRequest, binding acpRuntimeBinding) str
 	for _, directory := range request.Request.Target.NativePluginDirectories {
 		prefixArgs = append(prefixArgs, directory)
 	}
+	pluginConfiguration, _ := json.Marshal(request.Request.Target.CodexPluginConfiguration)
 	workspace := ""
 	if binding.agentScope != nil {
 		workspace = binding.agentScope(request)
@@ -628,7 +633,7 @@ func acpAgentKeyForBinding(request acpRunRequest, binding acpRuntimeBinding) str
 		request.Prepared.detection.ResolvedBinary + "\x00" +
 		request.Prepared.detection.Version + "\x00" +
 		strconv.Itoa(len(prefixArgs)) + "\x00" +
-		strings.Join(prefixArgs, "\x00") + "\x00" +
+		strings.Join(prefixArgs, "\x00") + "\x00" + string(pluginConfiguration) + "\x00" + request.Request.Target.NativePluginScope + "\x00" + request.Request.Target.ClaudeSettingsPath + "\x00" +
 		request.Prepared.environment.fingerprint + "\x00" + workspace
 }
 

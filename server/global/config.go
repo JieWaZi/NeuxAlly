@@ -509,8 +509,7 @@ func loadChat(ctx context.Context, configuration *Configuration, handlerFactory 
 		AgentEndpoint: "http://127.0.0.1:" + strconv.Itoa(configuration.Server.Port) + constants.AgentCLIPath,
 		AgentBinary:   agentBinaryPath(),
 		AgentBindings: func(chat models.Chat, executionID string, roots []string) []agentcapability.Binding {
-			installer := plugininstallation.New(plugininstallation.Config{Store: PluginControllerManager, Wakers: WakerControllerManager, Transactions: TransactionControllerManager, Contents: PluginContents, DataDirectory: configuration.DataDirectory, CatalogSource: PluginCatalogSource(), Authorizers: PluginAuthorizations, Bridges: PluginBridges, BridgeEnvironment: PluginBridgeEnvironment, Commands: controllers.NewAgentCommandController(DB)})
-			bindings := installer.AgentBindings(chat, executionID)
+			bindings := []agentcapability.Binding{}
 			bindings = append(bindings, MemoryService.AgentBindings(memory.Context{RunID: executionID, ChatID: chat.ID, PartnerID: chat.WakerID, ProjectID: chat.ProjectID})...)
 			if IMService != nil {
 				bindings = append(bindings, IMService.AgentBindings(chat, executionID, roots, EventHub)...)
@@ -525,7 +524,7 @@ func loadChat(ctx context.Context, configuration *Configuration, handlerFactory 
 		Profiles:            ProfileDocumentControllerManager,
 		Projects:            ProjectControllerManager,
 		Skills:              SkillControllerManager,
-		PluginInstallations: plugininstallation.New(plugininstallation.Config{Store: PluginControllerManager, Wakers: WakerControllerManager, Transactions: TransactionControllerManager, Contents: PluginContents, DataDirectory: configuration.DataDirectory, CatalogSource: PluginCatalogSource(), Authorizers: PluginAuthorizations, Bridges: PluginBridges, BridgeEnvironment: PluginBridgeEnvironment}),
+		PluginInstallations: plugininstallation.New(plugininstallation.Config{Contents: PluginContents, DataDirectory: configuration.DataDirectory, Authorizers: PluginAuthorizations, Bridges: PluginBridges, BridgeEnvironment: PluginBridgeEnvironment}),
 		PluginContents:      PluginContents, Plugins: PluginControllerManager, PluginAuthorizers: PluginAuthorizations, PluginLauncher: coreExecutablePath(),
 		Connectors:          MCPConnectorControllerManager,
 		RuntimeEnvironments: RuntimeEnvironmentControllerManager,

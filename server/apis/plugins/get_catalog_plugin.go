@@ -25,13 +25,17 @@ func (*GetCatalogPlugin) Path() string { return "/catalog/:key" }
 
 // Output 按需核验完整来源，不创建系统资源或伙伴安装。
 func (o *GetCatalogPlugin) Output(ctx *gin.Context) (interface{}, error) {
-	entry, err := catalog.Find(global.PluginCatalogSource(), o.Key)
+	entry, archive, err := catalog.ResolveDocumentation(global.PluginCatalogSource(), o.Key)
 	if err != nil {
 		return nil, ginx.WithStack(err)
 	}
-	archive, err := catalog.ResolveEntry(global.PluginCatalogSource(), entry)
-	if err != nil {
-		return nil, ginx.WithStack(err)
+	if entry.DetailsURL != "" {
+		details, err := catalog.ReadDetails(entry)
+		if err != nil {
+			return nil, ginx.WithStack(err)
+		}
+		entry.Package = details.ViewPackage(o.Locale)
+		return entry, nil
 	}
 	stage, err := packageplugin.StageSource(stagedRoot(), archive, entry.PackagePath)
 	if err != nil {

@@ -10,6 +10,9 @@ import {
 
 export type PluginSkillContext = {
   catalogKey?: string;
+  sourceCommit?: string;
+  archiveSHA256?: string;
+  target?: string;
   pluginId?: string;
   versionId?: string;
   wakerId?: string;
@@ -33,7 +36,12 @@ export function PluginSkillDialog({
     ...getCatalogPluginSkillOptions(
       withLocalErrorSurface({
         path: { key: context.catalogKey ?? "" },
-        query: { skillKey },
+        query: {
+          skillKey,
+          target: context.target,
+          sourceCommit: context.sourceCommit,
+          archiveSHA256: context.archiveSHA256,
+        },
       }),
     ),
     enabled: Boolean(context.catalogKey),
@@ -45,6 +53,7 @@ export function PluginSkillDialog({
         query: {
           versionId: context.versionId ?? "",
           key: skillKey,
+          target: context.target,
           wakerId: context.wakerId,
         },
       }),

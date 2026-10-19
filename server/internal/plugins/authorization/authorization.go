@@ -3,6 +3,7 @@ package authorization
 import (
 	"context"
 	"errors"
+	"maps"
 	"net/url"
 	"slices"
 	"sort"
@@ -20,6 +21,8 @@ type Device struct {
 	ChallengeID string
 	// Actions 是桥接明确提供的交互。
 	Actions []Action
+	// Notice 是本次挑战声明的本地化提醒。
+	Notice *Notice
 	// DeadlineAt 是本机等待上限。
 	DeadlineAt int64
 	// VerificationURL 是官方原始确认地址。
@@ -52,6 +55,12 @@ type Config struct {
 
 // Authorizer 拥有唯一共享 profile 的等待和工作占用，不持久化第二份账号。
 type Authorizer struct {
+	// summaryMu 保护最近核验摘要，不与授权会话持锁期间的真实核验互锁。
+	summaryMu sync.Mutex
+	// summary 是当前 Core 内最近一次核验的公开身份，不参与执行准入。
+	summary Account
+	// summaryGeneration 隔离并发核验与身份重置，拒绝过期查询覆盖新摘要。
+	summaryGeneration uint64
 	// driverMu 保护固定桥接版本的安全切换。
 	driverMu sync.RWMutex
 	// config 是提供者协议与最小权限。
@@ -126,13 +135,47 @@ func (a *Authorizer) ScopeGranted(granted []string, required string) bool {
 }
 
 func (a *Authorizer) Status(ctx context.Context, verify bool) (Account, error) {
+	a.summaryMu.Lock()
+	a.summaryGeneration++
+	generation := a.summaryGeneration
+	a.summaryMu.Unlock()
 	result, err := a.driver().Status(ctx, verify)
 	for _, scope := range a.config.Scopes {
 		if !a.ScopeGranted(result.Scopes, scope) {
 			result.Available = false
 		}
 	}
+	if err == nil {
+		result.CheckedAt = time.Now().UnixMilli()
+	} else {
+		result = Account{Scopes: []string{}}
+	}
+	a.summaryMu.Lock()
+	if generation == a.summaryGeneration {
+		a.summary = result
+		a.summary.Scopes = slices.Clone(result.Scopes)
+	}
+	a.summaryMu.Unlock()
 	return result, err
+}
+
+// CachedAccount 只返回当前 Core 的最近核验摘要，不启动驱动或读取身份文件。
+func (a *Authorizer) CachedAccount() Account {
+	a.summaryMu.Lock()
+	defer a.summaryMu.Unlock()
+	result := a.summary
+	result.Scopes = append([]string{}, result.Scopes...)
+	return result
+}
+
+func (a *Authorizer) clearSummary(checked bool) {
+	a.summaryMu.Lock()
+	defer a.summaryMu.Unlock()
+	a.summaryGeneration++
+	a.summary = Account{Scopes: []string{}}
+	if checked {
+		a.summary.CheckedAt = time.Now().UnixMilli()
+	}
 }
 
 // AuthorizeServer 仅由确实需要远程凭据的适配器提供，令牌不能进入共享配置或快照。
@@ -190,6 +233,7 @@ func (a *Authorizer) Configure(ctx context.Context, id, secret string) error {
 	if err := a.driver().Configure(ctx, id, secret); err != nil {
 		return err
 	}
+	a.clearSummary(false)
 	a.session = Session{Account: Account{Scopes: []string{}}}
 	return nil
 }
@@ -202,6 +246,7 @@ func (a *Authorizer) Logout(ctx context.Context) error {
 	if err := a.driver().Logout(ctx); err != nil {
 		return err
 	}
+	a.clearSummary(true)
 	a.session = Session{Account: Account{Scopes: []string{}}}
 	return nil
 }
@@ -210,7 +255,16 @@ func (a *Authorizer) snapshotLocked() Session {
 	s := a.session
 	s.Account.Scopes = append([]string{}, s.Account.Scopes...)
 	s.Actions = slices.Clone(s.Actions)
+	s.Notice = cloneNotice(s.Notice)
 	return s
+}
+
+// cloneNotice 隔离驱动、会话及观察者持有的提示映射。
+func cloneNotice(notice *Notice) *Notice {
+	if notice == nil {
+		return nil
+	}
+	return &Notice{Messages: maps.Clone(notice.Messages)}
 }
 
 // Login 的 HTTP 请求只等待确认入口；真实授权由 Core 根生命周期继续拥有。
@@ -290,6 +344,7 @@ func (a *Authorizer) Login(ctx context.Context, requested ...string) (Session, e
 				a.session.ChallengeID = util.New()
 			}
 			a.session.Actions = slices.Clone(device.Actions)
+			a.session.Notice = cloneNotice(device.Notice)
 			a.session.DeadlineAt = device.DeadlineAt
 			a.session.VerificationURL = device.VerificationURL
 			a.session.UserCode = device.UserCode
@@ -347,6 +402,7 @@ func (a *Authorizer) Login(ctx context.Context, requested ...string) (Session, e
 				}
 			}
 			a.session.Actions = nil
+			a.session.Notice = nil
 			a.session.ChallengeID = ""
 			a.session.VerificationURL = ""
 			a.session.UserCode = ""
@@ -402,6 +458,7 @@ func (a *Authorizer) cancelSession(id string) (<-chan struct{}, error) {
 	if a.session.State == constants.PluginAuthorizationStateWaiting {
 		a.session.State = constants.PluginAuthorizationStateCancelled
 		a.session.Actions = nil
+		a.session.Notice = nil
 		a.session.ChallengeID = ""
 		a.session.VerificationURL = ""
 		a.session.UserCode = ""
@@ -459,6 +516,7 @@ func (g *ReferenceGuard) Reset(ctx context.Context) error {
 		a.session.State = constants.PluginAuthorizationStateCancelled
 		a.session.VerificationURL, a.session.UserCode = "", ""
 		a.session.Actions = nil
+		a.session.Notice = nil
 		a.session.ChallengeID = ""
 	}
 	if a.cancel != nil {
@@ -479,6 +537,7 @@ func (g *ReferenceGuard) Reset(ctx context.Context) error {
 		return err
 	}
 	a.mu.Lock()
+	a.clearSummary(true)
 	a.session = Session{Account: Account{Scopes: []string{}}}
 	snapshot = a.snapshotLocked()
 	a.mu.Unlock()
@@ -505,6 +564,7 @@ func (a *Authorizer) ReplaceDriver(driver Driver) error {
 	a.driverMu.Lock()
 	a.config.Driver = driver
 	a.driverMu.Unlock()
+	a.clearSummary(false)
 	a.session = Session{Account: Account{Scopes: []string{}}}
 	return nil
 }

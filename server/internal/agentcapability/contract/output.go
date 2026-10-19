@@ -15,14 +15,6 @@ func outputSchema(id string) map[string]any {
 		return object("completed", "resource")
 	}
 	switch id {
-	case "plugins.catalog.search":
-		return object("items")
-	case "plugins.catalog.get":
-		return object("entry")
-	case "plugins.installations.install":
-		return object("pluginId", "versionId", "installed", "state", "sessionId", "nextStep")
-	case "plugins.installations.get":
-		return object("pluginId", "installations", "ready", "state", "account")
 	case "workflow.authoring.prepare":
 		return object("workflow", "annotations", "topics", "guideIds", "content", "resources", "operations")
 	case "im.targets.list", "team.tasks.list", "workflow.annotations.list", "workflow.definitions.list":

@@ -36,6 +36,17 @@ func (o *GetCatalogPluginReadme) Output(ctx *gin.Context) (interface{}, error) {
 	if (o.SourceCommit != "" && o.SourceCommit != entry.SourceCommit) || (o.ArchiveSHA256 != "" && o.ArchiveSHA256 != entry.ArchiveSHA256) {
 		return nil, ginx.WithStack(status_error.PluginVersionConflict)
 	}
+	if entry.DetailsURL != "" {
+		details, err := catalog.ReadDetails(entry)
+		if err != nil {
+			return nil, ginx.WithStack(err)
+		}
+		content, _, err := details.Readme(o.Locale)
+		if err != nil {
+			return nil, ginx.WithStack(err)
+		}
+		return PluginReadmeResponse{Content: content}, nil
+	}
 	archive, err := catalog.ResolveEntry(global.PluginCatalogSource(), entry)
 	if err != nil {
 		return nil, ginx.WithStack(err)

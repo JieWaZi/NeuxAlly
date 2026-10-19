@@ -92,6 +92,7 @@ it.each([
   ["/resources?category=skills", "添加技能", "技能导入"],
   ["/resources?category=connectors", "添加连接器", "连接器创建"],
   ["/wakers/w1/resources?category=skills", "添加技能", "技能导入"],
+  ["/wakers/w1/resources?category=connectors", "添加连接器", "连接器创建"],
 ])("%s 的添加操作位于页首，并打开对应流程", (entry, label, content) => {
   render(
     <MemoryRouter initialEntries={[entry]}>
@@ -109,4 +110,27 @@ it.each([
   ).not.toBeInTheDocument();
   fireEvent.click(button);
   expect(screen.getByText(content)).toBeVisible();
+});
+
+it.each([
+  "/resources?category=plugins",
+  "/resources?category=plugins&view=mine",
+  "/wakers/w1/resources?category=plugins",
+  "/wakers/w1/resources?category=plugins&view=mine",
+])("%s 只展示插件库和系统资源，不提供本地插件导入入口", (entry) => {
+  render(
+    <MemoryRouter initialEntries={[entry]}>
+      <Routes>
+        <Route path="resources" element={<ResourcesPage />} />
+        <Route path="wakers/:wakerId/resources" element={<ResourcesPage />} />
+      </Routes>
+    </MemoryRouter>,
+  );
+  expect(screen.getByText(/插件内容/)).toBeVisible();
+  expect(
+    screen.queryByRole("button", {
+      name: /上传|导入|添加新版本|选择文件夹|选择 ZIP/,
+    }),
+  ).not.toBeInTheDocument();
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 });

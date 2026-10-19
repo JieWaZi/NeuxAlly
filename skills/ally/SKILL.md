@@ -56,6 +56,6 @@ or report through the advertised result operation; a final chat message is
 not a submission receipt. Tell the user what was actually saved, accepted,
 completed, or delivered, preserving failures and uncertainty.
 
-## System plugins
+## Plugins
 
-When advertised, use `plugins.catalog.search` and `plugins.catalog.get` to inspect the fixed software catalog, then `plugins.installations.install` for the current partner. Preserve the request ID on retries. Complete any returned authorization session in the plugin interface; temporary authorization material is not a chat result. An installed receipt records the system relationship and enables the next execution. Never replace this operation with native CLI global plugin installation or edit the user's Codex or Claude global registry.
+For plugin requests in chat, use the current agent's native plugin and authentication mechanisms within the user's request. Native installation belongs to that agent's shared environment; describe its actual result without claiming a NeuxAlly system installation. NeuxAlly's maintained plugins are installed and authorized from the plugin library interface.

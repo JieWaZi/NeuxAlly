@@ -44,6 +44,7 @@ const pkg: PluginCatalogEntry["package"] = {
     developerName: "GitHub",
     shortDescription: "Manage repositories",
   },
+  upstream: { author: "GitHub", tag: "1.0.1" },
   skills: Array.from({ length: 7 }, (_, i) => ({
     key: `skill-${i}`,
     name: `skill-${i}`,

@@ -92,7 +92,11 @@ export function PluginResourceCollection({
   );
   const libraryKey = listPluginsQueryKey(
     withLocalErrorSurface({
-      query: { query: search, pageSize: RESOURCE_BATCH_SIZE },
+      query: {
+        query: search,
+        pageSize: RESOURCE_BATCH_SIZE,
+        installedOnly: true,
+      },
     }),
   );
   const installedKey = listWakerPluginsQueryKey(
@@ -128,7 +132,12 @@ export function PluginResourceCollection({
     fetchPage: async (pageNum, signal) => {
       const { data } = await listPlugins(
         withLocalErrorSurface({
-          query: { query: search, pageNum, pageSize: RESOURCE_BATCH_SIZE },
+          query: {
+            query: search,
+            pageNum,
+            pageSize: RESOURCE_BATCH_SIZE,
+            installedOnly: true,
+          },
           signal,
           throwOnError: true as const,
         }),

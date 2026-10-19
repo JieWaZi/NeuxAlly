@@ -39,17 +39,17 @@ type Manifest struct {
 	Schema string `json:"$schema,omitempty"`
 	// Name 是包声明名称。
 	Name string `json:"name"`
-	// Version 是上游版本字符串。
+	// Version 是标准清单声明的插件包版本。
 	Version string `json:"version,omitempty"`
 	// Description 是能力说明。
 	Description string `json:"description,omitempty"`
-	// Author 是原作者资料。
+	// Author 是当前插件包的作者资料。
 	Author Author `json:"author"`
 	// Homepage 是公开说明入口。
 	Homepage string `json:"homepage,omitempty"`
-	// Repository 是上游来源。
+	// Repository 是清单声明的源码或能力来源。
 	Repository string `json:"repository,omitempty"`
-	// License 是上游许可标识。
+	// License 是清单声明的插件包许可标识。
 	License string `json:"license,omitempty"`
 	// Keywords 是包声明标签。
 	Keywords []string `json:"keywords"`
@@ -76,7 +76,7 @@ type Skill struct {
 	// Path 是相对包根的交付目录。
 	Path string `json:"path"`
 	// Digest 是完整技能内容摘要。
-	Digest string `json:"digest"`
+	Digest string `json:"digest,omitempty"`
 }
 
 // Server 保存插件内 MCP 连接定义，不包含本机共享凭据。
@@ -88,15 +88,29 @@ type Server struct {
 	// Command 是程序令牌或包内相对程序。
 	Command string `json:"command,omitempty"`
 	// Args 是保持原序的程序参数。
-	Args []string `json:"args"`
+	Args []string `json:"args,omitempty"`
 	// Env 是待展开的环境定义。
-	Env map[string]string `json:"env"`
+	Env map[string]string `json:"env,omitempty"`
 	// Cwd 是规范允许的工作目录。
 	Cwd string `json:"cwd,omitempty"`
 	// URL 是待展开的外部服务地址。
 	URL string `json:"url,omitempty"`
 	// Headers 是待展开的请求头定义。
-	Headers map[string]string `json:"headers"`
+	Headers map[string]string `json:"headers,omitempty"`
+}
+
+// UpstreamSource 保留来源记录明确声明的业务上游资料。
+type UpstreamSource struct {
+	// 作者
+	Author string `json:"author,omitempty"`
+	// 版本标签
+	Tag string `json:"tag,omitempty"`
+	// 发布版本
+	Version string `json:"version,omitempty"`
+	// 源码仓库
+	Repository string `json:"repository,omitempty"`
+	// 许可
+	License string `json:"license,omitempty"`
 }
 
 // 插件包
@@ -107,6 +121,8 @@ type Package struct {
 	Format string `json:"format"`
 	// 展示资料
 	Presentation Presentation `json:"presentation"`
+	// 上游声明
+	Upstream *UpstreamSource `json:"upstream,omitempty"`
 	// 软件图标
 	Icon string `json:"icon,omitempty"`
 	// 插件说明

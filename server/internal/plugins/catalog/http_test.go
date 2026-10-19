@@ -3,7 +3,9 @@ package catalog
 import (
 	"context"
 	"crypto/sha256"
+	"errors"
 	"fmt"
+	"github.com/JieWaZi/NeuxAlly/server/constants/status_error"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -347,5 +349,155 @@ func TestStartupCloseCancelsRefreshAndDoesNotRetryOnQuery(t *testing.T) {
 	}
 	if requests.Load() != 1 {
 		t.Fatal("query retried a stopped startup operation")
+	}
+}
+
+func TestArchiveNetworkFailureDoesNotRequirePluginAuthorization(t *testing.T) {
+	source := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusNotFound) }))
+	defer source.Close()
+	_, err := ResolveEntry("", Entry{ArchiveURL: source.URL + "/gone.zip", ArchiveSHA256: fmt.Sprintf("%x", sha256.Sum256([]byte(t.TempDir())))})
+	if !errors.Is(err, status_error.PluginDistributionUnavailable) {
+		t.Fatalf("archive HTTP failure was reported as plugin readiness: %v", err)
+	}
+}
+
+func TestCurrentResolutionCoalescesRecoveryAndDoesNotRetryUnchangedArchive(t *testing.T) {
+	for _, changed := range []bool{false, true} {
+		t.Run(fmt.Sprint(changed), func(t *testing.T) {
+			t.Setenv("TMPDIR", t.TempDir())
+			archives := [][]byte{[]byte("old " + t.TempDir()), []byte("new " + t.TempDir())}
+			var mode, indexRequests, oldRequests, newRequests atomic.Int32
+			var source *httptest.Server
+			source = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path == "/catalog.json" {
+					indexRequests.Add(1)
+					selected := 0
+					if changed && mode.Load() == 1 {
+						selected = 1
+					}
+					sum := sha256.Sum256(archives[selected])
+					_, _ = fmt.Fprintf(w, `{"schemaVersion":2,"entries":[{"key":"current","name":"current","version":"%d","format":"codex","sourceCommit":"1111111111111111111111111111111111111111","archiveURL":%q,"archiveSHA256":"%x","packagePath":"entry"}]}`, selected+1, source.URL+[]string{"/old.zip", "/new.zip"}[selected], sum)
+					return
+				}
+				if r.URL.Path == "/old.zip" {
+					oldRequests.Add(1)
+					w.WriteHeader(http.StatusNotFound)
+					return
+				}
+				newRequests.Add(1)
+				_, _ = w.Write(archives[1])
+			}))
+			defer source.Close()
+			location := source.URL + "/catalog.json"
+			stop := Start(context.Background(), location, t.TempDir(), nil)
+			defer stop()
+			if _, err := Find(location, "current"); err != nil {
+				t.Fatal(err)
+			}
+			mode.Store(1)
+			failures := make(chan error, 12)
+			var clients sync.WaitGroup
+			for range 12 {
+				clients.Add(1)
+				go func() {
+					defer clients.Done()
+					entry, archive, err := ResolveCurrent(location, "current")
+					if changed {
+						if err == nil {
+							content, readErr := os.ReadFile(archive)
+							err = readErr
+							if err == nil && (entry.Package.Manifest.Version != "2" || string(content) != string(archives[1])) {
+								err = status_error.PluginContentInvalid
+							}
+						}
+					} else if errors.Is(err, status_error.PluginDistributionUnavailable) {
+						err = nil
+					} else if err == nil {
+						err = status_error.PluginContentInvalid
+					}
+					failures <- err
+				}()
+			}
+			clients.Wait()
+			close(failures)
+			for err := range failures {
+				if err != nil {
+					t.Error(err)
+				}
+			}
+			if indexRequests.Load() != 2 {
+				t.Fatalf("concurrent recovery made %d index requests", indexRequests.Load())
+			}
+			if oldRequests.Load() != 1 {
+				t.Fatalf("same failed archive was requested %d times during one recovery", oldRequests.Load())
+			}
+			if changed && newRequests.Load() != 1 {
+				t.Fatalf("replacement archive was downloaded %d times", newRequests.Load())
+			}
+			if _, err := List(location); err != nil {
+				t.Fatal(err)
+			}
+			if indexRequests.Load() != 2 {
+				t.Fatal("normal query retried distribution recovery")
+			}
+		})
+	}
+}
+
+func TestSlowArchiveDoesNotBlockCurrentDocumentation(t *testing.T) {
+	for _, cached := range []bool{false, true} {
+		t.Run(fmt.Sprint(cached), func(t *testing.T) {
+			t.Setenv("TMPDIR", t.TempDir())
+			archive := []byte("slow ZIP " + t.TempDir())
+			archiveHash := fmt.Sprintf("%x", sha256.Sum256(archive))
+			commit := "1111111111111111111111111111111111111111"
+			body := []byte(fmt.Sprintf(`{"schemaVersion":1,"sourceCommit":%q,"archiveSHA256":%q,"packagePath":"entry","package":{"manifest":{"name":"current","version":"1"},"format":"codex","skills":[],"servers":[],"diagnostics":[]},"readmes":{"en":"public documentation"},"skillContents":{}}`, commit, archiveHash))
+			gate, entered := make(chan struct{}), make(chan struct{})
+			var once sync.Once
+			var source *httptest.Server
+			source = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				switch r.URL.Path {
+				case "/catalog.json":
+					_, _ = fmt.Fprintf(w, `{"schemaVersion":2,"entries":[{"key":"current","name":"current","version":"1","format":"codex","sourceCommit":%q,"archiveURL":%q,"archiveSHA256":%q,"packagePath":"entry","detailsURL":%q,"detailsSHA256":"%x","detailsSize":%d}]}`, commit, source.URL+"/owned.zip", archiveHash, source.URL+"/details.json", sha256.Sum256(body), len(body))
+				case "/owned.zip":
+					once.Do(func() { close(entered) })
+					<-gate
+					_, _ = w.Write(archive)
+				case "/details.json":
+					_, _ = w.Write(body)
+				default:
+					w.WriteHeader(http.StatusNotFound)
+				}
+			}))
+			defer source.Close()
+			// 失败路径先释放下载，再关闭服务，避免回归超时后等待慢连接。
+			defer close(gate)
+			location := source.URL + "/catalog.json"
+			stop := Start(context.Background(), location, t.TempDir(), nil)
+			defer stop()
+			if cached {
+				if _, _, err := ResolveDocumentation(location, "current"); err != nil {
+					t.Fatal(err)
+				}
+			}
+			archiveDone := make(chan error, 1)
+			go func() { _, _, err := ResolveCurrent(location, "current"); archiveDone <- err }()
+			awaitCatalogSignal(t, entered)
+			documentationDone := make(chan error, 1)
+			go func() { _, _, err := ResolveDocumentation(location, "current"); documentationDone <- err }()
+			select {
+			case err := <-documentationDone:
+				if err != nil {
+					t.Fatal(err)
+				}
+			case <-time.After(2 * time.Second):
+				t.Fatal("current documentation waited for unrelated full archive download")
+			}
+			select {
+			case err := <-archiveDone:
+				t.Fatalf("archive gate was not exercised: %v", err)
+			default:
+			}
+		})
 	}
 }

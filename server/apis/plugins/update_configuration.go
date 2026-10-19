@@ -26,7 +26,8 @@ func (*UpdatePluginConfiguration) Path() string { return "/:pluginId/configurati
 
 // Output 在完整安装集合通过兼容校验后原子提交配置和明确选择的版本。
 func (o *UpdatePluginConfiguration) Output(ctx *gin.Context) (interface{}, error) {
-	if _, err := visiblePlugin(ctx, o.PluginID, o.WakerID); err != nil {
+	resource, err := visiblePlugin(ctx, o.PluginID, o.WakerID)
+	if err != nil {
 		return nil, ginx.WithStack(err)
 	}
 	store := global.PluginControllerManager
@@ -55,6 +56,9 @@ func (o *UpdatePluginConfiguration) Output(ctx *gin.Context) (interface{}, error
 			if !exists {
 				return nil, ginx.WithStack(status_error.PluginVersionConflict)
 			}
+			if err := validateCatalogInstallation(resource, version); err != nil {
+				return nil, ginx.WithStack(err)
+			}
 			if !seen[version.ID] {
 				targets = append(targets, version)
 				seen[version.ID] = true
@@ -66,7 +70,7 @@ func (o *UpdatePluginConfiguration) Output(ctx *gin.Context) (interface{}, error
 		}
 		defer release()
 	}
-	err := global.TransactionControllerManager.Transaction(ctx, func(txctx context.Context) error {
+	err = global.TransactionControllerManager.Transaction(ctx, func(txctx context.Context) error {
 		config, err := store.Configuration(txctx, o.PluginID)
 		if err != nil {
 			return err

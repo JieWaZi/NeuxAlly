@@ -1,6 +1,6 @@
 import { usePluginResources } from "./use-plugin-resources";
 
-/** 引用仅接纳已启用且就绪的固定安装版本，目录展示仍保留未就绪资源。 */
+/** 引用读取已启用的固定安装版本，真实配置与身份由执行接纳核验。 */
 export function useInstalledPluginReferences(
   wakerId: string | undefined,
   active = true,
@@ -13,8 +13,7 @@ export function useInstalledPluginReferences(
     const version = detail.versions?.find(
       (item) => item.id === relation?.versionId,
     );
-    if (!relation?.enabled || !detail.ready || !detail.plugin?.id || !version)
-      return [];
+    if (!relation?.enabled || !detail.plugin?.id || !version) return [];
     return [
       {
         id: detail.plugin.id,

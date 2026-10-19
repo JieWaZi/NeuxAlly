@@ -18,8 +18,6 @@ func init() {
 	Router.Register(&ListPlugins{})
 	Router.Register(&GetPlugin{})
 	Router.Register(&GetPluginSkill{})
-	Router.Register(&ScanPlugin{})
-	Router.Register(&PreparePlugin{})
 	Router.Register(&InstallPlugin{})
 	Router.Register(&UpdatePluginConfiguration{})
 	Router.Register(&UpdatePlugin{})

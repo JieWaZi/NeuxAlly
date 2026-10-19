@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Package, Sparkles, Cable, Upload, Plus } from "lucide-react";
+import { Package, Sparkles, Cable, Plus } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams, useSearchParams } from "react-router-dom";
@@ -9,9 +9,6 @@ import {
   usePluginComponents,
   PartnerPicker,
   resourceCategory,
-  PluginImportDialog,
-  PluginInstallDialog,
-  type PluginDetail,
 } from "@/modules/plugin";
 import { SkillResourceCollection } from "@/modules/skill";
 import { ConnectorResourceCollection } from "@/modules/connector";
@@ -50,16 +47,12 @@ export function ResourcesPage() {
         ? "independent"
         : "all";
   const view = params.get("view") === "mine" ? "mine" : "catalog";
-  const [importing, setImporting] = useState(false);
   const [adding, setAdding] = useState(false);
   const components = usePluginComponents(
     category === "connectors" ? "connectors" : "skills",
     wakerId,
     search,
     category !== "plugins",
-  );
-  const [importedPlugin, setImportedPlugin] = useState<PluginDetail | null>(
-    null,
   );
   const [installation, setInstallation] = useState<Installation | null>(null);
   const setParam = (key: string, value: string) =>
@@ -124,30 +117,20 @@ export function ResourcesPage() {
           title={wakerId ? t("partnerResources") : t("title")}
           description={t("description")}
           actions={
-            <PageAction
-              intent="primary"
-              aria-label={t(
-                category === "plugins"
-                  ? "importPlugin"
-                  : category === "skills"
-                    ? "addSkill"
-                    : "addConnector",
-              )}
-              onClick={() =>
-                category === "plugins" ? setImporting(true) : setAdding(true)
-              }
-            >
-              {category === "plugins" ? <Upload /> : <Plus />}
-              <PageActionLabel>
-                {t(
-                  category === "plugins"
-                    ? "importPlugin"
-                    : category === "skills"
-                      ? "addSkill"
-                      : "addConnector",
+            category !== "plugins" && (
+              <PageAction
+                intent="primary"
+                aria-label={t(
+                  category === "skills" ? "addSkill" : "addConnector",
                 )}
-              </PageActionLabel>
-            </PageAction>
+                onClick={() => setAdding(true)}
+              >
+                <Plus />
+                <PageActionLabel>
+                  {t(category === "skills" ? "addSkill" : "addConnector")}
+                </PageActionLabel>
+              </PageAction>
+            )
           }
         />
         <div className="mb-5">
@@ -224,23 +207,6 @@ export function ResourcesPage() {
             />
           )}
         </div>
-        {importing && (
-          <PluginImportDialog
-            wakerId={wakerId}
-            onClose={() => setImporting(false)}
-            onPrepared={(detail) => {
-              setImporting(false);
-              setImportedPlugin(detail);
-            }}
-          />
-        )}
-        {importedPlugin && (
-          <PluginInstallDialog
-            detail={importedPlugin}
-            wakerId={wakerId}
-            onClose={() => setImportedPlugin(null)}
-          />
-        )}
         {installation && (
           <IndependentInstallDialog
             resource={installation}

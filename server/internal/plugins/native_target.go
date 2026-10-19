@@ -9,8 +9,8 @@ import (
 	"strings"
 )
 
-// PrepareNativeTarget 为有相同原生格式的目标保留原包，否则只转换有明确映射的标准主体。
-func PrepareNativeTarget(parent, id string, pkg Package, root, cli string) (NativeTarget, error) {
+// PrepareNativeTarget 保留相同格式原包或转换标准主体；明确授权绑定另派生无秘密模板。
+func PrepareNativeTarget(parent, id string, pkg Package, root, cli string, authentication ...AuthenticationBinding) (NativeTarget, error) {
 	digest, err := pluginArchive.Digest(root)
 	if err != nil {
 		return NativeTarget{}, err
@@ -24,7 +24,7 @@ func PrepareNativeTarget(parent, id string, pkg Package, root, cli string) (Nati
 		expected = constants.PluginFormatClaude
 	}
 	if pkg.Format == expected {
-		return target, nil
+		return prepareNativeAuthentication(parent, id, target, cli, authentication)
 	}
 	if err := os.MkdirAll(parent, 0700); err != nil {
 		return NativeTarget{}, status_error.PluginStorageError
@@ -129,5 +129,5 @@ func PrepareNativeTarget(parent, id string, pkg Package, root, cli string) (Nati
 	}
 	target.Root = content
 	target.Digest = derivedDigest
-	return target, nil
+	return prepareNativeAuthentication(parent, id, target, cli, authentication)
 }

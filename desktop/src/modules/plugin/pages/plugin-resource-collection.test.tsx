@@ -39,7 +39,7 @@ vi.mock("../api/use-plugin-resources", () => ({
     data: [
       {
         plugin: { id: "existing", sourceKey: fixture.sourceKey },
-        account: { available: fixture.available },
+        account: { available: fixture.available, checkedAt: 123 },
         installations: [{ wakerId: "w1", versionId: "v1" }],
       },
     ],
@@ -49,6 +49,24 @@ vi.mock("../api/use-plugin-resources", () => ({
 }));
 vi.mock("@/shared/api/generated/sdk.gen", async (original) => ({
   ...(await original<typeof ResourceSdk>()),
+  listPlugins: vi.fn(
+    async (options?: { query?: { installedOnly?: boolean } }) => {
+      const installed = {
+        plugin: { id: "installed", name: "实际安装插件" },
+        installations: [{ wakerId: "w1", versionId: "v1", enabled: false }],
+      };
+      const resources = options?.query?.installedOnly
+        ? [installed]
+        : [
+            installed,
+            {
+              plugin: { id: "prepared", name: "尚未安装插件" },
+              installations: [],
+            },
+          ];
+      return { data: { resources, totalSize: resources.length } };
+    },
+  ),
   listPluginCatalog: vi.fn(async () => ({
     data: {
       source: { state: fixture.sourceState },
@@ -183,4 +201,25 @@ it("refreshes the active catalog when a background catalog update emits plugins.
   expect(
     await screen.findByRole("button", { name: "安装 更新后的插件" }),
   ).toBeVisible();
+});
+
+it("shows installed resources and the installed total in my plugins", async () => {
+  render(
+    <QueryClientProvider
+      client={
+        new QueryClient({ defaultOptions: { queries: { retry: false } } })
+      }
+    >
+      <MemoryRouter>
+        <PluginResourceCollection
+          search=""
+          view="mine"
+          onViewChange={() => {}}
+        />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+  expect(await screen.findByText("实际安装插件")).toBeVisible();
+  expect(screen.queryByText("尚未安装插件")).not.toBeInTheDocument();
+  expect(screen.getByText("1 项资源")).toBeVisible();
 });

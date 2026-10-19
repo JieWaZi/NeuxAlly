@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/shared/ui/button";
-import { RefreshCw } from "lucide-react";
+import { Check, Copy, RefreshCw } from "lucide-react";
 import { Spinner } from "@/shared/ui/spinner";
 import { openExternalURL } from "@/shared/desktop";
 
@@ -13,52 +13,80 @@ export function PluginAuthorizationActions({
   onRefresh,
   disabled = false,
   qrState,
+  preparing = false,
 }: {
   actions: { type?: string; url?: string; value?: string }[];
   onOpenError: () => void;
   onRefresh: () => void;
   disabled?: boolean;
   qrState?: "loading" | "expired";
+  preparing?: boolean;
 }) {
   const { t } = useTranslation("plugin");
   const qr = actions.find(
     (action) => action.type === "show-qr" && action.value,
   );
+  if (preparing && !qrState)
+    return (
+      <div
+        role="status"
+        aria-busy="true"
+        aria-label={t("authorizationPreparing")}
+        className="flex flex-col items-center gap-2"
+      >
+        <div className="bg-surface-subtle grid size-36 place-items-center rounded-md">
+          <Spinner aria-hidden="true" />
+        </div>
+        <span className="type-caption text-content-secondary">
+          {t("authorizationPreparing")}
+        </span>
+      </div>
+    );
   return (
     <div className="space-y-3">
       {(qr || qrState) && (
-        <div className="flex items-start justify-center gap-2">
+        <div className="flex flex-col items-center gap-2">
           <div className="bg-surface-subtle grid size-48 place-items-center rounded-md">
             {qrState ? (
-              <div className="flex flex-col items-center gap-3">
-                {qrState === "loading" && (
-                  <Spinner aria-label={t("qrLoading")} />
-                )}
-                <span className="type-caption text-content-secondary">
-                  {t(qrState === "loading" ? "qrLoading" : "qrExpired")}
-                </span>
-              </div>
+              qrState === "loading" && <Spinner aria-label={t("qrLoading")} />
             ) : (
               <AuthorizationQRCode url={qr?.value ?? ""} />
             )}
           </div>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            aria-label={t("refreshQR")}
-            title={t("refreshQR")}
-            disabled={disabled || qrState === "loading"}
-            onClick={onRefresh}
-          >
-            <RefreshCw aria-hidden="true" />
-          </Button>
+          <div className="flex items-center justify-center gap-2">
+            <span className="type-caption text-content-secondary">
+              {t(
+                qrState === "loading"
+                  ? "qrLoading"
+                  : qrState === "expired"
+                    ? "qrExpired"
+                    : "scanTitle",
+              )}
+            </span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label={t("refreshQR")}
+              title={t("refreshQR")}
+              disabled={disabled || qrState === "loading"}
+              onClick={onRefresh}
+            >
+              <RefreshCw aria-hidden="true" />
+            </Button>
+          </div>
         </div>
       )}
+      {actions
+        .filter((action) => action.type === "copy-code" && action.value)
+        .map((action, index) => (
+          <AuthorizationCode
+            key={`${action.value}:${index}`}
+            code={action.value ?? ""}
+          />
+        ))}
       {actions.map((action, index) => {
         const key = `${action.type}:${index}:${action.value ?? action.url ?? ""}`;
-        if (action.type === "copy-code" && action.value)
-          return <AuthorizationCode key={key} code={action.value} />;
         if (
           action.type === "open-url" &&
           action.url &&
@@ -68,7 +96,8 @@ export function PluginAuthorizationActions({
             <Button
               key={key}
               type="button"
-              variant="secondary"
+              variant="success"
+              className="w-full"
               disabled={disabled}
               onClick={() =>
                 void openExternalURL(action.url ?? "").catch(onOpenError)
@@ -89,13 +118,17 @@ export function AuthorizationCode({ code }: { code: string }) {
   const [copied, setCopied] = useState(false);
   const [failed, setFailed] = useState(false);
   return (
-    <div className="space-y-2">
-      <p className="type-body text-muted-foreground">{t("deviceCodeHelp")}</p>
-      <div className="flex flex-wrap items-center gap-3">
-        <code className="type-title font-semibold">{code}</code>
+    <div className="space-y-2 text-center">
+      <div className="bg-surface-subtle mx-auto flex min-h-28 w-fit max-w-full flex-col items-center justify-center gap-2 rounded-md p-4">
+        <code className="type-display max-w-full min-w-0 font-semibold tracking-wider break-all">
+          {code}
+        </code>
         <Button
           type="button"
-          variant="secondary"
+          variant="ghost"
+          size="icon"
+          aria-label={copied ? t("codeCopied") : t("copyCode")}
+          title={copied ? t("codeCopied") : t("copyCode")}
           onClick={() => {
             setFailed(false);
             void Promise.resolve()
@@ -106,9 +139,12 @@ export function AuthorizationCode({ code }: { code: string }) {
               );
           }}
         >
-          {copied ? t("codeCopied") : t("copyCode")}
+          {copied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
         </Button>
       </div>
+      <p className="type-caption text-muted-foreground">
+        {t("deviceCodeHelp")}
+      </p>
       {failed && (
         <p role="alert" className="type-body text-destructive">
           {t("copyCodeFailed")}

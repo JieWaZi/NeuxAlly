@@ -45,22 +45,20 @@ func (o *GetPlugin) Output(ctx *gin.Context) (interface{}, error) {
 	if err != nil {
 		return nil, ginx.WithStack(err)
 	}
-	if o.Locale != "" {
-		for index, version := range result.Versions {
-			if version.ID != result.ResolvedVersionID {
-				continue
-			}
-			source, release, readErr := acquirePluginReadme(version)
-			if readErr != nil {
-				return nil, ginx.WithStack(readErr)
-			}
-			localized, readErr := packageplugin.LocalizeReadme(source, version.Package, o.Locale)
-			release()
-			if readErr != nil {
-				return nil, ginx.WithStack(readErr)
-			}
-			result.Versions[index].Package = localized
+	for index, version := range result.Versions {
+		if version.ID != result.ResolvedVersionID {
+			continue
 		}
+		source, release, readErr := acquirePluginPresentation(version)
+		if readErr != nil {
+			return nil, ginx.WithStack(readErr)
+		}
+		parsed, readErr := packageplugin.LocalizeReadme(source, version.Package, o.Locale)
+		release()
+		if readErr != nil {
+			return nil, ginx.WithStack(readErr)
+		}
+		result.Versions[index].Package = parsed
 	}
 	return result, nil
 }

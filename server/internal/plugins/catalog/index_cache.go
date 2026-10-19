@@ -41,6 +41,16 @@ type storedIndex struct {
 
 // remoteIndex 在一次 Core 生命周期内共享一个来源的更新和读取快照。
 type remoteIndex struct {
+	// recoveryMutex 串行合并显式详情/准备触发的分发恢复。
+	recoveryMutex sync.Mutex
+	// recoveryAt 限制同来源失败恢复的频率，稍后重试仍可重新核验。
+	recoveryAt time.Time
+	// recoveryEntry 绑定最近失败的实际归档，目录变更后不会复用旧错误。
+	recoveryEntry Entry
+	// recoveryError 在短冷却期间复用同一分发故障，防止并发请求重复长等待。
+	recoveryError error
+	// recoveryDocumentation 区分资料故障和完整安装包故障，不能相互冒充。
+	recoveryDocumentation bool
 	// 快照与状态读写保护
 	mu sync.RWMutex
 	// 当前已核验的持久快照
@@ -130,7 +140,12 @@ func State(source string) SourceState {
 
 func readIndex(source string) ([]byte, error) {
 	if !httpAddress(source) {
-		return os.ReadFile(filepath.Join(source, "catalog.json"))
+		data, err := os.ReadFile(filepath.Join(source, "catalog.json"))
+		if err != nil {
+			logx.Warnf("read local plugin catalog failed: error=%v", err)
+			return nil, status_error.PluginStorageError
+		}
+		return data, nil
 	}
 	index := remoteSource(source)
 	index.mu.RLock()
@@ -156,26 +171,28 @@ func (index *remoteIndex) refresh() {
 	})
 }
 
-func (index *remoteIndex) fail(err error) {
+func (index *remoteIndex) fail(err error) error {
 	index.mu.Lock()
 	defer index.mu.Unlock()
 	index.err = err
-	index.state.ErrorCode = status_error.PluginNotReady.Key()
+	if coded, ok := err.(interface{ Key() string }); ok {
+		index.state.ErrorCode = coded.Key()
+	}
 	index.state.State = "unavailable"
 	if len(index.snapshot.Content) != 0 {
 		index.state.State = "stale"
 		index.err = nil
 	}
+	return err
 }
 
-func (index *remoteIndex) fetch() {
+func (index *remoteIndex) fetch() error {
 	index.mu.RLock()
 	next := index.snapshot
 	index.mu.RUnlock()
 	request, err := http.NewRequestWithContext(index.ctx, http.MethodGet, index.source, nil)
 	if err != nil {
-		index.fail(status_error.PluginContentInvalid)
-		return
+		return index.fail(status_error.PluginContentInvalid)
 	}
 	if next.ETag != "" {
 		request.Header.Set("If-None-Match", next.ETag)
@@ -186,48 +203,42 @@ func (index *remoteIndex) fetch() {
 	client := http.Client{Timeout: 15 * time.Second}
 	response, err := client.Do(request)
 	if err != nil {
-		index.fail(status_error.PluginNotReady)
-		return
+		return index.fail(status_error.PluginDistributionUnavailable)
 	}
 	defer response.Body.Close()
 	switch response.StatusCode {
 	case http.StatusNotModified:
 		if len(next.Content) == 0 {
-			index.fail(status_error.PluginContentInvalid)
-			return
+			return index.fail(status_error.PluginContentInvalid)
 		}
 	case http.StatusOK:
 		data, err := io.ReadAll(io.LimitReader(response.Body, 4*1024*1024+1))
 		if err != nil {
-			index.fail(status_error.PluginNotReady)
-			return
+			return index.fail(status_error.PluginDistributionUnavailable)
 		}
 		if _, err := parseIndex(data); err != nil {
-			index.fail(err)
-			return
+			return index.fail(err)
 		}
 		next.Content = data
 		next.ETag = response.Header.Get("ETag")
 		next.LastModified = response.Header.Get("Last-Modified")
 	default:
-		index.fail(status_error.PluginNotReady)
-		return
+		return index.fail(status_error.PluginDistributionUnavailable)
 	}
 	if index.ctx.Err() != nil {
-		index.fail(status_error.PluginNotReady)
-		return
+		return index.fail(status_error.PluginDistributionUnavailable)
 	}
 	next.FetchedAt = time.Now().UnixMilli()
 	if err := index.save(next); err != nil {
 		logx.Warnf("persist plugin catalog failed: error=%v", err)
-		index.fail(status_error.PluginStorageError)
-		return
+		return index.fail(status_error.PluginStorageError)
 	}
 	index.mu.Lock()
 	defer index.mu.Unlock()
 	index.snapshot = next
 	index.err = nil
 	index.state = SourceState{State: "available", FetchedAt: next.FetchedAt}
+	return nil
 }
 
 func (index *remoteIndex) save(next storedIndex) error {

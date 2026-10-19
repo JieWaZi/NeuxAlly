@@ -30,14 +30,10 @@ export function PluginCatalogDetailPage() {
     "/resources";
   const [install, setInstall] = useState(false);
   const [editing, setEditing] = useState(false);
-  const query = useQuery(
-    getCatalogPluginOptions(
-      withLocalErrorSurface({
-        path: { key: catalogKey },
-        query: { locale },
-      }),
-    ),
+  const catalogOptions = getCatalogPluginOptions(
+    withLocalErrorSurface({ path: { key: catalogKey }, query: { locale } }),
   );
+  const query = useQuery(catalogOptions);
   const entry = query.data;
   const pkg = entry?.package;
   const sourceKey = entry?.sourceKey ?? `catalog:${catalogKey}`;
@@ -54,7 +50,7 @@ export function PluginCatalogDetailPage() {
   useQueryEvents({
     topic: "plugins",
     resource: { kind: "global" },
-    queryKeys: [installedOptions.queryKey],
+    queryKeys: [catalogOptions.queryKey, installedOptions.queryKey],
     active,
   });
   const detail = installed.data?.resources?.find(
@@ -120,7 +116,11 @@ export function PluginCatalogDetailPage() {
               sourceCommit: entry.sourceCommit,
               archiveSHA256: entry.archiveSHA256,
             }}
-            skillContext={{ catalogKey }}
+            skillContext={{
+              catalogKey,
+              sourceCommit: entry.sourceCommit,
+              archiveSHA256: entry.archiveSHA256,
+            }}
             detail={detail}
             onUninstall={setRemovingPartner}
             installationStatus={

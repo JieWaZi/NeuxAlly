@@ -1,6 +1,10 @@
 package plugins
 
 import (
+	"crypto/sha256"
+	"fmt"
+	"github.com/JieWaZi/NeuxAlly/server/constants/status_error"
+	"github.com/JieWaZi/NeuxAlly/server/internal/packagefiles"
 	"os"
 	"path/filepath"
 
@@ -14,6 +18,12 @@ import (
 // 查看目录插件技能
 type GetCatalogPluginSkill struct {
 	ginx.MethodGet
+	// 适用智能体
+	Target string `in:"query" name:"target"`
+	// 来源提交
+	SourceCommit string `in:"query" name:"sourceCommit"`
+	// 压缩摘要
+	ArchiveSHA256 string `in:"query" name:"archiveSHA256"`
 	// 目录条目
 	Key string `in:"path" name:"key" validate:"required"`
 	// 组件标识
@@ -31,6 +41,29 @@ func (o *GetCatalogPluginSkill) Output(ctx *gin.Context) (interface{}, error) {
 	if err != nil {
 		return nil, ginx.WithStack(err)
 	}
+	if (o.SourceCommit != "" && o.SourceCommit != entry.SourceCommit) || (o.ArchiveSHA256 != "" && o.ArchiveSHA256 != entry.ArchiveSHA256) {
+		return nil, ginx.WithStack(status_error.PluginVersionConflict)
+	}
+	if entry.DetailsURL != "" {
+		if (o.Target != "" && o.Target != "codex" && o.Target != "claude") || (o.FilePath != "" && o.FilePath != "SKILL.md") {
+			return nil, ginx.WithStack(status_error.PluginContentInvalid)
+		}
+		details, err := catalog.ReadDetails(entry)
+		if err != nil {
+			return nil, ginx.WithStack(err)
+		}
+		skill, content, err := details.Skill(o.SkillKey)
+		if err != nil {
+			return nil, ginx.WithStack(err)
+		}
+		version := PluginSkillVersion{Version: details.Package.Manifest.Version, Skill: skill}
+		resources := []packagefiles.ResourceEntry{{Path: "SKILL.md", Size: int64(len(content)), Digest: fmt.Sprintf("%x", sha256.Sum256([]byte(content)))}}
+		result := PluginSkillResponse{Skill: skill, Content: content, Resources: resources, Version: version, Versions: []PluginSkillVersion{version}}
+		if o.FilePath == "SKILL.md" {
+			result.File = &packagefiles.ResourceFile{Path: "SKILL.md", Content: content, Size: int64(len(content))}
+		}
+		return result, nil
+	}
 	archive, err := catalog.ResolveEntry(global.PluginCatalogSource(), entry)
 	if err != nil {
 		return nil, ginx.WithStack(err)
@@ -40,11 +73,15 @@ func (o *GetCatalogPluginSkill) Output(ctx *gin.Context) (interface{}, error) {
 		return nil, ginx.WithStack(err)
 	}
 	defer os.RemoveAll(filepath.Join(stagedRoot(), stage.Token))
-	skill, content, err := packageplugin.ReadSkill(stage.Root, stage.Package, o.SkillKey)
+	skillPackage, skillRoot, err := packageplugin.SkillSource(stage.Root, stage.Package, o.Target)
 	if err != nil {
 		return nil, ginx.WithStack(err)
 	}
-	resources, file, err := packageplugin.ReadSkillResources(stage.Root, stage.Package, o.SkillKey, o.FilePath)
+	skill, content, err := packageplugin.ReadSkill(skillRoot, skillPackage, o.SkillKey)
+	if err != nil {
+		return nil, ginx.WithStack(err)
+	}
+	resources, file, err := packageplugin.ReadSkillResources(skillRoot, skillPackage, o.SkillKey, o.FilePath)
 	if err != nil {
 		return nil, ginx.WithStack(err)
 	}

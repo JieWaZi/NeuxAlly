@@ -6,6 +6,30 @@ import { PluginCard } from "./plugin-card";
 import type { PluginCatalogEntry, PluginDetail } from "../model/plugin-view";
 
 afterEach(cleanup);
+it("keeps a catalog name localized after preparation saves its English default", () => {
+  render(
+    <MemoryRouter>
+      <PluginCard
+        catalog={{
+          key: "feishu-office",
+          package: {
+            manifest: { name: "feishu-office" },
+            presentation: {
+              displayName: "feishu-office",
+              displayNames: { en: "Feishu Office", "zh-CN": "飞书办公" },
+              localizedDescriptions: { "zh-CN": "协助办公" },
+            },
+          },
+        }}
+        detail={{ plugin: { id: "p", name: "Feishu Office" } }}
+        onInstall={vi.fn()}
+      />
+    </MemoryRouter>,
+  );
+  expect(screen.getByRole("button", { name: "安装 飞书办公" })).toBeVisible();
+  expect(screen.queryByText("Feishu Office")).not.toBeInTheDocument();
+  expect(screen.getByText("协助办公")).toBeVisible();
+});
 it("keeps the saved card focused on description, partner usage and management", () => {
   render(
     <MemoryRouter>
@@ -64,7 +88,7 @@ it.each([
       installations: installed
         ? [{ wakerId: "already-installed-partner" }]
         : [],
-      account: { available },
+      account: { available, checkedAt: 123 },
       versions: [{ package: pkg }],
     };
     render(

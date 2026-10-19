@@ -4,6 +4,7 @@ import {
   pluginDisplayName,
   pluginExplanation,
   pluginHasAuthorization,
+  pluginNeedsAuthorization,
   type PluginCatalogEntry,
 } from "./plugin-view";
 
@@ -77,11 +78,45 @@ it("localizes authored names and descriptions while preserving a user rename", (
     "飞书办公",
   );
   expect(pluginDisplayName(bilingual, "我的办公室", "en")).toBe("我的办公室");
-  expect(pluginDisplayName(bilingual, "飞书办公", "en")).toBe("飞书办公");
+  expect(pluginDisplayName(bilingual, "飞书办公", "en")).toBe("Feishu Office");
+  expect(
+    pluginDisplayName(
+      {
+        ...bilingual,
+        presentation: {
+          ...bilingual.presentation,
+          displayName: "feishu-office",
+        },
+      },
+      "Feishu Office",
+      "zh-CN",
+    ),
+  ).toBe("飞书办公");
   expect(pluginSummary(bilingual, undefined, undefined, "zh-CN")).toBe(
     "处理办公资料",
   );
   expect(pluginSummary(bilingual, undefined, undefined, "en")).toBe(
     "Work with documents",
   );
+});
+
+it("does not request reauthorization for an installed identity before its first check", () => {
+  expect(
+    pluginNeedsAuthorization(pkg, {
+      installations: [{ wakerId: "w1" }],
+      account: { available: false },
+    }),
+  ).toBe(false);
+  expect(
+    pluginNeedsAuthorization(pkg, {
+      installations: [{ wakerId: "w1" }],
+      account: { available: false, checkedAt: 123 },
+    }),
+  ).toBe(true);
+  expect(
+    pluginNeedsAuthorization(pkg, {
+      installations: [{ wakerId: "w1" }],
+      account: { available: true, checkedAt: 123 },
+    }),
+  ).toBe(false);
 });

@@ -40,6 +40,8 @@ type PluginSkillVersion struct {
 // 查看插件技能
 type GetPluginSkill struct {
 	ginx.MethodGet
+	// 适用智能体
+	Target string `in:"query" name:"target"`
 	// 插件标识
 	PluginID string `in:"path" name:"pluginId" validate:"required"`
 	// 版本标识
@@ -82,11 +84,15 @@ func (o *GetPluginSkill) Output(ctx *gin.Context) (interface{}, error) {
 	if err := packageplugin.VerifyContent(root, version.Digest); err != nil {
 		return nil, ginx.WithStack(err)
 	}
-	skill, content, err := packageplugin.ReadSkill(root, version.Package, o.Key)
+	skillPackage, skillRoot, err := packageplugin.SkillSource(root, version.Package, o.Target)
 	if err != nil {
 		return nil, ginx.WithStack(err)
 	}
-	resources, file, err := packageplugin.ReadSkillResources(root, version.Package, o.Key, o.FilePath)
+	skill, content, err := packageplugin.ReadSkill(skillRoot, skillPackage, o.Key)
+	if err != nil {
+		return nil, ginx.WithStack(err)
+	}
+	resources, file, err := packageplugin.ReadSkillResources(skillRoot, skillPackage, o.Key, o.FilePath)
 	if err != nil {
 		return nil, ginx.WithStack(err)
 	}
@@ -102,6 +108,9 @@ func (o *GetPluginSkill) Output(ctx *gin.Context) (interface{}, error) {
 				break
 			}
 		}
+	}
+	if o.Target != "" {
+		versions = []PluginSkillVersion{{ID: version.ID, Version: version.Version, CreatedAt: version.CreatedAt, Skill: skill}}
 	}
 	return PluginSkillResponse{
 		Skill: skill, Content: content, Resources: resources, File: file,

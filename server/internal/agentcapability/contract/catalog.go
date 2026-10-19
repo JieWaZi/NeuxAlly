@@ -129,10 +129,6 @@ func catalog() []Operation {
 	memoryWriteScope := choice("scope", []string{constants.MemoryScopePartner.String(), constants.MemoryScopeProject.String()}, true)
 	memoryWriteScope.Schema["description"] = "Choose ownership for this entry; project scope requires a bound project."
 	result := []Operation{
-		operation("plugins.catalog.search", "Search HTTP plugin catalog metadata without downloading packages.", read, immediate, "", text("query", false)),
-		operation("plugins.catalog.get", "Read exact catalog source and logical version before installation.", read, immediate, "", text("key", true)),
-		operation("plugins.installations.install", "Install a system plugin for the current partner only. Authorization-required is not installation success; never install into user global CLI configuration.", mutation, immediate, "", text("key", true), scalar("trustConfirmed", "boolean", true)),
-		operation("plugins.installations.get", "Read the current partner's pinned plugin installation and readiness.", read, immediate, "", text("pluginId", true)),
 		operation("im.targets.list", "Discover authorized message recipients.", read, immediate, "im.delivery", page...),
 		operation("im.deliveries.create", "Register a durable delivery; acceptance is not platform confirmation.", external, accepted, "im.delivery", text("targetId", true), text("content", false), list("files")),
 		operation("im.deliveries.get", "Read the actual state of an authorized delivery.", read, immediate, "im.delivery", text("deliveryId", true)),

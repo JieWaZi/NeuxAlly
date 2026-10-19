@@ -140,3 +140,20 @@ func TestBuiltPresentationArtifacts(t *testing.T) {
 		})
 	}
 }
+
+func TestCatalogRejectsIncompleteOrInvalidDetailsMetadata(t *testing.T) {
+	for _, fields := range []string{
+		`"detailsURL":"https://example.invalid/details.json"`,
+		`"detailsSize":0`,
+		`"detailsURL":null,"detailsSHA256":null,"detailsSize":null`,
+		`"detailsURL":"file:///tmp/details.json","detailsSHA256":"` + strings.Repeat("a", 64) + `","detailsSize":100`,
+		`"detailsURL":"https://example.invalid/details.json","detailsSHA256":"bad","detailsSize":100`,
+		`"detailsURL":"https://example.invalid/details.json","detailsSHA256":"` + strings.Repeat("a", 64) + `","detailsSize":0`,
+		`"detailsURL":"https://example.invalid/details.json","detailsSHA256":"` + strings.Repeat("a", 64) + `","detailsSize":4194305`,
+	} {
+		raw := fmt.Sprintf(`{"schemaVersion":2,"entries":[{"key":"details","name":"details","sourceCommit":"%s","archiveURL":"https://example.invalid/owned.zip","archiveSHA256":"%s","packagePath":"entry",%s}]}`, strings.Repeat("a", 40), strings.Repeat("b", 64), fields)
+		if _, err := parseIndex([]byte(raw)); err == nil {
+			t.Fatalf("invalid sidecar metadata accepted: %s", fields)
+		}
+	}
+}

@@ -197,6 +197,8 @@ type ExecutionCreatedData struct {
 	PermissionLevel constants.PermissionLevel `json:"permissionLevel"`
 	// PluginResources 是接纳时冻结的插件身份、版本与配置修订。
 	PluginResources []plugins.Snapshot `json:"pluginResources,omitempty"`
+	// NativePluginScope 是接纳时冻结的外部原生插件摘要，供分叉续聊核验能力边界。
+	NativePluginScope string `json:"nativePluginScope,omitempty"`
 	// WorkspaceReadOnly 表示本次 Runtime 只能读取工作区且不能申请文件修改。
 	WorkspaceReadOnly bool `json:"workspaceReadOnly,omitempty"`
 }

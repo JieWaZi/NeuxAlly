@@ -2,6 +2,7 @@ package runtimes
 
 import (
 	"context"
+	"sort"
 
 	"github.com/JieWaZi/NeuxAlly/server/constants"
 	acpcodex "github.com/JieWaZi/acp-go/pkg/codex"
@@ -38,10 +39,19 @@ func codexACPRuntimeBinding() acpRuntimeBinding {
 	}
 	binding.messagePhase = codexACPMessagePhase
 	binding.newAgent = func(ctx context.Context, config acpAdapterConfig) (acp.Agent, error) {
+		prefixArgs := cloneStrings(config.PrefixArgs)
+		keys := make([]string, 0, len(config.CodexPluginConfiguration))
+		for key := range config.CodexPluginConfiguration {
+			keys = append(keys, key)
+		}
+		sort.Strings(keys)
+		for _, key := range keys {
+			prefixArgs = append(prefixArgs, "-c", key+"="+config.CodexPluginConfiguration[key])
+		}
 		return acpcodex.NewAgent(ctx, acpcodex.Config{
 			Logger:                      acpAdapterLogger(ctx),
 			CodexPath:                   config.Executable,
-			PrefixArgs:                  cloneStrings(config.PrefixArgs),
+			PrefixArgs:                  prefixArgs,
 			Environment:                 append([]string(nil), config.Environment...),
 			DefaultModeRequestUserInput: constants.RuntimeCodexDefaultModeRequestUserInput,
 		})

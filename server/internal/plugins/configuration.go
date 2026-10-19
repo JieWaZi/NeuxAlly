@@ -116,8 +116,10 @@ func ClientExtension(pkg Package) (Extension, error) {
 			for _, value := range server.Env {
 				values = append(values, value)
 			}
-			for _, value := range server.Headers {
-				values = append(values, value)
+			for name, value := range server.Headers {
+				if !selfHeaderAuthenticationCovered(pkg, server, name) {
+					values = append(values, value)
+				}
 			}
 			for _, value := range values {
 				for _, match := range placeholderPattern.FindAllStringSubmatch(value, -1) {
@@ -274,4 +276,27 @@ func ValidateProviderServers(extension Extension, pkg Package) error {
 		}
 	}
 	return nil
+}
+
+// selfHeaderAuthenticationCovered 只豁免所有自身运行目标都由桥接接管的同一位置。
+// 引用其他包的目标不使用此处内容；同名变量在其他位置仍由正常配置扫描校验。
+func selfHeaderAuthenticationCovered(pkg Package, server Server, name string) bool {
+	covered := false
+	for _, cli := range []string{"codex", "claude"} {
+		if _, referenced := pkg.Integration.NativePlugins[cli]; referenced {
+			continue
+		}
+		found := false
+		for _, binding := range TargetAuthenticationBindings(pkg, cli) {
+			if binding.Server == server.Key && binding.URL == server.URL && server.Type != "stdio" && strings.EqualFold(binding.Header, name) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+		covered = true
+	}
+	return covered
 }

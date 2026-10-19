@@ -1,6 +1,7 @@
 package plugins
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -163,5 +164,67 @@ func TestPortableNativeMCPRequiresTrustWithoutProjection(t *testing.T) {
 	}
 	if !pkg.RequiresTrust() {
 		t.Fatal("native-only MCP bypassed explicit trust")
+	}
+}
+
+func TestNativeCapabilitySummariesAreReadOnlyAndDoNotExposeConfiguration(t *testing.T) {
+	root := t.TempDir()
+	fixtureFile(t, root, "entry/.codex-plugin/plugin.json", `{"name":"logical"}`)
+	fixtureFile(t, root, "entry/.neuxally/integration.json", `{"nativePlugins":{"codex":{"path":"upstream/codex"},"claude":{"path":"upstream/claude"}}}`)
+	fixtureFile(t, root, "upstream/codex/.codex-plugin/plugin.json", `{"name":"upstream"}`)
+	fixtureFile(t, root, "upstream/codex/skills/review/SKILL.md", "---\nname: review\ndescription: Review changes\n---\nFull upstream instructions")
+	fixtureFile(t, root, "upstream/claude/.claude-plugin/plugin.json", `{"name":"upstream"}`)
+	fixtureFile(t, root, "upstream/claude/.mcp.json", `{"github":{"type":"http","url":"https://api.example.test/mcp?secret=hidden","headers":{"Authorization":"Bearer private-token"},"env":{"PRIVATE_TOKEN":"another-secret"}}}`)
+	pkg, err := LoadSource(root, "entry")
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, _ := json.Marshal(pkg.NativeImplementations)
+	if !strings.Contains(string(data), `"skills":[{"key":"skills/review","name":"review","description":"Review changes"}]`) || !strings.Contains(string(data), `"endpoint":"https://api.example.test"`) {
+		t.Fatalf("read-only capability index missing: %s", data)
+	}
+	if strings.Contains(string(data), "private-token") || strings.Contains(string(data), "another-secret") || strings.Contains(string(data), "secret=hidden") {
+		t.Fatal("capability summary exposed configuration")
+	}
+	if len(pkg.Skills) != 0 || len(pkg.Servers) != 0 {
+		t.Fatal("read-only index changed logical runtime components")
+	}
+}
+
+func TestActualGitHubZIPCapabilityIndex(t *testing.T) {
+	archive := os.Getenv("NEUXALLY_UPSTREAM_CAPABILITIES_ZIP")
+	if archive == "" {
+		t.Skip("explicit immutable upstream archive acceptance only")
+	}
+	entry := os.Getenv("NEUXALLY_CAPABILITIES_PACKAGE_PATH")
+	if entry == "" {
+		entry = "plugins/github"
+	}
+	stage, err := StageSource(t.TempDir(), archive, entry)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(stage.Package.Integration.NativePlugins) == 0 {
+		if len(stage.Package.Servers) != 1 || len(stage.Package.Skills) != 0 || stage.Package.Servers[0].Key != "github" || stage.Package.Servers[0].URL != "https://api.githubcopilot.com/mcp/" {
+			t.Fatal("canonical package must expose its one real GitHub MCP")
+		}
+		for _, cli := range []string{"codex", "claude"} {
+			selected, _, err := SelectTarget(stage.Root, stage.Package, cli)
+			if err != nil || len(selected.Servers) != 1 || len(TargetAuthenticationBindings(stage.Package, cli)) != 1 {
+				t.Fatal("canonical package does not bind its own MCP", err)
+			}
+		}
+		t.Log("canonical package: 0 skills, 1 github MCP, no duplicated runtime implementation")
+		return
+	}
+	if len(stage.Package.Servers) != 0 || len(stage.Package.Skills) != 0 {
+		t.Fatal("upstream index modified logical runtime components")
+	}
+	for _, target := range []string{"codex", "claude"} {
+		summary := stage.Package.NativeImplementations[target]
+		if len(summary.Servers) != 1 || summary.Servers[0].Name != "github" || summary.Servers[0].Endpoint != "https://api.githubcopilot.com" {
+			t.Fatalf("real upstream MCP not visible: %s %+v", target, summary.Servers)
+		}
+		t.Logf("%s: %d skills, %d github MCP, transport=%s, endpoint=%s", target, len(summary.Skills), len(summary.Servers), summary.Servers[0].Transport, summary.Servers[0].Endpoint)
 	}
 }

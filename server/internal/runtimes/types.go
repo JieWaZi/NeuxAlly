@@ -421,6 +421,12 @@ type RuntimeTarget struct {
 	PrefixArgs []string
 	// NativePluginDirectories 是本轮已经核验且独占交付的Claude原生包目录。
 	NativePluginDirectories []string
+	// CodexPluginConfiguration 是自有插件仅在本次进程生效的原生点路径覆盖。
+	CodexPluginConfiguration map[string]string
+	// NativePluginScope 是本轮外部原生插件事实摘要，变化时不得复用旧进程。
+	NativePluginScope string
+	// ClaudeSettingsPath 是只对本次进程生效的受管模型设置文件。
+	ClaudeSettingsPath string
 	// ConfigHome 是 Runtime 使用的受控配置目录。
 	ConfigHome string
 }

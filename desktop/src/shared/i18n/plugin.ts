@@ -21,7 +21,6 @@ export const pluginZh = {
   viewConnector: "查看连接器 {{name}}",
   requiresAuthorization: "需授权",
   authorize: "授权",
-  officialHosted: "官方托管",
   authorizeNamed: "授权 {{name}}",
   selectPartners: "选择一个或多个伙伴",
   selectedPartners: "已选择 {{count}} 个伙伴",
@@ -29,25 +28,8 @@ export const pluginZh = {
   retryAuthorization: "重新授权",
   refreshQR: "刷新二维码",
   qrLoading: "正在加载二维码…",
+  authorizationPreparing: "正在准备授权信息…",
   qrExpired: "二维码已过期",
-  feishuAuthorizationNotice:
-    "所选伙伴共用本机的飞书授权。可访问范围以飞书授权和资源权限为准。",
-  githubAuthorizationNotice:
-    "所选伙伴共用本机的 GitHub 授权。请在 GitHub 官方页面确认，仓库访问受账号与组织权限限制。",
-  importPlugin: "导入插件",
-  addPluginVersion: "添加新版本",
-  importCompatibility:
-    "支持 NeuxAlly、Claude Code、Codex 插件目录或 ZIP，保留技能、连接器、原生组件和原作者资料。",
-  importLocation: "插件位置",
-  importLocationExample: "选择插件根目录或 .zip 文件",
-  packageFormat: "包格式",
-  packageSummary: "{{skills}} 个技能 · {{connectors}} 个连接器",
-  diagnosticUnsupported: "此组件保留原文，是否加载取决于当前智能体。",
-  diagnosticInvalid: "此组件未通过系统校验，请查看来源声明。",
-  diagnosticAsset: "图标格式、大小或内容不受支持，将使用默认图标",
-  diagnosticDocumentation: "说明文件未通过校验，未加载",
-  diagnosticSchema: "此组件的规范版本暂不支持",
-  diagnosticUnknown: "未识别的扩展字段，已忽略",
   pluginReadme: "说明",
   noExplanation: "此插件尚未提供说明。",
   viewFullReadme: "查看完整内容",
@@ -55,8 +37,6 @@ export const pluginZh = {
   readmeTooLarge: "说明超过内置阅读范围，可下载原文查看。",
   readmeInvalid: "说明文件无法读取，以下展示插件简介。",
   downloadReadme: "下载原始说明",
-  sharedAuthorizationHelp:
-    "按插件提供的授权步骤连接账号，安装此插件的伙伴共用本次授权。",
   authorizationWaiting: "请完成当前授权步骤，完成后会自动更新状态。",
   authorizationScopeHelp: "实际可用能力受账号、服务商和资源权限限制。",
   edit: "编辑插件",
@@ -76,6 +56,7 @@ export const pluginZh = {
   information: "插件信息",
   capabilities: "能力组成",
   developer: "开发者",
+  packageVersion: "插件版本",
   website: "官方网站",
   repository: "源代码",
   privacy: "隐私政策",
@@ -100,11 +81,6 @@ export const pluginZh = {
   mine: "我的插件",
   partnerResources: "已安装资源",
   search: "搜索资源…",
-  folder: "选择文件夹",
-  archive: "选择 ZIP 文件",
-  scan: "检查内容",
-  trust: "我确认允许此插件启动列出的本地程序或连接外部服务。",
-  prepare: "添加到本机",
   install: "安装",
   installToPartners: "安装到伙伴",
   continue: "继续",
@@ -120,7 +96,6 @@ export const pluginZh = {
   viewPluginAction: "查看插件",
   back: "返回资源库",
   version: "版本",
-  diagnostics: "兼容性说明",
   configuration: "共享设置",
   configurationHelp:
     "所有安装伙伴共用这些设置。密钥仅保存新值，留空保留已配置值。",
@@ -178,7 +153,6 @@ export const pluginZh = {
   busy: "正在处理…",
   uninstallTitle: "从当前伙伴卸载",
   uninstallHelp: "卸载此伙伴的插件；没有其他安装使用时，清理本机授权。",
-  chooseImport: "选择本地插件目录或 ZIP 包。",
 } as const;
 export const pluginEn: { [K in keyof typeof pluginZh]: string } = {
   allPluginsTitle: "All plugins",
@@ -203,7 +177,6 @@ export const pluginEn: { [K in keyof typeof pluginZh]: string } = {
   viewConnector: "View connector {{name}}",
   requiresAuthorization: "Authorization required",
   authorize: "Authorize",
-  officialHosted: "Official hosted service",
   authorizeNamed: "Authorize {{name}}",
   selectPartners: "Select one or more partners",
   selectedPartners: "{{count}} partners selected",
@@ -211,29 +184,8 @@ export const pluginEn: { [K in keyof typeof pluginZh]: string } = {
   retryAuthorization: "Retry authorization",
   refreshQR: "Refresh QR code",
   qrLoading: "Loading QR code…",
+  authorizationPreparing: "Preparing authorization details…",
   qrExpired: "QR code expired",
-  feishuAuthorizationNotice:
-    "Selected partners share this device’s Feishu authorization. Access follows Feishu permissions and resource policies.",
-  githubAuthorizationNotice:
-    "Selected partners share this device’s GitHub authorization. Confirm on GitHub’s official website. Repository access follows account and organization permissions.",
-  importPlugin: "Import plugin",
-  addPluginVersion: "Add version",
-  importCompatibility:
-    "Supports NeuxAlly, Claude Code, and Codex folders or ZIPs. Preserves skills, connectors, native components, and author information.",
-  importLocation: "Plugin location",
-  importLocationExample: "Choose a plugin root folder or .zip file",
-  packageFormat: "Package format",
-  packageSummary: "{{skills}} skills · {{connectors}} connectors",
-  diagnosticUnsupported:
-    "Original component preserved; loading depends on the selected agent.",
-  diagnosticInvalid:
-    "This component did not pass system validation; review its source declaration.",
-  diagnosticAsset:
-    "Unsupported icon format, size, or content; using the default icon",
-  diagnosticDocumentation:
-    "The documentation failed validation and was not loaded",
-  diagnosticSchema: "This component's schema version is not supported",
-  diagnosticUnknown: "Unknown extension field; ignored",
   pluginReadme: "Description",
   noExplanation: "This plugin has not provided a description yet.",
   viewFullReadme: "View full content",
@@ -243,8 +195,6 @@ export const pluginEn: { [K in keyof typeof pluginZh]: string } = {
   readmeInvalid:
     "The README could not be read. Showing the plugin summary instead.",
   downloadReadme: "Download original README",
-  sharedAuthorizationHelp:
-    "Follow the plugin authorization steps. Partners using this plugin share this connection.",
   authorizationWaiting:
     "Complete the current authorization step. The status will update automatically.",
   authorizationScopeHelp:
@@ -268,6 +218,7 @@ export const pluginEn: { [K in keyof typeof pluginZh]: string } = {
   information: "Plugin information",
   capabilities: "Capabilities",
   developer: "Developer",
+  packageVersion: "Plugin version",
   website: "Official website",
   repository: "Source code",
   privacy: "Privacy policy",
@@ -293,12 +244,6 @@ export const pluginEn: { [K in keyof typeof pluginZh]: string } = {
   mine: "My plugins",
   partnerResources: "Installed resources",
   search: "Search resources…",
-  folder: "Choose folder",
-  archive: "Choose ZIP file",
-  scan: "Inspect package",
-  trust:
-    "I approve the listed local programs and external services for this plugin.",
-  prepare: "Save on this device",
   install: "Install",
   installToPartners: "Install for partners",
   continue: "Continue",
@@ -314,7 +259,6 @@ export const pluginEn: { [K in keyof typeof pluginZh]: string } = {
   viewPluginAction: "View plugin",
   back: "Back to resources",
   version: "Version",
-  diagnostics: "Compatibility notes",
   configuration: "Shared settings",
   configurationHelp:
     "All installed partners share these settings. Leave an existing secret blank to retain it.",
@@ -376,5 +320,4 @@ export const pluginEn: { [K in keyof typeof pluginZh]: string } = {
   uninstallTitle: "Uninstall from this partner",
   uninstallHelp:
     "Uninstall for this partner; clear local authorization when no installs remain.",
-  chooseImport: "Choose a local plugin folder or ZIP package.",
 };

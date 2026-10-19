@@ -9,7 +9,7 @@ import (
 )
 
 // PrepareCodexWorkspace 发布本轮独占marketplace，来源必须位于marketplace自身根内。
-func PrepareCodexWorkspace(workspace string, targets []NativeTarget) error {
+func PrepareCodexWorkspace(workspace string, targets []NativeTarget, marketplace ...string) error {
 	directory := filepath.Join(workspace, ".agents")
 	if info, err := os.Lstat(directory); err == nil && (!info.IsDir() || info.Mode()&os.ModeSymlink != 0) {
 		return status_error.PluginContentInvalid
@@ -43,7 +43,11 @@ func PrepareCodexWorkspace(workspace string, targets []NativeTarget) error {
 		}
 		entries = append(entries, map[string]any{"name": target.Name, "source": map[string]string{"source": "local", "path": "./.agents/plugins/plugins/" + target.Name}, "policy": map[string]string{"installation": "AVAILABLE", "authentication": "ON_USE"}})
 	}
-	data, _ := json.Marshal(map[string]any{"name": constants.PluginNativeMarketplace, "plugins": entries})
+	name := constants.PluginNativeMarketplace
+	if len(marketplace) > 0 && marketplace[0] != "" {
+		name = marketplace[0]
+	}
+	data, _ := json.Marshal(map[string]any{"name": name, "plugins": entries})
 	if os.WriteFile(filepath.Join(stage, "marketplace.json"), data, 0600) != nil {
 		return status_error.PluginStorageError
 	}

@@ -27,8 +27,8 @@ type PluginController interface {
 	Get(context.Context, string) (models.Plugin, error)
 	// FindSource 按归属和来源查询资源，未登记时返回空资源。
 	FindSource(context.Context, string, string) (models.Plugin, error)
-	// List 分页查询全局库或伙伴自有与已安装资源。
-	List(context.Context, string, string, string, int, int) ([]models.Plugin, int64, error)
+	// List 按归属、安装范围和关键字分页查询资源。
+	List(context.Context, string, string, string, int, int, bool) ([]models.Plugin, int64, error)
 	// Update 修改资源展示资料。
 	Update(context.Context, string, string, string) error
 	// PutVersion 幂等登记不可变版本，相同版本不同摘要拒绝。
@@ -113,12 +113,15 @@ func (c *pluginController) FindSource(ctx context.Context, owner, key string) (m
 }
 
 // List 将全局发现和伙伴真实安装分开，统计不补齐展示资料。
-func (c *pluginController) List(ctx context.Context, owner, waker, query string, offset, limit int) ([]models.Plugin, int64, error) {
+func (c *pluginController) List(ctx context.Context, owner, waker, query string, offset, limit int, installedOnly bool) ([]models.Plugin, int64, error) {
 	db := controllerDB(ctx, c.db).Model(&models.Plugin{})
 	if waker != "" {
 		db = db.Where("owner_waker_id = ? OR id IN (SELECT plugin_id FROM waker_plugins WHERE waker_id = ?)", waker, waker)
 	} else {
 		db = db.Where("owner_waker_id = ?", owner)
+	}
+	if installedOnly {
+		db = db.Where("id IN (SELECT plugin_id FROM waker_plugins)")
 	}
 	if query = strings.TrimSpace(query); query != "" {
 		pattern := "%" + strings.ToLower(query) + "%"

@@ -1,18 +1,33 @@
 package plugins
 
 import (
+	"archive/zip"
+	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/authorization"
+	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/catalog"
 	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/feishu"
 	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/github"
+	"github.com/JieWaZi/NeuxAlly/server/internal/util"
+	"github.com/shrewx/ginx"
 	"io"
+	"io/fs"
+	"net"
+	"net/http"
+	"net/http/httptest"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/JieWaZi/NeuxAlly/server/constants/status_error"
 	"github.com/JieWaZi/NeuxAlly/server/global"
@@ -39,6 +54,7 @@ func pluginAPIContext(t *testing.T) *gin.Context {
 	global.WakerControllerManager = controllers.NewWakerController(database.DB)
 	global.TransactionControllerManager = controllers.NewTransactionController(dbhelper.NewGormTransactionManager(database.DB))
 	global.Config.DataDirectory = t.TempDir()
+	t.Setenv("ALLY_PLUGIN_CATALOG_URL", t.TempDir())
 	t.Cleanup(func() {
 		global.PluginControllerManager = previousPlugins
 		global.WakerControllerManager = previousWakers
@@ -62,16 +78,14 @@ func TestFirstInstallationRequiresConfigurationAndReportsPartnerFailures(t *test
 	if err := os.WriteFile(filepath.Join(source, "plugin.json"), []byte(content), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	scanned, err := (&ScanPlugin{Body: ScanPluginRequest{Location: source}}).Output(ctx)
+	stage, err := packageplugin.Stage(stagedRoot(), source)
 	if err != nil {
 		t.Fatal(err)
 	}
-	stage := scanned.(packageplugin.StagedPackage)
-	prepared, err := (&PreparePlugin{Body: PreparePluginRequest{Token: stage.Token}}).Output(ctx)
+	detail, err := prepareCatalogFixture(t, ctx, stage, "", "", false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	detail := prepared.(PluginDetailResponse)
 	id := detail.Plugin.ID
 	version := detail.Versions[0].ID
 	request := InstallPluginRequest{VersionID: version, WakerIDs: []string{"w1", "missing"}, ExpectedConfigurationRevision: 0}
@@ -103,7 +117,7 @@ func TestFirstInstallationRequiresConfigurationAndReportsPartnerFailures(t *test
 func TestConfigurationUpgradeIncludesDisabledUnselectedVersions(t *testing.T) {
 	ctx := pluginAPIContext(t)
 	store := global.PluginControllerManager
-	if err := store.Create(ctx, models.Plugin{ID: "p", Name: "Plugin", SourceKey: "source"}); err != nil {
+	if err := store.Create(ctx, models.Plugin{ID: "p", Name: "Plugin", SourceKey: catalog.SourceKey(global.PluginCatalogSource(), "tools")}); err != nil {
 		t.Fatal(err)
 	}
 	for _, name := range []string{"old", "new"} {
@@ -124,7 +138,10 @@ func TestConfigurationUpgradeIncludesDisabledUnselectedVersions(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, err := store.PutVersion(ctx, models.PluginVersion{ID: name, PluginID: "p", Version: name, Digest: staged.Digest, ContentPath: filepath.ToSlash(relative), Package: staged.Package}); err != nil {
+		if _, err := store.PutVersion(ctx, models.PluginVersion{ID: name, PluginID: "p", Version: name, Digest: staged.Digest, ContentPath: filepath.ToSlash(relative), Package: staged.Package, Provenance: map[string]any{"sourceCommit": strings.Repeat("a", 40), "archiveSHA256": strings.Repeat("b", 64)}}); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := prepareCatalogFixture(t, ctx, staged, "", "p", false); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -167,15 +184,14 @@ func TestPrepareMCPPluginRequiresExplicitContentTrust(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	value, err := (&ScanPlugin{Body: ScanPluginRequest{Location: root}}).Output(ctx)
+	stage, err := packageplugin.Stage(stagedRoot(), root)
 	if err != nil {
 		t.Fatal(err)
 	}
-	token := value.(packageplugin.StagedPackage).Token
-	if _, err := (&PreparePlugin{Body: PreparePluginRequest{Token: token}}).Output(ctx); !errors.Is(err, status_error.MCPConnectorTrustRequired) {
+	if _, err := prepareCatalogFixture(t, ctx, stage, "", "", false); !errors.Is(err, status_error.MCPConnectorTrustRequired) {
 		t.Fatalf("untrusted MCP content accepted: %v", err)
 	}
-	if _, err := (&PreparePlugin{Body: PreparePluginRequest{Token: token, TrustConfirmed: true}}).Output(ctx); err != nil {
+	if _, err := prepareCatalogFixture(t, ctx, stage, "", "", true); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -186,15 +202,14 @@ func TestInstallRejectsMutatedManagedVersion(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, "plugin.json"), []byte(`{"$schema":"https://agent-plugins.org/schemas/1.0.0/plugin.schema.json","name":"integrity"}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	value, err := (&ScanPlugin{Body: ScanPluginRequest{Location: root}}).Output(ctx)
+	stage, err := packageplugin.Stage(stagedRoot(), root)
 	if err != nil {
 		t.Fatal(err)
 	}
-	value, err = (&PreparePlugin{Body: PreparePluginRequest{Token: value.(packageplugin.StagedPackage).Token}}).Output(ctx)
+	detail, err := prepareCatalogFixture(t, ctx, stage, "", "", false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	detail := value.(PluginDetailResponse)
 	version := detail.Versions[0]
 	if err := os.WriteFile(filepath.Join(global.Config.DataDirectory, version.ContentPath, "injected.sh"), []byte("arbitrary mutation"), 0o600); err != nil {
 		t.Fatal(err)
@@ -202,30 +217,6 @@ func TestInstallRejectsMutatedManagedVersion(t *testing.T) {
 	_, err = (&InstallPlugin{PluginID: detail.Plugin.ID, Body: InstallPluginRequest{VersionID: version.ID, WakerIDs: []string{"w1"}}}).Output(ctx)
 	if !errors.Is(err, status_error.PluginVersionConflict) {
 		t.Fatalf("mutated managed content accepted: %v", err)
-	}
-}
-
-func TestLocalManifestRepositoryCannotMergeIntoAnotherResource(t *testing.T) {
-	ctx := pluginAPIContext(t)
-	ids := []string{}
-	for _, version := range []string{"1.0.0", "2.0.0"} {
-		source := t.TempDir()
-		manifest := `{"$schema":"https://agent-plugins.org/schemas/1.0.0/plugin.schema.json","name":"office","repository":"https://example.invalid/official","version":"` + version + `"}`
-		if err := os.WriteFile(filepath.Join(source, "plugin.json"), []byte(manifest), 0600); err != nil {
-			t.Fatal(err)
-		}
-		stage, err := packageplugin.Stage(stagedRoot(), source)
-		if err != nil {
-			t.Fatal(err)
-		}
-		result, err := (&PreparePlugin{Body: PreparePluginRequest{Token: stage.Token}}).Output(ctx)
-		if err != nil {
-			t.Fatal(err)
-		}
-		ids = append(ids, result.(PluginDetailResponse).Plugin.ID)
-	}
-	if ids[0] == ids[1] {
-		t.Fatal("self-declared repository merged unverified local content into an existing resource")
 	}
 }
 
@@ -249,11 +240,11 @@ func TestNativePluginUpgradePreservesPartnerPinsAndReturnsPreparedVersion(t *tes
 		if err != nil {
 			return PluginDetailResponse{}, err
 		}
-		value, err := (&PreparePlugin{Body: PreparePluginRequest{Token: stage.Token, PluginID: target}}).Output(ctx)
+		value, err := prepareCatalogFixture(t, ctx, stage, "", target, false)
 		if err != nil {
 			return PluginDetailResponse{}, err
 		}
-		return value.(PluginDetailResponse), nil
+		return value, nil
 	}
 	old, err := prepare("", "1.0.0", "Original instructions")
 	if err != nil {
@@ -322,15 +313,15 @@ func TestVersionSwitchRejectsUnreadyTargetsWithoutChangingInstallation(t *testin
 				if err := os.WriteFile(filepath.Join(root, "plugin.json"), []byte(body), 0o600); err != nil {
 					t.Fatal(err)
 				}
-				scan, err := (&ScanPlugin{Body: ScanPluginRequest{Location: root}}).Output(ctx)
+				stage, err := packageplugin.Stage(stagedRoot(), root)
 				if err != nil {
 					t.Fatal(err)
 				}
-				value, err := (&PreparePlugin{Body: PreparePluginRequest{Token: scan.(packageplugin.StagedPackage).Token, PluginID: id}}).Output(ctx)
+				value, err := prepareCatalogFixture(t, ctx, stage, "", id, false)
 				if err != nil {
 					t.Fatal(err)
 				}
-				return value.(PluginDetailResponse)
+				return value
 			}
 			old := prepare("", "1.0.0", `{}`)
 			oldID := old.Versions[0].ID
@@ -410,7 +401,7 @@ func TestGitHubAuthorizationAndInstallationReadiness(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	detail, err := prepareResource(ctx, stage, "", "", true)
+	detail, err := prepareCatalogFixture(t, ctx, stage, "", "", true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -459,17 +450,20 @@ func TestGitHubAuthorizationAndInstallationReadiness(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := prepareResource(ctx, stage, "", "", true); err != nil {
+	if _, err := prepareCatalogFixture(t, ctx, stage, "", "", true); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := global.PluginAuthorizations["feishu"].Status(ctx, true); err != nil {
 		t.Fatal(err)
 	}
 	githubChecks = 0
 	feishuChecks = 0
-	listed, err := listPluginResources(ctx, "", "", 1, 50)
+	listed, err := listPluginResources(ctx, "", "", 1, 50, false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(listed.Resources) != 2 || githubChecks != 1 || feishuChecks != 1 {
-		t.Fatalf("provider query cache mixed identities: github=%d feishu=%d list=%+v", githubChecks, feishuChecks, listed)
+	if len(listed.Resources) != 2 || githubChecks != 0 || feishuChecks != 0 {
+		t.Fatalf("ordinary list executed provider status: github=%d feishu=%d list=%+v", githubChecks, feishuChecks, listed)
 	}
 	identities := map[string]string{}
 	for _, resource := range listed.Resources {
@@ -477,5 +471,439 @@ func TestGitHubAuthorizationAndInstallationReadiness(t *testing.T) {
 	}
 	if identities["octocat"] == "" || identities["feishu-user"] == "" {
 		t.Fatalf("provider identity leaked between resources: %+v", identities)
+	}
+}
+
+func TestInstallRejectsExistingLocalImportWithoutChangingResource(t *testing.T) {
+	ctx := pluginAPIContext(t)
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "plugin.json"), []byte(`{"$schema":"https://agent-plugins.org/schemas/1.0.0/plugin.schema.json","name":"legacy-local","version":"1.0.0"}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	stage, err := packageplugin.Stage(stagedRoot(), root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	detail, err := persistPluginFixture(t, ctx, stage, "", "local:"+stage.Digest, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = (&InstallPlugin{PluginID: detail.Plugin.ID, Body: InstallPluginRequest{VersionID: detail.ResolvedVersionID, WakerIDs: []string{"w1"}}}).Output(ctx)
+	if !errors.Is(err, status_error.PluginForbidden) {
+		t.Fatalf("local import remained installable: %v", err)
+	}
+	if _, err := global.PluginControllerManager.Get(ctx, detail.Plugin.ID); err != nil {
+		t.Fatal("legacy resource was deleted", err)
+	}
+	relations, err := global.PluginControllerManager.Installations(ctx, detail.Plugin.ID, "")
+	if err != nil || len(relations) != 0 {
+		t.Fatalf("rejected import created installation: %+v %v", relations, err)
+	}
+}
+
+func TestPluginImportRoutesAreUnavailable(t *testing.T) {
+	if raw := os.Getenv("NEUXALLY_PLUGIN_ROUTE_TEST_PORT"); raw != "" {
+		port, err := strconv.Atoi(raw)
+		if err != nil {
+			t.Fatal(err)
+		}
+		pluginAPIContext(t)
+		ginx.RunServer(&conf.Server{Host: "127.0.0.1", Port: port, Log: &conf.Log{ToStdout: true}}, Router)
+		return
+	}
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	port := listener.Addr().(*net.TCPAddr).Port
+	_ = listener.Close()
+	command := exec.Command(os.Args[0], "-test.run=^TestPluginImportRoutesAreUnavailable$")
+	command.Env = append(os.Environ(), "NEUXALLY_PLUGIN_ROUTE_TEST_PORT="+strconv.Itoa(port))
+	if err := command.Start(); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = command.Process.Kill(); _ = command.Wait() })
+	address := "http://127.0.0.1:" + strconv.Itoa(port)
+	client := http.Client{Timeout: time.Second}
+	deadline := time.Now().Add(10 * time.Second)
+	for {
+		response, err := client.Get(address + "/health")
+		if err == nil {
+			_ = response.Body.Close()
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("temporary HTTP server unavailable", err)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	for _, path := range []string{"/plugins/scan", "/plugins/prepare"} {
+		response, err := client.Post(address+path, "application/json", strings.NewReader(`{}`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = response.Body.Close()
+		if response.StatusCode != http.StatusNotFound {
+			t.Errorf("removed import route %s returned %d", path, response.StatusCode)
+		}
+	}
+}
+
+// prepareCatalogFixture 发布临时固定清单与 ZIP，通过真实目录接口准备测试资源。
+func prepareCatalogFixture(t *testing.T, ctx *gin.Context, stage packageplugin.StagedPackage, owner, target string, trusted bool) (PluginDetailResponse, error) {
+	t.Helper()
+	root := global.PluginCatalogSource()
+	key := stage.Package.Manifest.Name
+	if target != "" {
+		resource, err := global.PluginControllerManager.Get(ctx, target)
+		if err != nil {
+			return PluginDetailResponse{}, err
+		}
+		parts := strings.Split(resource.SourceKey, ":")
+		key = parts[len(parts)-1]
+	}
+	if err := os.MkdirAll(filepath.Join(root, "catalog"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	archivePath := filepath.Join(root, "catalog", key+".zip")
+	file, err := os.Create(archivePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	writer := zip.NewWriter(file)
+	err = filepath.WalkDir(stage.Root, func(path string, entry fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if entry.IsDir() {
+			return nil
+		}
+		info, err := entry.Info()
+		if err != nil {
+			return err
+		}
+		header, err := zip.FileInfoHeader(info)
+		if err != nil {
+			return err
+		}
+		relative, err := filepath.Rel(stage.Root, path)
+		if err != nil {
+			return err
+		}
+		header.Name = filepath.ToSlash(relative)
+		output, err := writer.CreateHeader(header)
+		if err != nil {
+			return err
+		}
+		body, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		_, err = output.Write(body)
+		return err
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := file.Close(); err != nil {
+		t.Fatal(err)
+	}
+	body, err := os.ReadFile(archivePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sum := sha256.Sum256(body)
+	entries := []any{}
+	if previous, err := os.ReadFile(filepath.Join(root, "catalog.json")); err == nil {
+		var document map[string]any
+		if json.Unmarshal(previous, &document) != nil {
+			t.Fatal("invalid fixture catalog")
+		}
+		items, _ := document["entries"].([]any)
+		for _, item := range items {
+			entry, _ := item.(map[string]any)
+			if entry["key"] != key {
+				entries = append(entries, item)
+			}
+		}
+	}
+	entries = append(entries, map[string]any{"key": key, "directory": "catalog/" + key + ".zip", "sourceCommit": strings.Repeat("a", 40), "archiveSHA256": fmt.Sprintf("%x", sum), "package": stage.Package, "packagePath": stage.Package.SourcePath})
+	index, err := json.Marshal(map[string]any{"schemaVersion": 1, "entries": entries})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "catalog.json"), index, 0600); err != nil {
+		t.Fatal(err)
+	}
+	output, err := (&PrepareCatalogPlugin{Key: key, Body: PrepareCatalogPluginRequest{OwnerWakerID: owner, TrustConfirmed: trusted}}).Output(ctx)
+	if err != nil {
+		return PluginDetailResponse{}, err
+	}
+	return output.(PluginDetailResponse), nil
+}
+
+// persistPluginFixture 只构造已有数据库记录，用于验证旧数据和旧解析元数据边界。
+func persistPluginFixture(t *testing.T, ctx *gin.Context, stage packageplugin.StagedPackage, owner, source string, provenance map[string]any) (PluginDetailResponse, error) {
+	t.Helper()
+	id := util.New()
+	resource := models.Plugin{ID: id, Name: stage.Package.Manifest.Name, OwnerWakerID: owner, SourceKey: source}
+	if err := global.PluginControllerManager.Create(ctx, resource); err != nil {
+		return PluginDetailResponse{}, err
+	}
+	content, err := packageplugin.CopyContent(filepath.Join(global.Config.DataDirectory, "plugins", "content"), stage.Root, stage.Digest)
+	if err != nil {
+		return PluginDetailResponse{}, err
+	}
+	relative, err := filepath.Rel(global.Config.DataDirectory, content)
+	if err != nil {
+		return PluginDetailResponse{}, err
+	}
+	version, err := global.PluginControllerManager.PutVersion(ctx, models.PluginVersion{ID: util.New(), PluginID: id, Version: stage.Package.Manifest.Version, Digest: stage.Digest, ContentPath: filepath.ToSlash(relative), Package: stage.Package, TrustedAt: 1, Provenance: provenance})
+	if err != nil {
+		return PluginDetailResponse{}, err
+	}
+	return pluginDetail(ctx, resource, version.ID)
+}
+
+func TestExistingPinSurvivesUnavailableCatalogAndNewInstallRejects(t *testing.T) {
+	ctx := pluginAPIContext(t)
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "plugin.json"), []byte(`{"$schema":"https://agent-plugins.org/schemas/1.0.0/plugin.schema.json","name":"pinned","version":"1.0.0"}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	stage, err := packageplugin.Stage(stagedRoot(), root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	detail, err := prepareCatalogFixture(t, ctx, stage, "", "", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := (&InstallPlugin{PluginID: detail.Plugin.ID, Body: InstallPluginRequest{VersionID: detail.ResolvedVersionID, WakerIDs: []string{"w1"}}}).Output(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.RemoveAll(global.PluginCatalogSource()); err != nil {
+		t.Fatal(err)
+	}
+	_, err = (&InstallPlugin{PluginID: detail.Plugin.ID, Body: InstallPluginRequest{VersionID: detail.ResolvedVersionID, WakerIDs: []string{"w2"}}}).Output(ctx)
+	if !errors.Is(err, status_error.PluginStorageError) {
+		t.Fatalf("new installation accepted an unverifiable source: %v", err)
+	}
+	relations, err := global.PluginControllerManager.Installations(ctx, detail.Plugin.ID, "")
+	if err != nil || len(relations) != 1 || relations[0].WakerID != "w1" || relations[0].VersionID != detail.ResolvedVersionID {
+		t.Fatalf("unavailable catalog changed existing pin: %+v %v", relations, err)
+	}
+
+}
+
+func TestInstallRejectsUnverifiedOrOtherCatalogSources(t *testing.T) {
+	for _, kind := range []string{"other-catalog", "empty-source", "missing-provenance", "invalid-commit", "invalid-archive"} {
+		t.Run(kind, func(t *testing.T) {
+			ctx := pluginAPIContext(t)
+			root := t.TempDir()
+			if err := os.WriteFile(filepath.Join(root, "plugin.json"), []byte(`{"$schema":"https://agent-plugins.org/schemas/1.0.0/plugin.schema.json","name":"stored","version":"1.0.0"}`), 0600); err != nil {
+				t.Fatal(err)
+			}
+			stage, err := packageplugin.Stage(stagedRoot(), root)
+			if err != nil {
+				t.Fatal(err)
+			}
+			source := catalog.SourceKey(global.PluginCatalogSource(), "stored")
+			provenance := map[string]any{"sourceCommit": strings.Repeat("a", 40), "archiveSHA256": strings.Repeat("b", 64)}
+			switch kind {
+			case "other-catalog":
+				source = catalog.SourceKey(t.TempDir(), "stored")
+			case "empty-source":
+				source = ""
+			case "missing-provenance":
+				provenance = nil
+			case "invalid-commit":
+				provenance["sourceCommit"] = strings.Repeat("z", 40)
+			case "invalid-archive":
+				provenance["archiveSHA256"] = strings.Repeat("z", 64)
+			}
+			detail, err := persistPluginFixture(t, ctx, stage, "", source, provenance)
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, err = (&InstallPlugin{PluginID: detail.Plugin.ID, Body: InstallPluginRequest{VersionID: detail.ResolvedVersionID, WakerIDs: []string{"w1"}}}).Output(ctx)
+			if !errors.Is(err, status_error.PluginForbidden) {
+				t.Fatalf("unverified source accepted: %v", err)
+			}
+			relations, err := global.PluginControllerManager.Installations(ctx, detail.Plugin.ID, "")
+			if err != nil || len(relations) != 0 {
+				t.Fatalf("rejected source created installation: %+v %v", relations, err)
+			}
+		})
+	}
+}
+
+func TestVersionSwitchRejectsLegacyImportedVersionWithoutChangingPin(t *testing.T) {
+	ctx := pluginAPIContext(t)
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "plugin.json"), []byte(`{"$schema":"https://agent-plugins.org/schemas/1.0.0/plugin.schema.json","name":"switch","version":"1.0.0"}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	stage, err := packageplugin.Stage(stagedRoot(), root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	detail, err := prepareCatalogFixture(t, ctx, stage, "", "", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := (&InstallPlugin{PluginID: detail.Plugin.ID, Body: InstallPluginRequest{VersionID: detail.ResolvedVersionID, WakerIDs: []string{"w1"}}}).Output(ctx); err != nil {
+		t.Fatal(err)
+	}
+	legacy := detail.Versions[0]
+	legacy.ID, legacy.Version, legacy.Provenance = "imported-version", "local-import", nil
+	if _, err := global.PluginControllerManager.PutVersion(ctx, legacy); err != nil {
+		t.Fatal(err)
+	}
+	_, err = (&UpdatePluginConfiguration{PluginID: detail.Plugin.ID, Body: UpdateConfigurationRequest{Switches: []VersionSwitch{{WakerID: "w1", ExpectedVersionID: detail.ResolvedVersionID, VersionID: legacy.ID}}}}).Output(ctx)
+	if !errors.Is(err, status_error.PluginForbidden) {
+		t.Fatalf("version switch installed an unverified import: %v", err)
+	}
+	relations, err := global.PluginControllerManager.Installations(ctx, detail.Plugin.ID, "")
+	if err != nil || len(relations) != 1 || relations[0].VersionID != detail.ResolvedVersionID {
+		t.Fatalf("rejected switch changed pin: %+v %v", relations, err)
+	}
+}
+
+func TestCatalogPreparationRejectsArchiveMismatchBeforeResourceRegistration(t *testing.T) {
+	ctx := pluginAPIContext(t)
+	root := global.PluginCatalogSource()
+	if err := os.MkdirAll(filepath.Join(root, "catalog"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "catalog/broken.zip"), []byte("tampered archive"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	index, _ := json.Marshal(map[string]any{"schemaVersion": 1, "entries": []map[string]any{{"key": "broken", "directory": "catalog/broken.zip", "sourceCommit": strings.Repeat("a", 40), "archiveSHA256": strings.Repeat("b", 64), "package": map[string]any{"manifest": map[string]any{"name": "broken"}}}}})
+	if err := os.WriteFile(filepath.Join(root, "catalog.json"), index, 0600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := (&PrepareCatalogPlugin{Key: "broken"}).Output(ctx); !errors.Is(err, status_error.PluginContentInvalid) {
+		t.Fatalf("unverified archive reached preparation: %v", err)
+	}
+	_, total, err := global.PluginControllerManager.List(ctx, "", "", "", 0, 100, false)
+	if err != nil || total != 0 {
+		t.Fatalf("archive mismatch registered resource: total=%d error=%v", total, err)
+	}
+}
+
+func TestInstallRejectsLocalContentWithCopiedCatalogIdentityAndProvenance(t *testing.T) {
+	ctx := pluginAPIContext(t)
+	root := t.TempDir()
+	manifest := `{"$schema":"https://agent-plugins.org/schemas/1.0.0/plugin.schema.json","name":"catalog-owned","version":"1.0.0"}`
+	if err := os.WriteFile(filepath.Join(root, "plugin.json"), []byte(manifest), 0600); err != nil {
+		t.Fatal(err)
+	}
+	stage, err := packageplugin.Stage(stagedRoot(), root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	detail, err := prepareCatalogFixture(t, ctx, stage, "", "", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	version := detail.Versions[0]
+	provenance, err := json.Marshal(version.Provenance)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "provenance.json"), provenance, 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "plugin.json"), []byte(strings.Replace(manifest, `"version":"1.0.0"`, `"version":"2.0.0"`, 1)), 0600); err != nil {
+		t.Fatal(err)
+	}
+	imported, err := packageplugin.Stage(stagedRoot(), root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	content, err := packageplugin.CopyContent(filepath.Join(global.Config.DataDirectory, "plugins/content"), imported.Root, imported.Digest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	relative, err := filepath.Rel(global.Config.DataDirectory, content)
+	if err != nil {
+		t.Fatal(err)
+	}
+	version.ID, version.Version, version.Digest, version.Package, version.ContentPath = "copied-provenance", "2.0.0", imported.Digest, imported.Package, filepath.ToSlash(relative)
+	if _, err := global.PluginControllerManager.PutVersion(ctx, version); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := (&InstallPlugin{PluginID: detail.Plugin.ID, Body: InstallPluginRequest{VersionID: detail.ResolvedVersionID, WakerIDs: []string{"w1"}}}).Output(ctx); err != nil {
+		t.Fatal(err)
+	}
+	_, err = (&InstallPlugin{PluginID: detail.Plugin.ID, Body: InstallPluginRequest{VersionID: version.ID, WakerIDs: []string{"w2"}}}).Output(ctx)
+	if !errors.Is(err, status_error.PluginVersionConflict) {
+		t.Fatalf("copied catalog identity and package-controlled provenance authorized local bytes: %v", err)
+	}
+	_, err = (&UpdatePluginConfiguration{PluginID: detail.Plugin.ID, Body: UpdateConfigurationRequest{Switches: []VersionSwitch{{WakerID: "w1", ExpectedVersionID: detail.ResolvedVersionID, VersionID: version.ID}}}}).Output(ctx)
+	if !errors.Is(err, status_error.PluginVersionConflict) {
+		t.Fatalf("copied provenance authorized an imported version switch: %v", err)
+	}
+	relations, err := global.PluginControllerManager.Installations(ctx, detail.Plugin.ID, "")
+	if err != nil || len(relations) != 1 || relations[0].WakerID != "w1" || relations[0].VersionID != detail.ResolvedVersionID {
+		t.Fatalf("unverified content changed installations: %+v %v", relations, err)
+	}
+}
+
+func TestCatalogInstallRevalidatesCachedArchiveWhenDistributionIsUnavailable(t *testing.T) {
+	ctx := pluginAPIContext(t)
+	var archive bytes.Buffer
+	writer := zip.NewWriter(&archive)
+	for name, body := range map[string]string{".codex-plugin/plugin.json": `{"name":"cached-owned","version":"1.0.0"}`, "README.md": "Unique cache fixture " + t.TempDir()} {
+		entry, err := writer.Create(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := entry.Write([]byte(body)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatal(err)
+	}
+	sum := sha256.Sum256(archive.Bytes())
+	var available atomic.Bool
+	available.Store(true)
+	var downloads atomic.Int32
+	var source *httptest.Server
+	source = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/catalog.json" {
+			_, _ = fmt.Fprintf(w, `{"schemaVersion":2,"entries":[{"key":"cached-owned","name":"cached-owned","version":"1.0.0","format":"codex","sourceCommit":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","archiveSHA256":"%x","archiveURL":%q,"packagePath":"."}]}`, sum, source.URL+"/owned.zip")
+			return
+		}
+		downloads.Add(1)
+		if !available.Load() {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
+		_, _ = w.Write(archive.Bytes())
+	}))
+	defer source.Close()
+	location := source.URL + "/catalog.json"
+	stopCatalog := catalog.Start(context.Background(), location, t.TempDir(), nil)
+	defer stopCatalog()
+	t.Setenv("ALLY_PLUGIN_CATALOG_URL", location)
+	value, err := (&PrepareCatalogPlugin{Key: "cached-owned"}).Output(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	detail := value.(PluginDetailResponse)
+	available.Store(false)
+	source.Close()
+	value, err = (&InstallPlugin{PluginID: detail.Plugin.ID, Body: InstallPluginRequest{VersionID: detail.ResolvedVersionID, WakerIDs: []string{"w1"}}}).Output(ctx)
+	if err != nil || !value.(InstallPluginResponse).Results[0].Installed {
+		t.Fatalf("verified fixed archive cache could not prove catalog content: %+v %v", value, err)
+	}
+	if downloads.Load() != 1 {
+		t.Fatalf("catalog installation redownloaded the validated fixed archive: %d", downloads.Load())
 	}
 }

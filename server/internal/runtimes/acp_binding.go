@@ -19,6 +19,10 @@ type acpAdapterConfig struct {
 	PrefixArgs []string
 	// NativePluginDirectories 是本轮已经固定的原生包目录。
 	NativePluginDirectories []string
+	// CodexPluginConfiguration 是自有插件仅在本次进程生效的原生点路径覆盖。
+	CodexPluginConfiguration map[string]string
+	// ClaudeSettingsPath 是只对本次进程生效的受管模型设置文件。
+	ClaudeSettingsPath string
 	// Environment 是 Adapter 与其 Session 进程使用的完整环境快照。
 	Environment []string
 	// WorkingDirectory 是原生 ACP 进程的隔离启动目录。

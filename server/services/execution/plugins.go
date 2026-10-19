@@ -260,11 +260,27 @@ func (m *service) preparePlugins(ctx context.Context, waker string, request pend
 				continue
 			}
 		}
+		authenticationBindings := plugins.TargetAuthenticationBindings(logicalVersion.Package, cli)
+		if declaration := logicalVersion.Package.Integration.Authentication; declaration != nil && len(declaration.Bindings) > 0 && len(authenticationBindings) == 0 {
+			// 显式绑定同时限定授权目标；不匹配时不能降级为无范围的旧桥接解析。
+			if required {
+				return result, status_error.PluginForbidden
+			}
+			continue
+		}
+		authVersion := logicalVersion
+		if len(authenticationBindings) == 0 {
+			authVersion.Package = version.Package
+			authVersion.Package.SourcePath, err = filepath.Rel(sourceRoot, root)
+			if err != nil {
+				return result, status_error.PluginContentInvalid
+			}
+		}
 		var bridge *commandbridge.Driver
 		bridgeRelease := func() {}
 		candidateEnvironment := map[string]string{}
 		var candidateNative *plugins.NativeTarget
-		if version.Package.Integration.Authentication != nil {
+		if authVersion.Package.Integration.Authentication != nil {
 			if (request.allowedConnectorIDs != nil || request.allowedAgentDomains != nil) && len(version.Package.Skills) > 0 {
 				if required {
 					return result, status_error.PluginForbidden
@@ -277,13 +293,7 @@ func (m *service) preparePlugins(ctx context.Context, waker string, request pend
 				}
 				continue
 			}
-			bridgeVersion := logicalVersion
-			bridgeVersion.Package = version.Package
-			bridgeVersion.Package.SourcePath, err = filepath.Rel(sourceRoot, root)
-			if err != nil {
-				return result, status_error.PluginContentInvalid
-			}
-			auth, driver, retained, authErr := m.pluginInstallations.BridgeLease(bridgeVersion, usage...)
+			auth, driver, retained, authErr := m.pluginInstallations.BridgeLease(authVersion, usage...)
 			if authErr != nil {
 				if required {
 					return result, authErr
@@ -298,7 +308,7 @@ func (m *service) preparePlugins(ctx context.Context, waker string, request pend
 				}
 				continue
 			}
-			for _, scope := range version.Package.Integration.Authentication.Scopes {
+			for _, scope := range authVersion.Package.Integration.Authentication.Scopes {
 				if !auth.ScopeGranted(account.Scopes, scope) {
 					authErr = status_error.PluginNotReady
 				}
@@ -315,7 +325,7 @@ func (m *service) preparePlugins(ctx context.Context, waker string, request pend
 			bridgeRelease = retained
 			snapshot.ProviderAccountID = account.ID
 		}
-		nativeEligible := nativePluginVersionSupported(cli, detection.Version) && request.allowedConnectorIDs == nil && request.allowedAgentDomains == nil && extension.Provider == "" && len(extension.Bindings) == 0 && len(targetExtension.Bindings) == 0 && (len(extension.Config) == 0 || version.Package.Format != constants.PluginFormatPortable) && (bridge == nil || len(version.Package.Servers) == 0)
+		nativeEligible := nativePluginVersionSupported(cli, detection.Version) && request.allowedConnectorIDs == nil && request.allowedAgentDomains == nil && extension.Provider == "" && len(extension.Bindings) == 0 && len(targetExtension.Bindings) == 0 && (len(extension.Config) == 0 || version.Package.Format != constants.PluginFormatPortable) && (bridge == nil || len(version.Package.Servers) == 0 || len(authenticationBindings) > 0)
 		candidateSkills := []runtimes.Skill{}
 		candidateConnectors := []models.MCPConnector{}
 		available := map[string]bool{}
@@ -398,7 +408,16 @@ func (m *service) preparePlugins(ctx context.Context, waker string, request pend
 			available[server.Key] = true
 			snapshot.ComponentIDs = append(snapshot.ComponentIDs, componentID)
 		}
-		if bridge != nil {
+		if bridge != nil && len(authenticationBindings) > 0 {
+			bindErr := resolveBoundPluginAuthentication(ctx, bridge, id, authenticationBindings, nativeEligible, candidateConnectors, candidateEnvironment)
+			if bindErr != nil {
+				if required {
+					return result, bindErr
+				}
+				bridgeRelease()
+				continue
+			}
+		} else if bridge != nil {
 			components := []commandbridge.Component{}
 			for _, skill := range version.Package.Skills {
 				components = append(components, commandbridge.Component{ComponentID: plugins.ComponentID(id, "skill:"+skill.Key), Key: skill.Key, Target: "skill"})
@@ -443,7 +462,7 @@ func (m *service) preparePlugins(ctx context.Context, waker string, request pend
 			}
 		}
 		if nativeEligible {
-			// 原生CLI负责展开自己的模板，只注入当前目标引用的配置；其他目标秘密不进入进程。
+			// 只注入当前目标引用的配置，适配器合成的请求头仅在私有进程环境中展开。
 			for _, field := range targetExtension.Config {
 				if !nativeConfigurationKeyAllowed(field.Key) {
 					return result, status_error.PluginForbidden
@@ -452,7 +471,18 @@ func (m *service) preparePlugins(ctx context.Context, waker string, request pend
 					candidateEnvironment[field.Key] = value
 				}
 			}
-			native, nativeErr := plugins.PrepareNativeTarget(filepath.Join(m.skillDataDirectory, "plugins", constants.PluginDeliveryNative), id, version.Package, root, cli)
+			native, nativeErr := plugins.PrepareNativeTarget(filepath.Join(m.skillDataDirectory, "plugins", constants.PluginDeliveryNative), id, version.Package, root, cli, authenticationBindings...)
+			if nativeErr == nil {
+				var configurationEnvironment map[string]string
+				configurationEnvironment, nativeErr = native.ConfigurationEnvironment(values)
+				for key, value := range configurationEnvironment {
+					if existing, exists := candidateEnvironment[key]; exists && existing != value {
+						nativeErr = status_error.PluginConfigurationConflict
+						break
+					}
+					candidateEnvironment[key] = value
+				}
+			}
 			if nativeErr != nil {
 				if required {
 					return result, nativeErr
@@ -501,7 +531,14 @@ func (m *service) preparePlugins(ctx context.Context, waker string, request pend
 			if priorDelivery == "" {
 				priorDelivery = constants.PluginDeliveryProjection
 			}
-			if !slices.Equal(snapshot.ComponentIDs, prior.ComponentIDs) || snapshot.Delivery != priorDelivery || snapshot.NativePluginID != prior.NativePluginID || (prior.TargetDigest != "" && snapshot.TargetDigest != prior.TargetDigest) {
+			priorNativeID := prior.NativePluginID
+			if cli == runtimes.RuntimeIDCodex && snapshot.NativePluginID != "" && strings.HasPrefix(priorNativeID, snapshot.NativePluginID+"-") {
+				suffix := strings.TrimPrefix(priorNativeID, snapshot.NativePluginID+"-")
+				if regexp.MustCompile(`^[0-9a-f]{32}$`).MatchString(suffix) {
+					priorNativeID = snapshot.NativePluginID
+				}
+			}
+			if !slices.Equal(snapshot.ComponentIDs, prior.ComponentIDs) || snapshot.Delivery != priorDelivery || snapshot.NativePluginID != priorNativeID || (prior.TargetDigest != "" && snapshot.TargetDigest != prior.TargetDigest) {
 				return result, status_error.PluginNotReady
 			}
 			if bridge != nil && snapshot.ProviderAccountID != prior.ProviderAccountID {

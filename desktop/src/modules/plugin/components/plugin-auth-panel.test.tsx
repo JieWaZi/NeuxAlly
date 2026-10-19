@@ -25,6 +25,7 @@ const fixture = vi.hoisted(() => ({
       state: "waiting",
       userCode: "",
       challengeId: "challenge",
+      notice: undefined as { messages: Record<string, string> } | undefined,
       actions: [] as { type: string; url?: string; value?: string }[],
       verificationUrl: "https://example.com/device?code=a%2Fb&x=1+2",
       expiresAt: Date.now() + 60_000,
@@ -98,6 +99,7 @@ beforeEach(() => {
   fixture.status.session.verificationUrl =
     "https://example.com/device?code=a%2Fb&x=1+2";
   fixture.status.session.challengeId = "challenge";
+  fixture.status.session.notice = undefined;
   fixture.status.session.actions = [
     { type: "show-qr", value: fixture.status.session.verificationUrl },
     { type: "open-url", url: fixture.status.session.verificationUrl },
@@ -133,6 +135,70 @@ function show(
   return client;
 }
 describe("shared plugin authorization", () => {
+  it.each(["expired", "failed", "cancelled", "idle"])(
+    "retries %s installation authorization without closing the dialog",
+    async (state) => {
+      fixture.status.account.available = false;
+      fixture.status.session.state = state;
+      fixture.status.session.actions = [];
+      fixture.login.mockImplementationOnce(async () => {
+        fixture.status.session.state = "waiting";
+        fixture.status.session.expiresAt = Date.now() + 60_000;
+        fixture.status.session.actions = [
+          { type: "open-url", url: "https://example.com/retry-device" },
+        ];
+        return {};
+      });
+      show(true, vi.fn(), "open-url");
+      fireEvent.click(await screen.findByRole("button", { name: "重试" }));
+      expect(
+        await screen.findByRole("button", { name: "打开授权页面" }),
+      ).toBeVisible();
+      expect(fixture.submit).not.toHaveBeenCalled();
+    },
+  );
+
+  it("shows a plugin-declared setup notice only for its current waiting challenge", async () => {
+    fixture.status.provider = "declared-provider";
+    fixture.status.account.available = false;
+    fixture.status.session.notice = {
+      messages: {
+        en: "After setup, scan again to authorize your account and permissions.",
+        "zh-CN": "首次扫码完成应用设置后，还需再次扫码完成账号与权限授权。",
+      },
+    };
+    const client = show(true);
+    const notice = await screen.findByText(
+      "首次扫码完成应用设置后，还需再次扫码完成账号与权限授权。",
+    );
+    expect(notice).toHaveClass("bg-status-warning-surface");
+    client.setQueryData([{ _id: "getPluginAuthorization" }], {
+      ...fixture.status,
+      session: {
+        ...fixture.status.session,
+        challengeId: "account-permissions",
+        notice: undefined,
+      },
+    });
+    await waitFor(() => expect(notice).not.toBeInTheDocument());
+    expect(screen.getByLabelText("二维码内容")).toBeVisible();
+  });
+
+  it("falls back to a declared English notice and hides it after the session ends", async () => {
+    fixture.status.session.notice = {
+      messages: { en: "Finish setup before the second authorization step." },
+    };
+    const client = show(true);
+    const notice = await screen.findByText(
+      "Finish setup before the second authorization step.",
+    );
+    client.setQueryData([{ _id: "getPluginAuthorization" }], {
+      ...fixture.status,
+      session: { ...fixture.status.session, state: "cancelled" },
+    });
+    await waitFor(() => expect(notice).not.toBeInTheDocument());
+  });
+
   it("retries account loading without submitting the surrounding settings form", async () => {
     fixture.statusError = new Error("offline");
     fixture.status.session.state = "ready";
@@ -468,4 +534,98 @@ it("shows the declared QR loading slot even before the first status response", a
   expect(indicator).toBeVisible();
   loaded?.();
   expect(await screen.findByLabelText("二维码内容")).toBeVisible();
+});
+
+it("keeps an authorization loading slot until declared device actions arrive", async () => {
+  fixture.status.account.available = false;
+  fixture.status.session.actions = [];
+  const client = show(true, vi.fn(), "open-url");
+  expect(
+    await screen.findByRole("status", { name: "正在准备授权信息…" }),
+  ).toHaveAttribute("aria-busy", "true");
+  expect(
+    screen.queryByRole("button", { name: "重新授权" }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: "取消本次认证" }),
+  ).not.toBeInTheDocument();
+  client.setQueryData([{ _id: "getPluginAuthorization" }], {
+    ...fixture.status,
+    session: {
+      ...fixture.status.session,
+      actions: [
+        { type: "open-url", url: "https://example.com/device" },
+        { type: "copy-code", value: "CODE-1234" },
+      ],
+    },
+  });
+  expect(await screen.findByText("CODE-1234")).toBeVisible();
+  expect(screen.getByRole("button", { name: "打开授权页面" })).toBeVisible();
+  expect(
+    screen.queryByRole("status", { name: "正在准备授权信息…" }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: "重新授权" }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: "取消本次认证" }),
+  ).not.toBeInTheDocument();
+});
+
+it("shows authorization preparation before the first browser-action status returns", async () => {
+  let finish: (() => void) | undefined;
+  fixture.statusWait = new Promise<void>((resolve) => {
+    finish = resolve;
+  });
+  show(true, vi.fn(), "open-url");
+  expect(
+    await screen.findByRole("status", { name: "正在准备授权信息…" }),
+  ).toBeVisible();
+  finish?.();
+  expect(
+    await screen.findByRole("button", { name: "打开授权页面" }),
+  ).toBeVisible();
+});
+
+it("keeps reauthorization in settings while installation only presents device actions", async () => {
+  fixture.status.account.available = false;
+  fixture.status.session.actions = [
+    { type: "open-url", url: "https://example.com/device" },
+  ];
+  show();
+  expect(await screen.findByRole("button", { name: "重新授权" })).toBeVisible();
+  expect(screen.getByRole("button", { name: "取消本次认证" })).toBeVisible();
+});
+
+it("places centered challenges before the full-width authorization action regardless of declaration order", async () => {
+  fixture.status.account.available = false;
+  fixture.status.session.actions = [
+    { type: "open-url", url: "https://example.com/device" },
+    { type: "copy-code", value: "CODE-1234" },
+    { type: "show-qr", value: "https://example.com/qr" },
+  ];
+  show(true);
+  const open = await screen.findByRole("button", { name: "打开授权页面" });
+  const code = screen.getByText("CODE-1234");
+  const qr = screen.getByLabelText("二维码内容");
+  expect(code).toHaveClass("break-all", "max-w-full");
+  expect(
+    code.compareDocumentPosition(open) & Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy();
+  expect(
+    qr.compareDocumentPosition(open) & Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy();
+  expect(open).toHaveClass("w-full", "bg-success");
+  expect(
+    screen.getByRole("button", { name: "复制验证码" }).querySelector("svg"),
+  ).not.toBeNull();
+  const help = screen.getByText("在授权页面输入此一次性验证码：");
+  expect(
+    code.compareDocumentPosition(help) & Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy();
+  expect(
+    qr.compareDocumentPosition(
+      screen.getByRole("button", { name: "刷新二维码" }),
+    ) & Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy();
 });

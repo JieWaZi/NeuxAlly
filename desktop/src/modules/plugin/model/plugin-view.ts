@@ -68,7 +68,9 @@ export function pluginNeedsAuthorization(
   detail?: PluginDetail,
 ): boolean {
   return Boolean(
-    detail?.installations?.length && detail.account?.available === false,
+    detail?.installations?.length &&
+    Boolean(detail.account?.checkedAt) &&
+    detail.account?.available === false,
   );
 }
 
@@ -78,7 +80,12 @@ export function pluginDisplayName(
   name?: string,
   locale = pluginLocale(),
 ): string {
-  const authoredNames = [pkg?.manifest?.name, pkg?.presentation?.displayName];
+  // 准备包时保存的名称可能来自任一语言，不能把已声明译名误判为用户重命名。
+  const authoredNames = [
+    pkg?.manifest?.name,
+    pkg?.presentation?.displayName,
+    ...Object.values(pkg?.presentation?.displayNames ?? {}),
+  ];
   if (name && !authoredNames.includes(name)) return name;
   const localized =
     pkg?.presentation?.displayNames?.[pluginLocale(locale)]?.trim() ||
@@ -94,24 +101,17 @@ export function pluginDisplayName(
     : (name ?? pkg?.manifest?.name ?? "");
 }
 
-/** 官方远程服务未固定发布版本，不将本机包装版本标为上游版本。 */
-export function pluginUsesHostedVersion(
-  pkg: PluginCatalogEntry["package"],
-): boolean {
-  return (
-    pkg?.manifest?.repository ===
-      "https://github.com/github/github-mcp-server" &&
-    Boolean(
-      pkg.servers?.some((server) =>
-        server.url?.startsWith("https://api.githubcopilot.com/"),
-      ),
-    )
-  );
-}
-
 /** 展示与正文请求共用同一语言选择，未知界面语言回退英文。 */
 export function pluginLocale(
   locale = i18n.resolvedLanguage ?? i18n.language,
 ): "en" | "zh-CN" {
   return locale.toLowerCase().startsWith("zh") ? "zh-CN" : "en";
+}
+
+/** 授权交互优先级只取包内通用声明，不按供应商猜测。 */
+export function pluginPreferredAuthAction(
+  pkg: PluginCatalogEntry["package"],
+): "show-qr" | "open-url" | undefined {
+  const action = pkg?.integration?.authentication?.preferredAction;
+  return action === "show-qr" || action === "open-url" ? action : undefined;
 }

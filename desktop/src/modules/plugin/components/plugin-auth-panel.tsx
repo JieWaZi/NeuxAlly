@@ -11,6 +11,7 @@ import type { GetPluginAuthorizationResponse } from "@/shared/api/generated/type
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { PluginAuthorizationActions } from "./plugin-authorization-dialog";
+import { pluginLocale } from "../model/plugin-view";
 import { Button } from "@/shared/ui/button";
 import { QueryState } from "@/shared/ui/query-state";
 import { useQueryEvents } from "@/shared/api/use-query-events";
@@ -36,6 +37,7 @@ export function PluginAuthPanel({
   installation = false,
   starting = false,
   preferredAction,
+  onRestart,
 }: {
   pluginId: string;
   wakerId?: string;
@@ -44,8 +46,9 @@ export function PluginAuthPanel({
   installation?: boolean;
   starting?: boolean;
   preferredAction?: "show-qr" | "open-url" | "";
+  onRestart?: (additionalScopes: string[]) => Promise<void>;
 }) {
-  const { t } = useTranslation("plugin");
+  const { t, i18n } = useTranslation("plugin");
   const client = useQueryClient();
   const active = useRouteSceneActive();
   const scope = {
@@ -86,6 +89,10 @@ export function PluginAuthPanel({
   const account = status.data?.account;
   const activeUses = status.data?.activeUses ?? [];
   const session = status.data?.session;
+  const noticeMessage =
+    session?.notice?.messages?.[
+      pluginLocale(i18n.resolvedLanguage ?? i18n.language)
+    ]?.trim() || session?.notice?.messages?.en?.trim();
   const deviceKey = `${session?.id ?? ""}:${session?.challengeId ?? ""}:${session?.expiresAt ?? ""}`;
   const expired = session?.state === "expired" || expiredDevice === deviceKey;
   const waiting = session?.state === "waiting" && !expired;
@@ -97,6 +104,16 @@ export function PluginAuthPanel({
       (action) => action.type === "show-qr" && action.value,
     ),
   );
+  const hasActions = Boolean(
+    session?.actions?.some((action) =>
+      action.type === "show-qr" || action.type === "copy-code"
+        ? action.value
+        : action.type === "open-url" &&
+          action.url &&
+          /^https?:\/\//.test(action.url),
+    ),
+  );
+  const preparing = status.isPending || pending || (waiting && !hasActions);
   const qrMode = preferredAction === "show-qr" || hasQR;
   const qrState: "loading" | "expired" | undefined =
     qrMode && (status.isPending || pending || (waiting && !hasQR))
@@ -160,6 +177,10 @@ export function PluginAuthPanel({
     setOpenError("");
     if (session?.state === "waiting") setExpiredDevice(deviceKey);
     try {
+      if (onRestart) {
+        await onRestart(status.data?.missingScopes ?? []);
+        return;
+      }
       if (session?.state === "waiting" && session.id) {
         await cancel.mutateAsync({
           path: { pluginId, sessionId: session.id },
@@ -180,12 +201,10 @@ export function PluginAuthPanel({
       {!installation && (
         <div>
           <h3 className="type-label font-medium">{t("authentication")}</h3>
-          <p className="type-body text-muted-foreground mt-1">
-            {t("sharedAuthorizationHelp")}
-          </p>
         </div>
       )}
-      {(status.isPending && preferredAction !== "show-qr") || status.isError ? (
+      {(status.isPending && !installation && preferredAction !== "show-qr") ||
+      status.isError ? (
         <QueryState
           loadingLayout="content"
           pending={status.isPending}
@@ -194,11 +213,6 @@ export function PluginAuthPanel({
         />
       ) : (
         <>
-          {installation && (
-            <p className="type-caption text-content-secondary">
-              {t("sharedAuthorizationHelp")}
-            </p>
-          )}
           {ready && !waiting ? (
             <StatusNotice tone="success">
               {t("sharedIdentity", { name: account?.name || account?.id })}
@@ -212,11 +226,15 @@ export function PluginAuthPanel({
                   : message}
             </p>
           )}
-          {(waiting || qrState) && (
+          {waiting && noticeMessage && (
+            <StatusNotice tone="warning">{noticeMessage}</StatusNotice>
+          )}
+          {(waiting || qrState || preparing) && (
             <PluginAuthorizationActions
               key={deviceKey}
               actions={waiting && !pending ? (session?.actions ?? []) : []}
               qrState={qrState}
+              preparing={preparing}
               disabled={pending || activeUses.length > 0}
               onRefresh={() => void restart()}
               onOpenError={() => setOpenError(t("failed"))}
@@ -240,20 +258,24 @@ export function PluginAuthPanel({
               </p>
             )}
           <div className="flex flex-wrap gap-2">
-            {(!ready || waiting) && !showQR && (
-              <Button
-                type="button"
-                disabled={pending || activeUses.length > 0}
-                onClick={() => void restart()}
-              >
-                {t(
-                  account?.configured || expired || waiting
-                    ? "retryAuthorization"
-                    : "login",
-                )}
-              </Button>
-            )}
-            {waiting && session?.id && (
+            {(!installation || (!waiting && !pending && !status.isPending)) &&
+              (!ready || waiting) &&
+              !showQR && (
+                <Button
+                  type="button"
+                  disabled={pending || activeUses.length > 0}
+                  onClick={() => void restart()}
+                >
+                  {t(
+                    installation
+                      ? "retry"
+                      : account?.configured || expired || waiting
+                        ? "retryAuthorization"
+                        : "login",
+                  )}
+                </Button>
+              )}
+            {!installation && waiting && session?.id && (
               <Button
                 type="button"
                 variant="secondary"
@@ -268,7 +290,7 @@ export function PluginAuthPanel({
                 {t("cancelAuth")}
               </Button>
             )}
-            {!waiting && !pending && !showQR && (
+            {!installation && !waiting && !pending && !showQR && (
               <Button
                 type="button"
                 variant="ghost"

@@ -78,6 +78,16 @@ func (r *Registry) getLocked(id, digest string, config Config, scopes []string) 
 	return auth, driver, nil
 }
 
+// CachedAccount 只读取已创建且版本一致的身份摘要，不创建或替换桥接。
+func (r *Registry) CachedAccount(id, digest string) authorization.Account {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if current, ok := r.entries[id]; ok && current.digest == digest {
+		return current.auth.CachedAccount()
+	}
+	return authorization.Account{Scopes: []string{}}
+}
+
 // Close 取消并等待全部真实授权流程。
 func (r *Registry) Close() {
 	r.mu.Lock()

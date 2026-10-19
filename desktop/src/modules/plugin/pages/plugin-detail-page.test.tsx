@@ -51,6 +51,7 @@ vi.mock("../api/plugin-queries", () => ({
               },
               developerName: "作者",
             },
+            upstream: { author: "作者", tag: "1.0" },
             readme:
               options.query?.locale === "en"
                 ? "English business guide"
@@ -105,6 +106,22 @@ function open(path: string) {
     </QueryClientProvider>,
   );
 }
+
+it.each(["/resources/plugins/p", "/wakers/w1/plugins/p"])(
+  "%s 不提供上传、导入或添加本地版本操作",
+  async (path) => {
+    open(path);
+    await screen.findByRole("heading", { name: "办公室" });
+    expect(
+      screen.queryByRole("button", {
+        name: /上传|导入|添加新版本|选择文件夹|选择 ZIP/,
+      }),
+    ).not.toBeInTheDocument();
+    if (path.startsWith("/resources"))
+      expect(screen.getByRole("button", { name: "安装到伙伴" })).toBeEnabled();
+  },
+);
+
 it("shows partner plugin information and keeps enable controls in the page header", async () => {
   open("/wakers/w1/plugins/p?tab=configuration");
   await screen.findByRole("heading", { name: "办公室" });

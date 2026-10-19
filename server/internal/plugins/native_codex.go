@@ -35,6 +35,8 @@ type NativeTarget struct {
 	Root string
 	// Digest 是安装内容摘要，用于隔离不同执行产物。
 	Digest string
+	// headerTemplates 只保存派生请求头的无秘密模板，运行时展开值不进入插件文件。
+	headerTemplates map[string]string
 }
 
 // PrepareCodexHome 为选定账号和插件快照准备独立 CODEX_HOME，不修改原账号目录。
@@ -42,6 +44,10 @@ type NativeTarget struct {
 // accountHome 为空时不推断账号目录，认证可由调用方通过进程环境提供；本函数不证明已登录。
 // 仅存于系统钥匙串且未落入 auth.json 的认证不会迁移，调用方须保留账号接纳与登录诊断。
 func PrepareCodexHome(parent, accountHome string, targets []NativeTarget) (string, error) {
+	return prepareCodexHome(parent, accountHome, targets, false)
+}
+
+func prepareCodexHome(parent, accountHome string, targets []NativeTarget, useAccountHome bool) (string, error) {
 	codexHomePrepareMu.Lock()
 	defer codexHomePrepareMu.Unlock()
 	if strings.TrimSpace(parent) == "" {
@@ -108,6 +114,9 @@ func PrepareCodexHome(parent, accountHome string, targets []NativeTarget) (strin
 	}
 	digest := sha256.Sum256(identity)
 	home := filepath.Join(parent, "codex-"+hex.EncodeToString(digest[:]))
+	if useAccountHome {
+		home = accountHome
+	}
 	if err := codexPrivateDir(home); err != nil {
 		return "", err
 	}
@@ -136,9 +145,16 @@ func PrepareCodexHome(parent, accountHome string, targets []NativeTarget) (strin
 				return "", err
 			}
 			if expected != actual {
-				return "", status_error.PluginVersionConflict
+				if !useAccountHome {
+					return "", status_error.PluginVersionConflict
+				}
+				// 账号目录只由同一聊天的接纳占位持有；上一轮进程已退出后才能替换派生包。
+				if err := root.RemoveAll(filepath.Join("plugins", "cache", constants.PluginNativeMarketplace, target.Name, target.Version)); err != nil {
+					return "", storageFailure(err)
+				}
+			} else {
+				continue
 			}
-			continue
 		} else if !os.IsNotExist(err) {
 			return "", storageFailure(err)
 		}
@@ -162,6 +178,10 @@ func PrepareCodexHome(parent, accountHome string, targets []NativeTarget) (strin
 	}
 	if err := codexWritePrivate(root, "config.toml", encoded.Bytes()); err != nil {
 		return "", err
+	}
+	if useAccountHome {
+		// 保留账号模块拥有的原始认证位置，使订阅刷新仍能被租约释放流程回填。
+		return home, nil
 	}
 	authHash := sha256.Sum256(auth)
 	fingerprint := []byte(hex.EncodeToString(authHash[:]))

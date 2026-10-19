@@ -2,6 +2,7 @@ package plugins
 
 import (
 	"encoding/json"
+	"net/url"
 	"os"
 	"path/filepath"
 	"slices"
@@ -24,9 +25,13 @@ type Authentication struct {
 	// Protocol 是桥接消息版本。
 	Protocol string `json:"protocol"`
 	// Command 是已安装包内的固定入口。
-	Command string `json:"command"`
+	Command string `json:"command,omitempty"`
 	// Args 是独立传递的入口参数。
-	Args []string `json:"args"`
+	Args []string `json:"args,omitempty"`
+	// PreferredAction 是首次等待时的交互类型，不替代实际授权消息。
+	PreferredAction string `json:"preferredAction,omitempty"`
+	// Bindings 将授权秘密限定到明确的原生目标和远端连接。
+	Bindings []AuthenticationBinding `json:"bindings,omitempty"`
 	// Scopes 是插件明确需要的权限。
 	Scopes []string `json:"scopes,omitempty"`
 }
@@ -62,6 +67,9 @@ func (p *Package) loadIntegration(root string) error {
 		}
 	}
 	if auth := p.Integration.Authentication; auth != nil {
+		if err := validateAuthenticationBindings(p.Integration); err != nil {
+			return err
+		}
 		if auth.Strategy != constants.PluginAuthCommandStrategy || auth.Protocol != constants.PluginAuthProtocol {
 			p.diagnose("authentication", "unsupported_authentication")
 			return nil
@@ -102,6 +110,14 @@ func LoadSource(source, entry string) (Package, error) {
 		pkg.SourcePath = filepath.ToSlash(filepath.Clean(entry))
 	}
 	pkg.NativeImplementations = map[string]NativeImplementation{}
+	// 没有独立引用的运行目标使用包自身能力，同样必须逐项验证授权绑定。
+	for _, cli := range []string{"codex", "claude"} {
+		if _, referenced := pkg.Integration.NativePlugins[cli]; !referenced {
+			if _, err := authenticationTarget(pkg, pkg, cli); err != nil {
+				return pkg, err
+			}
+		}
+	}
 	for cli, ref := range pkg.Integration.NativePlugins {
 		target, err := contained(source, ref.Path)
 		if err != nil {
@@ -111,7 +127,11 @@ func LoadSource(source, entry string) (Package, error) {
 		if err != nil {
 			return pkg, err
 		}
-		extension, err := ClientExtension(native)
+		configured, err := authenticationTarget(pkg, native, cli)
+		if err != nil {
+			return pkg, err
+		}
+		extension, err := ClientExtension(configured)
 		if err != nil {
 			return pkg, err
 		}
@@ -119,7 +139,7 @@ func LoadSource(source, entry string) (Package, error) {
 		if err != nil {
 			return pkg, err
 		}
-		pkg.NativeImplementations[cli] = NativeImplementation{Path: ref.Path, Name: native.Manifest.Name, Version: native.Manifest.Version, Format: native.Format, Digest: digest, Components: native.NativeComponents, Config: extension.Config, TrustRequired: native.RequiresTrust(), SkillCount: len(native.Skills), ServerCount: len(native.Servers)}
+		pkg.NativeImplementations[cli] = NativeImplementation{Path: ref.Path, Name: native.Manifest.Name, Version: native.Manifest.Version, Format: native.Format, Digest: digest, Components: native.NativeComponents, Config: extension.Config, TrustRequired: native.RequiresTrust(), Skills: nativeSkillSummaries(native), Servers: nativeServerSummaries(native), SkillCount: len(native.Skills), ServerCount: len(native.Servers)}
 	}
 	_, err = ClientExtension(pkg)
 	return pkg, err
@@ -145,6 +165,9 @@ func SelectTarget(source string, pkg Package, cli string) (Package, string, erro
 			return Package{}, "", status_error.PluginContentInvalid
 		}
 		target, err := Load(root)
+		if err == nil {
+			target, err = authenticationTarget(pkg, target, cli)
+		}
 		return target, root, err
 	}
 	root, err := PackageRoot(source, pkg)
@@ -154,7 +177,8 @@ func SelectTarget(source string, pkg Package, cli string) (Package, string, erro
 	if len(pkg.Skills) == 0 && len(pkg.Servers) == 0 && len(pkg.Integration.NativePlugins) > 0 {
 		return Package{}, "", status_error.PluginNotReady
 	}
-	return pkg, root, nil
+	target, err := authenticationTarget(pkg, pkg, cli)
+	return target, root, err
 }
 
 // NativeComponent 描述原生完整保留的组件；投射路径不宣称支持其执行语义。
@@ -183,6 +207,10 @@ type NativeImplementation struct {
 	Config []ConfigurationField `json:"config"`
 	// TrustRequired 表示实际原生包包含需要执行信任的组件或授权入口。
 	TrustRequired bool `json:"trustRequired"`
+	// 技能摘要
+	Skills []NativeSkillSummary `json:"skills"`
+	// 连接摘要
+	Servers []NativeServerSummary `json:"servers"`
 	// SkillCount 是已发现技能数量。
 	SkillCount int `json:"skillCount"`
 	// ServerCount 是已发现连接器数量。
@@ -279,4 +307,64 @@ func nativeManifest(root string, pkg Package) (map[string]json.RawMessage, error
 		}
 		return readObject(path)
 	}
+}
+
+// 上游技能摘要
+type NativeSkillSummary struct {
+	// 组件标识
+	Key string `json:"key"`
+	// 技能名称
+	Name string `json:"name"`
+	// 技能说明
+	Description string `json:"description"`
+}
+
+// 上游连接摘要
+type NativeServerSummary struct {
+	// 组件标识
+	Key string `json:"key"`
+	// 连接名称
+	Name string `json:"name"`
+	// 传输方式
+	Transport string `json:"transport"`
+	// 服务源站
+	Endpoint string `json:"endpoint,omitempty"`
+}
+
+func nativeSkillSummaries(pkg Package) []NativeSkillSummary {
+	result := []NativeSkillSummary{}
+	for _, skill := range pkg.Skills {
+		result = append(result, NativeSkillSummary{Key: skill.Key, Name: skill.Name, Description: skill.Description})
+	}
+	return result
+}
+
+func nativeServerSummaries(pkg Package) []NativeServerSummary {
+	result := []NativeServerSummary{}
+	for _, server := range pkg.Servers {
+		endpoint := ""
+		// 仅公开服务源站，路径、查询、用户信息中可能包含凭据，不能进入能力摘要。
+		if address, err := url.Parse(server.URL); err == nil && (address.Scheme == "https" || address.Scheme == "http") && address.Hostname() != "" {
+			endpoint = address.Scheme + "://" + address.Host
+		}
+		result = append(result, NativeServerSummary{Key: server.Key, Name: server.Key, Transport: server.Type, Endpoint: endpoint})
+	}
+	return result
+}
+
+// SkillSource 只选择当前固定来源明确引用的目标；展示选择不参与运行时组件投射。
+func SkillSource(source string, pkg Package, target string) (Package, string, error) {
+	if target == "" {
+		return pkg, source, nil
+	}
+	ref, exists := pkg.Integration.NativePlugins[target]
+	if !exists {
+		return Package{}, "", status_error.PluginContentInvalid
+	}
+	root, err := contained(source, ref.Path)
+	if err != nil {
+		return Package{}, "", status_error.PluginContentInvalid
+	}
+	selected, err := Load(root)
+	return selected, root, err
 }

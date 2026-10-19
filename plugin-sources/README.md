@@ -1,12 +1,12 @@
 # 固定插件源
 
-当前插件来自独立公开仓库 [JieWaZi/NeuAally-Plugins](https://github.com/JieWaZi/NeuAally-Plugins)。应用默认通过 HTTP Release 的 `catalog.json` 读取目录，按不可变下载地址和 SHA-256 获取安装 ZIP；运行期间不调用 Git。目录元数据与安装归档由插件仓库构建发布，应用不内置插件安装包。
+当前插件来自独立公开仓库 [JieWaZi/NeuxAlly-Plugins](https://github.com/JieWaZi/NeuxAlly-Plugins)。应用默认通过 HTTP Release 的 `catalog.json` 读取目录，按目录指定地址和 SHA-256 获取安装 ZIP；运行期间不调用 Git。目录元数据与安装归档由插件仓库构建发布，应用不内置插件安装包。测试发布固定覆盖 `v0.1.0` 时仍逐次校验摘要，不把同名 URL 当作不可变内容。
 
 `pnpm plugins:prepare` 只生成软件来源元数据并为旧版已安装资源准备固定 CLI 资产；不从历史 bundle 构建插件 ZIP，也不生成覆盖上游 README 的阅读指南。`pnpm plugins:check` 校验来源声明与本地资产规则。`ALLY_PLUGIN_CATALOG_URL` 可明确选择 HTTP 镜像或本地目录；默认不会因旧资源目录仍有 `catalog.json` 而回退旧目录。
 
 本目录的历史 bundle、来源锁和许可材料保留旧版包的来源证据与已安装资源兼容所需的依赖来源，不是新目录的运行权威。插件的原生来源、授权桥接、依赖下载锁和发布流程以独立仓库为准；应用负责完整快照、来源选择和通用授权会话。
 
-官方原生插件在独立源码仓库中保存固定上游引用与完整性锁，发布时通过 HTTP 拉取完整包，再生成应用可直接核验的 ZIP。自有内容仍采用标准 Codex 包结构。GitHub 逻辑入口选择 OpenAI 或 Claude 官方原生包，实际认证要求来自对应原生实现；不沿用下述既有 GitHub 认证包装。
+独立仓库只维护 `plugins/<name>/` 下的一套 OpenAI/Codex 标准内容，按许可复用官方开源能力并保留来源与修改记录；不再分别维护 Codex 和 Claude 两套收录。GitHub 包含官方远程 MCP 和自己的通用授权桥接，飞书包含官方技能与桥接。插件程序依赖在独立仓库构建并按摘要分发，不沿用下述既有提供者包装作为新插件接入方式。NeuxAlly 只安装此自有插件库条目，不支持上传、目录或 ZIP 导入。内部 adapter 负责把受维护的同一标准内容交付为对应 CLI 的原生格式。聊天安装的第三方原生插件与外部相同 CLI 共用原生环境，不在系统展示和管理。
 
 ## 既有来源与程序资产
 

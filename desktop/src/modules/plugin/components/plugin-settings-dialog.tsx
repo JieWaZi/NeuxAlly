@@ -20,6 +20,7 @@ import {
 } from "../api/plugin-queries";
 import {
   pluginDisplayName,
+  pluginPreferredAuthAction,
   pluginHasAuthorization,
   type PluginDetail,
 } from "../model/plugin-view";
@@ -125,6 +126,7 @@ export function PluginSettingsDialog({
             </section>
             {pluginHasAuthorization(version?.package) && (
               <PluginAuthPanel
+                preferredAction={pluginPreferredAuthAction(version?.package)}
                 pluginId={pluginId}
                 versionId={version?.id}
                 onReady={() => void invalidatePluginQueries(client)}

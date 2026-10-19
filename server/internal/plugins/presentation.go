@@ -133,6 +133,15 @@ func (p *Package) loadPresentation(root string, raw map[string]json.RawMessage) 
 	} else if _, statErr := os.Lstat(filepath.Join(root, ".neuxally/presentation.json")); !os.IsNotExist(statErr) {
 		p.diagnose(".neuxally/presentation.json", "invalid_asset")
 	}
+	// 展示直接保留业务上游声明，不从封装品牌或授权辅助程序推断作者和版本。
+	if content, err := readBounded(root, "provenance.json", maxMetadataBytes); err == nil {
+		var provenance map[string]json.RawMessage
+		var upstream UpstreamSource
+		if json.Unmarshal(content, &provenance) == nil && json.Unmarshal(provenance["upstream"], &upstream) == nil {
+			upstream.Repository = publicURL(upstream.Repository)
+			p.Upstream = &upstream
+		}
+	}
 	p.loadReadme(root, constants.PluginLocaleEnglish)
 }
 

@@ -15,6 +15,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 
 	"github.com/JieWaZi/NeuxAlly/server/constants"
 	"github.com/JieWaZi/NeuxAlly/server/constants/status_error"
@@ -322,6 +323,8 @@ func (d *Driver) call(ctx context.Context, method, id string, scopes []string, c
 				ChallengeID string `json:"challengeId"`
 				// Actions 是明确允许的临时动作。
 				Actions []authorization.Action `json:"actions"`
+				// Notice 保留插件声明的可选本地化提醒。
+				Notice json.RawMessage `json:"notice"`
 				// ExpiresAt 是官方期限。
 				ExpiresAt int64 `json:"expiresAt"`
 				// DeadlineAt 是本机等待上限。
@@ -334,6 +337,10 @@ func (d *Driver) call(ctx context.Context, method, id string, scopes []string, c
 			}
 			switch message.Method {
 			case constants.PluginAuthChallengeNotification:
+				reminder, err := decodeNotice(notice.Notice)
+				if err != nil {
+					return nil, err
+				}
 				if notice.ChallengeID == "" || len(notice.Actions) == 0 {
 					return nil, status_error.PluginAuthorizationFailed
 				}
@@ -352,7 +359,7 @@ func (d *Driver) call(ctx context.Context, method, id string, scopes []string, c
 				}
 				timer.Reset(duration)
 				if report != nil {
-					if err := report(authorization.Device{ChallengeID: notice.ChallengeID, Actions: notice.Actions, ExpiresAt: notice.ExpiresAt, DeadlineAt: notice.DeadlineAt}); err != nil {
+					if err := report(authorization.Device{ChallengeID: notice.ChallengeID, Actions: notice.Actions, Notice: reminder, ExpiresAt: notice.ExpiresAt, DeadlineAt: notice.DeadlineAt}); err != nil {
 						return nil, err
 					}
 				}
@@ -453,4 +460,27 @@ func (d *Driver) privatePath(value string) bool {
 	}
 	relative, err := filepath.Rel(base, actual)
 	return err == nil && relative != ".." && !strings.HasPrefix(relative, ".."+string(filepath.Separator))
+}
+
+// decodeNotice 只接纳有限的纯文本双语提醒，不接受展示样式或供应商专属分支。
+func decodeNotice(raw json.RawMessage) (*authorization.Notice, error) {
+	if len(raw) == 0 {
+		return nil, nil
+	}
+	var object map[string]json.RawMessage
+	if !utf8.Valid(raw) || json.Unmarshal(raw, &object) != nil || len(object) != 1 || len(object["messages"]) == 0 {
+		return nil, status_error.PluginAuthorizationFailed
+	}
+	var messages map[string]string
+	if json.Unmarshal(object["messages"], &messages) != nil || len(messages) == 0 || len(messages) > 2 {
+		return nil, status_error.PluginAuthorizationFailed
+	}
+	copied := make(map[string]string, len(messages))
+	for locale, text := range messages {
+		if (locale != constants.PluginLocaleEnglish && locale != constants.PluginLocaleChinese) || strings.TrimSpace(text) == "" || len(text) > 2048 || !utf8.ValidString(text) || strings.ContainsRune(text, 0) {
+			return nil, status_error.PluginAuthorizationFailed
+		}
+		copied[locale] = text
+	}
+	return &authorization.Notice{Messages: copied}, nil
 }

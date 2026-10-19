@@ -77,17 +77,10 @@ func TestWorkflowSDKTopicsAreDiscoveredAndCheckedByKind(t *testing.T) {
 	}
 }
 
-func TestPluginInstallContractCannotChooseAnotherPartnerOrLocalPath(t *testing.T) {
-	op, ok := Find("plugins.installations.install")
-	if !ok {
-		t.Fatal("missing system plugin installation operation")
-	}
-	if op.Validate(map[string]any{"key": "github", "trustConfirmed": true}) != nil {
-		t.Fatal("valid install rejected")
-	}
-	for _, field := range []string{"wakerId", "location", "nativeScope"} {
-		if op.Validate(map[string]any{"key": "github", "trustConfirmed": true, field: "outside"}) == nil {
-			t.Fatalf("accepted caller-selected scope %s", field)
+func TestSystemPluginOperationsCannotBeDiscoveredOrGranted(t *testing.T) {
+	for _, id := range []string{"plugins.catalog.search", "plugins.catalog.get", "plugins.installations.install", "plugins.installations.get"} {
+		if _, ok := Find(id); ok {
+			t.Errorf("removed system plugin operation remains discoverable: %s", id)
 		}
 	}
 }

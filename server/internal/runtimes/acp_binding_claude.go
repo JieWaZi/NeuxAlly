@@ -37,6 +37,9 @@ func claudeACPRuntimeBinding() acpRuntimeBinding {
 	binding.toolIdentity = claudeACPToolIdentity
 	binding.newAgent = func(ctx context.Context, config acpAdapterConfig) (acp.Agent, error) {
 		prefixArgs := cloneStrings(config.PrefixArgs)
+		if config.ClaudeSettingsPath != "" {
+			prefixArgs = append(prefixArgs, "--settings", config.ClaudeSettingsPath)
+		}
 		for _, directory := range config.NativePluginDirectories {
 			prefixArgs = append(prefixArgs, "--plugin-dir", directory)
 		}

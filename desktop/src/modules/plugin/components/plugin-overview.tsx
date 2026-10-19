@@ -20,7 +20,6 @@ import {
 } from "@/shared/ui/resource-list-item";
 import { SkillIcon } from "@/modules/skill";
 import {
-  pluginUsesHostedVersion,
   pluginExplanation,
   pluginDisplayName,
   pluginLocale,
@@ -54,27 +53,64 @@ export function PluginOverview({
   const [linkError, setLinkError] = useState(false);
   const manifest = pkg?.manifest;
   const [showSkills, setShowSkills] = useState(false);
-  const [skill, setSkill] = useState<{ key: string; name: string } | null>(
-    null,
-  );
+  const [skill, setSkill] = useState<{
+    key: string;
+    name: string;
+    target?: string;
+  } | null>(null);
+
+  // 公开能力优先采用自有声明，再固定选择上游正文来源；不改变运行时集合。
+  const upstream = ["codex", "claude"].flatMap((target) => {
+    const implementation = pkg?.nativeImplementations?.[target];
+    return implementation ? [{ target, implementation }] : [];
+  });
+  const allSkills = [
+    ...(pkg?.skills ?? []).map((item) => ({ ...item, target: "" })),
+    ...upstream.flatMap(({ target, implementation }) =>
+      (implementation.skills ?? []).map((item) => ({ ...item, target })),
+    ),
+  ];
+  const allServers = [
+    ...(pkg?.servers ?? []).map((item) => ({
+      key: item.key,
+      name: item.key,
+      endpoint: publicOrigin(item.url),
+      target: "",
+    })),
+    ...upstream.flatMap(({ target, implementation }) =>
+      (implementation.servers ?? []).map((item) => ({ ...item, target })),
+    ),
+  ];
+  const skillKeys = new Set<string>();
+  const skills = allSkills.filter((item) => {
+    const key = (item.name || item.key || "").trim().toLowerCase();
+    if (skillKeys.has(key)) return false;
+    skillKeys.add(key);
+    return true;
+  });
+  const serverKeys = new Set<string>();
+  const servers = allServers.filter((item) => {
+    const key = (item.key ?? "").trim().toLowerCase();
+    if (serverKeys.has(key)) return false;
+    serverKeys.add(key);
+    return true;
+  });
   const presentation = pkg?.presentation;
+  const upstreamSource = pkg?.upstream;
   const resourceSource = sourceKey ?? detail?.plugin?.sourceKey;
   const readmeVersion = detail?.versions?.find((item) => item.package === pkg);
-  const developer = presentation?.developerName || manifest?.author?.name;
+  const developer = upstreamSource?.author || presentation?.developerName;
   const explanation =
     pluginExplanation(pkg, resourceSource) ||
     detail?.plugin?.description ||
     t("noExplanation");
   const info = [
-    [
-      t("version"),
-      pluginUsesHostedVersion(pkg) ? t("officialHosted") : manifest?.version,
-    ],
-    [t("license"), manifest?.license],
+    [t("packageVersion"), upstreamSource?.tag || upstreamSource?.version],
+    [t("license"), upstreamSource?.license || manifest?.license],
   ];
   const urls = [
     [t("website"), presentation?.websiteURL || manifest?.homepage],
-    [t("repository"), manifest?.repository],
+    [t("repository"), upstreamSource?.repository || manifest?.repository],
     [t("privacy"), presentation?.privacyPolicyURL],
     [t("terms"), presentation?.termsOfServiceURL],
   ];
@@ -157,20 +193,21 @@ export function PluginOverview({
           </DetailSection>
         </div>
       </SurfacePatternPanel>
-      {!!pkg?.skills?.length && (
+
+      {!!skills.length && (
         <DetailSection
           title={
             <>
               {t("skills")}{" "}
-              <span className="text-content-caption">{pkg.skills.length}</span>
+              <span className="text-content-caption">{skills.length}</span>
             </>
           }
         >
           <div className="space-y-3">
             <div className="grid grid-cols-1 gap-2 @[36rem]/resource-page:grid-cols-2 @[56rem]/resource-page:grid-cols-3">
-              {pkg.skills.slice(0, showSkills ? undefined : 6).map((item) => (
+              {skills.slice(0, showSkills ? undefined : 6).map((item) => (
                 <ResourceListItem
-                  key={item.key}
+                  key={`${item.target}:${item.key}`}
                   title={`/${item.name}`}
                   description={item.description}
                   descriptionLines={1}
@@ -183,37 +220,42 @@ export function PluginOverview({
                           setSkill({
                             key: item.key ?? "",
                             name: item.name ?? "",
+                            target: item.target || undefined,
                           })
                       : undefined
                   }
                 />
               ))}
             </div>
-            {pkg.skills.length > 6 && (
+            {skills.length > 6 && (
               <Button
                 variant="ghost"
                 onClick={() => setShowSkills(!showSkills)}
               >
                 {t(showSkills ? "collapseSkills" : "allSkills", {
-                  count: pkg.skills.length,
+                  count: skills.length,
                 })}
               </Button>
             )}
           </div>
         </DetailSection>
       )}
-      {!!pkg?.servers?.length && (
+      {!!servers.length && (
         <DetailSection
           title={
             <>
               {t("connectors")}{" "}
-              <span className="text-content-caption">{pkg.servers.length}</span>
+              <span className="text-content-caption">{servers.length}</span>
             </>
           }
         >
           <ul className="grid grid-cols-1 gap-2 @[36rem]/resource-page:grid-cols-2 @[56rem]/resource-page:grid-cols-3">
-            {pkg.servers.map((server) => (
-              <Card key={server.key} asChild variant="resource">
+            {servers.map((server) => (
+              <Card
+                key={`${server.target}:${server.key}:${server.endpoint}`}
+                asChild
+                variant="resource"
+              >
                 <li>
                   <CardBody className="flex min-w-0 items-start gap-3 p-4">
                     <span className="bg-surface-subtle text-content-secondary grid size-10 shrink-0 place-items-center rounded-md">
@@ -221,11 +263,13 @@ export function PluginOverview({
                     </span>
                     <div className="min-w-0 flex-1">
                       <h3 className="type-label truncate font-medium">
-                        {server.key}
+                        {server.name}
                       </h3>
-                      <p className="type-body text-content-secondary mt-1 truncate">
-                        {server.url || server.command}
-                      </p>
+                      {server.endpoint && (
+                        <p className="type-body text-content-secondary mt-1 truncate">
+                          {server.endpoint}
+                        </p>
+                      )}
                     </div>
                   </CardBody>
                 </li>
@@ -261,7 +305,7 @@ export function PluginOverview({
       {skill && skillContext && (
         <PluginSkillDialog
           sourceName={pluginDisplayName(pkg, detail?.plugin?.name)}
-          context={skillContext}
+          context={{ ...skillContext, target: skill.target }}
           skillKey={skill.key}
           name={skill.name}
           onClose={() => setSkill(null)}
@@ -269,4 +313,17 @@ export function PluginOverview({
       )}
     </div>
   );
+}
+
+/** 公开连接信息只保留服务源站，不展示命令、路径或URL中的凭据。 */
+function publicOrigin(value: string | undefined): string {
+  if (!value) return "";
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:"
+      ? url.origin
+      : "";
+  } catch {
+    return "";
+  }
 }

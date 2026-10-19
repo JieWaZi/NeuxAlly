@@ -1,8 +1,12 @@
 package plugins_test
 
 import (
+	"archive/zip"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -114,7 +118,7 @@ func TestDeclaredAuthenticationRequiresTrustBeforePrepare(t *testing.T) {
 			if !stage.Package.RequiresTrust() {
 				t.Fatal("executable authentication declaration bypassed trust")
 			}
-			if _, err := (&pluginapi.PreparePlugin{Body: pluginapi.PreparePluginRequest{Token: stage.Token}}).Output(ctx); !errors.Is(err, status_error.MCPConnectorTrustRequired) {
+			if _, err := nativeCatalogPreparation(t, ctx, stage, false); !errors.Is(err, status_error.MCPConnectorTrustRequired) {
 				t.Fatalf("authentication package was prepared without trust: %v", err)
 			}
 		})
@@ -169,6 +173,7 @@ func nativeConfigurationContext(t *testing.T) (*gin.Context, controllers.PluginC
 	global.WakerControllerManager = controllers.NewWakerController(database.DB)
 	global.TransactionControllerManager = controllers.NewTransactionController(dbhelper.NewGormTransactionManager(database.DB))
 	global.Config.DataDirectory = t.TempDir()
+	t.Setenv("ALLY_PLUGIN_CATALOG_URL", t.TempDir())
 	t.Cleanup(func() {
 		global.PluginControllerManager, global.WakerControllerManager, global.TransactionControllerManager, global.Config.DataDirectory = previousPlugins, previousWakers, previousTx, previousDirectory
 		_ = sqlDB.Close()
@@ -193,10 +198,10 @@ func TestLogicalNativeConfigurationRequiresTrustAndEncryptsPAT(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := (&pluginapi.PreparePlugin{Body: pluginapi.PreparePluginRequest{Token: stage.Token}}).Output(ctx); !errors.Is(err, status_error.MCPConnectorTrustRequired) {
+	if _, err := nativeCatalogPreparation(t, ctx, stage, false); !errors.Is(err, status_error.MCPConnectorTrustRequired) {
 		t.Fatalf("logical native MCP bypassed explicit trust: %v", err)
 	}
-	prepared, err := (&pluginapi.PreparePlugin{Body: pluginapi.PreparePluginRequest{Token: stage.Token, TrustConfirmed: true}}).Output(ctx)
+	prepared, err := nativeCatalogPreparation(t, ctx, stage, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -226,4 +231,71 @@ func TestLogicalNativeConfigurationRequiresTrustAndEncryptsPAT(t *testing.T) {
 	if err != nil || strings.Contains(string(encoded), "fixture-private-pat") || strings.Contains(string(encoded), "GITHUB_PERSONAL_ACCESS_TOKEN") {
 		t.Fatalf("configuration response exposed protected native PAT: %s %v", encoded, err)
 	}
+}
+
+// nativeCatalogPreparation 通过临时固定目录保留原生配置、信任与秘密保存的真实 API 链路。
+func nativeCatalogPreparation(t *testing.T, ctx *gin.Context, stage plugins.StagedPackage, trusted bool) (interface{}, error) {
+	t.Helper()
+	root := global.PluginCatalogSource()
+	if err := os.MkdirAll(filepath.Join(root, "catalog"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	archivePath := filepath.Join(root, "catalog/native-config.zip")
+	file, err := os.Create(archivePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	writer := zip.NewWriter(file)
+	if err := filepath.WalkDir(stage.Root, func(path string, entry fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if entry.IsDir() {
+			return nil
+		}
+		info, err := entry.Info()
+		if err != nil {
+			return err
+		}
+		header, err := zip.FileInfoHeader(info)
+		if err != nil {
+			return err
+		}
+		relative, err := filepath.Rel(stage.Root, path)
+		if err != nil {
+			return err
+		}
+		header.Name = filepath.ToSlash(relative)
+		output, err := writer.CreateHeader(header)
+		if err != nil {
+			return err
+		}
+		body, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		_, err = output.Write(body)
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := file.Close(); err != nil {
+		t.Fatal(err)
+	}
+	body, err := os.ReadFile(archivePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sum := sha256.Sum256(body)
+	index, err := json.Marshal(map[string]any{"schemaVersion": 1, "entries": []map[string]any{{"key": "native-config", "directory": "catalog/native-config.zip", "sourceCommit": strings.Repeat("a", 40), "archiveSHA256": fmt.Sprintf("%x", sum), "packagePath": stage.Package.SourcePath, "package": stage.Package}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "catalog.json"), index, 0600); err != nil {
+		t.Fatal(err)
+	}
+	return (&pluginapi.PrepareCatalogPlugin{Key: "native-config", Body: pluginapi.PrepareCatalogPluginRequest{TrustConfirmed: trusted}}).Output(ctx)
 }

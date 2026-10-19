@@ -617,11 +617,15 @@ const (
 	// PluginLocaleChinese 是插件简体中文展示与文档语言。
 	PluginLocaleChinese = "zh-CN"
 	// PluginCatalogHTTPSource 是默认公开软件目录。
-	PluginCatalogHTTPSource = "https://github.com/JieWaZi/NeuAally-Plugins/releases/latest/download/catalog.json"
+	PluginCatalogHTTPSource = "https://github.com/JieWaZi/NeuxAlly-Plugins/releases/latest/download/catalog.json"
 	// PluginAuthCommandStrategy 是包内授权桥接策略。
 	PluginAuthCommandStrategy = "plugin-command"
 	// PluginAuthProtocol 是逐行JSON-RPC授权扩展版本。
 	PluginAuthProtocol = "neuxally-auth/1"
+	// PluginAuthEnvironmentPrefix 隔离原生插件桥接秘密的进程环境键。
+	PluginAuthEnvironmentPrefix = "ALLY_PLUGIN_AUTH_"
+	// AIAccountCodexAPIKeyEnvironment 仅在执行进程中传递所选 Codex API 账号凭据。
+	AIAccountCodexAPIKeyEnvironment = "ALLY_CODEX_MODEL_API_KEY"
 	// PluginNativeMarketplace 是应用私有Codex原生索引身份。
 	PluginNativeMarketplace = "neuxally-managed"
 	// PluginDeliveryNative 是完整原生包交付。

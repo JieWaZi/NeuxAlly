@@ -89,7 +89,7 @@ func removalPlugin(t *testing.T, ctx *gin.Context, name string) PluginDetailResp
 	if err != nil {
 		t.Fatal(err)
 	}
-	detail, err := prepareResource(ctx, stage, "", "", true)
+	detail, err := prepareCatalogFixture(t, ctx, stage, "", "", true)
 	if err != nil {
 		t.Fatal(err)
 	}
