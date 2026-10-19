@@ -1,6 +1,7 @@
 package plugins
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -103,5 +104,64 @@ func TestCrossNativeDerivationPreservesInlineAndDefaultComponents(t *testing.T) 
 		if _, err := os.Stat(filepath.Join(target.Root, path)); err != nil {
 			t.Fatalf("lost native file %s", path)
 		}
+	}
+}
+
+func TestSinglePackageStageValidatesNativeReferencesInsideSnapshot(t *testing.T) {
+	root := t.TempDir()
+	fixtureFile(t, root, ".codex-plugin/plugin.json", `{"name":"entry","version":"1"}`)
+	fixtureFile(t, root, ".neuxally/integration.json", `{"nativePlugins":{"codex":{"path":"native"}}}`)
+	if _, err := Stage(t.TempDir(), root); err == nil {
+		t.Fatal("missing native reference accepted during import")
+	}
+	fixtureFile(t, root, "native/.codex-plugin/plugin.json", `{"name":"native","version":"2"}`)
+	stage, err := Stage(t.TempDir(), root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stage.Package.NativeImplementations["codex"].Version != "2" {
+		t.Fatal("single-package target source metadata missing")
+	}
+}
+
+func TestPortableNativeDerivationHonorsWholeOpenAIOverlaySelection(t *testing.T) {
+	for _, inline := range []bool{false, true} {
+		t.Run(fmt.Sprint(inline), func(t *testing.T) {
+			root := t.TempDir()
+			extension := ""
+			if inline {
+				extension = `,"extensions":{"com.openai":{}}`
+			}
+			fixtureFile(t, root, "plugin.json", `{"$schema":"https://agent-plugins.org/schemas/1.0.0/plugin.schema.json","name":"common-identity","version":"1"`+extension+`}`)
+			fixtureFile(t, root, ".codex-plugin/plugin.json", `{"name":"overlay-name","hooks":{"SessionStart":[]},"interface":{"displayName":"Overlay"}}`)
+			pkg, err := Load(root)
+			if err != nil {
+				t.Fatal(err)
+			}
+			target, err := PrepareNativeTarget(t.TempDir(), "plugin", pkg, root, "codex")
+			if err != nil {
+				t.Fatal(err)
+			}
+			raw, err := readObject(filepath.Join(target.Root, ".codex-plugin/plugin.json"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, hooks := raw["hooks"]
+			if hooks == inline || !stringEquals(raw["name"], "common-identity") {
+				t.Fatalf("mixed overlay or replaced identity: %+v", raw)
+			}
+		})
+	}
+}
+
+func TestPortableNativeMCPRequiresTrustWithoutProjection(t *testing.T) {
+	root := t.TempDir()
+	fixtureFile(t, root, "plugin.json", `{"$schema":"https://agent-plugins.org/schemas/1.0.0/plugin.schema.json","name":"overlay-mcp","version":"1","extensions":{"com.openai":{"mcpServers":{"service":{"type":"http","url":"https://example.invalid/mcp"}}}}}`)
+	pkg, err := Load(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !pkg.RequiresTrust() {
+		t.Fatal("native-only MCP bypassed explicit trust")
 	}
 }

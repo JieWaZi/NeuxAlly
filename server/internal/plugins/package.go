@@ -292,7 +292,15 @@ func (pkg *Package) loadMCPFile(root, path string, required ...bool) {
 		}
 	}
 	var servers map[string]json.RawMessage
-	if json.Unmarshal(document["mcpServers"], &servers) != nil || servers == nil {
+	if value, wrapped := document["mcpServers"]; wrapped {
+		if json.Unmarshal(value, &servers) != nil || servers == nil {
+			pkg.diagnose(path, "invalid_component")
+			return
+		}
+	} else if pkg.Format == constants.PluginFormatClaude {
+		// Claude 的独立 MCP 文件也允许直接以服务键组织定义。
+		servers = document
+	} else {
 		pkg.diagnose(path, "invalid_component")
 		return
 	}

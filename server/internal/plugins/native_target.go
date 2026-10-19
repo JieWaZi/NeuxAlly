@@ -59,16 +59,9 @@ func PrepareNativeTarget(parent, id string, pkg Package, root, cli string) (Nati
 	if len(pkg.Manifest.Keywords) > 0 {
 		manifest["keywords"] = pkg.Manifest.Keywords
 	}
-	original := "plugin.json"
-	if pkg.Format == constants.PluginFormatCodex {
-		original = ".codex-plugin/plugin.json"
-	}
-	if pkg.Format == constants.PluginFormatClaude {
-		original = ".claude-plugin/plugin.json"
-	}
-	raw, readErr := readObject(filepath.Join(root, original))
+	raw, readErr := nativeManifest(root, pkg)
 	if readErr != nil {
-		return NativeTarget{}, status_error.PluginManifestInvalid
+		return NativeTarget{}, readErr
 	}
 	// 目标原生机制解释事件和其他声明；宿主保留内容，不伪造跨端语义等价。
 	for _, key := range []string{"hooks", "agents", "commands", "lspServers", "apps", "outputStyles", "settings", "userConfig", "dependencies", "experimental", "channels", "workflows"} {
@@ -102,6 +95,18 @@ func PrepareNativeTarget(parent, id string, pkg Package, root, cli string) (Nati
 			servers[server.Key] = fields
 		}
 		manifest["mcpServers"] = servers
+	}
+	if pkg.Format == constants.PluginFormatPortable {
+		for _, key := range []string{"skills", "mcpServers"} {
+			if value, ok := raw[key]; ok {
+				manifest[key] = value
+			}
+		}
+	}
+	if cli == "codex" {
+		if value, ok := raw["interface"]; ok {
+			manifest["interface"] = value
+		}
 	}
 	directory := ".codex-plugin"
 	if cli == "claude" {

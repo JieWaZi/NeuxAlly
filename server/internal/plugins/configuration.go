@@ -57,7 +57,7 @@ type Extension struct {
 	RequiredComponents []string `json:"requiredComponents"`
 }
 
-// ClientExtension 读取已声明的本机扩展，并补齐 MCP 中未配置占位变量。
+// ClientExtension 读取本机配置和 MCP 占位变量，并汇总原生目标的可选共享配置。
 func ClientExtension(pkg Package) (Extension, error) {
 	result := Extension{Config: []ConfigurationField{}, Scopes: []string{}, Bindings: []ConfigurationBinding{}, RequiredComponents: []string{}}
 	if value, ok := pkg.Manifest.Extensions[constants.PluginExtensionNamespace]; ok {
@@ -129,6 +129,35 @@ func ClientExtension(pkg Package) (Extension, error) {
 					result.Config = append(result.Config, ConfigurationField{Key: key, Label: key, Secret: true, Required: true})
 				}
 			}
+		}
+	}
+	fields := map[string]ConfigurationField{}
+	for _, field := range result.Config {
+		fields[field.Key] = field
+	}
+	targets := make([]string, 0, len(pkg.NativeImplementations))
+	for target := range pkg.NativeImplementations {
+		targets = append(targets, target)
+	}
+	sort.Strings(targets)
+	for _, target := range targets {
+		for _, field := range pkg.NativeImplementations[target].Config {
+			if !configurationKeyPattern.MatchString(field.Key) || field.Key == "PLUGIN_ROOT" || field.Key == "PLUGIN_DATA" || (field.Secret && field.Default != "") {
+				return result, status_error.PluginManifestInvalid
+			}
+			if previous, exists := fields[field.Key]; exists {
+				if previous.Secret != field.Secret || previous.Default != field.Default {
+					return result, status_error.PluginManifestInvalid
+				}
+				continue
+			}
+			// 不同目标各自校验必填项，逻辑资源只负责识别并受保护地保存共享值。
+			field.Required = false
+			if field.Label == "" {
+				field.Label = field.Key
+			}
+			fields[field.Key] = field
+			result.Config = append(result.Config, field)
 		}
 	}
 	sort.Slice(result.Config, func(i, j int) bool { return result.Config[i].Key < result.Config[j].Key })

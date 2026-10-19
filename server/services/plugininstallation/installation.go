@@ -286,11 +286,7 @@ func (s *Service) PrepareVersions(ctx context.Context, versions []models.PluginV
 			return nil, err
 		}
 		if version.Package.Integration.Authentication != nil {
-			auth, _, err := s.Bridge(version)
-			if err != nil {
-				return nil, err
-			}
-			retained, err := auth.Acquire()
+			_, _, retained, err := s.BridgeLease(version)
 			if err != nil {
 				return nil, err
 			}
@@ -422,24 +418,42 @@ func (s *Service) Install(ctx context.Context, pluginID, versionID string, expec
 
 // Bridge 从已核验版本创建包内协议适配，共享身份始终由Core签发。
 func (s *Service) Bridge(version models.PluginVersion) (*authorization.Authorizer, *commandbridge.Driver, error) {
+	auth, driver, _, err := s.bridge(version, false)
+	return auth, driver, err
+}
+
+// BridgeLease 在选定版本时立即取得唯一身份租约，防止并发版本替换。
+func (s *Service) BridgeLease(version models.PluginVersion, uses ...authorization.Usage) (*authorization.Authorizer, *commandbridge.Driver, func(), error) {
+	return s.bridge(version, true, uses...)
+}
+
+func (s *Service) bridge(version models.PluginVersion, acquire bool, uses ...authorization.Usage) (*authorization.Authorizer, *commandbridge.Driver, func(), error) {
+	if version.TrustedAt == 0 {
+		return nil, nil, nil, status_error.MCPConnectorTrustRequired
+	}
 	declaration := version.Package.Integration.Authentication
 	if declaration == nil || declaration.Strategy != constants.PluginAuthCommandStrategy || declaration.Protocol != constants.PluginAuthProtocol || s.config.Bridges == nil {
-		return nil, nil, status_error.PluginNotReady
+		return nil, nil, nil, status_error.PluginNotReady
 	}
 	source, err := packageplugin.ContentPath(s.config.DataDirectory, version.ContentPath)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	if err := packageplugin.VerifyContent(source, version.Digest); err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	root, err := packageplugin.PackageRoot(source, version.Package)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	command, args, err := commandbridge.ResolveEntry(root, declaration.Command, declaration.Args)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
-	return s.config.Bridges.Get(version.PluginID, version.Digest, commandbridge.Config{Command: command, Args: args, Directory: root, DataDirectory: filepath.Join(s.config.DataDirectory, "plugins", "data", version.PluginID), PluginID: version.PluginID, Environment: s.config.BridgeEnvironment}, declaration.Scopes)
+	config := commandbridge.Config{Command: command, Args: args, Directory: root, DataDirectory: filepath.Join(s.config.DataDirectory, "plugins", "data", version.PluginID), PluginID: version.PluginID, Environment: s.config.BridgeEnvironment}
+	if acquire {
+		return s.config.Bridges.Acquire(version.PluginID, version.Digest, config, declaration.Scopes, uses...)
+	}
+	auth, driver, err := s.config.Bridges.Get(version.PluginID, version.Digest, config, declaration.Scopes)
+	return auth, driver, nil, err
 }

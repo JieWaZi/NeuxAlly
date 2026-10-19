@@ -98,7 +98,9 @@ func LoadSource(source, entry string) (Package, error) {
 	if err != nil {
 		return pkg, err
 	}
-	pkg.SourcePath = filepath.ToSlash(filepath.Clean(entry))
+	if filepath.Clean(entry) != "." {
+		pkg.SourcePath = filepath.ToSlash(filepath.Clean(entry))
+	}
 	pkg.NativeImplementations = map[string]NativeImplementation{}
 	for cli, ref := range pkg.Integration.NativePlugins {
 		target, err := contained(source, ref.Path)
@@ -109,13 +111,18 @@ func LoadSource(source, entry string) (Package, error) {
 		if err != nil {
 			return pkg, err
 		}
+		extension, err := ClientExtension(native)
+		if err != nil {
+			return pkg, err
+		}
 		digest, err := pluginArchive.Digest(target)
 		if err != nil {
 			return pkg, err
 		}
-		pkg.NativeImplementations[cli] = NativeImplementation{Path: ref.Path, Name: native.Manifest.Name, Version: native.Manifest.Version, Format: native.Format, Digest: digest, Components: native.NativeComponents, SkillCount: len(native.Skills), ServerCount: len(native.Servers)}
+		pkg.NativeImplementations[cli] = NativeImplementation{Path: ref.Path, Name: native.Manifest.Name, Version: native.Manifest.Version, Format: native.Format, Digest: digest, Components: native.NativeComponents, Config: extension.Config, TrustRequired: native.RequiresTrust(), SkillCount: len(native.Skills), ServerCount: len(native.Servers)}
 	}
-	return pkg, nil
+	_, err = ClientExtension(pkg)
+	return pkg, err
 }
 
 // PackageRoot 返回固定来源内的逻辑包根。
@@ -172,6 +179,10 @@ type NativeImplementation struct {
 	Digest string `json:"digest"`
 	// Components 是保留的原生组成。
 	Components []NativeComponent `json:"components"`
+	// Config 是实际原生包所需配置，必填约束只用于选中该目标时。
+	Config []ConfigurationField `json:"config"`
+	// TrustRequired 表示实际原生包包含需要执行信任的组件或授权入口。
+	TrustRequired bool `json:"trustRequired"`
 	// SkillCount 是已发现技能数量。
 	SkillCount int `json:"skillCount"`
 	// ServerCount 是已发现连接器数量。
@@ -179,8 +190,31 @@ type NativeImplementation struct {
 }
 
 func (p *Package) loadNativeComponents(root string, raw map[string]json.RawMessage) {
-	if !p.compatibilityFormat() {
+	if p.Format == constants.PluginFormatPortable {
+		settings, err := nativeManifest(root, *p)
+		if err != nil {
+			p.diagnose("com.openai", "invalid_extension")
+			return
+		}
+		raw = settings
+	} else if !p.compatibilityFormat() {
 		return
+	}
+	// 原生机制会自行加载MCP声明，即使通用解析器不能投射，也必须先明确信任。
+	_, declaredMCP := raw["mcpServers"]
+	mcpPaths := []string{}
+	if value, ok := raw["mcpServers"]; ok {
+		var path string
+		if json.Unmarshal(value, &path) == nil {
+			mcpPaths = append(mcpPaths, path)
+		}
+	}
+	if _, err := os.Lstat(filepath.Join(root, ".mcp.json")); err == nil {
+		mcpPaths = append(mcpPaths, ".mcp.json")
+		declaredMCP = true
+	}
+	if declaredMCP {
+		p.NativeComponents = append(p.NativeComponents, NativeComponent{Kind: "mcp", Paths: mcpPaths})
 	}
 	for _, kind := range []string{"hooks", "agents", "commands", "lspServers", "apps", "outputStyles", "settings", "dependencies", "channels", "workflows"} {
 		value, declared := raw[kind]
@@ -208,15 +242,41 @@ func (p *Package) loadNativeComponents(root string, raw map[string]json.RawMessa
 	}
 }
 
-// RequiresTrust 同时覆盖逻辑内容和明确原生引用的可执行组件。
+// RequiresTrust 同时覆盖授权入口、逻辑内容和明确原生引用的可执行组件。
 func (p Package) RequiresTrust() bool {
-	if len(p.Servers) > 0 || len(p.NativeComponents) > 0 {
+	if p.Integration.Authentication != nil || len(p.Servers) > 0 || len(p.NativeComponents) > 0 {
 		return true
 	}
 	for _, target := range p.NativeImplementations {
-		if target.ServerCount > 0 || len(target.Components) > 0 {
+		if target.TrustRequired || target.ServerCount > 0 || len(target.Components) > 0 {
 			return true
 		}
 	}
 	return false
+}
+
+// nativeManifest 选择完整平台对象，显式内联对象不逐字段回退到overlay。
+func nativeManifest(root string, pkg Package) (map[string]json.RawMessage, error) {
+	switch pkg.Format {
+	case constants.PluginFormatCodex:
+		return readObject(filepath.Join(root, ".codex-plugin/plugin.json"))
+	case constants.PluginFormatClaude:
+		return readObject(filepath.Join(root, ".claude-plugin/plugin.json"))
+	default:
+		if value, exists := pkg.Manifest.Extensions["com.openai"]; exists {
+			var raw map[string]json.RawMessage
+			if json.Unmarshal(value, &raw) != nil || raw == nil {
+				return nil, status_error.PluginManifestInvalid
+			}
+			return raw, nil
+		}
+		if _, err := os.Lstat(filepath.Join(root, ".codex-plugin/plugin.json")); os.IsNotExist(err) {
+			return map[string]json.RawMessage{}, nil
+		}
+		path, err := contained(root, ".codex-plugin/plugin.json")
+		if err != nil {
+			return nil, status_error.PluginContentInvalid
+		}
+		return readObject(path)
+	}
 }

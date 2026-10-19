@@ -451,6 +451,23 @@ func TestClaudeNativePluginDoesNotAlsoProjectSkills(t *testing.T) {
 	if len(prepared.native) != 1 || len(prepared.skills) != 0 || len(prepared.connectors) != 0 {
 		t.Fatalf("duplicate or missing native delivery: %+v", prepared)
 	}
+	retryDetection := detection
+	retryDetection.Version = ""
+	if replay, err := manager.preparePlugins(context.Background(), "w", pendingMessage{pluginSnapshots: prepared.snapshots}, retryDetection); err == nil {
+		replay.release()
+		t.Fatal("native retry silently became Skill projection")
+	}
+	if err := os.WriteFile(filepath.Join(data, "plugins/native"), []byte("block target generation"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	codex := detection
+	codex.Runtime.BaseRuntimeID = runtimes.RuntimeIDCodex
+	codex.Version = "0.161.0"
+	if fallback, err := manager.preparePlugins(context.Background(), "w", pendingMessage{message: userMessage{PluginIDs: []string{"p"}}}, codex); err == nil {
+		fallback.release()
+		t.Fatal("native preparation failure silently became Skill projection")
+	}
+
 }
 
 func TestNativeScopeTracksContentAndIgnoresOrdering(t *testing.T) {
@@ -478,5 +495,73 @@ func TestUnknownOrOlderNativeCLIUsesProjection(t *testing.T) {
 		if nativePluginVersionSupported(item.cli, item.version) != item.supported {
 			t.Fatalf("wrong capability: %+v", item)
 		}
+	}
+}
+
+func TestNativeTargetConfigurationIsValidatedAndOnlySelectedSecretsInjected(t *testing.T) {
+	data, source := t.TempDir(), t.TempDir()
+	write := func(path, content string) {
+		t.Helper()
+		path = filepath.Join(source, path)
+		if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(content), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write(".codex-plugin/plugin.json", `{"name":"logical","version":"1"}`)
+	write(".neuxally/integration.json", `{"nativePlugins":{"codex":{"path":"codex"},"claude":{"path":"claude"}}}`)
+	write("codex/.codex-plugin/plugin.json", `{"name":"target","version":"1","mcpServers":{"service":{"type":"http","url":"https://example.invalid/mcp"}}}`)
+	write("claude/.claude-plugin/plugin.json", `{"name":"target","version":"1"}`)
+	write("claude/.mcp.json", `{"service":{"type":"http","url":"https://example.invalid/mcp","headers":{"Authorization":"Bearer ${TARGET_TOKEN}"}}}`)
+	stage, err := plugins.Stage(filepath.Join(data, "plugins/staging"), source)
+	if err != nil {
+		t.Fatal(err)
+	}
+	root, err := plugins.CopyContent(filepath.Join(data, "plugins/content"), stage.Root, stage.Digest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	relative, _ := filepath.Rel(data, root)
+	version := models.PluginVersion{ID: "v", PluginID: "p", Version: "1", Digest: stage.Digest, ContentPath: relative, Package: stage.Package, TrustedAt: 1}
+	state := models.PluginState{Plugin: models.Plugin{ID: "p"}, Versions: []models.PluginVersion{version}, Installations: []models.WakerPlugin{{WakerID: "w", PluginID: "p", VersionID: "v", Enabled: true}}, Configuration: models.PluginConfiguration{Values: map[string]string{}}}
+	manager := &service{pluginController: installedPluginFixture{states: []models.PluginState{state}}, skillDataDirectory: data}
+	detection := runtimes.DetectionResult{Runtime: runtimes.RuntimeSummary{BaseRuntimeID: runtimes.RuntimeIDCodex}, Version: "0.161.0"}
+	request := pendingMessage{message: userMessage{PluginIDs: []string{"p"}}}
+	prepared, err := manager.preparePlugins(context.Background(), "w", request, detection)
+	if err != nil {
+		t.Fatalf("unrelated Claude required config blocked Codex: %v", err)
+	}
+	prepared.release()
+	if len(prepared.native) != 1 || prepared.environment["TARGET_TOKEN"] != "" {
+		t.Fatalf("unexpected Codex delivery: %+v", prepared)
+	}
+	detection.Runtime.BaseRuntimeID = runtimes.RuntimeIDClaude
+	detection.Version = "2.1.159"
+	if result, err := manager.preparePlugins(context.Background(), "w", request, detection); err == nil {
+		result.release()
+		t.Fatal("target missing secret accepted")
+	}
+	state.Configuration.Secrets = []models.MCPSecretDefinition{{Name: "TARGET_TOKEN", Value: "configured-secret", Configured: true}}
+	manager.pluginController = installedPluginFixture{states: []models.PluginState{state}}
+	prepared, err = manager.preparePlugins(context.Background(), "w", request, detection)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer prepared.release()
+	if len(prepared.native) != 1 || len(prepared.connectors) != 0 || prepared.environment["TARGET_TOKEN"] != "configured-secret" {
+		t.Fatalf("target native secret not privately injected: %+v", prepared)
+	}
+}
+
+func TestNativeConfigurationRejectsHostAndModelIdentityKeys(t *testing.T) {
+	for _, key := range []string{"HOME", "CODEX_HOME", "PATH", "NODE_OPTIONS", "ALLY_EXECUTION_ID", "ANTHROPIC_AUTH_TOKEN", "OPENAI_API_KEY", "GEMINI_API_KEY", "XDG_CONFIG_HOME", "USERPROFILE"} {
+		if nativeConfigurationKeyAllowed(key) {
+			t.Fatalf("host environment override accepted: %s", key)
+		}
+	}
+	if !nativeConfigurationKeyAllowed("GITHUB_PERSONAL_ACCESS_TOKEN") {
+		t.Fatal("target credential unexpectedly rejected")
 	}
 }

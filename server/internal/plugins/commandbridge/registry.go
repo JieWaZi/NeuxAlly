@@ -37,6 +37,22 @@ func NewRegistry(ctx context.Context, changed func(string)) *Registry {
 func (r *Registry) Get(id, digest string, config Config, scopes []string) (*authorization.Authorizer, *Driver, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	return r.getLocked(id, digest, config, scopes)
+}
+
+// Acquire 原子固定桥接版本和身份租约，避免Get与Acquire之间被其他版本替换。
+func (r *Registry) Acquire(id, digest string, config Config, scopes []string, uses ...authorization.Usage) (*authorization.Authorizer, *Driver, func(), error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	auth, driver, err := r.getLocked(id, digest, config, scopes)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	release, err := auth.Acquire(uses...)
+	return auth, driver, release, err
+}
+
+func (r *Registry) getLocked(id, digest string, config Config, scopes []string) (*authorization.Authorizer, *Driver, error) {
 	if previous, ok := r.entries[id]; ok {
 		if previous.digest != digest {
 			config.Scopes = append([]string{}, scopes...)

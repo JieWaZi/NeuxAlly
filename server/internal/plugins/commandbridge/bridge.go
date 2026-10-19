@@ -155,7 +155,7 @@ func (d *Driver) Resolve(ctx context.Context, components []Component) ([]Binding
 				return nil, status_error.PluginForbidden
 			}
 			upper := strings.ToUpper(key)
-			if !environmentNamePattern.MatchString(key) || upper == "PWD" || upper == "OLDPWD" || upper == "SHELL" || upper == "ENV" || upper == "BASH_ENV" || upper == "ZDOTDIR" || strings.HasPrefix(upper, "LD_") || strings.HasPrefix(upper, "DYLD_") || strings.HasPrefix(upper, "PYTHON") || strings.HasPrefix(upper, "NEUXALLY_") || upper == "HOME" || strings.HasPrefix(upper, "ALLY") || strings.HasPrefix(upper, "CODEX") || strings.HasPrefix(upper, "CLAUDE") || strings.HasPrefix(upper, "NODE_") {
+			if len(accountconfig.Environment([]string{key + "=probe"})) == 0 || !environmentNamePattern.MatchString(key) || upper == "USERPROFILE" || upper == "APPDATA" || upper == "LOCALAPPDATA" || upper == "PWD" || upper == "OLDPWD" || upper == "SHELL" || upper == "ENV" || upper == "BASH_ENV" || upper == "ZDOTDIR" || strings.HasPrefix(upper, "LD_") || strings.HasPrefix(upper, "DYLD_") || strings.HasPrefix(upper, "PYTHON") || strings.HasPrefix(upper, "NEUXALLY_") || upper == "HOME" || strings.HasPrefix(upper, "ALLY") || strings.HasPrefix(upper, "CODEX") || strings.HasPrefix(upper, "CLAUDE") || strings.HasPrefix(upper, "NODE_") {
 				return nil, status_error.PluginForbidden
 			}
 			if (strings.HasSuffix(upper, "_DIR") || strings.HasSuffix(upper, "_DIRECTORY") || strings.HasSuffix(upper, "_FILE")) && value != "" {
@@ -196,6 +196,8 @@ func (d *Driver) call(ctx context.Context, method, id string, scopes []string, c
 	work, cancel := context.WithCancel(context.WithoutCancel(ctx))
 	defer cancel()
 	command := exec.CommandContext(work, d.config.Command, d.config.Args...)
+	configureProcessGroup(command)
+	command.Cancel = func() error { terminateProcessGroup(command); return nil }
 	command.Dir = d.config.Directory
 	command.Env = accountconfig.Environment(d.config.Environment)
 	for index := len(command.Env) - 1; index >= 0; index-- {
@@ -217,7 +219,21 @@ func (d *Driver) call(ctx context.Context, method, id string, scopes []string, c
 	if command.Start() != nil {
 		return nil, status_error.PluginNotReady
 	}
-	defer func() { cancel(); _ = command.Wait() }()
+	// EOF与终止信号先让桥接清理供应商子进程；超时后回收整个进程组。
+	defer func() {
+		_ = stdin.Close()
+		terminateProcessGroup(command)
+		finished := make(chan struct{})
+		go func() { _ = command.Wait(); close(finished) }()
+		select {
+		case <-finished:
+		case <-time.After(500 * time.Millisecond):
+		}
+		killProcessGroup(command)
+		cancel()
+		_ = stdout.Close()
+		<-finished
+	}()
 	if id == "" {
 		id = util.New()
 	}
@@ -255,7 +271,12 @@ func (d *Driver) call(ctx context.Context, method, id string, scopes []string, c
 			}
 		}
 	}()
-	defer func() { cancel(); workers.Wait() }()
+	defer func() {
+		// 子进程可能仍持有stdout，先关闭本端读取再等待扫描器。
+		cancel()
+		_ = stdout.Close()
+		workers.Wait()
+	}()
 	timer := time.NewTimer(30 * time.Second)
 	defer timer.Stop()
 	for {
