@@ -12142,7 +12142,7 @@
             ]
           },
           "409": {
-            "description": ">\n* `[PluginBusy][40900006505]`\n* `[PluginNotReady][40900006503]`\n* `[PluginVersionConflict][40900006501]`\n",
+            "description": ">\n* `[MCPConnectorTrustRequired][40900000013]`\n* `[PluginBusy][40900006505]`\n* `[PluginNotReady][40900006503]`\n* `[PluginVersionConflict][40900006501]`\n",
             "content": {
               "application/json": {
                 "schema": {
@@ -12151,6 +12151,7 @@
               }
             },
             "x-status-errors": [
+              "[MCPConnectorTrustRequired][40900000013]",
               "[PluginBusy][40900006505]",
               "[PluginNotReady][40900006503]",
               "[PluginVersionConflict][40900006501]"
@@ -12747,7 +12748,7 @@
             ]
           },
           "409": {
-            "description": ">\n* `[PluginBusy][40900006505]`\n* `[PluginNotReady][40900006503]`\n* `[PluginVersionConflict][40900006501]`\n",
+            "description": ">\n* `[MCPConnectorTrustRequired][40900000013]`\n* `[PluginBusy][40900006505]`\n* `[PluginNotReady][40900006503]`\n* `[PluginVersionConflict][40900006501]`\n",
             "content": {
               "application/json": {
                 "schema": {
@@ -12756,6 +12757,7 @@
               }
             },
             "x-status-errors": [
+              "[MCPConnectorTrustRequired][40900000013]",
               "[PluginBusy][40900006505]",
               "[PluginNotReady][40900006503]",
               "[PluginVersionConflict][40900006501]"
@@ -12888,7 +12890,7 @@
             ]
           },
           "409": {
-            "description": ">\n* `[PluginBusy][40900006505]`\n* `[PluginNotReady][40900006503]`\n* `[PluginVersionConflict][40900006501]`\n",
+            "description": ">\n* `[MCPConnectorTrustRequired][40900000013]`\n* `[PluginBusy][40900006505]`\n* `[PluginNotReady][40900006503]`\n* `[PluginVersionConflict][40900006501]`\n",
             "content": {
               "application/json": {
                 "schema": {
@@ -12897,6 +12899,7 @@
               }
             },
             "x-status-errors": [
+              "[MCPConnectorTrustRequired][40900000013]",
               "[PluginBusy][40900006505]",
               "[PluginNotReady][40900006503]",
               "[PluginVersionConflict][40900006501]"
@@ -13034,7 +13037,7 @@
             ]
           },
           "409": {
-            "description": ">\n* `[PluginBusy][40900006505]`\n* `[PluginNotReady][40900006503]`\n* `[PluginVersionConflict][40900006501]`\n",
+            "description": ">\n* `[MCPConnectorTrustRequired][40900000013]`\n* `[PluginBusy][40900006505]`\n* `[PluginNotReady][40900006503]`\n* `[PluginVersionConflict][40900006501]`\n",
             "content": {
               "application/json": {
                 "schema": {
@@ -13043,6 +13046,7 @@
               }
             },
             "x-status-errors": [
+              "[MCPConnectorTrustRequired][40900000013]",
               "[PluginBusy][40900006505]",
               "[PluginNotReady][40900006503]",
               "[PluginVersionConflict][40900006501]"
@@ -13195,7 +13199,7 @@
             ]
           },
           "409": {
-            "description": ">\n* `[PluginBusy][40900006505]`\n* `[PluginNotReady][40900006503]`\n* `[PluginVersionConflict][40900006501]`\n",
+            "description": ">\n* `[MCPConnectorTrustRequired][40900000013]`\n* `[PluginBusy][40900006505]`\n* `[PluginNotReady][40900006503]`\n* `[PluginVersionConflict][40900006501]`\n",
             "content": {
               "application/json": {
                 "schema": {
@@ -13204,6 +13208,7 @@
               }
             },
             "x-status-errors": [
+              "[MCPConnectorTrustRequired][40900000013]",
               "[PluginBusy][40900006505]",
               "[PluginNotReady][40900006503]",
               "[PluginVersionConflict][40900006501]"
@@ -13351,7 +13356,7 @@
             ]
           },
           "409": {
-            "description": ">\n* `[PluginBusy][40900006505]`\n* `[PluginNotReady][40900006503]`\n* `[PluginVersionConflict][40900006501]`\n",
+            "description": ">\n* `[MCPConnectorTrustRequired][40900000013]`\n* `[PluginBusy][40900006505]`\n* `[PluginNotReady][40900006503]`\n* `[PluginVersionConflict][40900006501]`\n",
             "content": {
               "application/json": {
                 "schema": {
@@ -13360,6 +13365,7 @@
               }
             },
             "x-status-errors": [
+              "[MCPConnectorTrustRequired][40900000013]",
               "[PluginBusy][40900006505]",
               "[PluginNotReady][40900006503]",
               "[PluginVersionConflict][40900006501]"
@@ -21133,7 +21139,7 @@
             ]
           },
           "409": {
-            "description": ">\n* `[PluginBusy][40900006505]`\n* `[PluginNotReady][40900006503]`\n* `[PluginVersionConflict][40900006501]`\n",
+            "description": ">\n* `[MCPConnectorTrustRequired][40900000013]`\n* `[PluginBusy][40900006505]`\n* `[PluginNotReady][40900006503]`\n* `[PluginVersionConflict][40900006501]`\n",
             "content": {
               "application/json": {
                 "schema": {
@@ -21142,6 +21148,7 @@
               }
             },
             "x-status-errors": [
+              "[MCPConnectorTrustRequired][40900000013]",
               "[PluginBusy][40900006505]",
               "[PluginNotReady][40900006503]",
               "[PluginVersionConflict][40900006501]"
@@ -36530,6 +36537,14 @@
             "description": "Components 是保留的原生组成。",
             "x-go-field-name": "Components"
           },
+          "config": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GithubComJieWaZiNeuxAllyServerInternalPluginsConfigurationField"
+            },
+            "description": "Config 是实际原生包所需配置，必填约束只用于选中该目标时。",
+            "x-go-field-name": "Config"
+          },
           "digest": {
             "type": "string",
             "description": "Digest 是实际原生完整摘要。",
@@ -36561,6 +36576,11 @@
             "format": "int32",
             "description": "SkillCount 是已发现技能数量。",
             "x-go-field-name": "SkillCount"
+          },
+          "trustRequired": {
+            "type": "boolean",
+            "description": "TrustRequired 表示实际原生包包含需要执行信任的组件或授权入口。",
+            "x-go-field-name": "TrustRequired"
           },
           "version": {
             "type": "string",
@@ -36963,6 +36983,11 @@
             "type": "string",
             "description": "Token 是本批次不可猜测身份。",
             "x-go-field-name": "Token"
+          },
+          "trustRequired": {
+            "type": "boolean",
+            "description": "TrustRequired 表示执行内容需要用户明确信任。",
+            "x-go-field-name": "TrustRequired"
           }
         },
         "description": "StagedPackage 保存受管内容与不可猜测预检令牌。",

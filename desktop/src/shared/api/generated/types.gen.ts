@@ -5015,6 +5015,10 @@ export type GithubComJieWaZiNeuxAllyServerInternalPluginsNativeImplementation = 
      */
     components?: Array<GithubComJieWaZiNeuxAllyServerInternalPluginsNativeComponent>;
     /**
+     * Config 是实际原生包所需配置，必填约束只用于选中该目标时。
+     */
+    config?: Array<GithubComJieWaZiNeuxAllyServerInternalPluginsConfigurationField>;
+    /**
      * Digest 是实际原生完整摘要。
      */
     digest?: string;
@@ -5038,6 +5042,10 @@ export type GithubComJieWaZiNeuxAllyServerInternalPluginsNativeImplementation = 
      * SkillCount 是已发现技能数量。
      */
     skillCount?: number;
+    /**
+     * TrustRequired 表示实际原生包包含需要执行信任的组件或授权入口。
+     */
+    trustRequired?: boolean;
     /**
      * Version 是实际原生版本。
      */
@@ -5282,6 +5290,10 @@ export type GithubComJieWaZiNeuxAllyServerInternalPluginsStagedPackage = {
      * Token 是本批次不可猜测身份。
      */
     token?: string;
+    /**
+     * TrustRequired 表示执行内容需要用户明确信任。
+     */
+    trustRequired?: boolean;
 };
 
 /**
@@ -16542,6 +16554,7 @@ export type DeletePluginErrors = {
     408: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
+     * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
      * * `[PluginNotReady][40900006503]`
      * * `[PluginVersionConflict][40900006501]`
@@ -16934,6 +16947,7 @@ export type LogoutPluginAuthorizationErrors = {
     404: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
+     * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
      * * `[PluginNotReady][40900006503]`
      * * `[PluginVersionConflict][40900006501]`
@@ -17003,6 +17017,7 @@ export type GetPluginAuthorizationErrors = {
     404: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
+     * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
      * * `[PluginNotReady][40900006503]`
      * * `[PluginVersionConflict][40900006501]`
@@ -17068,6 +17083,7 @@ export type StartPluginAuthorizationErrors = {
     404: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
+     * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
      * * `[PluginNotReady][40900006503]`
      * * `[PluginVersionConflict][40900006501]`
@@ -17139,6 +17155,7 @@ export type ConfigurePluginAuthorizationErrors = {
     404: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
+     * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
      * * `[PluginNotReady][40900006503]`
      * * `[PluginVersionConflict][40900006501]`
@@ -17214,6 +17231,7 @@ export type CancelPluginAuthorizationErrors = {
     408: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
+     * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
      * * `[PluginNotReady][40900006503]`
      * * `[PluginVersionConflict][40900006501]`
@@ -21800,6 +21818,7 @@ export type UninstallWakerPluginErrors = {
     408: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
+     * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
      * * `[PluginNotReady][40900006503]`
      * * `[PluginVersionConflict][40900006501]`
