@@ -1,13 +1,13 @@
-# 插件 v2 验收记录
+# 插件验收记录
 
-本文区分源码实现、自动化验证、真实 CLI 加载与真实账号业务结果。架构及协议依据见 [设计](../specs/2026-10-19-plugin-v2-design.md)、[Spec](../specs/2026-10-19-plugin-v2-spec.md) 和 [当前插件架构](../../architecture/plugin-resources-cn.md)。
+本文区分源码实现、自动化验证、真实 CLI 加载与真实账号业务结果。架构及协议依据见 [设计](../specs/2026-10-19-plugin-design.md)、[Spec](../specs/2026-10-19-plugin-spec.md) 和 [当前插件架构](../../architecture/plugin-resources-cn.md)。
 
 ## 交付位置
 
-- 应用实施基线为 `81e683e`，实现分支为 `codex/plugin-v2-implementation`，生产及生成契约最终提交为 `47a4f69`，没有推送应用仓库。
-- 插件公共仓库为 [NeuAally-Plugins](https://github.com/JieWaZi/NeuAally-Plugins)，本轮固定引用提交为 `3474810eb6fc45ec3115aaa8bc87e1a7bea20e66`。
-- [v2.0.1 Release](https://github.com/JieWaZi/NeuAally-Plugins/releases/tag/v2.0.1) 已公开发布，包含两个版本为 2.0.1 的系统入口、目录和完整安装 ZIP；六个平台的隔离 Lark CLI 依赖及许可继续固定引用已发布的 [v2.0.0 Release](https://github.com/JieWaZi/NeuAally-Plugins/releases/tag/v2.0.0)，没有覆盖旧资源。
-- 插件仓库的 [中文 README](https://github.com/JieWaZi/NeuAally-Plugins/blob/3474810eb6fc45ec3115aaa8bc87e1a7bea20e66/README.zh-CN.md) 说明三类目录、标准包、原生来源引用、HTTP 分发及新增授权桥接，架构图和授权时序图分别标出前端、Core、桥接及供应商职责。
+- 应用实施基线为 `81e683e`，生产及生成契约最终提交为 `4b43872`（展示实现 `98a93b2`），没有推送应用仓库。
+- 插件公共仓库为 [NeuAally-Plugins](https://github.com/JieWaZi/NeuAally-Plugins)，本轮固定引用提交为 `f67edcdde06f85fc0f038af126814ff2bb9c5a2c`。
+- 首版 [v0.1.0 Release](https://github.com/JieWaZi/NeuAally-Plugins/releases/tag/v0.1.0) 已公开发布，包含两个 `0.1.0` 系统入口、目录、完整安装 ZIP、六个平台的隔离 Lark CLI 依赖及许可，共 10 个资源；发布前逐项核对上传摘要及大小。旧测试 Release 和标签已清理，后续测试版本按 `v0.1.x` 递增。
+- 插件仓库的 [中文 README](https://github.com/JieWaZi/NeuAally-Plugins/blob/f67edcdde06f85fc0f038af126814ff2bb9c5a2c/README.zh-CN.md) 说明三类目录、标准包、原生来源引用、HTTP 分发及新增授权桥接，架构图和授权时序图分别标出前端、Core、桥接及供应商职责。
 
 ## 本轮三个验收目标
 
@@ -35,14 +35,16 @@ HTTP 验收启动独立 Core、数据库和受管文件根，实际上传两份 
 
 | 安装包 | 字节数 | SHA-256 |
 | --- | ---: | --- |
-| feishu-office.zip | 5,767,867 | `618174e70e03f23db15023cfe54424391f83fd572bc1cb1f7b3d19c2fbd59af4` |
-| github.zip | 74,868 | `bf2f5ebad2a840b1c21400e1711a81728d4b70176c5d01adbd1837620eb31f78` |
+| feishu-office.zip | 5,777,760 | `aa23831713c4032d864f896a9555c1d1789aeafe50f6577b05737b50491c3eed` |
+| github.zip | 87,369 | `aab6e179dffe505427afa19db4b216540d418599596f68ebaf0a921480dbf2cf` |
 
-隔离 Core 经默认在线目录准备两个 2.0.1 条目，来源提交与发布清单完全一致。GitHub 已通过生产 HTTP 安装到伙伴；原生 PAT 字段从真实 Claude 清单自动推导，加密保存被接受，公共响应只显示已配置标识。飞书未授权时准确返回未就绪，没有登记成可用账号。
+隔离 Core 经默认在线目录准备两个 `0.1.0` 条目，来源提交与发布清单完全一致。GitHub 已通过生产 HTTP 安装到伙伴；原生 PAT 字段从真实 Claude 清单自动推导，加密保存被接受，公共响应只显示已配置标识。飞书未授权时准确返回未就绪，没有登记成可用账号。
+
+目录元数据已在安装前返回两个真实 PNG 图标与双语名称、简介，不需要预先获取安装归档。隔离 Core 的安装前详情、完整原文接口以及安装后详情均按 `en` / `zh-CN` 返回对应 README，与发布 ZIP 中的字节逐一相同；图标也与发布包资产相同。前端回归确认原生实现面板及路径、摘要不再出现，并验证切换语言保留用户自定义名称。实际 HTTP 下载的 macOS arm64 依赖与许可摘要也与锁文件相同。
 
 本机公网测试使用已配置的网络代理；代理仅影响验收进程网络环境，未改用户设置。目录缓存、首次失败、陈旧状态、不同来源同名身份、下载中断及摘要错误由定向回归覆盖。
 
-源码中的官方收录只保留来源描述、完整性锁及许可材料，发布构建通过 HTTP 还原完整内容。两个来源的九个原生文件与先前固定上游字节一致；独立空缓存下载、禁止网络的缓存重建和完整 ZIP 索引均通过。GitHub `description` 为“检索 GitHub 仓库、议题和拉取请求，协助代码审查与协作。”，路由策略留在集成声明和开发说明。
+源码中的官方收录只保留来源描述、完整性锁及许可材料，发布构建通过 HTTP 还原完整内容。两个来源的九个原生文件与先前固定上游字节一致；独立空缓存下载、禁止网络的缓存重建和完整 ZIP 索引均通过。标准清单以英文描述插件业务能力，`.neuxally/presentation.json` 维护中英文名称与简介；路由策略留在集成声明和开发说明。GitHub 和飞书各自的中英文 README 只介绍业务能力、使用方法及示例，开发维护内容由仓库根文档承担。
 
 ## 授权解耦与验证
 
@@ -52,9 +54,9 @@ HTTP 验收启动独立 Core、数据库和受管文件根，实际上传两份 
 
 ## 定向检查
 
-- 插件前端：13 个测试文件、58 项测试通过；TypeScript、定向 ESLint、格式与 UI 规范检查通过。
+- 插件前端：14 个测试文件、63 项测试通过；TypeScript、定向 ESLint、格式与 UI 规范检查通过。
 - 应用插件资源构建：4 项测试通过，确认只生成 HTTP 来源元数据并清理旧内置 ZIP。
-- 独立插件仓库：26 项测试通过，覆盖来源 HTTP 物化、完整树锁、缓存、可重现打包、资产下载、授权阶段、取消及私有命令执行。
+- 独立插件仓库：42 项测试通过，覆盖来源 HTTP 物化、完整树锁、缓存、可重现打包、资产下载、授权阶段、取消及私有命令执行。
 - 后端：插件解析、目录、通用授权桥接、既有提供者、安装 Service、HTTP API、Execution、Runtime 与能力契约共 10 个相关 Go 包通过；最终入口指纹修复另以安装 Service 定向回归通过。
 - 契约与文档：通过项目命令生成 OpenAPI、客户端和系统 Skill bundle；`api:check`、`skills:check`、文档及差异校验通过。
 - 独立评审已修复依赖 PATH、超限 README 展示、原生失败降级、重试快照、子进程回收、Claude 直接 MCP 映射、原生配置和授权入口信任等问题，应用 Spec/Quality 及固定来源增量评审通过。
