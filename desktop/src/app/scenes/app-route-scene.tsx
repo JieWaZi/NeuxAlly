@@ -13,6 +13,7 @@ import {
   PluginDetailPage,
   PluginCatalogDetailPage,
   PluginSkillDetailPage,
+  PluginConnectorDetailPage,
 } from "@/modules/plugin";
 import { WorkBoardPage } from "@/modules/work-board";
 
@@ -92,6 +93,14 @@ export function AppRouteScene({ location, outletContext }: AppRouteSceneProps) {
         <Route
           path="resources/plugins/:pluginId"
           element={<PluginDetailPage />}
+        />
+        <Route
+          path="resources/plugins/:pluginId/connectors/:connectorKey"
+          element={<PluginConnectorDetailPage />}
+        />
+        <Route
+          path="wakers/:wakerId/plugins/:pluginId/connectors/:connectorKey"
+          element={<PluginConnectorDetailPage />}
         />
         <Route path="resources/skills/:skillId" element={<SkillDetailPage />} />
         <Route

@@ -66,7 +66,7 @@ export function PluginComponentCollection({
             const detailTo =
               kind === "skills"
                 ? `${to}/skills/${encodeURIComponent(item.key)}?version=${encodeURIComponent(item.versionId)}`
-                : to;
+                : `${to}/connectors/${encodeURIComponent(item.key)}?version=${encodeURIComponent(item.versionId)}`;
             return (
               <ResourceManagementCard
                 key={item.id}
@@ -101,14 +101,12 @@ export function PluginComponentCollection({
                 }
                 actions={
                   <ResourceMoreAction to={detailTo} name={item.name}>
-                    {kind === "skills" && (
-                      <DropdownMenuItem asChild>
-                        <Link to={to}>
-                          <Package />
-                          {t("viewPluginAction")}
-                        </Link>
-                      </DropdownMenuItem>
-                    )}
+                    <DropdownMenuItem asChild>
+                      <Link to={to}>
+                        <Package />
+                        {t("viewPluginAction")}
+                      </Link>
+                    </DropdownMenuItem>
                   </ResourceMoreAction>
                 }
               />

@@ -1,4 +1,4 @@
-package execution
+package plugininstallation
 
 import (
 	"context"
@@ -11,8 +11,8 @@ import (
 	"github.com/JieWaZi/NeuxAlly/server/repositories/models"
 )
 
-// resolveBoundPluginAuthentication 只向当前交付且精确匹配声明的连接申请秘密。
-func resolveBoundPluginAuthentication(ctx context.Context, bridge *commandbridge.Driver, id string, declarations []plugins.AuthenticationBinding, native bool, connectors []models.MCPConnector, environment map[string]string) error {
+// ResolveBoundAuthentication 只向当前交付且精确匹配声明的连接申请秘密。
+func ResolveBoundAuthentication(ctx context.Context, bridge *commandbridge.Driver, id string, declarations []plugins.AuthenticationBinding, native bool, connectors []models.MCPConnector, environment map[string]string) error {
 	allowed := map[string][]plugins.AuthenticationBinding{}
 	components := []commandbridge.Component{}
 	for _, declaration := range declarations {

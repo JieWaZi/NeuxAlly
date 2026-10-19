@@ -19,6 +19,9 @@ export const pluginZh = {
   independentResources: "独立安装",
   builtInSource: "内置",
   viewConnector: "查看连接器 {{name}}",
+  connectorManaged: "由插件管理",
+  connectorProbeUnavailable: "请先安装此版本并完成所需授权与配置，再测试连接。",
+  connectorToolsEmpty: "点击测试连接，完成初始化与工具发现后显示工具信息。",
   requiresAuthorization: "需授权",
   authorize: "授权",
   authorizeNamed: "授权 {{name}}",
@@ -194,6 +197,11 @@ export const pluginEn: { [K in keyof typeof pluginZh]: string } = {
   independentResources: "Added separately",
   builtInSource: "Built-in",
   viewConnector: "View connector {{name}}",
+  connectorManaged: "Managed by plugin",
+  connectorProbeUnavailable:
+    "Install this version and complete the required authorization and configuration before testing.",
+  connectorToolsEmpty:
+    "Test the connection to initialize the MCP session and discover its tools.",
   requiresAuthorization: "Authorization required",
   authorize: "Authorize",
   authorizeNamed: "Authorize {{name}}",

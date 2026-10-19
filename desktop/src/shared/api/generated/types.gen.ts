@@ -15081,6 +15081,78 @@ export type GetCatalogPluginResponses = {
 
 export type GetCatalogPluginResponse = GetCatalogPluginResponses[keyof GetCatalogPluginResponses];
 
+export type GetCatalogPluginConnectorData = {
+    body?: never;
+    path: {
+        /**
+         * 目录条目
+         */
+        key: string;
+    };
+    query: {
+        /**
+         * 压缩摘要
+         */
+        archiveSHA256?: string;
+        /**
+         * 组件标识
+         */
+        connectorKey: string;
+        /**
+         * 来源提交
+         */
+        sourceCommit?: string;
+    };
+    url: '/api/v1/plugins/catalog/{key}/connector';
+};
+
+export type GetCatalogPluginConnectorErrors = {
+    /**
+     * >
+     * * `[PluginContentInvalid][40000006502]`
+     * * `[PluginContentLimitExceeded][40000006503]`
+     * * `[PluginManifestInvalid][40000006501]`
+     * * `[SkillContentInvalid][40000000013]`
+     * * `[SkillContentLimitExceeded][40000000014]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[PluginNotFound][40400006501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[PluginVersionConflict][40900006501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[PluginStorageError][50000006501]`
+     * * `[RuntimeProtocolIncompatible][50000000012]`
+     * * `[SkillUnavailable][50000000008]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[PluginDistributionUnavailable][50200006502]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type GetCatalogPluginConnectorError = GetCatalogPluginConnectorErrors[keyof GetCatalogPluginConnectorErrors];
+
+export type GetCatalogPluginConnectorResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisMcpConnectorResponse;
+};
+
+export type GetCatalogPluginConnectorResponse = GetCatalogPluginConnectorResponses[keyof GetCatalogPluginConnectorResponses];
+
 export type PrepareCatalogPluginData = {
     body: GithubComJieWaZiNeuxAllyServerApisPluginsPrepareCatalogPluginRequest & unknown;
     path: {
@@ -16327,6 +16399,160 @@ export type UpdatePluginConfigurationResponses = {
 };
 
 export type UpdatePluginConfigurationResponse = UpdatePluginConfigurationResponses[keyof UpdatePluginConfigurationResponses];
+
+export type GetPluginConnectorData = {
+    body?: never;
+    path: {
+        /**
+         * 插件标识
+         */
+        pluginId: string;
+    };
+    query: {
+        /**
+         * 组件标识
+         */
+        key: string;
+        /**
+         * 固定版本
+         */
+        versionId: string;
+        /**
+         * 所属伙伴
+         */
+        wakerId?: string;
+    };
+    url: '/api/v1/plugins/{pluginId}/connector';
+};
+
+export type GetPluginConnectorErrors = {
+    /**
+     * >
+     * * `[PluginContentInvalid][40000006502]`
+     * * `[PluginManifestInvalid][40000006501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[PluginForbidden][40300006501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[PluginVersionConflict][40900006501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[RuntimeProtocolIncompatible][50000000012]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type GetPluginConnectorError = GetPluginConnectorErrors[keyof GetPluginConnectorErrors];
+
+export type GetPluginConnectorResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisMcpConnectorResponse;
+};
+
+export type GetPluginConnectorResponse = GetPluginConnectorResponses[keyof GetPluginConnectorResponses];
+
+export type TestPluginConnectorData = {
+    body?: never;
+    path: {
+        /**
+         * 插件标识
+         */
+        pluginId: string;
+    };
+    query: {
+        /**
+         * 压缩摘要
+         */
+        archiveSHA256?: string;
+        /**
+         * 组件标识
+         */
+        key: string;
+        /**
+         * 来源提交
+         */
+        sourceCommit?: string;
+        /**
+         * 固定版本
+         */
+        versionId: string;
+        /**
+         * 所属伙伴
+         */
+        wakerId?: string;
+    };
+    url: '/api/v1/plugins/{pluginId}/connector/test';
+};
+
+export type TestPluginConnectorErrors = {
+    /**
+     * >
+     * * `[BadRequest][40000000001]`
+     * * `[PluginContentInvalid][40000006502]`
+     * * `[PluginContentLimitExceeded][40000006503]`
+     * * `[PluginManifestInvalid][40000006501]`
+     * * `[SkillContentInvalid][40000000013]`
+     * * `[SkillContentLimitExceeded][40000000014]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[PluginForbidden][40300006501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[OperationCanceled][40800000001]`
+     *
+     */
+    408: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[MCPConnectorTrustRequired][40900000013]`
+     * * `[PluginBusy][40900006505]`
+     * * `[PluginConfigurationConflict][40900006502]`
+     * * `[PluginNotReady][40900006503]`
+     * * `[PluginVersionConflict][40900006501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[MCPConnectorCredentialError][50000000022]`
+     * * `[PluginStorageError][50000006501]`
+     * * `[RuntimeProtocolIncompatible][50000000012]`
+     * * `[SkillUnavailable][50000000008]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[MCPConnectorProtocolInvalid][50200000002]`
+     * * `[PluginAuthorizationFailed][50200006501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type TestPluginConnectorError = TestPluginConnectorErrors[keyof TestPluginConnectorErrors];
+
+export type TestPluginConnectorResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisMcpConnectorResponse;
+};
+
+export type TestPluginConnectorResponse = TestPluginConnectorResponses[keyof TestPluginConnectorResponses];
 
 export type InstallPluginData = {
     body: GithubComJieWaZiNeuxAllyServerApisPluginsInstallPluginRequest & unknown;

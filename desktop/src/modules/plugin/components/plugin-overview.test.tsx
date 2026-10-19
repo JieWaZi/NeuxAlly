@@ -13,9 +13,20 @@ import { PluginOverview } from "./plugin-overview";
 import type { PluginCatalogEntry } from "../model/plugin-view";
 import { PluginReadme } from "./plugin-readme";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-const readmeFixture = vi.hoisted(() => ({ load: vi.fn(), save: vi.fn() }));
+vi.mock("@/shared/api/use-query-events", () => ({
+  useQueryEvents: () => undefined,
+}));
+const readmeFixture = vi.hoisted(() => ({
+  load: vi.fn(),
+  save: vi.fn(),
+  connector: vi.fn(),
+  probe: vi.fn(),
+}));
 vi.mock("@/shared/api/generated/sdk.gen", async (importOriginal) => ({
   ...(await importOriginal<object>()),
+  getPluginConnector: readmeFixture.connector,
+  testPluginConnector: readmeFixture.probe,
+  getCatalogPluginConnector: readmeFixture.connector,
   getPluginReadme: readmeFixture.load,
   getCatalogPluginReadme: readmeFixture.load,
 }));
@@ -301,4 +312,166 @@ it("downloads the displayed locale from the same pinned catalog source", async (
       },
     }),
   );
+});
+
+it.each(["installed", "catalog"])(
+  "opens the included MCP in a read-only dialog from %s",
+  async (mode) => {
+    readmeFixture.connector.mockClear();
+    readmeFixture.connector.mockResolvedValue({
+      data: {
+        connector: {
+          id: "github",
+          name: "github",
+          transport: "streamable_http",
+          url: "https://api.githubcopilot.com/mcp/",
+        },
+        compatibility: [{ runtimeId: "codex", supported: true }],
+      },
+    });
+    render(
+      <QueryClientProvider
+        client={
+          new QueryClient({ defaultOptions: { queries: { retry: false } } })
+        }
+      >
+        <MemoryRouter>
+          <PluginOverview
+            pkg={pkg}
+            skillContext={
+              mode === "catalog"
+                ? {
+                    catalogKey: "github",
+                    sourceCommit: "a".repeat(40),
+                    archiveSHA256: "b".repeat(64),
+                  }
+                : { pluginId: "p", versionId: "v1" }
+            }
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "查看连接器 github" }));
+    const dialog = await screen.findByRole("dialog", { name: "github" });
+    expect(
+      await within(dialog).findByText("https://api.githubcopilot.com/mcp/"),
+    ).toBeVisible();
+    expect(
+      within(dialog).getByText("Codex", { selector: "span" }),
+    ).toBeVisible();
+    expect(
+      within(dialog).queryByRole("button", { name: "编辑" }),
+    ).not.toBeInTheDocument();
+    expect(within(dialog).queryByRole("switch")).not.toBeInTheDocument();
+    expect(readmeFixture.connector).toHaveBeenCalledWith(
+      expect.objectContaining(
+        mode === "catalog"
+          ? {
+              path: { key: "github" },
+              query: {
+                connectorKey: "github",
+                sourceCommit: "a".repeat(40),
+                archiveSHA256: "b".repeat(64),
+              },
+            }
+          : {
+              path: { pluginId: "p" },
+              query: { versionId: "v1", key: "github", wakerId: undefined },
+            },
+      ),
+    );
+    fireEvent.click(within(dialog).getByRole("button", { name: "关闭" }));
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
+  },
+);
+
+it("discovers tools from the exact authorized local version in a catalog modal", async () => {
+  readmeFixture.probe.mockClear();
+  readmeFixture.connector.mockResolvedValue({
+    data: {
+      connector: {
+        id: "c",
+        name: "github",
+        transport: "streamable_http",
+        testStatus: "untested",
+      },
+    },
+  });
+  readmeFixture.probe.mockImplementation(async () => {
+    const result = {
+      data: {
+        connector: {
+          id: "c",
+          name: "github",
+          transport: "streamable_http",
+          testStatus: "succeeded",
+          testedAt: Date.now(),
+          testToolCount: 1,
+          testTools: [{ name: "list_repositories", description: "列出仓库" }],
+        },
+      },
+    };
+    readmeFixture.connector.mockResolvedValue(result);
+    return result;
+  });
+  render(
+    <QueryClientProvider
+      client={
+        new QueryClient({ defaultOptions: { queries: { retry: false } } })
+      }
+    >
+      <MemoryRouter>
+        <PluginOverview
+          pkg={pkg}
+          skillContext={{
+            catalogKey: "github",
+            sourceCommit: "a".repeat(40),
+            archiveSHA256: "b".repeat(64),
+          }}
+          detail={{
+            plugin: { id: "p" },
+            versions: [
+              {
+                id: "local-v",
+                provenance: {
+                  sourceCommit: "a".repeat(40),
+                  archiveSHA256: "b".repeat(64),
+                },
+              },
+            ],
+          }}
+        />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "查看连接器 github" }));
+  const dialog = await screen.findByRole("dialog", { name: "github" });
+  fireEvent.click(
+    await within(dialog).findByRole("button", { name: "测试连接" }),
+  );
+  expect(
+    await within(dialog).findByRole("heading", { name: "list_repositories" }),
+  ).toBeVisible();
+  expect(readmeFixture.probe).toHaveBeenCalledWith(
+    expect.objectContaining({
+      path: { pluginId: "p" },
+      query: expect.objectContaining({
+        versionId: "local-v",
+        key: "github",
+        sourceCommit: "a".repeat(40),
+        archiveSHA256: "b".repeat(64),
+      }),
+    }),
+  );
+  fireEvent.click(within(dialog).getByRole("button", { name: "关闭" }));
+  await waitFor(() =>
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+  );
+  fireEvent.click(screen.getByRole("button", { name: "查看连接器 github" }));
+  expect(
+    await screen.findByRole("heading", { name: "list_repositories" }),
+  ).toBeVisible();
+  expect(readmeFixture.probe).toHaveBeenCalledTimes(1);
 });

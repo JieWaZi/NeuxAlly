@@ -13,7 +13,7 @@ import {
   type PluginSkillContext,
 } from "./plugin-skill-dialog";
 import { Button } from "@/shared/ui/button";
-import { Card, CardBody } from "@/shared/ui/card";
+import { PluginConnectorDialog } from "./plugin-connector-dialog";
 import {
   ResourceListItem,
   ResourceItemAction,
@@ -51,6 +51,7 @@ export function PluginOverview({
   const { t, i18n } = useTranslation("plugin");
   const locale = pluginLocale(i18n.resolvedLanguage ?? i18n.language);
   const [linkError, setLinkError] = useState(false);
+  const [connectorKey, setConnectorKey] = useState<string | null>(null);
   const manifest = pkg?.manifest;
   const [showSkills, setShowSkills] = useState(false);
   const [skill, setSkill] = useState<{
@@ -249,33 +250,24 @@ export function PluginOverview({
             </>
           }
         >
-          <ul className="grid grid-cols-1 gap-2 @[36rem]/resource-page:grid-cols-2 @[56rem]/resource-page:grid-cols-3">
+          <div className="grid grid-cols-1 gap-2 @[36rem]/resource-page:grid-cols-2 @[56rem]/resource-page:grid-cols-3">
             {servers.map((server) => (
-              <Card
+              <ResourceListItem
                 key={`${server.target}:${server.key}:${server.endpoint}`}
-                asChild
-                variant="resource"
-              >
-                <li>
-                  <CardBody className="flex min-w-0 items-start gap-3 p-4">
-                    <span className="bg-surface-subtle text-content-secondary grid size-10 shrink-0 place-items-center rounded-md">
-                      <Cable className="size-icon-lg" />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <h3 className="type-label truncate font-medium">
-                        {server.name}
-                      </h3>
-                      {server.endpoint && (
-                        <p className="type-body text-content-secondary mt-1 truncate">
-                          {server.endpoint}
-                        </p>
-                      )}
-                    </div>
-                  </CardBody>
-                </li>
-              </Card>
+                title={server.name ?? server.key ?? ""}
+                description={server.endpoint}
+                descriptionLines={1}
+                headingLevel={3}
+                icon={
+                  <span className="bg-surface-subtle text-content-secondary grid size-10 shrink-0 place-items-center rounded-md">
+                    <Cable className="size-icon-lg" />
+                  </span>
+                }
+                label={t("viewConnector", { name: server.name ?? server.key })}
+                onClick={() => setConnectorKey(server.key ?? "")}
+              />
             ))}
-          </ul>
+          </div>
         </DetailSection>
       )}
       {scope === "global" && (
@@ -301,6 +293,33 @@ export function PluginOverview({
             uninstalling={uninstalling}
           />
         </DetailSection>
+      )}
+      {connectorKey && skillContext && (
+        <PluginConnectorDialog
+          key={`${skillContext.pluginId ?? skillContext.catalogKey}:${skillContext.versionId ?? skillContext.archiveSHA256}:${connectorKey}`}
+          context={
+            skillContext.catalogKey
+              ? {
+                  ...skillContext,
+                  pluginId: detail?.plugin?.id,
+                  versionId: detail?.versions?.find(
+                    (version) =>
+                      version.provenance?.sourceCommit ===
+                        skillContext.sourceCommit &&
+                      version.provenance?.archiveSHA256 ===
+                        skillContext.archiveSHA256,
+                  )?.id,
+                }
+              : skillContext
+          }
+          connectorKey={connectorKey}
+          name={
+            servers.find((item) => item.key === connectorKey)?.name ??
+            connectorKey
+          }
+          sourceName={pluginDisplayName(pkg, detail?.plugin?.name)}
+          onClose={() => setConnectorKey(null)}
+        />
       )}
       {skill && skillContext && (
         <PluginSkillDialog

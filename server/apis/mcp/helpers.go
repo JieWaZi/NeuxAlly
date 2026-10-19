@@ -117,7 +117,7 @@ func newConnectorResponse(
 		},
 		Enabled:            enabled,
 		AffectedWakerCount: affectedWakerCount,
-		Compatibility:      connectorCompatibility(connector.Transport),
+		Compatibility:      ConnectorCompatibility(connector.Transport),
 	}
 }
 
@@ -331,7 +331,8 @@ func clearTestSnapshot(connector *models.MCPConnector) {
 	connector.TestTools = []models.MCPToolSummary{}
 }
 
-func connectorCompatibility(
+// ConnectorCompatibility 按既有智能体传输规则生成公开结论，供独立和插件连接器共同展示。
+func ConnectorCompatibility(
 	transport constants.MCPTransport,
 ) []RuntimeCompatibility {
 	runtimeIDs := runtimes.BaseRuntimeIDs()

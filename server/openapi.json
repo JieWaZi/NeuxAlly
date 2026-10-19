@@ -9998,6 +9998,152 @@
         }
       }
     },
+    "/api/v1/plugins/catalog/{key}/connector": {
+      "get": {
+        "tags": [
+          "github.com/JieWaZi/NeuxAlly/server/apis/plugins"
+        ],
+        "summary": "查看目录连接器",
+        "operationId": "GetCatalogPluginConnector",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "description": "目录条目",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "目录条目",
+              "x-go-field-name": "Key",
+              "x-tag-in": "path",
+              "x-tag-name": "key",
+              "x-tag-validate": "required"
+            }
+          },
+          {
+            "name": "archiveSHA256",
+            "in": "query",
+            "description": "压缩摘要",
+            "schema": {
+              "type": "string",
+              "description": "压缩摘要",
+              "x-go-field-name": "ArchiveSHA256",
+              "x-tag-in": "query",
+              "x-tag-name": "archiveSHA256"
+            }
+          },
+          {
+            "name": "connectorKey",
+            "in": "query",
+            "description": "组件标识",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "组件标识",
+              "x-go-field-name": "ConnectorKey",
+              "x-tag-in": "query",
+              "x-tag-name": "connectorKey",
+              "x-tag-validate": "required"
+            }
+          },
+          {
+            "name": "sourceCommit",
+            "in": "query",
+            "description": "来源提交",
+            "schema": {
+              "type": "string",
+              "description": "来源提交",
+              "x-go-field-name": "SourceCommit",
+              "x-tag-in": "query",
+              "x-tag-name": "sourceCommit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComJieWaZiNeuxAllyServerApisMcpConnectorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": ">\n* `[PluginContentInvalid][40000006502]`\n* `[PluginContentLimitExceeded][40000006503]`\n* `[PluginManifestInvalid][40000006501]`\n* `[SkillContentInvalid][40000000013]`\n* `[SkillContentLimitExceeded][40000000014]`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
+                }
+              }
+            },
+            "x-status-errors": [
+              "[PluginContentInvalid][40000006502]",
+              "[PluginContentLimitExceeded][40000006503]",
+              "[PluginManifestInvalid][40000006501]",
+              "[SkillContentInvalid][40000000013]",
+              "[SkillContentLimitExceeded][40000000014]"
+            ]
+          },
+          "404": {
+            "description": ">\n* `[PluginNotFound][40400006501]`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
+                }
+              }
+            },
+            "x-status-errors": [
+              "[PluginNotFound][40400006501]"
+            ]
+          },
+          "409": {
+            "description": ">\n* `[PluginVersionConflict][40900006501]`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
+                }
+              }
+            },
+            "x-status-errors": [
+              "[PluginVersionConflict][40900006501]"
+            ]
+          },
+          "500": {
+            "description": ">\n* `[PluginStorageError][50000006501]`\n* `[RuntimeProtocolIncompatible][50000000012]`\n* `[SkillUnavailable][50000000008]`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
+                }
+              }
+            },
+            "x-status-errors": [
+              "[PluginStorageError][50000006501]",
+              "[RuntimeProtocolIncompatible][50000000012]",
+              "[SkillUnavailable][50000000008]"
+            ]
+          },
+          "502": {
+            "description": ">\n* `[PluginDistributionUnavailable][50200006502]`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
+                }
+              }
+            },
+            "x-status-errors": [
+              "[PluginDistributionUnavailable][50200006502]"
+            ]
+          }
+        }
+      }
+    },
     "/api/v1/plugins/catalog/{key}/prepare": {
       "post": {
         "tags": [
@@ -12207,6 +12353,328 @@
             },
             "x-status-errors": [
               "[PluginDistributionUnavailable][50200006502]"
+            ]
+          }
+        }
+      }
+    },
+    "/api/v1/plugins/{pluginId}/connector": {
+      "get": {
+        "tags": [
+          "github.com/JieWaZi/NeuxAlly/server/apis/plugins"
+        ],
+        "summary": "查看插件连接器",
+        "operationId": "GetPluginConnector",
+        "parameters": [
+          {
+            "name": "pluginId",
+            "in": "path",
+            "description": "插件标识",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "插件标识",
+              "x-go-field-name": "PluginID",
+              "x-tag-in": "path",
+              "x-tag-name": "pluginId",
+              "x-tag-validate": "required"
+            }
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "description": "组件标识",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "组件标识",
+              "x-go-field-name": "Key",
+              "x-tag-in": "query",
+              "x-tag-name": "key",
+              "x-tag-validate": "required"
+            }
+          },
+          {
+            "name": "versionId",
+            "in": "query",
+            "description": "固定版本",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "固定版本",
+              "x-go-field-name": "VersionID",
+              "x-tag-in": "query",
+              "x-tag-name": "versionId",
+              "x-tag-validate": "required"
+            }
+          },
+          {
+            "name": "wakerId",
+            "in": "query",
+            "description": "所属伙伴",
+            "schema": {
+              "type": "string",
+              "description": "所属伙伴",
+              "x-go-field-name": "WakerID",
+              "x-tag-in": "query",
+              "x-tag-name": "wakerId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComJieWaZiNeuxAllyServerApisMcpConnectorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": ">\n* `[PluginContentInvalid][40000006502]`\n* `[PluginManifestInvalid][40000006501]`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
+                }
+              }
+            },
+            "x-status-errors": [
+              "[PluginContentInvalid][40000006502]",
+              "[PluginManifestInvalid][40000006501]"
+            ]
+          },
+          "403": {
+            "description": ">\n* `[PluginForbidden][40300006501]`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
+                }
+              }
+            },
+            "x-status-errors": [
+              "[PluginForbidden][40300006501]"
+            ]
+          },
+          "409": {
+            "description": ">\n* `[PluginVersionConflict][40900006501]`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
+                }
+              }
+            },
+            "x-status-errors": [
+              "[PluginVersionConflict][40900006501]"
+            ]
+          },
+          "500": {
+            "description": ">\n* `[RuntimeProtocolIncompatible][50000000012]`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
+                }
+              }
+            },
+            "x-status-errors": [
+              "[RuntimeProtocolIncompatible][50000000012]"
+            ]
+          }
+        }
+      }
+    },
+    "/api/v1/plugins/{pluginId}/connector/test": {
+      "post": {
+        "tags": [
+          "github.com/JieWaZi/NeuxAlly/server/apis/plugins"
+        ],
+        "summary": "测试插件连接器",
+        "operationId": "TestPluginConnector",
+        "parameters": [
+          {
+            "name": "pluginId",
+            "in": "path",
+            "description": "插件标识",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "插件标识",
+              "x-go-field-name": "PluginID",
+              "x-tag-in": "path",
+              "x-tag-name": "pluginId",
+              "x-tag-validate": "required"
+            }
+          },
+          {
+            "name": "archiveSHA256",
+            "in": "query",
+            "description": "压缩摘要",
+            "schema": {
+              "type": "string",
+              "description": "压缩摘要",
+              "x-go-field-name": "ArchiveSHA256",
+              "x-tag-in": "query",
+              "x-tag-name": "archiveSHA256"
+            }
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "description": "组件标识",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "组件标识",
+              "x-go-field-name": "Key",
+              "x-tag-in": "query",
+              "x-tag-name": "key",
+              "x-tag-validate": "required"
+            }
+          },
+          {
+            "name": "sourceCommit",
+            "in": "query",
+            "description": "来源提交",
+            "schema": {
+              "type": "string",
+              "description": "来源提交",
+              "x-go-field-name": "SourceCommit",
+              "x-tag-in": "query",
+              "x-tag-name": "sourceCommit"
+            }
+          },
+          {
+            "name": "versionId",
+            "in": "query",
+            "description": "固定版本",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "固定版本",
+              "x-go-field-name": "VersionID",
+              "x-tag-in": "query",
+              "x-tag-name": "versionId",
+              "x-tag-validate": "required"
+            }
+          },
+          {
+            "name": "wakerId",
+            "in": "query",
+            "description": "所属伙伴",
+            "schema": {
+              "type": "string",
+              "description": "所属伙伴",
+              "x-go-field-name": "WakerID",
+              "x-tag-in": "query",
+              "x-tag-name": "wakerId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComJieWaZiNeuxAllyServerApisMcpConnectorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": ">\n* `[BadRequest][40000000001]`\n* `[PluginContentInvalid][40000006502]`\n* `[PluginContentLimitExceeded][40000006503]`\n* `[PluginManifestInvalid][40000006501]`\n* `[SkillContentInvalid][40000000013]`\n* `[SkillContentLimitExceeded][40000000014]`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
+                }
+              }
+            },
+            "x-status-errors": [
+              "[BadRequest][40000000001]",
+              "[PluginContentInvalid][40000006502]",
+              "[PluginContentLimitExceeded][40000006503]",
+              "[PluginManifestInvalid][40000006501]",
+              "[SkillContentInvalid][40000000013]",
+              "[SkillContentLimitExceeded][40000000014]"
+            ]
+          },
+          "403": {
+            "description": ">\n* `[PluginForbidden][40300006501]`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
+                }
+              }
+            },
+            "x-status-errors": [
+              "[PluginForbidden][40300006501]"
+            ]
+          },
+          "408": {
+            "description": ">\n* `[OperationCanceled][40800000001]`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
+                }
+              }
+            },
+            "x-status-errors": [
+              "[OperationCanceled][40800000001]"
+            ]
+          },
+          "409": {
+            "description": ">\n* `[MCPConnectorTrustRequired][40900000013]`\n* `[PluginBusy][40900006505]`\n* `[PluginConfigurationConflict][40900006502]`\n* `[PluginNotReady][40900006503]`\n* `[PluginVersionConflict][40900006501]`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
+                }
+              }
+            },
+            "x-status-errors": [
+              "[MCPConnectorTrustRequired][40900000013]",
+              "[PluginBusy][40900006505]",
+              "[PluginConfigurationConflict][40900006502]",
+              "[PluginNotReady][40900006503]",
+              "[PluginVersionConflict][40900006501]"
+            ]
+          },
+          "500": {
+            "description": ">\n* `[MCPConnectorCredentialError][50000000022]`\n* `[PluginStorageError][50000006501]`\n* `[RuntimeProtocolIncompatible][50000000012]`\n* `[SkillUnavailable][50000000008]`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
+                }
+              }
+            },
+            "x-status-errors": [
+              "[MCPConnectorCredentialError][50000000022]",
+              "[PluginStorageError][50000006501]",
+              "[RuntimeProtocolIncompatible][50000000012]",
+              "[SkillUnavailable][50000000008]"
+            ]
+          },
+          "502": {
+            "description": ">\n* `[MCPConnectorProtocolInvalid][50200000002]`\n* `[PluginAuthorizationFailed][50200006501]`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
+                }
+              }
+            },
+            "x-status-errors": [
+              "[MCPConnectorProtocolInvalid][50200000002]",
+              "[PluginAuthorizationFailed][50200006501]"
             ]
           }
         }

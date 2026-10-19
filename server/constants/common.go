@@ -229,6 +229,8 @@ const (
 	MCPConnectorMinimumTimeoutMS = int64(100)
 	// MCPConnectorMaximumTimeoutMS 是 MCP 连接器允许的最大请求超时毫秒数。
 	MCPConnectorMaximumTimeoutMS = int64(300_000)
+	// PluginConnectorDiagnosticCacheLimit 是当前 Core 最多保留的插件连接诊断数量。
+	PluginConnectorDiagnosticCacheLimit = 256
 	// MCPConnectorMaximumToolCount 是单个连接器允许公开的最大工具数。
 	MCPConnectorMaximumToolCount = 200
 	// MCPConnectorMaximumSummaryLength 是连接器测试摘要允许的最大字符数。

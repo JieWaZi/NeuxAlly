@@ -12,3 +12,5 @@ export { useInstalledPluginReferences } from "./api/use-installed-plugin-referen
 
 export { PluginInstallDialog } from "./components/plugin-install-dialog";
 export type { PluginDetail } from "./model/plugin-view";
+
+export { PluginConnectorDetailPage } from "./pages/plugin-connector-detail-page";

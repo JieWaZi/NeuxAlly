@@ -21,6 +21,7 @@ import (
 	"github.com/JieWaZi/NeuxAlly/server/internal/plugins"
 	"github.com/JieWaZi/NeuxAlly/server/internal/runtimes"
 	"github.com/JieWaZi/NeuxAlly/server/repositories/models"
+	"github.com/JieWaZi/NeuxAlly/server/services/plugininstallation"
 )
 
 // preparedPlugins 是本轮冻结的能力投射，不创建独立 Skill/MCP 资源。
@@ -409,7 +410,7 @@ func (m *service) preparePlugins(ctx context.Context, waker string, request pend
 			snapshot.ComponentIDs = append(snapshot.ComponentIDs, componentID)
 		}
 		if bridge != nil && len(authenticationBindings) > 0 {
-			bindErr := resolveBoundPluginAuthentication(ctx, bridge, id, authenticationBindings, nativeEligible, candidateConnectors, candidateEnvironment)
+			bindErr := plugininstallation.ResolveBoundAuthentication(ctx, bridge, id, authenticationBindings, nativeEligible, candidateConnectors, candidateEnvironment)
 			if bindErr != nil {
 				if required {
 					return result, bindErr
