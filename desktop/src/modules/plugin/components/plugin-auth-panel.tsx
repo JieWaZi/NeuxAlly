@@ -35,6 +35,7 @@ export function PluginAuthPanel({
   onReady,
   installation = false,
   starting = false,
+  preferredAction,
 }: {
   pluginId: string;
   wakerId?: string;
@@ -42,6 +43,7 @@ export function PluginAuthPanel({
   onReady?: () => void;
   installation?: boolean;
   starting?: boolean;
+  preferredAction?: "show-qr" | "open-url" | "";
 }) {
   const { t } = useTranslation("plugin");
   const client = useQueryClient();
@@ -90,6 +92,19 @@ export function PluginAuthPanel({
   const ready = Boolean(account?.available);
   const pending =
     starting || login.isPending || cancel.isPending || logout.isPending;
+  const hasQR = Boolean(
+    session?.actions?.some(
+      (action) => action.type === "show-qr" && action.value,
+    ),
+  );
+  const qrMode = preferredAction === "show-qr" || hasQR;
+  const qrState: "loading" | "expired" | undefined =
+    qrMode && (status.isPending || pending || (waiting && !hasQR))
+      ? "loading"
+      : qrMode && expired
+        ? "expired"
+        : undefined;
+  const showQR = qrMode && (status.isPending || waiting || pending || expired);
   const error = login.error ?? cancel.error ?? logout.error;
   const message = expired
     ? t("authExpired")
@@ -170,7 +185,7 @@ export function PluginAuthPanel({
           </p>
         </div>
       )}
-      {status.isPending || status.isError ? (
+      {(status.isPending && preferredAction !== "show-qr") || status.isError ? (
         <QueryState
           loadingLayout="content"
           pending={status.isPending}
@@ -180,7 +195,9 @@ export function PluginAuthPanel({
       ) : (
         <>
           {installation && (
-            <StatusNotice>{t("sharedAuthorizationHelp")}</StatusNotice>
+            <p className="type-caption text-content-secondary">
+              {t("sharedAuthorizationHelp")}
+            </p>
           )}
           {ready && !waiting ? (
             <StatusNotice tone="success">
@@ -190,34 +207,40 @@ export function PluginAuthPanel({
             <p className="type-body text-content-secondary" role="status">
               {waiting
                 ? t("authorizationWaiting")
-                : pending
+                : pending || status.isPending
                   ? t("busy")
                   : message}
             </p>
           )}
-          {waiting && (
+          {(waiting || qrState) && (
             <PluginAuthorizationActions
               key={deviceKey}
-              actions={session?.actions ?? []}
+              actions={waiting && !pending ? (session?.actions ?? []) : []}
+              qrState={qrState}
+              disabled={pending || activeUses.length > 0}
+              onRefresh={() => void restart()}
               onOpenError={() => setOpenError(t("failed"))}
             />
           )}
-          {waiting && session?.expiresAt && (
+          {waiting && Boolean(session?.expiresAt) && (
             <p className="type-caption text-muted-foreground">
               {t("localWaitUntil", {
                 time: new Intl.DateTimeFormat(undefined, {
                   timeStyle: "medium",
-                }).format(session.expiresAt),
+                }).format(session?.expiresAt),
               })}
             </p>
           )}
-          {Boolean(status.data?.missingScopes?.length) && (
-            <p className="type-body text-content-secondary">
-              {t("missingScopesHelp")}
-            </p>
-          )}
+          {!waiting &&
+            !pending &&
+            Boolean(account?.id || account?.name) &&
+            Boolean(status.data?.missingScopes?.length) && (
+              <p className="type-body text-content-secondary">
+                {t("missingScopesHelp")}
+              </p>
+            )}
           <div className="flex flex-wrap gap-2">
-            {(!ready || waiting) && (
+            {(!ready || waiting) && !showQR && (
               <Button
                 type="button"
                 disabled={pending || activeUses.length > 0}
@@ -245,15 +268,16 @@ export function PluginAuthPanel({
                 {t("cancelAuth")}
               </Button>
             )}
-            <Button
-              type="button"
-              variant="ghost"
-              disabled={pending}
-              onClick={() => void status.refetch().then(refresh)}
-            >
-              <RefreshCw aria-hidden="true" />
-              {t("authRefresh")}
-            </Button>
+            {!waiting && !pending && !showQR && (
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => void status.refetch().then(refresh)}
+              >
+                <RefreshCw aria-hidden="true" />
+                {t("authRefresh")}
+              </Button>
+            )}
             {ready && !installation && (
               <Button
                 type="button"

@@ -45,6 +45,7 @@ const fixture = vi.hoisted(() => ({
   open: vi.fn().mockResolvedValue(undefined),
   submit: vi.fn(),
   statusError: null as Error | null,
+  statusWait: null as Promise<void> | null,
 }));
 vi.mock("@/shared/api/use-query-events", () => ({
   useQueryEvents: () => undefined,
@@ -62,6 +63,7 @@ vi.mock("../api/plugin-queries", () => ({
   getPluginAuthorizationOptions: () => ({
     queryKey: [{ _id: "getPluginAuthorization" }],
     queryFn: async () => {
+      if (fixture.statusWait) await fixture.statusWait;
       if (fixture.statusError) throw fixture.statusError;
       return structuredClone(fixture.status);
     },
@@ -80,6 +82,7 @@ beforeEach(() => {
   fixture.login.mockClear();
   fixture.submit.mockClear();
   fixture.statusError = null;
+  fixture.statusWait = null;
   fixture.configure.mockClear();
   fixture.open.mockClear();
   fixture.status.activeUses = [];
@@ -100,7 +103,11 @@ beforeEach(() => {
     { type: "open-url", url: fixture.status.session.verificationUrl },
   ];
 });
-function show(installation = false, onReady = vi.fn()) {
+function show(
+  installation = false,
+  onReady = vi.fn(),
+  preferredAction: "show-qr" | "open-url" | "" = "",
+) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
@@ -115,6 +122,7 @@ function show(installation = false, onReady = vi.fn()) {
         >
           <PluginAuthPanel
             pluginId="p"
+            preferredAction={preferredAction}
             installation={installation}
             onReady={onReady}
           />
@@ -179,7 +187,7 @@ describe("shared plugin authorization", () => {
       expect(screen.queryByLabelText("二维码内容")).not.toBeInTheDocument(),
     );
     expect(screen.getByRole("status")).toHaveTextContent("授权已过期");
-    fireEvent.click(screen.getByRole("button", { name: "重新授权" }));
+    fireEvent.click(screen.getByRole("button", { name: "刷新二维码" }));
     await waitFor(() => expect(fixture.cancel).toHaveBeenCalledOnce());
     expect(fixture.login).not.toHaveBeenCalled();
     finishCancel?.();
@@ -266,7 +274,7 @@ describe("shared plugin authorization", () => {
   });
 });
 
-it("offers GitHub code and QR dialog without an app form; closing keeps authorization alive", async () => {
+it("keeps GitHub code and inline QR while waiting, then removes both after ready", async () => {
   fixture.status.provider = "github";
   fixture.status.account.available = false;
   fixture.status.session.userCode = "ABCD-EFGH";
@@ -274,36 +282,30 @@ it("offers GitHub code and QR dialog without an app form; closing keeps authoriz
     type: "copy-code",
     value: "ABCD-EFGH",
   });
-  fixture.status.session.verificationUrl = "https://github.com/login/device";
   const client = show();
-  expect(await screen.findByText("ABCD-EFGH")).toBeInTheDocument();
-  expect(screen.queryByLabelText("飞书应用 App ID")).not.toBeInTheDocument();
+  expect(await screen.findByText("ABCD-EFGH")).toBeVisible();
+  expect(await screen.findByLabelText("二维码内容")).toBeVisible();
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   expect(
-    screen.queryByRole("button", { name: "更换飞书应用" }),
+    screen.queryByRole("button", { name: "显示二维码" }),
   ).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "显示二维码" }));
-  expect(
-    await screen.findByRole("dialog", { name: "扫码授权" }),
-  ).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "关闭" }));
-  await waitFor(() =>
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
-  );
   expect(fixture.cancel).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole("button", { name: "显示二维码" }));
-  expect(await screen.findByRole("dialog")).toBeInTheDocument();
   client.setQueryData([{ _id: "getPluginAuthorization" }], {
     ...fixture.status,
+    account: { ...fixture.status.account, available: true },
     session: {
       ...fixture.status.session,
       state: "ready",
+      actions: [],
+      expiresAt: 0,
       verificationUrl: "",
       userCode: "",
     },
   });
   await waitFor(() =>
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    expect(screen.queryByLabelText("二维码内容")).not.toBeInTheDocument(),
   );
+  expect(screen.queryByText("ABCD-EFGH")).not.toBeInTheDocument();
 });
 
 it("copies the GitHub device code and reports clipboard failures locally", async () => {
@@ -384,4 +386,86 @@ it("replaces a challenge and removes all actions after cancellation", async () =
   await waitFor(() =>
     expect(screen.queryByLabelText("二维码内容")).not.toBeInTheDocument(),
   );
+});
+
+it("shows a QR loading area before a declared QR challenge without rendering zero or missing-scope warnings", async () => {
+  fixture.status.account.available = false;
+  fixture.status.session.actions = [];
+  fixture.status.session.expiresAt = 0;
+  fixture.status.missingScopes = ["offline_access"];
+  show(true, vi.fn(), "show-qr");
+  expect(
+    await screen.findByRole("status", { name: "正在加载二维码…" }),
+  ).toBeVisible();
+  expect(screen.queryByText("0", { exact: true })).not.toBeInTheDocument();
+  expect(
+    screen.queryByText(
+      "当前账号缺少插件所需权限，请重新授权。所需权限会自动申请。",
+    ),
+  ).not.toBeInTheDocument();
+});
+
+it("prefers the inline QR with a refresh icon and does not offer duplicate QR or restart controls", async () => {
+  fixture.status.account.available = false;
+  show(true);
+  expect(await screen.findByLabelText("二维码内容")).toBeVisible();
+  expect(screen.getByRole("button", { name: "刷新二维码" })).toBeVisible();
+  expect(
+    screen.queryByRole("button", { name: "显示二维码" }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: "重新授权" }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: "重新检查认证" }),
+  ).not.toBeInTheDocument();
+});
+
+it("replaces the setup QR automatically with the user authorization QR before reporting ready", async () => {
+  fixture.status.account.available = false;
+  const onReady = vi.fn();
+  const client = show(true, onReady, "show-qr");
+  await screen.findByLabelText("二维码内容");
+  client.setQueryData([{ _id: "getPluginAuthorization" }], {
+    ...fixture.status,
+    account: { ...fixture.status.account, configured: true, available: false },
+    session: {
+      ...fixture.status.session,
+      challengeId: "user-login",
+      expiresAt: Date.now() + 60000,
+      actions: [{ type: "show-qr", value: "https://example.com/user-auth" }],
+    },
+  });
+  await waitFor(() =>
+    expect(screen.getByLabelText("二维码内容")).toHaveTextContent(
+      "https://example.com/user-auth",
+    ),
+  );
+  expect(onReady).not.toHaveBeenCalled();
+  client.setQueryData([{ _id: "getPluginAuthorization" }], {
+    ...fixture.status,
+    account: { ...fixture.status.account, available: true },
+    session: {
+      ...fixture.status.session,
+      state: "ready",
+      actions: [],
+      expiresAt: 0,
+    },
+  });
+  await waitFor(() => expect(onReady).toHaveBeenCalledOnce());
+  expect(screen.queryByLabelText("二维码内容")).not.toBeInTheDocument();
+});
+
+it("shows the declared QR loading slot even before the first status response", async () => {
+  let loaded: (() => void) | undefined;
+  fixture.statusWait = new Promise<void>((resolve) => {
+    loaded = resolve;
+  });
+  show(true, vi.fn(), "show-qr");
+  const indicator = await screen.findByRole("status", {
+    name: "正在加载二维码…",
+  });
+  expect(indicator).toBeVisible();
+  loaded?.();
+  expect(await screen.findByLabelText("二维码内容")).toBeVisible();
 });

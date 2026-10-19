@@ -28,6 +28,8 @@ export const pluginZh = {
   authorizeOnWebsite: "前往授权",
   retryAuthorization: "重新授权",
   refreshQR: "刷新二维码",
+  qrLoading: "正在加载二维码…",
+  qrExpired: "二维码已过期",
   feishuAuthorizationNotice:
     "所选伙伴共用本机的飞书授权。可访问范围以飞书授权和资源权限为准。",
   githubAuthorizationNotice:
@@ -208,6 +210,8 @@ export const pluginEn: { [K in keyof typeof pluginZh]: string } = {
   authorizeOnWebsite: "Authorize on website",
   retryAuthorization: "Retry authorization",
   refreshQR: "Refresh QR code",
+  qrLoading: "Loading QR code…",
+  qrExpired: "QR code expired",
   feishuAuthorizationNotice:
     "Selected partners share this device’s Feishu authorization. Access follows Feishu permissions and resource policies.",
   githubAuthorizationNotice:
