@@ -81,7 +81,7 @@ func (m *service) retryExecution(ctx context.Context, chatID, executionID string
 			WorkspaceReadOnly: previous.WorkspaceReadOnly,
 			SessionPolicy:     constants.RuntimeSessionPolicyContinue,
 		},
-		message: userMessage{Actor: message.Actor, Text: message.Content},
+		message: userMessage{Actor: message.Actor, Text: message.Content, Workflows: append([]eventlog.MessageWorkflowReference(nil), message.Workflows...)},
 	}
 	workspaceRoot, err := m.storage.ChatWorkspace(chatID)
 	if err != nil {
@@ -131,7 +131,7 @@ func retrySource(
 	for _, message := range state.previousMessages {
 		if message.ExecutionID == executionID && message.Role == constants.MessageRoleAssistant {
 			if message.Status != constants.ExecutionStatusFailed || !message.Retryable ||
-				message.Content != "" || len(message.DisplayParts) != 0 || len(message.FileChanges) != 0 {
+				message.Content != "" || len(message.DisplayParts) != 0 || len(message.FileChanges) != 0 || len(message.WorkflowRuns) != 0 {
 				return previous, input, status_error.ExecutionRetryUnavailable
 			}
 			allowed = true

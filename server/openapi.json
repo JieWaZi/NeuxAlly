@@ -5101,7 +5101,7 @@
             }
           },
           "400": {
-            "description": ">\n* `[AgentInputInvalid][40000009001]`\n* `[BadRequest][40000000001]`\n* `[SkillContentInvalid][40000000013]`\n* `[WorkflowBudgetExceeded][40000003005]`\n* `[WorkflowCapabilityUnsupported][40000003003]`\n* `[WorkflowFileInvalid][40000003006]`\n* `[WorkflowResourceInvalid][40000003004]`\n* `[WorkflowSchemaInvalid][40000003002]`\n* `[WorkflowSourceInvalid][40000003001]`\n",
+            "description": ">\n* `[AgentInputInvalid][40000009001]`\n* `[BadRequest][40000000001]`\n* `[MessageAttachmentInvalid][40000000017]`\n* `[SkillContentInvalid][40000000013]`\n* `[WorkflowBudgetExceeded][40000003005]`\n* `[WorkflowCapabilityUnsupported][40000003003]`\n* `[WorkflowFileInvalid][40000003006]`\n* `[WorkflowResourceInvalid][40000003004]`\n* `[WorkflowSchemaInvalid][40000003002]`\n* `[WorkflowSourceInvalid][40000003001]`\n",
             "content": {
               "application/json": {
                 "schema": {
@@ -5112,6 +5112,7 @@
             "x-status-errors": [
               "[AgentInputInvalid][40000009001]",
               "[BadRequest][40000000001]",
+              "[MessageAttachmentInvalid][40000000017]",
               "[SkillContentInvalid][40000000013]",
               "[WorkflowBudgetExceeded][40000003005]",
               "[WorkflowCapabilityUnsupported][40000003003]",
@@ -5183,7 +5184,7 @@
             ]
           },
           "500": {
-            "description": ">\n* `[InternalServerError][50000000001]`\n* `[SkillUnavailable][50000000008]`\n* `[WorkflowCancelled][50000003002]`\n* `[WorkflowEffectFailed][50000003001]`\n* `[WorkflowFileStorageError][50000003005]`\n* `[WorkflowStateInvalid][50000003004]`\n",
+            "description": ">\n* `[ChatDirectoryOwnershipInvalid][50000000007]`\n* `[InternalServerError][50000000001]`\n* `[ManagedWorkspaceError][50000000033]`\n* `[MessageAttachmentStorageError][50000000032]`\n* `[SkillUnavailable][50000000008]`\n* `[WorkflowCancelled][50000003002]`\n* `[WorkflowEffectFailed][50000003001]`\n* `[WorkflowFileStorageError][50000003005]`\n* `[WorkflowStateInvalid][50000003004]`\n",
             "content": {
               "application/json": {
                 "schema": {
@@ -5192,7 +5193,10 @@
               }
             },
             "x-status-errors": [
+              "[ChatDirectoryOwnershipInvalid][50000000007]",
               "[InternalServerError][50000000001]",
+              "[ManagedWorkspaceError][50000000033]",
+              "[MessageAttachmentStorageError][50000000032]",
               "[SkillUnavailable][50000000008]",
               "[WorkflowCancelled][50000003002]",
               "[WorkflowEffectFailed][50000003001]",
@@ -5491,43 +5495,6 @@
         }
       }
     },
-    "/api/v1/chats/{chatId}/cancel": {
-      "post": {
-        "tags": [
-          "github.com/JieWaZi/NeuxAlly/server/apis/chats"
-        ],
-        "summary": "取消执行",
-        "operationId": "CancelChatExecution",
-        "parameters": [
-          {
-            "name": "chatId",
-            "in": "path",
-            "description": "对话标识",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "description": "对话标识",
-              "x-go-field-name": "ChatID",
-              "x-tag-in": "path",
-              "x-tag-name": "chatId",
-              "x-tag-validate": "required"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GithubComShrewxGinxCommonResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/chats/{chatId}/elicitations/{elicitationId}": {
       "put": {
         "tags": [
@@ -5656,6 +5623,97 @@
             },
             "x-status-errors": [
               "[ChatLogError][50000000004]"
+            ]
+          }
+        }
+      }
+    },
+    "/api/v1/chats/{chatId}/executions/{executionId}/cancel": {
+      "post": {
+        "tags": [
+          "github.com/JieWaZi/NeuxAlly/server/apis/chats"
+        ],
+        "summary": "取消执行",
+        "operationId": "CancelChatExecution",
+        "parameters": [
+          {
+            "name": "chatId",
+            "in": "path",
+            "description": "对话标识",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "对话标识",
+              "x-go-field-name": "ChatID",
+              "x-tag-in": "path",
+              "x-tag-name": "chatId",
+              "x-tag-validate": "required,max=32"
+            }
+          },
+          {
+            "name": "executionId",
+            "in": "path",
+            "description": "执行标识",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "执行标识",
+              "x-go-field-name": "ExecutionID",
+              "x-tag-in": "path",
+              "x-tag-name": "executionId",
+              "x-tag-validate": "required,max=32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComShrewxGinxCommonResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": ">\n* `[WorkflowNotFound][40400003001]`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
+                }
+              }
+            },
+            "x-status-errors": [
+              "[WorkflowNotFound][40400003001]"
+            ]
+          },
+          "409": {
+            "description": ">\n* `[WorkflowFenceConflict][40900003004]`\n* `[WorkflowStateConflict][40900003003]`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
+                }
+              }
+            },
+            "x-status-errors": [
+              "[WorkflowFenceConflict][40900003004]",
+              "[WorkflowStateConflict][40900003003]"
+            ]
+          },
+          "500": {
+            "description": ">\n* `[WorkflowStateInvalid][50000003004]`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
+                }
+              }
+            },
+            "x-status-errors": [
+              "[WorkflowStateInvalid][50000003004]"
             ]
           }
         }
@@ -5949,7 +6007,7 @@
             }
           },
           "400": {
-            "description": ">\n* `[AgentInputInvalid][40000009001]`\n* `[BadRequest][40000000001]`\n* `[SkillContentInvalid][40000000013]`\n* `[WorkflowBudgetExceeded][40000003005]`\n* `[WorkflowCapabilityUnsupported][40000003003]`\n* `[WorkflowFileInvalid][40000003006]`\n* `[WorkflowResourceInvalid][40000003004]`\n* `[WorkflowSchemaInvalid][40000003002]`\n* `[WorkflowSourceInvalid][40000003001]`\n",
+            "description": ">\n* `[AgentInputInvalid][40000009001]`\n* `[BadRequest][40000000001]`\n* `[MessageAttachmentInvalid][40000000017]`\n* `[SkillContentInvalid][40000000013]`\n* `[WorkflowBudgetExceeded][40000003005]`\n* `[WorkflowCapabilityUnsupported][40000003003]`\n* `[WorkflowFileInvalid][40000003006]`\n* `[WorkflowResourceInvalid][40000003004]`\n* `[WorkflowSchemaInvalid][40000003002]`\n* `[WorkflowSourceInvalid][40000003001]`\n",
             "content": {
               "application/json": {
                 "schema": {
@@ -5960,6 +6018,7 @@
             "x-status-errors": [
               "[AgentInputInvalid][40000009001]",
               "[BadRequest][40000000001]",
+              "[MessageAttachmentInvalid][40000000017]",
               "[SkillContentInvalid][40000000013]",
               "[WorkflowBudgetExceeded][40000003005]",
               "[WorkflowCapabilityUnsupported][40000003003]",
@@ -6031,7 +6090,7 @@
             ]
           },
           "500": {
-            "description": ">\n* `[InternalServerError][50000000001]`\n* `[SkillUnavailable][50000000008]`\n* `[WorkflowCancelled][50000003002]`\n* `[WorkflowEffectFailed][50000003001]`\n* `[WorkflowFileStorageError][50000003005]`\n* `[WorkflowStateInvalid][50000003004]`\n",
+            "description": ">\n* `[ChatDirectoryOwnershipInvalid][50000000007]`\n* `[InternalServerError][50000000001]`\n* `[ManagedWorkspaceError][50000000033]`\n* `[MessageAttachmentStorageError][50000000032]`\n* `[SkillUnavailable][50000000008]`\n* `[WorkflowCancelled][50000003002]`\n* `[WorkflowEffectFailed][50000003001]`\n* `[WorkflowFileStorageError][50000003005]`\n* `[WorkflowStateInvalid][50000003004]`\n",
             "content": {
               "application/json": {
                 "schema": {
@@ -6040,7 +6099,10 @@
               }
             },
             "x-status-errors": [
+              "[ChatDirectoryOwnershipInvalid][50000000007]",
               "[InternalServerError][50000000001]",
+              "[ManagedWorkspaceError][50000000033]",
+              "[MessageAttachmentStorageError][50000000032]",
               "[SkillUnavailable][50000000008]",
               "[WorkflowCancelled][50000003002]",
               "[WorkflowEffectFailed][50000003001]",
@@ -21856,7 +21918,7 @@
             "description": "工作流列表",
             "x-go-field-name": "WorkflowIDs",
             "x-tag-json": "workflowIds,omitempty",
-            "x-tag-validate": "max=100,dive,max=32"
+            "x-tag-validate": "max=1,dive,max=32"
           }
         },
         "required": [
@@ -27112,6 +27174,52 @@
         "x-go-struct-name": "GithubComJieWaZiNeuxAllyServerInternalChatEventlogMessageSkillReference",
         "x-go-vendor-type": "github.com/JieWaZi/NeuxAlly/server/internal/chat/eventlog.MessageSkillReference"
       },
+      "GithubComJieWaZiNeuxAllyServerInternalChatEventlogMessageWorkflowReference": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "工作流标识",
+            "x-go-field-name": "ID"
+          },
+          "name": {
+            "type": "string",
+            "description": "工作流名称",
+            "x-go-field-name": "Name"
+          }
+        },
+        "description": "工作流引用",
+        "x-go-struct-name": "GithubComJieWaZiNeuxAllyServerInternalChatEventlogMessageWorkflowReference",
+        "x-go-vendor-type": "github.com/JieWaZi/NeuxAlly/server/internal/chat/eventlog.MessageWorkflowReference"
+      },
+      "GithubComJieWaZiNeuxAllyServerInternalChatEventlogWorkflowRunReference": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "工作流名称",
+            "x-go-field-name": "Name"
+          },
+          "revisionId": {
+            "type": "string",
+            "description": "版本标识",
+            "x-go-field-name": "RevisionID"
+          },
+          "runId": {
+            "type": "string",
+            "description": "运行标识",
+            "x-go-field-name": "RunID"
+          },
+          "workflowId": {
+            "type": "string",
+            "description": "工作流标识",
+            "x-go-field-name": "WorkflowID"
+          }
+        },
+        "description": "工作流运行引用",
+        "x-go-struct-name": "GithubComJieWaZiNeuxAllyServerInternalChatEventlogWorkflowRunReference",
+        "x-go-vendor-type": "github.com/JieWaZi/NeuxAlly/server/internal/chat/eventlog.WorkflowRunReference"
+      },
       "GithubComJieWaZiNeuxAllyServerInternalChatMessageviewMessage": {
         "type": "object",
         "properties": {
@@ -27126,7 +27234,7 @@
             "items": {
               "$ref": "#/components/schemas/GithubComJieWaZiNeuxAllyServerInternalChatEventlogAttachmentReference"
             },
-            "description": "Attachments 是用户消息携带的有序附件引用。",
+            "description": "Attachments 是用户输入或 Core 确认交付的有序附件引用。",
             "x-go-field-name": "Attachments",
             "x-tag-json": "attachments,omitempty"
           },
@@ -27286,6 +27394,24 @@
             "format": "int64",
             "description": "UpdatedAt 是消息最近收到持久化事件时的 Unix 毫秒时间。",
             "x-go-field-name": "UpdatedAt"
+          },
+          "workflowRuns": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GithubComJieWaZiNeuxAllyServerInternalChatEventlogWorkflowRunReference"
+            },
+            "description": "工作流运行",
+            "x-go-field-name": "WorkflowRuns",
+            "x-tag-json": "workflowRuns,omitempty"
+          },
+          "workflows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GithubComJieWaZiNeuxAllyServerInternalChatEventlogMessageWorkflowReference"
+            },
+            "description": "工作流引用",
+            "x-go-field-name": "Workflows",
+            "x-tag-json": "workflows,omitempty"
           }
         },
         "description": "Message 是从权威事件重放出的聊天消息视图。",
@@ -31894,6 +32020,30 @@
         "x-go-struct-name": "GithubComJieWaZiNeuxAllyServerRepositoriesModelsWorkflowAnnotation",
         "x-go-vendor-type": "github.com/JieWaZi/NeuxAlly/server/repositories/models.WorkflowAnnotation"
       },
+      "GithubComJieWaZiNeuxAllyServerRepositoriesModelsWorkflowCancellationReason": {
+        "type": "object",
+        "properties": {
+          "actor": {
+            "type": "string",
+            "description": "操作主体",
+            "x-go-field-name": "Actor"
+          },
+          "requestedAt": {
+            "type": "integer",
+            "format": "int64",
+            "description": "请求时间",
+            "x-go-field-name": "RequestedAt"
+          },
+          "source": {
+            "type": "string",
+            "description": "停止来源",
+            "x-go-field-name": "Source"
+          }
+        },
+        "description": "停止原因",
+        "x-go-struct-name": "GithubComJieWaZiNeuxAllyServerRepositoriesModelsWorkflowCancellationReason",
+        "x-go-vendor-type": "github.com/JieWaZi/NeuxAlly/server/repositories/models.WorkflowCancellationReason"
+      },
       "GithubComJieWaZiNeuxAllyServerRepositoriesModelsWorkflowCreationSession": {
         "type": "object",
         "properties": {
@@ -32610,6 +32760,19 @@
           "args": {
             "description": "Args 是已填显式默认值并校验的运行输入。",
             "x-go-field-name": "Args"
+          },
+          "cancellationReason": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GithubComJieWaZiNeuxAllyServerRepositoriesModelsWorkflowCancellationReason"
+              },
+              {
+                "description": "停止原因",
+                "x-go-field-name": "CancellationReason",
+                "x-go-star-level": 1,
+                "x-tag-json": "cancellationReason,omitempty"
+              }
+            ]
           },
           "completedAt": {
             "type": "integer",

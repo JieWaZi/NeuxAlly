@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   ChatQueueStore,
+  snapshotComposerMessage,
   ChatQueueProvider,
   useChatQueueEntries,
   useChatQueueStore,
@@ -63,6 +64,74 @@ function RendererShell() {
 }
 
 describe("chat queue store", () => {
+  it("逐项深拷贝编辑器文档并保留原runConfig自定义字段", () => {
+    const message = entry("draft").message;
+    const attrs = { id: "flow-a", label: "甲", referenceType: "workflow" };
+    const text = { type: "text", text: "甲正文" };
+    message.runConfig = {
+      custom: {
+        existingOption: { enabled: true },
+        chatComposerDraft: {
+          document: {
+            type: "doc",
+            content: [
+              {
+                type: "paragraph",
+                content: [{ type: "mention", attrs }, text],
+              },
+            ],
+          },
+        },
+      },
+    };
+    const first = snapshotComposerMessage(message);
+    attrs.id = "flow-b";
+    attrs.label = "乙";
+    text.text = "乙正文";
+    const second = snapshotComposerMessage(message);
+    expect(first.runConfig?.custom).toEqual({
+      existingOption: { enabled: true },
+      chatComposerDraft: {
+        document: {
+          type: "doc",
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "mention",
+                  attrs: {
+                    id: "flow-a",
+                    label: "甲",
+                    referenceType: "workflow",
+                  },
+                },
+                { type: "text", text: "甲正文" },
+              ],
+            },
+          ],
+        },
+      },
+    });
+    expect(second.runConfig?.custom?.chatComposerDraft).toEqual({
+      document: {
+        type: "doc",
+        content: [
+          {
+            type: "paragraph",
+            content: [
+              {
+                type: "mention",
+                attrs: { id: "flow-b", label: "乙", referenceType: "workflow" },
+              },
+              { type: "text", text: "乙正文" },
+            ],
+          },
+        ],
+      },
+    });
+  });
+
   it("在 Chat 路由子树卸载后仍保留临时队列", () => {
     render(<RendererShell />);
     fireEvent.click(screen.getByRole("button", { name: "enqueue" }));

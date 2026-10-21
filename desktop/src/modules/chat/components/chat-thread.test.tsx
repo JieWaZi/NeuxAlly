@@ -25,6 +25,7 @@ import {
 import { CHAT_PROCESS_COMMENTARY_PART } from "../runtime/chat-projection";
 
 type MockMessageState = {
+  role: "assistant";
   id: string;
   isLast?: boolean;
   createdAt?: Date;
@@ -39,6 +40,7 @@ type MockMessageState = {
 const { messageState } = vi.hoisted(() => ({
   messageState: {
     current: {
+      role: "assistant",
       id: "message-1",
       status: { type: "complete", reason: "stop" },
       content: [] as ThreadAssistantMessagePart[],
@@ -95,6 +97,7 @@ vi.mock("@assistant-ui/react", async () => {
 afterEach(() => {
   vi.useRealTimers();
   messageState.current = {
+    role: "assistant",
     id: "message-1",
     status: { type: "complete", reason: "stop" },
     content: [],
@@ -136,6 +139,7 @@ function toolPart(
 describe("chat work process", () => {
   it("失败回复成为历史后自动收起，原失败详情和正文阅读标记只在展开时出现", () => {
     messageState.current = {
+      role: "assistant",
       id: "failed-message",
       createdAt: new Date(0),
       isLast: true,
@@ -182,6 +186,7 @@ describe("chat work process", () => {
   });
   it("摘要按首次出现顺序合并工具类别，不展示计数和过程消息", () => {
     messageState.current = {
+      role: "assistant",
       id: "message-1",
       status: { type: "complete", reason: "stop" },
       content: [
@@ -274,6 +279,7 @@ describe("chat work process", () => {
 
   it("运行中的当前工具段默认收起并闪光，完成后停止", () => {
     messageState.current = {
+      role: "assistant",
       id: "message-1",
       status: { type: "running" },
       content: [toolPart("file_read", "running")],
@@ -309,6 +315,7 @@ describe("chat work process", () => {
 
   it("后续出现过程说明时，先前的工具段停止闪光", () => {
     messageState.current = {
+      role: "assistant",
       id: "member-running-message",
       status: { type: "running" },
       content: [toolPart("file_read", "completed"), processPart("继续检查")],
@@ -328,6 +335,7 @@ describe("chat work process", () => {
 
   it("同一消息内的多个折叠段各自限定箭头悬停范围", () => {
     messageState.current = {
+      role: "assistant",
       id: "message-hover-scope",
       status: { type: "complete", reason: "stop" },
       content: [
@@ -363,6 +371,7 @@ describe("chat work process", () => {
   it("终态文件改动 Card 展示在执行过程内容底部", async () => {
     const onOpenFile = vi.fn();
     messageState.current = {
+      role: "assistant",
       id: "message-process-file-changes",
       status: { type: "complete", reason: "stop" },
       metadata: {
@@ -408,6 +417,7 @@ describe("chat work process", () => {
 
   it("多段工具活动只在最后一段展示文件改动汇总", async () => {
     messageState.current = {
+      role: "assistant",
       id: "message-multiple-tool-groups",
       status: { type: "complete", reason: "stop" },
       metadata: {
@@ -444,6 +454,7 @@ describe("chat work process", () => {
 
   it("运行中手动展开后，完成时保持展开", () => {
     messageState.current = {
+      role: "assistant",
       id: "message-1",
       status: { type: "running" },
       content: [toolPart("file_read", "running")],
@@ -475,6 +486,7 @@ describe("chat work process", () => {
 
   it("过程内容按需挂载，快速反向切换后保持最后状态", () => {
     messageState.current = {
+      role: "assistant",
       id: "toggle-message",
       status: { type: "complete", reason: "stop" },
       content: [toolPart("file_read", "completed")],
@@ -814,6 +826,7 @@ describe("chat work process", () => {
 
   it("当前处于工具过程时隐藏飞速运转和图标，离开工具过程后恢复", () => {
     messageState.current = {
+      role: "assistant",
       id: "message-running-process",
       metadata: { custom: {} },
       status: { type: "running" },
@@ -858,6 +871,7 @@ describe("chat work process", () => {
 
   it("完成消息读取运行指标时保持外部 store snapshot 稳定", () => {
     messageState.current = {
+      role: "assistant",
       id: "message-1",
       createdAt: new Date("2026-08-02T07:00:00.000Z"),
       status: { type: "complete", reason: "stop" },
@@ -881,6 +895,7 @@ describe("chat work process", () => {
 
   it("团队主会话隐藏上下文和消息运行用量，成员会话仍保留", () => {
     messageState.current = {
+      role: "assistant",
       id: "member-message",
       createdAt: new Date("2026-09-02T08:24:00.000Z"),
       status: { type: "complete", reason: "stop" },
@@ -931,6 +946,7 @@ describe("execution file changes", () => {
   it("仅在终态展示本次执行文件，并支持展开和打开 Diff", () => {
     const onOpenFile = vi.fn();
     messageState.current = {
+      role: "assistant",
       id: "message-file-changes",
       status: { type: "complete", reason: "stop" },
       metadata: {
@@ -979,6 +995,7 @@ describe("execution file changes", () => {
 
   it("执行仍在运行时不提前展示文件变更卡片", () => {
     messageState.current = {
+      role: "assistant",
       id: "message-running-file-changes",
       status: { type: "running" },
       metadata: {
@@ -997,6 +1014,7 @@ describe("execution file changes", () => {
 
   it("有文件改动时不在复制按钮后展示独立入口", () => {
     messageState.current = {
+      role: "assistant",
       id: "message-toggle-file-changes",
       createdAt: new Date("2026-08-25T07:30:00.000Z"),
       status: { type: "complete", reason: "stop" },
@@ -1017,6 +1035,7 @@ describe("execution file changes", () => {
 
   it("团队聚合消息按消息标识展示实际执行成员", () => {
     messageState.current = {
+      role: "assistant",
       id: "member-message",
       createdAt: new Date("2026-09-02T08:24:00.000Z"),
       metadata: { custom: {} },
@@ -1041,6 +1060,7 @@ describe("execution file changes", () => {
 describe("assistant message shell", () => {
   it("最新助手消息变成历史消息后，头像退出工作状态", () => {
     messageState.current = {
+      role: "assistant",
       id: "assistant-avatar-state",
       createdAt: new Date("2026-09-21T06:00:00.000Z"),
       isLast: true,
@@ -1060,6 +1080,7 @@ describe("assistant message shell", () => {
   });
   it("尚无输出时立即展示伙伴身份和原有飞速运转动画", () => {
     messageState.current = {
+      role: "assistant",
       createdAt: new Date("2026-09-05T01:58:48.000Z"),
       id: "assistant-pending-output",
       metadata: { custom: {} },

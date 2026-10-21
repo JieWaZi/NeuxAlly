@@ -3869,6 +3869,42 @@ export type GithubComJieWaZiNeuxAllyServerInternalChatEventlogMessageSkillRefere
 };
 
 /**
+ * 工作流引用
+ */
+export type GithubComJieWaZiNeuxAllyServerInternalChatEventlogMessageWorkflowReference = {
+    /**
+     * 工作流标识
+     */
+    id?: string;
+    /**
+     * 工作流名称
+     */
+    name?: string;
+};
+
+/**
+ * 工作流运行引用
+ */
+export type GithubComJieWaZiNeuxAllyServerInternalChatEventlogWorkflowRunReference = {
+    /**
+     * 工作流名称
+     */
+    name?: string;
+    /**
+     * 版本标识
+     */
+    revisionId?: string;
+    /**
+     * 运行标识
+     */
+    runId?: string;
+    /**
+     * 工作流标识
+     */
+    workflowId?: string;
+};
+
+/**
  * Message 是从权威事件重放出的聊天消息视图。
  */
 export type GithubComJieWaZiNeuxAllyServerInternalChatMessageviewMessage = {
@@ -3877,7 +3913,7 @@ export type GithubComJieWaZiNeuxAllyServerInternalChatMessageviewMessage = {
      */
     actor?: string;
     /**
-     * Attachments 是用户消息携带的有序附件引用。
+     * Attachments 是用户输入或 Core 确认交付的有序附件引用。
      */
     attachments?: Array<GithubComJieWaZiNeuxAllyServerInternalChatEventlogAttachmentReference>;
     /**
@@ -3955,6 +3991,14 @@ export type GithubComJieWaZiNeuxAllyServerInternalChatMessageviewMessage = {
      * UpdatedAt 是消息最近收到持久化事件时的 Unix 毫秒时间。
      */
     updatedAt?: number;
+    /**
+     * 工作流运行
+     */
+    workflowRuns?: Array<GithubComJieWaZiNeuxAllyServerInternalChatEventlogWorkflowRunReference>;
+    /**
+     * 工作流引用
+     */
+    workflows?: Array<GithubComJieWaZiNeuxAllyServerInternalChatEventlogMessageWorkflowReference>;
 };
 
 /**
@@ -6655,6 +6699,24 @@ export type GithubComJieWaZiNeuxAllyServerRepositoriesModelsWorkflowAnnotation =
 };
 
 /**
+ * 停止原因
+ */
+export type GithubComJieWaZiNeuxAllyServerRepositoriesModelsWorkflowCancellationReason = {
+    /**
+     * 操作主体
+     */
+    actor?: string;
+    /**
+     * 请求时间
+     */
+    requestedAt?: number;
+    /**
+     * 停止来源
+     */
+    source?: string;
+};
+
+/**
  * WorkflowCreationSession 绑定真实创作 Chat 和当前执行能力，回复不构成源码回执。
  */
 export type GithubComJieWaZiNeuxAllyServerRepositoriesModelsWorkflowCreationSession = {
@@ -7107,6 +7169,7 @@ export type GithubComJieWaZiNeuxAllyServerRepositoriesModelsWorkflowRun = {
      * Args 是已填显式默认值并校验的运行输入。
      */
     args?: unknown;
+    cancellationReason?: GithubComJieWaZiNeuxAllyServerRepositoriesModelsWorkflowCancellationReason & unknown;
     /**
      * CompletedAt 是真实终态时间。
      */
@@ -11037,6 +11100,7 @@ export type CreateChatErrors = {
      * >
      * * `[AgentInputInvalid][40000009001]`
      * * `[BadRequest][40000000001]`
+     * * `[MessageAttachmentInvalid][40000000017]`
      * * `[SkillContentInvalid][40000000013]`
      * * `[WorkflowBudgetExceeded][40000003005]`
      * * `[WorkflowCapabilityUnsupported][40000003003]`
@@ -11082,7 +11146,10 @@ export type CreateChatErrors = {
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
+     * * `[ChatDirectoryOwnershipInvalid][50000000007]`
      * * `[InternalServerError][50000000001]`
+     * * `[ManagedWorkspaceError][50000000033]`
+     * * `[MessageAttachmentStorageError][50000000032]`
      * * `[SkillUnavailable][50000000008]`
      * * `[WorkflowCancelled][50000003002]`
      * * `[WorkflowEffectFailed][50000003001]`
@@ -11230,24 +11297,6 @@ export type ResolveApprovalResponses = {
 
 export type ResolveApprovalResponse = ResolveApprovalResponses[keyof ResolveApprovalResponses];
 
-export type CancelChatExecutionData = {
-    body?: never;
-    path: {
-        /**
-         * 对话标识
-         */
-        chatId: string;
-    };
-    query?: never;
-    url: '/api/v1/chats/{chatId}/cancel';
-};
-
-export type CancelChatExecutionResponses = {
-    200: GithubComShrewxGinxCommonResponse;
-};
-
-export type CancelChatExecutionResponse = CancelChatExecutionResponses[keyof CancelChatExecutionResponses];
-
 export type ResolveElicitationData = {
     body: GithubComJieWaZiNeuxAllyServerApisChatsResolveElicitationRequest & unknown;
     path: {
@@ -11303,6 +11352,52 @@ export type ListChatEventsResponses = {
 };
 
 export type ListChatEventsResponse = ListChatEventsResponses[keyof ListChatEventsResponses];
+
+export type CancelChatExecutionData = {
+    body?: never;
+    path: {
+        /**
+         * 对话标识
+         */
+        chatId: string;
+        /**
+         * 执行标识
+         */
+        executionId: string;
+    };
+    query?: never;
+    url: '/api/v1/chats/{chatId}/executions/{executionId}/cancel';
+};
+
+export type CancelChatExecutionErrors = {
+    /**
+     * >
+     * * `[WorkflowNotFound][40400003001]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[WorkflowFenceConflict][40900003004]`
+     * * `[WorkflowStateConflict][40900003003]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[WorkflowStateInvalid][50000003004]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type CancelChatExecutionError = CancelChatExecutionErrors[keyof CancelChatExecutionErrors];
+
+export type CancelChatExecutionResponses = {
+    200: GithubComShrewxGinxCommonResponse;
+};
+
+export type CancelChatExecutionResponse = CancelChatExecutionResponses[keyof CancelChatExecutionResponses];
 
 export type RetryChatExecutionData = {
     body?: never;
@@ -11423,6 +11518,7 @@ export type SendMessageErrors = {
      * >
      * * `[AgentInputInvalid][40000009001]`
      * * `[BadRequest][40000000001]`
+     * * `[MessageAttachmentInvalid][40000000017]`
      * * `[SkillContentInvalid][40000000013]`
      * * `[WorkflowBudgetExceeded][40000003005]`
      * * `[WorkflowCapabilityUnsupported][40000003003]`
@@ -11468,7 +11564,10 @@ export type SendMessageErrors = {
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
+     * * `[ChatDirectoryOwnershipInvalid][50000000007]`
      * * `[InternalServerError][50000000001]`
+     * * `[ManagedWorkspaceError][50000000033]`
+     * * `[MessageAttachmentStorageError][50000000032]`
      * * `[SkillUnavailable][50000000008]`
      * * `[WorkflowCancelled][50000003002]`
      * * `[WorkflowEffectFailed][50000003001]`

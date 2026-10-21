@@ -48,7 +48,7 @@ type AppendInput struct {
 	Data json.RawMessage
 }
 
-// AgentCommandData 只记录安全业务动作与真实回执身份，不复制正文、路径或凭据。
+// AgentCommandData 保存 Core 确认的业务动作、运行身份及受管交付，不复制工具输出或凭据。
 type AgentCommandData struct {
 	// CommandID 是 Core 返回并可与真实工具结果关联的命令身份。
 	CommandID string `json:"commandId"`
@@ -56,6 +56,10 @@ type AgentCommandData struct {
 	Operation string `json:"operation"`
 	// Completion 区分同步提交、异步接纳和候选结果。
 	Completion string `json:"completion"`
+	// 运行引用
+	WorkflowRun *WorkflowRunReference `json:"workflowRun,omitempty"`
+	// 交付附件
+	Attachments []AttachmentReference `json:"attachments,omitempty"`
 }
 
 // ChatCreatedData 保存 Chat 建立时锁定的业务事实。
@@ -148,6 +152,26 @@ type CodeReference struct {
 	Content string `json:"content"`
 }
 
+// 工作流引用
+type MessageWorkflowReference struct {
+	// 工作流标识
+	ID string `json:"id"`
+	// 工作流名称
+	Name string `json:"name"`
+}
+
+// 工作流运行引用
+type WorkflowRunReference struct {
+	// 工作流标识
+	WorkflowID string `json:"workflowId"`
+	// 运行标识
+	RunID string `json:"runId"`
+	// 版本标识
+	RevisionID string `json:"revisionId"`
+	// 工作流名称
+	Name string `json:"name"`
+}
+
 // MessageCreatedData 保存一条用户输入消息的完整内容。
 type MessageCreatedData struct {
 	// Role 是消息发送方。
@@ -166,6 +190,8 @@ type MessageCreatedData struct {
 	Attachments []AttachmentReference `json:"attachments,omitempty"`
 	// Skills 是本轮用户明确选择的技能快照。
 	Skills []MessageSkillReference `json:"skills,omitempty"`
+	// 工作流引用
+	Workflows []MessageWorkflowReference `json:"workflows,omitempty"`
 	// Connectors 是本轮用户明确选择的 MCP 连接器快照。
 	Connectors []MessageConnectorReference `json:"connectors,omitempty"`
 	// CodeReferences 是本轮用户选择的有序整文件或代码片段引用。

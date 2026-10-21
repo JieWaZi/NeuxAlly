@@ -278,6 +278,13 @@ func loadDB(ctx context.Context, configuration *Configuration) error {
 		return mapCoreError("initialize_application_database", status_error.CoreDatabaseInitializationFailed, err)
 	}
 
+	if err := controllers.RestoreWorkflowConsumerAssociations(ctx, database.DB); err != nil {
+		if connection, closeErr := database.DB.DB(); closeErr == nil {
+			_ = connection.Close()
+		}
+		return mapCoreError("restore_workflow_consumer_associations", status_error.CoreDatabaseInitializationFailed, err)
+	}
+
 	EventHub = events.New()
 	AgentCapabilities = agentcapability.New(builtinskills.Guide)
 	DB = controllers.WithEventPublisher(database.DB, EventHub)

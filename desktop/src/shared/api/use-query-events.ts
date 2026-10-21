@@ -5,6 +5,7 @@ import {
   type GlobalEventResource,
   type GlobalEventTopic,
   type GlobalEventFrame,
+  type GlobalEventObserver,
 } from "./global-events";
 
 /** 订阅领域资源变化，隐藏 Scene 只失效，重新可见后一次对账。 */
@@ -15,6 +16,7 @@ export function useQueryEvents({
   active = true,
   enabled = true,
   eventTypes,
+  onState,
 }: {
   topic: GlobalEventTopic;
   resource: GlobalEventResource;
@@ -22,12 +24,13 @@ export function useQueryEvents({
   active?: boolean;
   enabled?: boolean;
   eventTypes?: readonly string[];
+  onState?: GlobalEventObserver["onState"];
 }) {
   const client = useQueryClient();
-  const current = useRef({ active, queryKeys, eventTypes });
+  const current = useRef({ active, queryKeys, eventTypes, onState });
   useEffect(() => {
-    current.current = { active, queryKeys, eventTypes };
-  }, [active, queryKeys, eventTypes]);
+    current.current = { active, queryKeys, eventTypes, onState };
+  }, [active, queryKeys, eventTypes, onState]);
   const dirty = useRef(false);
   const requestRefresh = useRef<(() => void) | undefined>(undefined);
   const resourceRef = useRef(resource);
@@ -106,6 +109,7 @@ export function useQueryEvents({
           return;
         refresh();
       },
+      onState: (state, changed) => current.current.onState?.(state, changed),
       onResync: () => refresh(),
     });
     const restoreVisible = () => {

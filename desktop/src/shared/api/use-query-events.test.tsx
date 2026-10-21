@@ -351,3 +351,45 @@ it("取消等待期间新事件属于下一批，不被前一批消耗", async (
   cancel.mockRestore();
   client.clear();
 });
+
+it("连接状态回调更新复用原订阅，禁用和卸载释放资源", () => {
+  const client = new QueryClient();
+  const original = vi.fn();
+  const updated = vi.fn();
+  function Content({
+    onState,
+    enabled,
+  }: {
+    onState?: GlobalEventObserver["onState"];
+    enabled: boolean;
+  }) {
+    useQueryEvents({
+      topic: "workflow",
+      resource: { kind: "workflow", id: "flow", parentId: "old-run" },
+      queryKeys: [["run", "old-run"]],
+      enabled,
+      onState,
+    });
+    return null;
+  }
+  const view = (onState: GlobalEventObserver["onState"], enabled = true) => (
+    <QueryClientProvider client={client}>
+      <Content onState={onState} enabled={enabled} />
+    </QueryClientProvider>
+  );
+  const rendered = render(view(original));
+  const listener = [...listeners][0];
+  act(() => listener?.onState?.("unavailable", false));
+  expect(original).toHaveBeenLastCalledWith("unavailable", false);
+  rendered.rerender(view(updated));
+  expect([...listeners]).toEqual([listener]);
+  act(() => listener?.onState?.("open", true));
+  expect(updated).toHaveBeenLastCalledWith("open", true);
+  expect(original).toHaveBeenCalledTimes(1);
+  rendered.rerender(view(undefined, false));
+  expect(listeners.size).toBe(0);
+  rendered.rerender(view(undefined));
+  expect(listeners.size).toBe(1);
+  rendered.unmount();
+  expect(listeners.size).toBe(0);
+});

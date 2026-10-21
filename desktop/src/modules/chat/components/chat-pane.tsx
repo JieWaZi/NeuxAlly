@@ -26,7 +26,10 @@ import {
 } from "../api/chat-queries";
 import { conversationKeyOf } from "../model/conversation-identity";
 import { useChatRuntime } from "../runtime/use-chat-runtime";
-import type { ChatSendSelection } from "../runtime/chat-queue-store";
+import type {
+  ChatSendSelection,
+  ChatComposerRecovery,
+} from "../runtime/chat-queue-store";
 import { ChatThread } from "./chat-thread";
 import { ChatHistoryLoadingState } from "./chat-history-loading-state";
 import { getWakerOptions } from "@/shared/api/generated/@tanstack/react-query.gen";
@@ -72,6 +75,7 @@ export function ChatPane({
   const active = useRouteSceneActive();
   const [selection, setSelection] = useState<ExecutionSelection>({});
   const [clearRevision, setClearRevision] = useState(0);
+  const [restoreDraft, setRestoreDraft] = useState<ChatComposerRecovery>();
   const [restoreRevision, setRestoreRevision] = useState(0);
   const detail = useQuery({
     ...getChatOptions({ path: { chatId: chatId || "pending" } }),
@@ -171,11 +175,15 @@ export function ChatPane({
     selection: config,
     send: (text, _id, paths = [], selected = config) =>
       onSend(text, paths, selected),
-    cancel: async () => {
-      if (chatId) await cancel.mutateAsync({ path: { chatId } });
+    cancel: async (executionId) => {
+      if (chatId && executionId)
+        await cancel.mutateAsync({ path: { chatId, executionId } });
     },
     onMessageAccepted: () => setClearRevision((value) => value + 1),
-    onMessageRejected: () => setRestoreRevision((value) => value + 1),
+    onMessageRejected: (selection) => {
+      setRestoreDraft(selection.composerRecovery);
+      setRestoreRevision((value) => value + 1);
+    },
     onStarted: (result) => {
       onAccepted?.(result);
       refresh();
@@ -230,6 +238,7 @@ export function ChatPane({
       }
       composerClearRevision={clearRevision}
       composerRestoreRevision={restoreRevision}
+      composerRestoreDraft={restoreDraft}
       fileScopeChatId={chatId}
       resultSource={
         chatId ? { chatId, owner: { kind: "chat", id: chatId } } : undefined

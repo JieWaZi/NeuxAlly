@@ -164,6 +164,8 @@ type messageTestService struct {
 	projects controllers.ProjectController
 	// projectSources 允许测试准备项目引用的真实目录索引。
 	projectSources controllers.ProjectSourceController
+	// workflowDefinitions 提供真实定义名称变更，验证接纳回执不依赖展示快照。
+	workflowDefinitions controllers.WorkflowController
 	// wakers 允许测试为团队聊天准备多个伙伴身份。
 	wakers controllers.WakerController
 }
@@ -1741,12 +1743,13 @@ func newMessageTestService(
 		chatModule.Close()
 	})
 	return messageTestService{
-		execution:      executionCore,
-		chats:          chatModule,
-		profiles:       profiles,
-		projects:       projects,
-		projectSources: projectSources,
-		wakers:         wakers,
+		execution:           executionCore,
+		chats:               chatModule,
+		profiles:            profiles,
+		projects:            projects,
+		projectSources:      projectSources,
+		workflowDefinitions: controllers.NewWorkflowController(database.DB),
+		wakers:              wakers,
 	}
 }
 
@@ -1824,5 +1827,122 @@ func TestForkContinuationNeverSuppliesInheritedPrompt(t *testing.T) {
 	request = manager.buildRunRequest(state, pending, &preparedMessageFiles{}, nil, nil, models.RuntimeEnvironment{})
 	if request.Session.Mode != runtimes.SessionModeResume || len(request.History) != 0 {
 		t.Fatal("missing native session fell back to history")
+	}
+}
+
+// 本测试捕获工作流快照在输入转换、持久化和首发幂等摘要中的遗漏。
+func TestWorkflowSelectionSurvivesAdmissionAndChangesRequestIdentity(t *testing.T) {
+	manager := newMessageTestService(t, t.TempDir(), &fakeRuntime{})
+	var input WorkInput
+	if err := json.Unmarshal([]byte(`{"actor":"user","content":"评审改动","workflows":[{"id":"workflow","name":"代码评审"}]}`), &input); err != nil {
+		t.Fatal(err)
+	}
+	intent := WorkIntent{ClientRequestID: "workflow-reference", ExecutionID: util.New(), Chat: ChatTarget{Create: &CreateChatSpec{WakerID: "waker-1"}}, Input: input, Options: WorkOptions{RuntimeID: runtimes.RuntimeIDCodex, PermissionLevel: constants.PermissionLevelAuto}, Admission: constants.ExecutionAdmissionCommitBeforeDispatch}
+	accepted, err := manager.execution.Start(context.Background(), intent)
+	if err != nil {
+		t.Fatal(err)
+	}
+	waitForChatTerminal(t, manager, accepted.Chat.ID)
+	records, err := manager.execution.(*service).journal.ReadRecords(accepted.Chat.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	messages, err := messageview.ReplayMessages(records)
+	if err != nil {
+		t.Fatal(err)
+	}
+	encoded, _ := json.Marshal(messages[0])
+	var message map[string]any
+	_ = json.Unmarshal(encoded, &message)
+	refs, _ := message["workflows"].([]any)
+	if len(refs) != 1 || refs[0].(map[string]any)["id"] != "workflow" || refs[0].(map[string]any)["name"] != "代码评审" {
+		t.Fatalf("持久化丢失选中工作流: %s", encoded)
+	}
+	_ = json.Unmarshal([]byte(`{"actor":"user","content":"评审改动","workflows":[{"id":"other","name":"其他流程"}]}`), &intent.Input)
+	if _, err := manager.execution.Start(context.Background(), intent); !errors.Is(err, status_error.CreateRequestConflict) {
+		t.Fatalf("更换工作流未改变接纳摘要: %v", err)
+	}
+}
+
+// 本测试捕获名称展示快照参与请求身份，导致响应丢失后无法恢复原接纳的问题。
+func TestWorkflowRenamePreservesAdmissionReceiptAndOriginalSnapshot(t *testing.T) {
+	for _, continuation := range []bool{false, true} {
+		name := "首发"
+		if continuation {
+			name = "耐久续发"
+		}
+		t.Run(name, func(t *testing.T) {
+			ctx := context.Background()
+			runner := &fakeRuntime{}
+			manager := newMessageTestService(t, t.TempDir(), runner)
+			definition := models.WorkflowDefinition{ID: "selected-workflow", Title: "原始评审流程", CurrentRevisionID: "saved-revision"}
+			if err := manager.workflowDefinitions.CreateDefinition(ctx, definition); err != nil {
+				t.Fatal(err)
+			}
+			intent := WorkIntent{ClientRequestID: "rename-recovery", ExecutionID: util.New(), Chat: ChatTarget{Create: &CreateChatSpec{WakerID: "waker-1"}}, Input: WorkInput{Actor: "user", Content: "评审本次改动"}, Options: WorkOptions{RuntimeID: runtimes.RuntimeIDCodex, PermissionLevel: constants.PermissionLevelAuto}, Admission: constants.ExecutionAdmissionCommitBeforeDispatch}
+			if continuation {
+				initial, err := manager.execution.Start(ctx, intent)
+				if err != nil {
+					t.Fatal(err)
+				}
+				waitForChatTerminal(t, manager, initial.Chat.ID)
+				intent.Chat = ChatTarget{ChatID: initial.Chat.ID}
+				intent.ClientRequestID = ""
+				intent.ExecutionID = util.New()
+				intent.Input.SubmissionID = "durable-workflow-message"
+			}
+			selectDefinition := func(id string) {
+				t.Helper()
+				current, err := manager.workflowDefinitions.GetDefinition(ctx, id)
+				if err != nil {
+					t.Fatal(err)
+				}
+				intent.Input.Workflows = []eventlog.MessageWorkflowReference{{ID: current.ID, Name: current.Title}}
+			}
+			selectDefinition(definition.ID)
+			accepted, err := manager.execution.Start(ctx, intent)
+			if err != nil {
+				t.Fatal(err)
+			}
+			waitForChatTerminal(t, manager, accepted.Chat.ID)
+			definition.Title = "重命名后的评审流程"
+			if err := manager.workflowDefinitions.UpdateHead(ctx, definition, definition.CurrentRevisionID); err != nil {
+				t.Fatal(err)
+			}
+			selectDefinition(definition.ID)
+			if intent.Input.Workflows[0].Name != "重命名后的评审流程" {
+				t.Fatal("未读到真实重命名结果")
+			}
+			recovered, err := manager.execution.Start(ctx, intent)
+			if err != nil || !recovered.Replayed || recovered.Chat.ID != accepted.Chat.ID || recovered.Execution.ID != accepted.Execution.ID {
+				t.Fatalf("工作流重命名破坏原请求恢复: accepted=%+v recovered=%+v err=%v", accepted.Execution, recovered.Execution, err)
+			}
+			records, err := manager.execution.(*service).journal.ReadRecords(accepted.Chat.ID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			messages, err := messageview.ReplayMessages(records)
+			if err != nil {
+				t.Fatal(err)
+			}
+			index := 0
+			if continuation {
+				index = 2
+			}
+			if len(messages) != index+2 || len(messages[index].Workflows) != 1 || messages[index].Workflows[0].Name != "原始评审流程" {
+				t.Fatalf("恢复改写了首次接纳快照: %+v", messages)
+			}
+			if len(runner.requests) != index/2+1 {
+				t.Fatalf("恢复重复执行: %d", len(runner.requests))
+			}
+			other := models.WorkflowDefinition{ID: "other-workflow", Title: "原始评审流程", CurrentRevisionID: "other-revision"}
+			if err := manager.workflowDefinitions.CreateDefinition(ctx, other); err != nil {
+				t.Fatal(err)
+			}
+			selectDefinition(other.ID)
+			if _, err := manager.execution.Start(ctx, intent); !errors.Is(err, status_error.CreateRequestConflict) {
+				t.Fatalf("替换工作流身份未冲突: %v", err)
+			}
+		})
 	}
 }

@@ -7,6 +7,7 @@ import (
 
 	"github.com/JieWaZi/NeuxAlly/server/constants"
 	eventlog "github.com/JieWaZi/NeuxAlly/server/internal/chat/eventlog"
+	"github.com/JieWaZi/NeuxAlly/server/internal/chat/messageview"
 )
 
 func TestAdapterAppliesRecordsIncrementallyAndKeepsStableMessageRevision(t *testing.T) {
@@ -270,5 +271,33 @@ func executionMessageRecord(
 		ExecutionID:   "execution-1",
 		InvocationID:  "invocation-1",
 		Data:          data,
+	}
+}
+
+// 本测试防止消费者修改消息引用后污染后续事件读取，并验证命令事实独立发布助手快照。
+func TestWorkflowCommandEventPublishesIsolatedReferences(t *testing.T) {
+	adapter := NewAdapter()
+	for _, record := range fixtureRecords(t)[:2] {
+		if _, err := adapter.Apply(record); err != nil {
+			t.Fatal(err)
+		}
+	}
+	event, err := adapter.Apply(eventlog.Record{Sequence: 3, RecordedAt: 300, ExecutionID: "execution-1", Type: constants.ChatEventTypeAgentCommandCommitted, Data: json.RawMessage(`{"commandId":"receipt","operation":"workflow.runs.start","completion":"accepted","workflowRun":{"workflowId":"definition","runId":"run","revisionId":"revision","name":"代码评审"}}`)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if event.Message == nil || len(event.Message.WorkflowRuns) != 1 {
+		t.Fatalf("命令事实未独立发布助手快照: %+v", event)
+	}
+	event.Message.WorkflowRuns[0].Name = "被消费者改写"
+	repeated := adapter.EventsAfter(2, 1)
+	if len(repeated) != 1 || repeated[0].Message.WorkflowRuns[0].Name != "代码评审" {
+		t.Fatalf("事件引用未隔离消费者写入: %+v", repeated)
+	}
+	original := PublicEvent{Message: &messageview.Message{Workflows: []eventlog.MessageWorkflowReference{{ID: "definition", Name: "代码评审"}}}}
+	copied := ClonePublicEvent(original)
+	copied.Message.Workflows[0].ID = "forged"
+	if original.Message.Workflows[0].ID != "definition" {
+		t.Fatal("用户工作流选择快照被克隆消费者改写")
 	}
 }

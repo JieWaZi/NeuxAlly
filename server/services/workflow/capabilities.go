@@ -16,6 +16,7 @@ import (
 	"github.com/JieWaZi/NeuxAlly/server/internal/agentcapability"
 	"github.com/JieWaZi/NeuxAlly/server/internal/agentcapability/contract"
 	"github.com/JieWaZi/NeuxAlly/server/internal/agentcommand"
+	"github.com/JieWaZi/NeuxAlly/server/internal/chat/eventlog"
 	"github.com/JieWaZi/NeuxAlly/server/internal/requestidempotency"
 	"github.com/JieWaZi/NeuxAlly/server/internal/skills/builtin"
 	"github.com/JieWaZi/NeuxAlly/server/internal/util"
@@ -23,6 +24,7 @@ import (
 	workflowcatalog "github.com/JieWaZi/NeuxAlly/server/internal/workflow/catalog"
 	workflowdsl "github.com/JieWaZi/NeuxAlly/server/internal/workflow/dsl"
 	workflowstate "github.com/JieWaZi/NeuxAlly/server/internal/workflow/state"
+	"github.com/JieWaZi/NeuxAlly/server/internal/workinput"
 	"github.com/JieWaZi/NeuxAlly/server/repositories/controllers"
 	"github.com/JieWaZi/NeuxAlly/server/repositories/models"
 	"github.com/JieWaZi/NeuxAlly/server/services/execution"
@@ -253,9 +255,13 @@ func (s *Service) BindConsumer(ctx context.Context, intent execution.WorkIntent,
 	if len(definitionIDs) == 0 {
 		return intent, nil
 	}
-	if len(definitionIDs) > 100 || s.consumers == nil || s.state.AgentBindings == nil || s.chats == nil || s.executions == nil {
+	if len(definitionIDs) > 1 {
+		return intent, status_error.BadRequest
+	}
+	if s.consumers == nil || s.state.AgentBindings == nil || s.chats == nil || s.executions == nil {
 		return intent, status_error.WorkflowCapabilityUnsupported
 	}
+	references := make([]eventlog.MessageWorkflowReference, 0, len(definitionIDs))
 	seen := map[string]bool{}
 	for _, id := range definitionIDs {
 		if id == "" || len(id) > 32 || seen[id] {
@@ -269,6 +275,7 @@ func (s *Service) BindConsumer(ctx context.Context, intent execution.WorkIntent,
 		if definition.CurrentRevisionID == "" {
 			return intent, status_error.WorkflowStateConflict.WithField("workflowId", id)
 		}
+		references = append(references, eventlog.MessageWorkflowReference{ID: definition.ID, Name: definition.Title})
 	}
 	if err := s.executions.ValidateConfiguration(ctx, execution.ExecutionConfiguration{RuntimeID: intent.Options.RuntimeID, AccountID: intent.Options.AccountID, Model: intent.Options.Model, Reasoning: intent.Options.Reasoning, PermissionLevel: intent.Options.PermissionLevel}); err != nil {
 		return intent, err
@@ -294,7 +301,10 @@ func (s *Service) BindConsumer(ctx context.Context, intent execution.WorkIntent,
 	slices.Sort(ids)
 	// 尚未由 Core 补齐的可选枚举不能直接 MarshalText；摘要显式编码入口的原始选择。
 	options := intent.Options
-	fingerprint, err := requestidempotency.New(intent.ExecutionID, []any{chatID, intent.ClientRequestID, intent.Chat.Create, intent.Input, options.RuntimeID, options.AccountID, options.Model, options.Reasoning, string(options.PermissionLevel), options.WorkspaceReadOnly, string(options.SessionPolicy), options.HistoryTurns, string(options.HistoryMode), options.SummaryModel, options.SummaryReasoning, ids})
+	// 工作流选择由独立 definitionIDs 参数确定，入口携带的展示快照会被真实定义替换。
+	identityInput := intent.Input
+	identityInput.Workflows = nil
+	fingerprint, err := requestidempotency.New(intent.ExecutionID, []any{chatID, intent.ClientRequestID, intent.Chat.Create, identityInput, options.RuntimeID, options.AccountID, options.Model, options.Reasoning, string(options.PermissionLevel), options.WorkspaceReadOnly, string(options.SessionPolicy), options.HistoryTurns, string(options.HistoryMode), options.SummaryModel, options.SummaryReasoning, ids})
 	if err != nil {
 		return intent, err
 	}
@@ -310,6 +320,12 @@ func (s *Service) BindConsumer(ctx context.Context, intent execution.WorkIntent,
 	if current.PayloadDigest != lease.PayloadDigest || current.ChatID != chatID {
 		return intent, status_error.WorkflowRequestConflict
 	}
+	// 展示快照和执行指令由可信定义产生，用户正文保持原样。
+	intent.Input.Workflows = references
+	intent.Input.ContextInstructions = append(slices.Clone(intent.Input.ContextInstructions), workinput.Instruction{
+		Name:    "WORKFLOW.md",
+		Content: "本轮选中的工作流标识：" + references[0].ID + "。先阅读 ally 技能并通过 allycli workflow definitions describe 读取输入契约和 revisionId。根据用户任务、聊天上下文、获准工作区和默认值组织参数；只有必要业务信息无法确定才追问。通过 allycli workflow runs start 显式传入读取到的 revisionId，并复用稳定 requestId。取得 runId 后持续对同一运行调用 wait 或 get，观察超时继续等待，不得重新启动；实际终态后总结内容并交付结果。",
+	})
 	intent.Options.ToolCapabilities = append(intent.Options.ToolCapabilities, execution.ToolCapability{
 		ID: "workflow.consumer", Name: "工作流使用", Bindings: s.AgentBindings(current.ID, current.AuthToken, constants.WorkflowCapabilityScopeConsumer),
 	})
@@ -324,7 +340,7 @@ func (s *Service) handleConsumerTool(ctx context.Context, scope workflowtool.Sco
 	if err != nil {
 		return nil, err
 	}
-	if subtle.ConstantTimeCompare([]byte(lease.AuthToken), []byte(scope.Token)) != 1 || lease.DeadlineAt <= time.Now().UnixMilli() {
+	if subtle.ConstantTimeCompare([]byte(lease.AuthToken), []byte(scope.Token)) != 1 || lease.RevokedAt != nil || lease.DeadlineAt <= time.Now().UnixMilli() {
 		return nil, status_error.WorkflowStateConflict
 	}
 	actual, err := s.chats.ReadExecution(ctx, lease.ChatID, lease.ID)
@@ -394,8 +410,7 @@ func (s *Service) handleConsumerTool(ctx context.Context, scope workflowtool.Sco
 	if err != nil {
 		return nil, err
 	}
-	originID, _ := run.Context["consumerLeaseId"].(string)
-	origin, originErr := s.consumers.GetConsumer(ctx, originID)
+	origin, originErr := s.consumers.GetConsumer(ctx, run.ConsumerLeaseID)
 	if originErr != nil || origin.ChatID != lease.ChatID || !slices.Contains(lease.DefinitionIDs, run.DefinitionID) {
 		return nil, status_error.WorkflowNotFound
 	}
@@ -403,7 +418,7 @@ func (s *Service) handleConsumerTool(ctx context.Context, scope workflowtool.Sco
 		if input.RequestID == "" || len(input.RequestID) > 128 {
 			return nil, status_error.BadRequest
 		}
-		if err := s.CancelRun(ctx, run.ID); err != nil {
+		if err := s.CancelRunWithReason(ctx, run.ID, &models.WorkflowCancellationReason{Actor: constants.WorkflowCancellationActorAgent, Source: constants.WorkflowCancellationSourceCLI, RequestedAt: time.Now().UnixMilli()}); err != nil {
 			return nil, err
 		}
 		run, err = s.runs.GetRun(ctx, run.ID)
@@ -417,7 +432,11 @@ func (s *Service) handleConsumerTool(ctx context.Context, scope workflowtool.Sco
 	if err != nil {
 		return nil, err
 	}
-	return map[string]any{"ok": true, "data": map[string]any{"run": run, "humanRequests": humans, "operationRequests": operations}}, nil
+	files, err := s.OutputFiles(ctx, run)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]any{"ok": true, "data": map[string]any{"run": run, "humanRequests": humans, "operationRequests": operations, "files": files}}, nil
 }
 
 // Resources 返回创作可引用的真实目录，凭据仅输出可选择的引用身份。

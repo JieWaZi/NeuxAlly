@@ -115,3 +115,36 @@ func TestExecutionRegistryCancelAndWaitCoversCompletionAndTimeout(t *testing.T) 
 	registry.release("chat-timeout", "execution-timeout")
 	registry.close()
 }
+
+// 捕获旧执行后新回合占用同一聊天时，停止必须只作用于原身份。
+func TestCancelExecutionDoesNotStopNextTurn(t *testing.T) {
+	registry := newExecutionRegistry()
+	registry.start(context.Background())
+	_, err := registry.reserve("chat", "old")
+	if err != nil {
+		t.Fatal(err)
+	}
+	registry.release("chat", "old")
+	next, err := registry.reserve("chat", "next")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer registry.release("chat", "next")
+	manager := &service{executions: registry}
+	canceller, ok := any(manager).(interface{ CancelExecution(string, string) error })
+	if !ok {
+		t.Fatal("缺少按已捕获执行身份取消入口")
+	}
+	if err := canceller.CancelExecution("chat", "old"); err != nil {
+		t.Fatal(err)
+	}
+	if next.Err() != nil {
+		t.Fatal("旧回合停止误伤新执行")
+	}
+	if err := canceller.CancelExecution("chat", "next"); err != nil {
+		t.Fatal(err)
+	}
+	if next.Err() == nil {
+		t.Fatal("指定回合未被停止")
+	}
+}

@@ -136,10 +136,14 @@ type Message struct {
 	Truncated bool `json:"truncated,omitempty"`
 	// Content 是截至当前日志游标构建出的完整文本。
 	Content string `json:"content"`
-	// Attachments 是用户消息携带的有序附件引用。
+	// Attachments 是用户输入或 Core 确认交付的有序附件引用。
 	Attachments []eventlog.AttachmentReference `json:"attachments,omitempty"`
 	// Skills 是用户发送消息时明确选择的技能快照。
 	Skills []eventlog.MessageSkillReference `json:"skills,omitempty"`
+	// 工作流引用
+	Workflows []eventlog.MessageWorkflowReference `json:"workflows,omitempty"`
+	// 工作流运行
+	WorkflowRuns []eventlog.WorkflowRunReference `json:"workflowRuns,omitempty"`
 	// Connectors 是用户发送消息时明确选择的 MCP 连接器快照。
 	Connectors []eventlog.MessageConnectorReference `json:"connectors,omitempty"`
 	// CodeReferences 是用户消息携带的有序整文件或代码片段引用。

@@ -11,6 +11,7 @@ import { lazy, Suspense, type PropsWithChildren } from "react";
 import {
   ChatContributionsProvider,
   type ChatContributionScopeProps,
+  type ChatWorkflowRunContributionProps,
   type WorkbenchContributionProps,
 } from "@/modules/chat";
 import { ContentLoadingState } from "@/shared/ui/content-loading-state";
@@ -25,11 +26,22 @@ const ResultScope = lazy(async () => ({
 const ResultContent = lazy(async () => ({
   default: (await import("@/modules/workflow")).WorkflowResultContent,
 }));
+const WorkflowCall = lazy(async () => ({
+  default: (await import("@/modules/workflow")).WorkflowCall,
+}));
+const WorkflowCallContent = lazy(async () => ({
+  default: (await import("@/modules/workflow")).WorkflowCallContent,
+}));
 function ContributionLoading() {
   const { t } = useTranslation("workflow");
   return <ContentLoadingState label={t("loading")} />;
 }
 const chatContributions = {
+  WorkflowRuns: (props: ChatWorkflowRunContributionProps) => (
+    <Suspense fallback={null}>
+      <WorkflowCall {...props} />
+    </Suspense>
+  ),
   Scope: (props: ChatContributionScopeProps) => (
     <Suspense fallback={null}>
       <ResultScope {...props} />
@@ -38,6 +50,7 @@ const chatContributions = {
   Content: (props: WorkbenchContributionProps) => (
     <Suspense fallback={<ContributionLoading />}>
       <ResultContent {...props} />
+      <WorkflowCallContent {...props} />
     </Suspense>
   ),
 };

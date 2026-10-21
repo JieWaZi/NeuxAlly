@@ -1,6 +1,19 @@
 package constants
 
 const (
+	// WorkflowCancellationActorUser 表示用户主动停止。
+	WorkflowCancellationActorUser = "user"
+	// WorkflowCancellationSourceChat 表示原聊天停止。
+	WorkflowCancellationSourceChat = "chat"
+	// WorkflowCancellationSourceRun 表示运行页面停止。
+	WorkflowCancellationSourceRun = "run"
+	// WorkflowCancellationSourceCLI 表示智能体显式命令停止。
+	WorkflowCancellationSourceCLI = "cli"
+	// WorkflowCancellationActorAgent 表示智能体明确请求停止。
+	WorkflowCancellationActorAgent = "agent"
+	// WorkflowConsumerPageSize 是关联运行索引的有界读取窗口。
+	WorkflowConsumerPageSize = 128
+
 	// WorkflowPageMaximumBytes 限制单页面字面量体积。
 	WorkflowPageMaximumBytes = 128 * 1024
 	// WorkflowPagesMaximumBytes 限制同版本节点页面总大小。

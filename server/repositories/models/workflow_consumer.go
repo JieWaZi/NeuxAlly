@@ -18,6 +18,8 @@ type WorkflowConsumerLease struct {
 	AuthToken string `json:"-"`
 	// DeadlineAt 限定能力可以调用的最长时间，实际 Execution 终态会更早撤销。
 	DeadlineAt int64 `json:"deadlineAt"`
+	// 撤销时间
+	RevokedAt *int64 `json:"revokedAt,omitempty"`
 	// CreatedAt 是签发能力的 Unix 毫秒时间。
 	CreatedAt int64 `gorm:"autoCreateTime:milli" json:"createdAt"`
 }

@@ -1,3 +1,4 @@
+import { ApiError } from "@/shared/api/errors";
 import type * as GeneratedQueries from "@/shared/api/generated/@tanstack/react-query.gen";
 import { draftWorkspaceStorageKey } from "./use-draft-workspace-selections";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -37,7 +38,10 @@ import {
   useSceneWorkspace,
   WorkspaceProvider,
 } from "@/shared/workspace/workspace-context";
-import { ChatQueueProvider } from "../runtime/chat-queue-store";
+import {
+  ChatQueueProvider,
+  useChatQueueEntries,
+} from "../runtime/chat-queue-store";
 import { WorkbenchProvider } from "../workbench/workbench-store";
 import { ChatEntryPage } from "./chat-entry-page";
 import { ChatPage, ChatPageContent } from "./chat-page";
@@ -68,6 +72,7 @@ const {
   deleteChatWorkspaceFile,
   createChat,
   sendMessage,
+  cancelExecution,
   resolveApproval,
   wakerSkills,
   wakerSkillsError,
@@ -206,6 +211,7 @@ const {
       return true;
     },
   ),
+  cancelExecution: vi.fn(async () => undefined),
   createChat: vi.fn<(options: Record<string, unknown>) => Promise<unknown>>(
     async () => {
       if (createChatDelay.current > 0) {
@@ -259,10 +265,42 @@ const {
   chatListDelay: { current: 0 },
 }));
 
+const workflowSearch = vi.hoisted(() =>
+  vi.fn(
+    async (query?: { search?: string; before?: number; beforeId?: string }) => {
+      if (!query?.search?.includes("分页")) return { items: [] };
+      if (!query.before)
+        return {
+          items: [{ id: "unsaved", title: "未保存工作流" }],
+          nextBefore: 10,
+          nextBeforeId: "page-cursor",
+        };
+      return {
+        items: [
+          {
+            id: "flow-page-two",
+            title: "分页评审",
+            description: "已保存定义",
+            currentRevisionId: "revision-frozen",
+          },
+        ],
+      };
+    },
+  ),
+);
+
 vi.mock(
   "@/shared/api/generated/@tanstack/react-query.gen",
   async (importOriginal) => ({
     ...(await importOriginal<typeof GeneratedQueries>()),
+    listWorkflowsOptions: ({
+      query,
+    }: {
+      query?: { search?: string; before?: number; beforeId?: string };
+    } = {}) => ({
+      queryKey: ["test-workflows", query],
+      queryFn: () => workflowSearch(query),
+    }),
     getWorkResultOptions: ({
       path,
     }: {
@@ -367,7 +405,7 @@ vi.mock("@/shared/desktop", () => ({
 
 vi.mock("../api/chat-queries", () => ({
   cancelChatExecutionMutation: () => ({
-    mutationFn: async () => undefined,
+    mutationFn: cancelExecution,
   }),
   createChatMutation: () => ({ mutationFn: createChat }),
   chatListInfiniteOptions: (wakerId: string) => ({
@@ -582,6 +620,7 @@ beforeEach(() => {
   deleteChatWorkspaceFile.mockClear();
   createChat.mockClear();
   sendMessage.mockClear();
+  cancelExecution.mockClear();
   resolveApproval.mockClear();
   resolveApproval.mockResolvedValue(undefined);
 });
@@ -590,6 +629,15 @@ afterAll(() => {
   HTMLElement.prototype.scrollTo = originalScrollTo;
   vi.unstubAllGlobals();
 });
+
+function QueuedDraftSnapshots() {
+  const entries = useChatQueueEntries("chat-1");
+  return (
+    <output aria-label="排队草稿快照">
+      {JSON.stringify(entries.map((entry) => entry.message.runConfig))}
+    </output>
+  );
+}
 
 describe("ChatPage", () => {
   it("父工作区中的成员聊天独立保存和发送所选账号", async () => {
@@ -2362,6 +2410,236 @@ describe("ChatPage", () => {
     );
   });
 
+  it("特殊工作流创作入口不搜索或显示无法发送的工作流引用", async () => {
+    workflowSearch.mockClear();
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ChatQueueProvider>
+          <TooltipProvider>
+            <MemoryRouter>
+              <Routes>
+                <Route element={<ChatLayout />}>
+                  <Route
+                    path="/"
+                    element={
+                      <ChatPageContent
+                        chatId="chat-1"
+                        entry={{
+                          scopeKey: "workflow-entry",
+                          wakerId: "waker-1",
+                          directoryLabel: "工作流目录",
+                          onSend: async () => ({}),
+                          onAccepted: () => undefined,
+                          onRefresh: () => undefined,
+                        }}
+                      />
+                    }
+                  />
+                </Route>
+              </Routes>
+            </MemoryRouter>
+          </TooltipProvider>
+        </ChatQueueProvider>
+      </QueryClientProvider>,
+    );
+    await userEvent
+      .setup()
+      .type(await screen.findByRole("textbox", { name: "输入消息" }), "/分页");
+    expect(await screen.findByRole("listbox")).not.toHaveTextContent("工作流");
+    expect(workflowSearch).not.toHaveBeenCalled();
+  });
+
+  it("工作流甲乙依次入队后，甲被拒绝恢复甲节点并以甲身份重试", async () => {
+    const user = userEvent.setup();
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    chatActiveExecutionID.current = "existing-execution";
+    const originalSearch = workflowSearch.getMockImplementation();
+    workflowSearch.mockImplementation(async (query) => ({
+      items: [
+        {
+          id: "flow-a",
+          title: "工作流甲",
+          description: "甲用途",
+          currentRevisionId: "revision-a",
+        },
+        {
+          id: "flow-b",
+          title: "工作流乙",
+          description: "乙用途",
+          currentRevisionId: "revision-b",
+        },
+      ].filter((flow) => flow.title.includes(query?.search ?? "")),
+    }));
+    let finishB: ((value: unknown) => void) | undefined;
+    sendMessage.mockRejectedValueOnce(
+      new ApiError("甲暂时不可用", "InvalidParameter", 400),
+    );
+    sendMessage.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finishB = resolve;
+        }),
+    );
+    try {
+      render(
+        <QueryClientProvider client={queryClient}>
+          <ChatQueueProvider>
+            <TooltipProvider delayDuration={0}>
+              <MemoryRouter initialEntries={["/chats/chat-1?wakerId=waker-1"]}>
+                <Routes>
+                  <Route element={<ChatLayout />}>
+                    <Route
+                      path="/chats/:chatId"
+                      element={
+                        <>
+                          <ChatPage />
+                          <QueuedDraftSnapshots />
+                        </>
+                      }
+                    />
+                  </Route>
+                </Routes>
+              </MemoryRouter>
+            </TooltipProvider>
+          </ChatQueueProvider>
+        </QueryClientProvider>,
+      );
+      const input = await screen.findByRole("textbox", { name: "输入消息" });
+      for (const [name, text] of [
+        ["工作流甲", "甲的原始正文"],
+        ["工作流乙", "乙的原始正文"],
+      ]) {
+        await user.type(input, `/${name}`);
+        await user.click(
+          await screen.findByRole("option", { name: new RegExp(name ?? "") }),
+        );
+        await user.type(input, text ?? "");
+        await user.click(screen.getByRole("button", { name: "加入发送队列" }));
+        await waitFor(() => expect(input).toHaveValue(""));
+      }
+      expect(
+        document.querySelectorAll("[data-chat-queued-message]"),
+      ).toHaveLength(2);
+      expect(screen.getByLabelText("排队草稿快照")).toHaveTextContent("flow-a");
+      expect(screen.getByLabelText("排队草稿快照")).toHaveTextContent("flow-b");
+      expect(sendMessage).not.toHaveBeenCalled();
+      chatActiveExecutionID.current = "";
+      await act(async () => {
+        await queryClient.invalidateQueries({ queryKey: ["chat", "chat-1"] });
+      });
+      await waitFor(() => expect(sendMessage).toHaveBeenCalledTimes(2));
+      await waitFor(() =>
+        expect(
+          input.querySelector('[data-chat-composer-reference-type="workflow"]'),
+        ).toHaveTextContent("工作流甲"),
+      );
+      expect(input).not.toHaveTextContent("工作流乙");
+      expect(input).toHaveValue("甲的原始正文");
+      await user.click(screen.getByRole("button", { name: "加入发送队列" }));
+      historyMessages.current = [
+        {
+          id: "assistant-b",
+          role: "assistant",
+          executionId: "execution-b",
+          status: "completed",
+          displayParts: [{ type: "text", text: "乙已经完成" }],
+        },
+      ];
+      await act(async () => {
+        await queryClient.invalidateQueries({
+          queryKey: ["chats", "messages", "chat-1"],
+        });
+      });
+      await screen.findByText("乙已经完成");
+      await act(async () => {
+        finishB?.({
+          chat: { id: "chat-1", wakerId: "waker-1" },
+          execution: {
+            id: "execution-b",
+            userMessageId: "user-b",
+            status: "completed",
+          },
+        });
+      });
+      await waitFor(() => expect(sendMessage).toHaveBeenCalledTimes(3));
+      expect(sendMessage.mock.calls[0]?.[0]).toMatchObject({
+        body: { workflowIds: ["flow-a"], text: "甲的原始正文" },
+      });
+      expect(sendMessage.mock.calls[1]?.[0]).toMatchObject({
+        body: { workflowIds: ["flow-b"], text: "乙的原始正文" },
+      });
+      expect(sendMessage.mock.calls[2]?.[0]).toMatchObject({
+        body: { workflowIds: ["flow-a"], text: "甲的原始正文" },
+      });
+      for (const [request] of sendMessage.mock.calls) {
+        expect(request).not.toHaveProperty("body.runConfig");
+        expect(request).not.toHaveProperty("body.chatComposerDraft");
+      }
+    } finally {
+      if (originalSearch) workflowSearch.mockImplementation(originalSearch);
+    }
+  });
+
+  it("服务端名称搜索跨游标选择已保存工作流，失败恢复引用后发送准确身份", async () => {
+    const user = userEvent.setup();
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    sendMessage.mockRejectedValueOnce(
+      new ApiError("工作流当前不可用", "InvalidParameter", 400),
+    );
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ChatQueueProvider>
+          <TooltipProvider delayDuration={0}>
+            <MemoryRouter initialEntries={["/chats/chat-1?wakerId=waker-1"]}>
+              <Routes>
+                <Route element={<ChatLayout />}>
+                  <Route path="/chats/:chatId" element={<ChatPage />} />
+                </Route>
+              </Routes>
+            </MemoryRouter>
+          </TooltipProvider>
+        </ChatQueueProvider>
+      </QueryClientProvider>,
+    );
+    const input = await screen.findByRole("textbox", { name: "输入消息" });
+    await user.type(input, "/分页");
+    await user.click(await screen.findByRole("option", { name: /分页评审/ }));
+    expect(workflowSearch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        search: "分页",
+        before: 10,
+        beforeId: "page-cursor",
+      }),
+    );
+    expect(
+      screen.queryByRole("option", { name: /未保存工作流/ }),
+    ).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "发送消息" }));
+    await waitFor(() => expect(sendMessage).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(
+        input.querySelector('[data-chat-composer-reference-type="workflow"]'),
+      ).toHaveTextContent("分页评审"),
+    );
+    await user.click(screen.getByRole("button", { name: "发送消息" }));
+    await waitFor(() => expect(sendMessage).toHaveBeenCalledTimes(2));
+    for (const [request] of sendMessage.mock.calls)
+      expect(request).toMatchObject({
+        body: { workflowIds: ["flow-page-two"], text: "请执行所选工作流。" },
+      });
+    expect(
+      input.querySelector('[data-chat-composer-reference-type="workflow"]'),
+    ).toBeNull();
+    expect(await screen.findByText("分页评审")).toBeVisible();
+  });
+
   it("只把输入框本轮选择的已启用技能发送为 skillIds", async () => {
     wakerSkills.current = [
       {
@@ -3014,6 +3292,43 @@ describe("ChatPage", () => {
     expect(
       document.querySelector("[data-chat-context]"),
     ).not.toBeInTheDocument();
+  });
+
+  it("停止按钮提交当前执行的稳定路径身份", async () => {
+    chatActiveExecutionID.current = "execution-to-stop";
+    const user = userEvent.setup();
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ChatQueueProvider>
+          <TooltipProvider delayDuration={0}>
+            <MemoryRouter initialEntries={["/chats/chat-1?wakerId=waker-1"]}>
+              <Routes>
+                <Route element={<ChatLayout />}>
+                  <Route path="/chats/:chatId" element={<ChatPage />} />
+                </Route>
+              </Routes>
+            </MemoryRouter>
+          </TooltipProvider>
+        </ChatQueueProvider>
+      </QueryClientProvider>,
+    );
+
+    expect(
+      await screen.findByText("直接进入也应显示的历史消息"),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "停止执行" }));
+    await waitFor(() =>
+      expect(cancelExecution).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { chatId: "chat-1", executionId: "execution-to-stop" },
+        }),
+        expect.anything(),
+      ),
+    );
   });
 
   it("从对话任务页直接进入会话即可显示历史", async () => {

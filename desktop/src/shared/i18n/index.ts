@@ -1692,6 +1692,13 @@ const resources = {
       selectSkills: "选择技能",
       skillsLoadError: "技能暂时无法载入",
       noEnabledSkills: "当前伙伴没有已启用技能",
+      workflows: "工作流",
+      references: "技能与工作流",
+      workflowsLoadError: "工作流加载失败，请重新搜索",
+      noMatchingReferences: "没有匹配的技能或工作流",
+      searchingReferences: "正在搜索…",
+      sendAcceptedRefreshFailed: "消息已发送，会话刷新失败，请稍后查看原会话。",
+      workflowReferenceOnlyMessage: "请执行所选工作流。",
       noMatchingSkills: "没有匹配的技能",
       connectorsLoadError: "MCP 连接器暂时无法载入",
       noMatchingConnectors: "没有匹配的已启用 MCP 连接器",
@@ -2036,6 +2043,7 @@ const resources = {
       loadingMessages: "正在加载对话消息",
       runtimeAdditionalDirectoriesUnsupported:
         "当前智能体无法访问附加目录，可能无法修改项目中的文件。",
+      stopFailed: "停止执行失败，请重试。",
       sendFailed: "消息未能发送，请检查项目目录和智能体状态。",
       sendActiveExecution: "当前对话仍有运行中的执行，请稍后重试。",
       sendCreateRequestInProgress:

@@ -148,6 +148,94 @@ describe("useChatRuntime queue", () => {
     notices.unmount();
   });
 
+  it("停止捕获原执行身份，下一轮渲染不会改写已捕获回调", async () => {
+    const options = runtimeOptions("chat-stop");
+    const { rerender } = renderHook(() => useChatRuntime(options), { wrapper });
+    const originalStop = runtimeAdapter.current?.onCancel;
+    options.activeExecutionId = "execution-2";
+    rerender();
+    await act(async () => {
+      await originalStop?.();
+    });
+    expect(options.cancel).toHaveBeenCalledWith("execution-1");
+    await act(async () => {
+      await runtimeAdapter.current?.onCancel?.();
+    });
+    expect(options.cancel).toHaveBeenLastCalledWith("execution-2");
+  });
+
+  it("已接纳工作流消息的后续刷新异常不恢复草稿或重复发送", async () => {
+    const rejected = vi.fn();
+    const options = {
+      ...runtimeOptions("chat-flow-accepted"),
+      activeExecutionId: undefined,
+      selection: {
+        ...runtimeOptions("chat-flow-accepted").selection,
+        workflowIds: ["flow"],
+        selectedWorkflows: [{ id: "flow", name: "评审快照" }],
+      },
+      send: vi.fn().mockResolvedValue({
+        chat: { id: "chat-flow-accepted" },
+        execution: {
+          id: "accepted-flow",
+          userMessageId: "user-flow",
+          status: "running",
+        },
+      }),
+      onMessageRejected: rejected,
+      onSettled: () => {
+        throw new Error("刷新失败");
+      },
+    };
+    const { result } = renderHook(() => useChatRuntime(options), { wrapper });
+    await act(async () => {
+      await runtimeAdapter.current?.onNew?.(queuedMessage);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+    });
+    expect(rejected).not.toHaveBeenCalled();
+    expect(options.onStarted).toHaveBeenCalledWith(
+      expect.objectContaining({
+        execution: {
+          id: "accepted-flow",
+          userMessageId: "user-flow",
+          status: "running",
+        },
+      }),
+      expect.any(Object),
+    );
+    expect(result.current.sendFailure).toEqual({ kind: "none" });
+    expect(projectedMessages.current).toContainEqual(
+      expect.objectContaining({
+        id: "user-flow",
+        metadata: expect.objectContaining({
+          custom: expect.objectContaining({
+            workflows: [{ id: "flow", name: "评审快照" }],
+          }),
+        }),
+      }),
+    );
+    expect(options.send).toHaveBeenCalledTimes(1);
+  });
+
+  it("接纳响应先于实时投影时仍可停止原执行", async () => {
+    const options = {
+      ...runtimeOptions("chat-accepted"),
+      activeExecutionId: undefined,
+      send: vi.fn().mockResolvedValue({
+        chat: { id: "chat-accepted" },
+        execution: { id: "accepted-execution", status: "running" },
+      }),
+    };
+    renderHook(() => useChatRuntime(options), { wrapper });
+    await act(async () => {
+      await runtimeAdapter.current?.onNew?.(queuedMessage);
+    });
+    await act(async () => {
+      await runtimeAdapter.current?.onCancel?.();
+    });
+    expect(options.cancel).toHaveBeenCalledWith("accepted-execution");
+  });
+
   it("消息重试绑定失败执行，连点只调用一次接口，结果触发权威刷新", async () => {
     let resolve!: (value: { data: MessageResult }) => void;
     retryExecutionMock.mockImplementation(
@@ -441,6 +529,59 @@ describe("useChatRuntime queue", () => {
       runtimeAdapter.current?.queue?.clear("cancel-run");
     });
     expect(runtimeAdapter.current?.queue?.items).toHaveLength(1);
+  });
+
+  it("排队工作流保留入队时的稳定身份和名称快照，后续选择不改写", async () => {
+    const options = {
+      ...runtimeOptions("chat-workflow-queue"),
+      activeExecutionId: undefined,
+      selection: {
+        ...runtimeOptions("chat-workflow-queue").selection,
+        workflowIds: ["flow-original"],
+        selectedWorkflows: [{ id: "flow-original", name: "原名称" }],
+      },
+      send: vi.fn().mockResolvedValue({
+        chat: { id: "chat-workflow-queue" },
+        execution: {
+          id: "queued-execution",
+          userMessageId: "queued-user",
+          status: "running",
+        },
+      }),
+    };
+    const { rerender } = renderHook(
+      ({ active }: { active: boolean }) =>
+        useChatRuntime({ ...options, queueActive: active }),
+      { initialProps: { active: false }, wrapper },
+    );
+    act(() => {
+      runtimeAdapter.current?.queue?.enqueue(queuedMessage, { steer: false });
+    });
+    options.selection.workflowIds[0] = "flow-new";
+    const original = options.selection.selectedWorkflows[0];
+    if (!original) throw new Error("缺少入队工作流");
+    original.name = "新名称";
+    rerender({ active: true });
+    await waitFor(() => expect(options.send).toHaveBeenCalledTimes(1));
+    expect(options.send).toHaveBeenCalledWith(
+      "排队消息",
+      "chat-workflow-queue",
+      [],
+      expect.objectContaining({
+        workflowIds: ["flow-original"],
+        selectedWorkflows: [{ id: "flow-original", name: "原名称" }],
+      }),
+    );
+    expect(projectedMessages.current).toContainEqual(
+      expect.objectContaining({
+        id: "queued-user",
+        metadata: expect.objectContaining({
+          custom: expect.objectContaining({
+            workflows: [{ id: "flow-original", name: "原名称" }],
+          }),
+        }),
+      }),
+    );
   });
 
   it("空闲时由 assistant-ui queue adapter 立即发送", async () => {

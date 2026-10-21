@@ -14,6 +14,10 @@ server/internal/agentcapability/contract 是命令 Schema 与解析的共同来�
 
 返回区分同步完成、耐久接纳与候选提交。查询或有限 wait 的超时不改变业务状态；真正完成以所属资源终态为准。
 
+普通聊天的工作流能力由所选定义和原 Execution 绑定；启动回执保留定义、不可变版本与运行身份。`workflow.runs.get` 与 `workflow.runs.wait` 读取原运行，`completed` 只代表终态，结果仍需按真实状态和 `cancellationReason` 区分。
+
+`workflow.runs.deliver` 显式交付已声明的最终文件，返回可重放的受管附件引用。生产 Execution 将真实启动与交付回执写入原消息的可信命令事实；查询同操作、同请求身份的回执可补回消息登记。登记失败时 commands 与 receipts 均返回 `ok:false`、原 `commandId` 和 `query_receipt` 指引；`error.details.nextStep` 固定原 operation/requestId，`runId` 保留原运行身份。领域结果与文件仍已提交，只有原消息登记成功才返回正式 attachments，调用者不能换键启动或重跑补偿。完整文件边界见[工作流](workflows-cn.md)，消息归属见[聊天与执行](chat-and-execution-cn.md)。
+
 ## 知识分发
 
 skills/ally 是产品技能源，与个人开发技能安装环境分别维护。Core 按内容摘要准备系统目录，每次受管执行获得当前构建携带的资源。普通用户技能不覆盖系统保留身份。

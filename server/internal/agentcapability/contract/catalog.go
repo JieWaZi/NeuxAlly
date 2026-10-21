@@ -149,6 +149,7 @@ func catalog() []Operation {
 		operation("workflow.definitions.list", "Discover workflows authorized for this execution.", read, immediate, "workflow.execution", append([]Field{text("search", false)}, page...)...),
 		operation("workflow.definitions.describe", "Read one authorized workflow's input and output contract.", read, immediate, "workflow.execution", text("definitionId", true)),
 		operation("workflow.runs.start", "Accept an authorized workflow run with frozen inputs.", external, accepted, "workflow.execution", text("definitionId", true), text("revisionId", true), Field{Name: "args", Schema: map[string]any{}, Required: true}),
+		operation("workflow.runs.deliver", "Deliver declared final files to the authorized chat.", mutation, immediate, "workflow.execution", text("runId", true)),
 		operation("workflow.runs.get", "Read an authorized workflow run.", read, immediate, "workflow.execution", text("runId", true)),
 		operation("workflow.runs.cancel", "Request cancellation without undoing completed external effects.", mutation, accepted, "workflow.execution", text("runId", true)),
 		operation("workflow.evidence.list", "Read original execution and external-effect evidence.", read, immediate, "workflow.authoring", text("runId", true), text("cursor", false)),

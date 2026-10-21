@@ -38,7 +38,7 @@ type MessageRequest struct {
 	// 连接器列表
 	ConnectorIDs []string `json:"connectorIds" validate:"max=100,dive,max=32"`
 	// 工作流列表
-	WorkflowIDs []string `json:"workflowIds,omitempty" validate:"max=100,dive,max=32"`
+	WorkflowIDs []string `json:"workflowIds,omitempty" validate:"max=1,dive,max=32"`
 	// 代码引用
 	CodeReferences []MessageCodeReference `json:"codeReferences" validate:"max=100,dive"`
 }

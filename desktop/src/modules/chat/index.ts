@@ -48,6 +48,7 @@ export {
 } from "./components/chat-contributions";
 export type {
   ChatContributionScopeProps,
+  ChatWorkflowRunContributionProps,
   WorkbenchContributionProps,
 } from "./components/chat-contributions";
 export type { WorkbenchContentReference } from "./workbench/workbench-model";
