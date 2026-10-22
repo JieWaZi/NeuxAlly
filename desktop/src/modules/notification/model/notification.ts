@@ -3,6 +3,8 @@ import type { GlobalEventResource } from "@/shared/api/global-events";
 
 const count = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
 const timestamp = count.max(8_640_000_000_000_000);
+const optionalText = z.string().optional();
+const optionalCount = count.optional();
 const notificationKind = z.enum([
   "approval",
   "input",
@@ -12,27 +14,27 @@ const notificationKind = z.enum([
 ]);
 const targetSchema = z.object({
   kind: notificationKind,
-  chatId: z.string().optional(),
-  wakerId: z.string().optional(),
-  channelId: z.string().optional(),
-  threadId: z.string().optional(),
-  taskId: z.string().optional(),
-  fence: count.optional(),
-  definitionId: z.string().optional(),
-  runId: z.string().optional(),
-  instanceId: z.string().optional(),
-  requestId: z.string().optional(),
+  chatId: optionalText,
+  wakerId: optionalText,
+  channelId: optionalText,
+  threadId: optionalText,
+  taskId: optionalText,
+  fence: optionalCount,
+  definitionId: optionalText,
+  runId: optionalText,
+  instanceId: optionalText,
+  requestId: optionalText,
   ownerKind: z.enum(["chat", "team_thread", "workflow_run"]).optional(),
-  ownerId: z.string().optional(),
-  resultVersion: count.optional(),
-  automaticRunId: z.string().optional(),
-  messageId: z.string().optional(),
+  ownerId: optionalText,
+  resultVersion: optionalCount,
+  automaticRunId: optionalText,
+  messageId: optionalText,
   reference: z
     .object({
-      chatId: z.string().optional(),
-      executionId: z.string().optional(),
-      messageId: z.string().optional(),
-      workflowRunId: z.string().optional(),
+      chatId: optionalText,
+      executionId: optionalText,
+      messageId: optionalText,
+      workflowRunId: optionalText,
     })
     .optional(),
 });
@@ -74,7 +76,7 @@ export const notificationListSchema = z.object({
   pageNum: count.positive(),
   pageSize: count.positive().max(100),
   hasMore: z.boolean(),
-  nextCursor: z.string().optional(),
+  nextCursor: optionalText,
   epoch: z.string(),
   revision: count,
 });

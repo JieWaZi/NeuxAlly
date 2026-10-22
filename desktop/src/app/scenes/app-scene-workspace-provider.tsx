@@ -37,6 +37,7 @@ export function AppSceneWorkspaceProvider({
   const { pathname, search } = location;
   const labels = useMemo<RouteSceneLabels>(
     () => ({
+      knowledge: t("knowledge:knowledge"),
       workBoard: t("workBoard:title"),
       im: t("im:title"),
       automaticTask: t("automaticTask:title"),

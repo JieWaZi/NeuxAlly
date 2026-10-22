@@ -9,6 +9,7 @@ import {
 } from "react-router-dom";
 
 import { ResourcesPage } from "@/app/pages/resources-page";
+import { KnowledgeScene } from "./knowledge-scene";
 import { PluginDetailPage, PluginCatalogDetailPage } from "@/modules/plugin";
 import { WorkBoardPage } from "@/modules/work-board";
 
@@ -81,6 +82,8 @@ export function AppRouteScene({ location, outletContext }: AppRouteSceneProps) {
           <Route path="chats/:chatId" element={<></>} />
         </Route>
         <Route path="resources" element={<ResourcesPage />} />
+        <Route path="knowledge" element={<KnowledgeScene />} />
+        <Route path="knowledge/:libraryId" element={<KnowledgeScene />} />
         <Route
           path="resources/plugins/catalog/:catalogKey"
           element={<PluginCatalogDetailPage />}

@@ -6,6 +6,7 @@ export type RouteSceneLocation = {
 };
 
 export type RouteSceneLabels = {
+  knowledge?: string;
   resources?: string;
   workBoard?: string;
   im?: string;
@@ -51,6 +52,27 @@ export function routeSceneForLocation(
   labels: RouteSceneLabels,
 ): Omit<AppSceneTab, "lastUsed"> {
   const { pathname, search } = location;
+  const knowledge = /^\/knowledge(?:\/([^/]+))?$/.exec(pathname);
+  if (knowledge) {
+    const params = new URLSearchParams(search);
+    const id =
+      knowledge[1] ||
+      (params.get("view") !== "library" ? params.get("library") : "");
+    if (!id)
+      return routeTab("knowledge", labels.knowledge || labels.page, location);
+    const identity = [
+      params.get("backend") || "local",
+      params.get("connection") || "local",
+      id,
+    ]
+      .map(encodeURIComponent)
+      .join(":");
+    return routeTab(
+      `knowledge:${identity}`,
+      params.get("title") || labels.knowledge || labels.page,
+      location,
+    );
+  }
   if (pathname === "/resources" || pathname.startsWith("/resources/"))
     return routeTab("resources", labels.resources || labels.page, location);
   if (pathname === "/work-board")

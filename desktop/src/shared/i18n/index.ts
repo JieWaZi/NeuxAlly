@@ -1,4 +1,5 @@
 import { pluginZh, pluginEn } from "./plugin";
+import { knowledgeZh, knowledgeEn } from "./knowledge-navigation";
 import i18n from "i18next";
 import { notificationZh, notificationEn } from "./notification";
 import { initReactI18next } from "react-i18next";
@@ -11,6 +12,7 @@ import { workBoardZh, workBoardEn } from "./work-board";
 
 const resources = {
   "zh-CN": {
+    knowledge: knowledgeZh,
     plugin: pluginZh,
     notification: notificationZh,
     im: imZh,
@@ -37,6 +39,7 @@ const resources = {
         unavailable: "不可用",
         loading: "正在读取模型与推理选项…",
         loadError: "配置选项读取失败，请稍后重试。",
+        invalid: "当前会话配置已不可用，请重新选择。",
         help: "账号决定可用模型；模型决定推理选项和支持的执行权限。",
       },
       fieldRequired: "必填",
@@ -2103,6 +2106,7 @@ const resources = {
     },
   },
   "en-US": {
+    knowledge: knowledgeEn,
     plugin: pluginEn,
     notification: notificationEn,
     im: imEn,
@@ -2126,6 +2130,7 @@ const resources = {
         unavailable: "Unavailable",
         loading: "Loading model and reasoning options…",
         loadError: "Could not load configuration options.",
+        invalid: "This configuration is unavailable. Select again.",
         help: "The account determines available models; the model determines reasoning and permissions.",
       },
       fieldRequired: "Required",

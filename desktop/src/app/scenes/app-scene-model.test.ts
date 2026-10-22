@@ -27,6 +27,45 @@ const routeSceneForLocation = (location: RouteSceneLocation) =>
 const settingsSceneTab = () => createSettingsSceneTab(labels.settings);
 
 describe("应用 Scene 模型", () => {
+  it("知识库详情独立标签，同库视图复用且不同连接互不覆盖", () => {
+    const resolve = (pathname: string, search = "") =>
+      resolveRouteScene(
+        { pathname, search },
+        { ...labels, knowledge: "知识库" },
+      );
+    const list = resolve("/knowledge");
+    const first = resolve("/knowledge/research", "?title=研究资料");
+    const wiki = resolve(
+      "/knowledge/research",
+      "?title=研究资料&view=wiki&page=one",
+    );
+    const graph = resolve("/knowledge/research", "?title=研究资料&view=graph");
+    expect(first.id).not.toBe(list.id);
+    expect(first.label).toBe("研究资料");
+    expect(
+      resolve("/knowledge", "?library=research&view=raw&title=研究资料").id,
+    ).toBe(first.id);
+    expect(wiki.id).toBe(first.id);
+    expect(graph.mountKey).toBe(first.mountKey);
+    const tabs = [
+      first,
+      wiki,
+      graph,
+      resolve("/knowledge/atlas", "?title=Atlas"),
+      resolve("/knowledge/shared", "?backend=custom&connection=one"),
+      resolve("/knowledge/shared", "?backend=custom&connection=two"),
+    ];
+    let snapshot = initialAppSceneSnapshot(list, 1);
+    for (const tab of tabs)
+      snapshot = appSceneReducer(snapshot, { type: "open", tab, now: 2 });
+    expect(snapshot.tabs).toHaveLength(5);
+    expect(snapshot.tabs.find((tab) => tab.id === list.id)?.href).toBe(
+      "/knowledge",
+    );
+    expect(snapshot.tabs.find((tab) => tab.id === first.id)?.href).toContain(
+      "view=graph",
+    );
+  });
   it("重新打开工作流时清理该流程遗留的独立运行标签", () => {
     const workflow = routeSceneForLocation({
       pathname: "/workflows/flow-1",
