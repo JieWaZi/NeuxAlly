@@ -25,6 +25,8 @@ type acpAdapterConfig struct {
 	StateDirectory string
 	// PermissionMode 是本次原生进程冻结的执行权限。
 	PermissionMode string
+	// TextOnly 表示本次不安装问答 MCP，只提供无状态模型生成。
+	TextOnly bool
 }
 
 // acpAgentFactory 从统一启动事实创建一个标准 ACP Agent。

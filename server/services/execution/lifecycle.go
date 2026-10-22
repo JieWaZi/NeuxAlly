@@ -178,6 +178,24 @@ func (r *executionRegistry) cancelAndWait(ctx context.Context, chatID string) er
 	}
 }
 
+// cancelExecutionAndWait 捕获精确执行的取消句柄，锁释放后新执行也不会成为取消目标。
+func (r *executionRegistry) cancelExecutionAndWait(ctx context.Context, chatID, executionID string) error {
+	r.mutex.Lock()
+	active, exists := r.active[chatID]
+	matched := exists && active.executionID == executionID
+	r.mutex.Unlock()
+	if !matched {
+		return nil
+	}
+	active.cancel()
+	select {
+	case <-active.done:
+		return nil
+	case <-ctx.Done():
+		return status_error.ChatHasActiveExecution
+	}
+}
+
 // messageExecution 保存 Chat 已解析的一次 Runtime 调用及其业务身份。
 type messageExecution struct {
 	// agentFacts 交付同一执行已提交的命令事实，保证实时与重放一致。
@@ -327,6 +345,7 @@ func (m *service) runExecution(ctx context.Context, plan messageExecution) {
 	}
 	if err := m.recordInvocationResult(
 		chat,
+		plan.request.Workspace.Path,
 		execution,
 		result,
 		attempt,
@@ -549,6 +568,7 @@ func (m *service) finishExecution(
 // recordInvocationResult 将 Runtime 归一化的调用事实提交到权威日志。
 func (m *service) recordInvocationResult(
 	chat models.Chat,
+	workingDirectory string,
 	execution models.Execution,
 	result runtimes.Result,
 	attempt int,
@@ -564,12 +584,18 @@ func (m *service) recordInvocationResult(
 	sort.Slice(capabilities, func(left int, right int) bool {
 		return capabilities[left] < capabilities[right]
 	})
+	terminationReason := result.TerminationReason
+	if terminationReason == constants.RuntimeTerminationReasonUnspecified {
+		terminationReason = constants.RuntimeTerminationReasonUnknown
+	}
 	data := eventlog.InvocationFinishedData{
+		StopReason:                    result.StopReason,
+		TerminationReason:             terminationReason,
 		PrefixArgs:                    result.Facts.PrefixArgs,
 		ConfigHome:                    result.Facts.ConfigHome,
 		EnvironmentFingerprint:        result.Facts.EnvironmentFingerprint,
 		AdditionalWritableDirectories: chat.AdditionalWorkingDirectories,
-		WorkingDirectory:              chat.WorkspaceDirectory,
+		WorkingDirectory:              workingDirectory,
 		Attempt:                       attempt,
 		RecoveryStrategy:              recoveryStrategy,
 		TriggerReason:                 triggerReason,

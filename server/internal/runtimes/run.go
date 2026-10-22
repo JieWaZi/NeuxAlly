@@ -236,7 +236,7 @@ func failedRunError(stage string, err error) Result {
 }
 
 func failedRunResult(code FailureCode, stage string, message string) Result {
-	return Result{ExitCode: -1, Failure: newFailure(code, stage, message)}
+	return Result{TerminationReason: constants.RuntimeTerminationReasonUnknown, ExitCode: -1, Failure: newFailure(code, stage, message)}
 }
 
 func defaultExecutionPolicy() ExecutionPolicy {

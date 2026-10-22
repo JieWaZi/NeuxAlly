@@ -29,7 +29,7 @@ type Service struct {
 	mutex sync.Mutex
 	// readers 统计共享使用租约；负数表示订阅调用、配置修改或登录等独占使用。
 	readers map[string]int
-	// leaseChanged 在租约释放时唤醒等待能力查询，不轮询账号使用状态。
+	// leaseChanged 在租约释放时唤醒能力查询和后台调用，不轮询账号使用状态。
 	leaseChanged chan struct{}
 	// jobs 保存每个账号最近一次登录任务的安全状态。
 	jobs map[string]*loginJob
@@ -195,6 +195,11 @@ func (s *Service) ValidateSelection(ctx context.Context, id, runtimeID, model, r
 // Prepare 冻结账号版本并生成 workspace 配置，返回必须在 Runtime 退出后释放的租约。
 func (s *Service) Prepare(ctx context.Context, id, runtimeID, workspace, model string) (runtimes.RuntimeTarget, func(), error) {
 	return s.prepareWithLease(ctx, id, runtimeID, workspace, model, false)
+}
+
+// PrepareQueued 为后台模型调用等待账号租约；等待可取消，取得后仍沿既有认证投射与回收流程。
+func (s *Service) PrepareQueued(ctx context.Context, id, runtimeID, workspace, model string) (runtimes.RuntimeTarget, func(), error) {
+	return s.prepareWithLease(ctx, id, runtimeID, workspace, model, true)
 }
 
 // PrepareProbe 让只读能力探测等待正在使用的账号，保持认证投射与回收的独占边界。

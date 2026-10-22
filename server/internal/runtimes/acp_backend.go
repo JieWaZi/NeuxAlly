@@ -81,6 +81,8 @@ type acpRunRequest struct {
 	Sink EventSink
 	// EphemeralSession 表示本次隔离调用完成后必须立即关闭原生 Session。
 	EphemeralSession bool
+	// Text 仅在无状态模型生成时启用独占进程、配置确认和工具拒绝。
+	Text *textInvocation
 }
 
 // acpBackend 按 Runtime 启动指纹复用内嵌 ACP Agent。
@@ -471,7 +473,11 @@ func newEmbeddedACPAgent(
 
 	clientToAgentReader, clientToAgentWriter := io.Pipe()
 	agentToClientReader, agentToClientWriter := io.Pipe()
-	server, err := acpserver.NewWithUserInput(
+	newServer := acpserver.NewWithUserInput
+	if config.TextOnly {
+		newServer = acpserver.New
+	}
+	server, err := newServer(
 		agent,
 		clientToAgentReader,
 		agentToClientWriter,
@@ -562,6 +568,10 @@ func acpAdapterConfigForRequest(
 	if binding.stateDirectory != nil {
 		config.StateDirectory = binding.stateDirectory(request)
 	}
+	if request.Text != nil {
+		config.TextOnly = true
+		config, _ = textAdapterConfig(config, binding.baseRuntimeID)
+	}
 	return config
 }
 
@@ -620,6 +630,9 @@ func acpAgentKeyForBinding(request acpRunRequest, binding acpRuntimeBinding) str
 	if binding.agentScope != nil {
 		workspace = binding.agentScope(request)
 	}
+	if request.Text != nil {
+		workspace += "\x00text\x00" + request.InvocationID
+	}
 	return request.Request.Target.RuntimeID + "\x00" +
 		request.Prepared.detection.ResolvedBinary + "\x00" +
 		request.Prepared.detection.Version + "\x00" +
@@ -656,11 +669,12 @@ func acpFailedResult(
 	failure := newFailureFromError(code, stage, err)
 	failure.SessionState = session.State
 	return Result{
-		ExitCode:    -1,
-		Session:     session,
-		Facts:       acpInvocationFacts(request),
-		Diagnostics: append([]Diagnostic(nil), request.Prepared.detection.Diagnostics...),
-		Failure:     failure,
+		TerminationReason: constants.RuntimeTerminationReasonUnknown,
+		ExitCode:          -1,
+		Session:           session,
+		Facts:             acpInvocationFacts(request),
+		Diagnostics:       append([]Diagnostic(nil), request.Prepared.detection.Diagnostics...),
+		Failure:           failure,
 	}
 }
 

@@ -42,6 +42,8 @@ type Service interface {
 	Cancel(chatID string) error
 	// CancelAndWait 取消指定 Chat 当前活跃执行并等待 durable 终态。
 	CancelAndWait(ctx context.Context, chatID string) error
+	// CancelExecutionAndWait 只取消指定执行占用，旧任务不得影响同Chat后续输入。
+	CancelExecutionAndWait(ctx context.Context, chatID, executionID string) error
 	// ResolveApproval 处理 Chat 当前执行的一次未决审批。
 	ResolveApproval(ctx context.Context, chatID string, approvalID string, optionID string) error
 	// ResolveElicitation 处理 Chat 当前执行的一次未决结构化用户输入。
@@ -311,6 +313,16 @@ func (m *service) CancelAndWait(ctx context.Context, chatID string) error {
 		return status_error.BadRequest
 	}
 	return m.executions.cancelAndWait(ctx, chatID)
+}
+
+// CancelExecutionAndWait 原子匹配聊天与执行身份后取消，等待该次执行的持久收尾。
+func (m *service) CancelExecutionAndWait(ctx context.Context, chatID, executionID string) error {
+	chatID = strings.TrimSpace(chatID)
+	executionID = strings.TrimSpace(executionID)
+	if chatID == "" || executionID == "" {
+		return status_error.BadRequest
+	}
+	return m.executions.cancelExecutionAndWait(ctx, chatID, executionID)
 }
 
 func resolveWorkingDirectory(value string) (models.ProjectSource, error) {

@@ -329,6 +329,10 @@ type InvocationDiagnosticData struct {
 
 // InvocationFinishedData 保存一次 Runtime Invocation 的完整可诊断事实。
 type InvocationFinishedData struct {
+	// StopReason 是协议实际返回的原始停止原因，未知扩展值原样保留。
+	StopReason string `json:"stopReason,omitempty"`
+	// TerminationReason 是可恢复的调用终止原因，旧日志缺失时为未知。
+	TerminationReason constants.RuntimeTerminationReason `json:"terminationReason,omitempty"`
 	// PrefixArgs 是调用时冻结的自定义运行时前置参数。
 	PrefixArgs []string `json:"prefixArgs,omitempty"`
 	// ConfigHome 是调用时冻结的原生配置与会话主目录，不进入公开接口。
@@ -465,6 +469,9 @@ func ReplayInvocations(records []Record) ([]Invocation, error) {
 		var facts InvocationFinishedData
 		if err := json.Unmarshal(record.Data, &facts); err != nil {
 			return nil, status_error.ChatLogCorrupted
+		}
+		if facts.TerminationReason == constants.RuntimeTerminationReasonUnspecified {
+			facts.TerminationReason = constants.RuntimeTerminationReasonUnknown
 		}
 		invocations = append(invocations, Invocation{
 			ID:          record.InvocationID,

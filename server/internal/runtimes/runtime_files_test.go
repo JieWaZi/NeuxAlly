@@ -1,8 +1,10 @@
 package runtimes
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -325,6 +327,48 @@ func TestLinkOrCopyRuntimeSkillFallsBackForExistingTarget(t *testing.T) {
 	}
 	if string(content) != "# Review" {
 		t.Fatalf("copied skill = %q", content)
+	}
+}
+
+func TestRuntimeSkillPreservesExecutableAndKnowledgeReference(t *testing.T) {
+	source := t.TempDir()
+	resources := map[string]string{
+		"SKILL.md":                "# Skill\nRead references/knowledge.md and run scripts/allycli.",
+		"references/knowledge.md": "Knowledge reference fixture",
+		"scripts/allycli":         "CLI fixture",
+	}
+	for name, content := range resources {
+		path := filepath.Join(source, filepath.FromSlash(name))
+		if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(content), 0o700); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, copyFallback := range []bool{false, true} {
+		t.Run(fmt.Sprintf("copy=%t", copyFallback), func(t *testing.T) {
+			target := filepath.Join(t.TempDir(), "ally")
+			if copyFallback {
+				if err := os.MkdirAll(target, 0o700); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if err := linkOrCopyRuntimeSkill(source, target); err != nil {
+				t.Fatal(err)
+			}
+			for name, want := range resources {
+				path := filepath.Join(target, filepath.FromSlash(name))
+				content, err := os.ReadFile(path)
+				if err != nil || string(content) != want {
+					t.Fatalf("skill resource unavailable: %s %v", name, err)
+				}
+			}
+			info, err := os.Stat(filepath.Join(target, "scripts", "allycli"))
+			if err != nil || (runtime.GOOS != "windows" && info.Mode().Perm()&0o111 == 0) {
+				t.Fatalf("skill CLI lost execution permission: %v", err)
+			}
+		})
 	}
 }
 

@@ -197,6 +197,8 @@ const (
 type Capability = constants.RuntimeCapability
 
 const (
+	// CapabilityIsolatedTextGeneration 表示探测会话已确认隔离文本生成策略可配置。
+	CapabilityIsolatedTextGeneration = constants.RuntimeCapabilityIsolatedTextGeneration
 	// CapabilityStructuredOutput 表示 Runtime 支持要求的结构化输出格式。
 	CapabilityStructuredOutput = constants.RuntimeCapabilityStructuredOutput
 	// CapabilityResumeSession 表示 Runtime 支持恢复原生 Session。
@@ -794,6 +796,10 @@ type Failure struct {
 
 // Result 是 Runtime Invocation 的可重复读取终态。
 type Result struct {
+	// StopReason 是协议实际返回的原始停止原因；空值表示未收到该事实。
+	StopReason string
+	// TerminationReason 是协议停止原因的归一化结论，不替代 Failure 或执行状态。
+	TerminationReason constants.RuntimeTerminationReason
 	// ExitCode 是主进程退出码，未成功启动时为 -1。
 	ExitCode int
 	// Signal 是平台可以识别时的终止信号。

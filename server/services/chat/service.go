@@ -20,6 +20,8 @@ import (
 // 调用方只依赖这些稳定用例和公开结果，不需要理解 JSONL、SQLite 查询索引、
 // Runtime 重试、Session 恢复或事件适配实现。
 type Service interface {
+	// ReadExecutionOutcome 读取指定执行最后一次持久调用的终止和失败事实。
+	ReadExecutionOutcome(context.Context, string, string) (ExecutionOutcome, error)
 	// ReadExecution 按稳定身份读取任意已接纳回合的权威事实。
 	ReadExecution(context.Context, string, string) (models.Execution, error)
 	// ForkTargets 返回普通会话各个结束回合的真实分叉可用性。

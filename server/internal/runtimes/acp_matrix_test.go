@@ -322,6 +322,22 @@ func TestACPWorkspaceReadOnlyPolicyOverridesWritablePermissionMode(t *testing.T)
 	}
 }
 
+func TestManagedNativeWorkspaceReadOnlyDoesNotRequireKnowledgeMCP(t *testing.T) {
+	t.Parallel()
+	policy := ExecutionPolicy{
+		PermissionLevel:   PermissionLevelDefault,
+		WorkspaceReadOnly: true,
+	}
+	for _, id := range []string{RuntimeIDOpenCode, RuntimeIDGrok, RuntimeIDGemini} {
+		t.Run(id, func(t *testing.T) {
+			binding := defaultACPRuntimeBindings()[id]
+			if _, err := binding.modeID(policy, nil); err != nil {
+				t.Fatalf("modeID: %v", err)
+			}
+		})
+	}
+}
+
 func TestValidateExecutionPolicyAcceptsProductLevels(t *testing.T) {
 	t.Parallel()
 	levels := []PermissionLevel{
