@@ -70,6 +70,8 @@ func operation(id, summary, effect, completion, guide string, fields ...Field) O
 		},
 	}
 	switch id {
+	case "knowledge.pages.get":
+		op.InputSchema["oneOf"] = []any{map[string]any{"required": []string{"pageId"}}, map[string]any{"required": []string{"slug"}}}
 	case "workflow.sdk.get":
 		op.Discovery = map[string]any{
 			"topics": workflowcatalog.TopicNames(), "examples": workflowcatalog.Examples(),
@@ -133,7 +135,7 @@ func catalog() []Operation {
 
 		operation("knowledge.libraries.list", "List knowledge resources frozen for this execution.", read, immediate, "knowledge"),
 		operation("knowledge.pages.search", "Search published Wiki pages within a frozen resource. The first page also returns up to five original-document chunk hits using the library index strategy; each hit preserves its child locator and full parent context.", read, immediate, "knowledge", text("libraryId", true), text("backend", false), text("connectionId", false), text("query", false), scalar("offset", "integer", false)),
-		operation("knowledge.pages.get", "Read one page within a frozen knowledge resource.", read, immediate, "knowledge", text("libraryId", true), text("backend", false), text("connectionId", false), text("pageId", true), text("slug", false)),
+		operation("knowledge.pages.get", "Read one page by either pageId or slug within a frozen knowledge resource.", read, immediate, "knowledge", text("libraryId", true), text("backend", false), text("connectionId", false), text("pageId", false), text("slug", false)),
 		operation("knowledge.sources.get", "Read one immutable source within a frozen resource.", read, immediate, "knowledge", text("libraryId", true), text("backend", false), text("connectionId", false), text("sourceVersionId", true)),
 
 		operation("im.targets.list", "Discover authorized message recipients.", read, immediate, "im.delivery", page...),
@@ -178,6 +180,7 @@ func catalog() []Operation {
 		operation("interaction.questions.create", "Ask the user a consequential structured question.", mutation, accepted, "interaction.questions", text("message", true), Field{Name: "requestedSchema", Schema: questionSchema(), Required: true}, scalar("allowSkip", "boolean", false)),
 		operation("interaction.questions.get", "Read the actual answer state of the current execution's question.", read, immediate, "interaction.questions", text("questionId", true)),
 	}
+	result = append(result, knowledgeMaintenanceOperations()...)
 	for _, resource := range []struct {
 		// operation 是有界观察命令的稳定身份。
 		operation string

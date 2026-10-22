@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
-import {
-  encodeUpload,
-  isKnowledgeJobBusy,
-  resourceKey,
-} from "./knowledge-transfer";
+import { encodeUpload } from "./knowledge-upload-source";
+import { isKnowledgeJobBusy, resourceKey } from "./knowledge-transfer";
 
 describe("知识数据边界", () => {
   it("保留实际二进制字节，而不是由名称伪造原件", async () => {

@@ -1,4 +1,5 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { ChevronDown } from "lucide-react";
 import type { ComponentProps } from "react";
 import type { GithubComJieWaZiNeuxAllyServerApisKnowledgeWikiIndexGroup as IndexGroup } from "@/shared/api/generated/types.gen";
 import { Button } from "@/shared/ui/button";
@@ -138,13 +139,17 @@ function KnowledgeWikiIndexGroup({
         />
       )}
       {next && (
-        <Button
-          variant="secondary"
-          disabled={more.isFetching}
-          onClick={() => void more.fetchNextPage()}
-        >
-          {t("loadMore")}
-        </Button>
+        <div className="flex justify-center">
+          <Button
+            type="button"
+            variant="text"
+            disabled={more.isFetching}
+            onClick={() => void more.fetchNextPage()}
+          >
+            <ChevronDown aria-hidden="true" />
+            {t("loadMore")}
+          </Button>
+        </div>
       )}
     </section>
   );

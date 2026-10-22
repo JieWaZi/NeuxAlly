@@ -4,6 +4,7 @@ package knowledge
 import (
 	"context"
 	"github.com/JieWaZi/NeuxAlly/server/constants/status_error"
+	"github.com/JieWaZi/NeuxAlly/server/internal/requestidempotency"
 	"slices"
 )
 
@@ -61,4 +62,9 @@ func RequireLocal(ref ResourceRef) error {
 		return status_error.KnowledgeInvalid
 	}
 	return nil
+}
+
+// MaintenanceChatAnchor 返回维护聊天不可变范围的稳定引用身份。
+func MaintenanceChatAnchor(chatID string) string {
+	return (requestidempotency.Identity{ID: "wiki-maintenance"}).ResourceID("chat", chatID)
 }

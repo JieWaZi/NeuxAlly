@@ -1,6 +1,6 @@
 ---
 name: ally
-description: Use when a task needs NeuxAlly operations, including knowledge-base search or organizing chat attachments and existing materials, message and file delivery, workflows, team coordination, memory, or structured user questions. Ordinary file editing or shell work alone does not require this skill.
+description: Use when factual or technical questions may be covered by available NeuxAlly knowledge bases, or a task needs knowledge research, organizing chat attachments and existing materials, message and file delivery, workflows, team coordination, memory, or structured user questions. Ordinary file editing or shell work alone does not require this skill.
 ---
 
 # NeuxAlly
@@ -21,13 +21,18 @@ executable; use the current shell's environment syntax when invoking it.
 Do not rely on bare command lookup, search global installations, install a
 replacement, invent credentials, or call desktop administration endpoints.
 
-For knowledge-base searches or requests to save or organize materials, read
+For questions about topics covered by the user's available knowledge bases,
+knowledge-base searches, Wiki revisions or requests to save or organize materials, read
 [the knowledge reference](references/knowledge.md) from this same skill directory,
 using the absolute reference path supplied in the execution instructions.
 Do not look for `references/knowledge.md` relative to the working directory.
 The user's chat request is
 the entry point: resolve the target and requested sources through the current
-CLI contracts. Keep large inputs and results in files.
+CLI contracts. Use the knowledge reading workflow even when the user does not
+explicitly say "search the knowledge base"; select the depth from their question
+and the evidence gaps. It applies to every companion, without a specialist role
+or a user-selected research mode. Respect an explicit choice of other sources.
+Keep large inputs and results in files.
 
 ## Discover only what is needed
 

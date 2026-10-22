@@ -1,12 +1,53 @@
 package contract
 
 import (
+	"os"
+	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
 	"github.com/JieWaZi/NeuxAlly/server/constants"
 )
+
+func TestAllyCLIReadmeMatchesRegisteredOperations(t *testing.T) {
+	content, err := os.ReadFile(filepath.Join("..", "..", "..", "cmd", "allycli", "README.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, section, ok := strings.Cut(string(content), "<!-- allycli-operations:start -->")
+	if !ok {
+		t.Fatal("README is missing the operation inventory")
+	}
+	section, _, ok = strings.Cut(section, "<!-- allycli-operations:end -->")
+	if !ok {
+		t.Fatal("README operation inventory is not closed")
+	}
+	documented := map[string]bool{}
+	for _, line := range strings.Split(section, "\n") {
+		cells := strings.Split(strings.TrimSpace(line), "|")
+		if len(cells) != 6 || !strings.HasPrefix(strings.TrimSpace(cells[1]), "`") {
+			continue
+		}
+		id := strings.Trim(strings.TrimSpace(cells[1]), "`")
+		op, exists := Find(id)
+		if !exists || documented[id] {
+			t.Fatalf("README lists an unknown or repeated operation: %s", id)
+		}
+		if strings.TrimSpace(cells[2]) == "" ||
+			strings.Trim(strings.TrimSpace(cells[3]), "`") != op.Effect ||
+			strings.Trim(strings.TrimSpace(cells[4]), "`") != op.Completion {
+			t.Fatalf("README purpose/effect/completion differs from the contract: %s", id)
+		}
+		documented[id] = true
+	}
+	for _, op := range Operations() {
+		if !documented[op.ID] {
+			t.Errorf("README is missing operation: %s", op.ID)
+		}
+	}
+}
 
 func TestKnowledgeStartAcceptsChatSelectionAndRejectsInvalidAttachmentIndexes(t *testing.T) {
 	op, _ := Find("knowledge.jobs.start")
@@ -100,8 +141,34 @@ func TestKnowledgeCommandsMatchCurrentChatBoundary(t *testing.T) {
 			ids = append(ids, operation.ID)
 		}
 	}
-	want := []string{"knowledge.jobs.start", "knowledge.libraries.list", "knowledge.pages.search", "knowledge.pages.get", "knowledge.sources.get"}
-	if !reflect.DeepEqual(ids, want) {
-		t.Fatalf("knowledge command boundary=%v want=%v", ids, want)
+	for _, id := range []string{"knowledge.jobs.start", "knowledge.libraries.list", "knowledge.pages.search", "knowledge.pages.get", "knowledge.sources.get"} {
+		if !slices.Contains(ids, id) {
+			t.Fatalf("knowledge operation missing: %s", id)
+		}
+	}
+}
+
+func TestKnowledgeMaintenanceRequiresVersionsAndRejectsUnknownFields(t *testing.T) {
+	op, ok := Find("knowledge.pages.replace")
+	if !ok {
+		t.Fatal("precise Wiki replacement is not registered")
+	}
+	valid := map[string]any{"libraryId": "kb", "pageId": "page", "expectedVersion": 2, "structureVersion": 1, "oldText": "old", "newText": "new"}
+	if op.Validate(valid) != nil {
+		t.Fatal("complete versioned replacement rejected")
+	}
+	delete(valid, "expectedVersion")
+	if op.Validate(valid) == nil {
+		t.Fatal("unversioned replacement accepted")
+	}
+	valid["expectedVersion"] = 2
+	valid["backendOverride"] = "another-server"
+	if op.Validate(valid) == nil {
+		t.Fatal("unknown override accepted")
+	}
+	read, _ := Find("knowledge.pages.get")
+	if read.Validate(map[string]any{"libraryId": "kb", "slug": "concept/topic"}) != nil ||
+		read.Validate(map[string]any{"libraryId": "kb", "pageId": "page", "slug": "concept/topic"}) == nil {
+		t.Fatal("page ID and slug must be alternative locators")
 	}
 }

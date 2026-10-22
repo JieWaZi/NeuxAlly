@@ -2,7 +2,7 @@
   "generator": "scripts/sync-knowledge-core.mjs",
   "module": "github.com/JieWaZi/neux-knowledge",
   "schemaVersion": 1,
-  "digest": "1599761c225e9384154519a7430b3a585de16b58cb7854320d8ee28a27ffd8d4",
+  "digest": "b5d8cf26bc99a8918c57a64979312327a9c169af00f461ad497d3bae273e919d",
   "files": [
     {
       "path": "AGENTS.md",
@@ -22,7 +22,7 @@
     },
     {
       "path": "THIRD_PARTY_NOTICES.md",
-      "sha256": "7d497505945fed86197d7f64b492eeb3da545112bab1b5ce0f5ef34b59a02b7a"
+      "sha256": "d58bd2c715fcdce5b36c7a7e898f873c1b8194e81da124e63d7bf3d3d6d5ff38"
     },
     {
       "path": "cmd/neux-knowledge-server/main.go",
@@ -142,7 +142,11 @@
     },
     {
       "path": "core/page.go",
-      "sha256": "835a0c6d74afb34c5d010205e9c86ce5b437eac4ac9a6b4fdce9adbd5516c10f"
+      "sha256": "a55f1cf6d5a2852525b1a36ac3a83dffaf37195ee2ea0f97124a45cd50368602"
+    },
+    {
+      "path": "core/page_maintenance_test.go",
+      "sha256": "d625fb1ff41c55ef978c0c32d7ffdc57e2fc3e86279d13e68039f290165c8fb1"
     },
     {
       "path": "core/policy_write_test.go",
@@ -194,7 +198,7 @@
     },
     {
       "path": "core/types.go",
-      "sha256": "a87fb0b918028440cba8b59076ec88066d98085daaca0c89040afaa30a4f70a7"
+      "sha256": "6671c7e7f52fb7abbee677a7a474d52c3f759dcba198884e105c9875f13881bc"
     },
     {
       "path": "core/unavailable_execution_test.go",
@@ -258,7 +262,7 @@
     },
     {
       "path": "httpapi/handler.go",
-      "sha256": "39cde04850c2cbde654457f98346245f06e981557eaeaafbdf74792afd3a4af4"
+      "sha256": "fbad126c3e02264292816ec8e268d66e0e2409ce24d567a9cb15ec3d09d208f6"
     },
     {
       "path": "httpapi/handler_test.go",
@@ -295,6 +299,14 @@
     {
       "path": "httpapi/types.go",
       "sha256": "b57acbad30ae9d92f6859acc569a20254063ebf6401ee0b49bda7055589f2e73"
+    },
+    {
+      "path": "httpapi/wiki_maintenance.go",
+      "sha256": "a2a671a2c86ddf1cdc7fc70ec9f48379d13e301071334075cc163e49edce15bb"
+    },
+    {
+      "path": "httpapi/wiki_maintenance_test.go",
+      "sha256": "5b1788e387bb3fad3f318284857976c4e7ba5f4a78caea26f142310fe8426c98"
     },
     {
       "path": "internal/chunker/docparser/linked_images.go",
@@ -454,7 +466,7 @@
     },
     {
       "path": "internal/domain/interfaces/wiki_page.go",
-      "sha256": "71c2ded221ec91abc71296283f4736667d8e81f45e4c920519350677f304ef7d"
+      "sha256": "57c97d8533993fc6f8e44c6462b2b386543f3db07928f5fdcddc738baf42a9ee"
     },
     {
       "path": "internal/domain/json.go",
@@ -513,16 +525,20 @@
       "sha256": "3d3acf1804ea7cb1ad78f4fa836459557853c3d25bb6909489ba1e48afa68cf5"
     },
     {
+      "path": "internal/domain/wiki_maintenance.go",
+      "sha256": "338d13a45d6aebdc76e75d3f34ed58dab9aa84232e72395e989c89c6a764cd5e"
+    },
+    {
       "path": "internal/domain/wiki_page.go",
-      "sha256": "cdac6ac3586d3571b93356188ca856ef8771fc039fb9fbff7492a9b6ebf30fd9"
+      "sha256": "a6fa6a078b60ead4c055983ec475a74d2a86288f2c067e3a6ddc20e8eff4a2b2"
     },
     {
       "path": "internal/modelcontext/handle_table.go",
-      "sha256": "a7c261792f386e60ba316a2fe79f672810b4277442391baf3e307b97e3181561"
+      "sha256": "5508b6564fd70776d06741fbd2622c4ca9e50017104a62a1cc988d769244be7e"
     },
     {
       "path": "internal/modelcontext/handles.go",
-      "sha256": "e8885ffdfb02af70043bb6c9914e102da33a3047fafcbae6fbf67acdcb6af04a"
+      "sha256": "40a9366b8d33db46f6f3245bc7ebea029c69b529800e8845b7679f86aeb3a452"
     },
     {
       "path": "internal/pipeline/chunk_merge.go",
@@ -682,7 +698,7 @@
     },
     {
       "path": "internal/store/audit_log.go",
-      "sha256": "4f3809ed8bcf17883e5c7dba9078dabae368d99344a795e0ee708b86900d5c9b"
+      "sha256": "475439c35ba59299d32140cbf9b8e3f1008aac19737abb12d962177d29883a63"
     },
     {
       "path": "internal/store/audit_log_scope_upstream_test.go",
@@ -742,7 +758,7 @@
     },
     {
       "path": "internal/store/page.go",
-      "sha256": "9bc20c9e2259fe2aa57d434a768363e27ccd5e8fab01143971a123fc5e215d04"
+      "sha256": "32bed39b835fe0f8328d7a8ef01a09f51108505cb3b538206db1cb534ed50d1c"
     },
     {
       "path": "internal/store/processor.go",
@@ -809,12 +825,20 @@
       "sha256": "a0ad05e0cb6242d19c6c2f657b49f3239cb0a5c80199e6da40813f84f3ec69d0"
     },
     {
+      "path": "internal/store/wiki_maintenance.go",
+      "sha256": "00cbae80d73722161d61fe320d746d8e6d4c126f35fa6bcf04480e5aeb5a31c1"
+    },
+    {
+      "path": "internal/store/wiki_maintenance_test.go",
+      "sha256": "591cc17554b01e320fcbb88dcd7bee2131a7a5530bb62b237c69cfdd90a476d6"
+    },
+    {
       "path": "internal/store/wiki_page.go",
-      "sha256": "7aa6fe863d355e151f3f23b1c18c68ec7a00b185642051b24f87cb903f5adf80"
+      "sha256": "4f82a8d17abcfe7dd21b83fee7f3d61609cf2d7c6cc5475253e302530b8614bf"
     },
     {
       "path": "internal/store/wiki_page_test.go",
-      "sha256": "58fa29bcdc9c13e982fb4037d75cca85dd2d4d973a32b2820b27cbbc6c64c454"
+      "sha256": "5be53fa860371457df9ea7536685151ffaeb11516e53ba418a3a67536b671526"
     },
     {
       "path": "internal/store/wiki_sqlite_test.go",
@@ -870,7 +894,7 @@
     },
     {
       "path": "internal/wiki/wiki_links.go",
-      "sha256": "0cf3ec72327f6b8ca618489c9a90b1f9169f33ab96e44257c86ccd014a42e05d"
+      "sha256": "f0479f7de5e8726231534b697c2f071c1407672fcaae2930fcd5c61650437531"
     },
     {
       "path": "internal/wiki/wiki_slug_handles.go",
@@ -946,11 +970,19 @@
     },
     {
       "path": "remote/weknora.go",
-      "sha256": "c1a5dbb37f61597fdefe2d164a676a2d633eb43c1bc9e7090a281f345adcec89"
+      "sha256": "203d0ef1277b743038d07539f53660c20951c6d0c918ae8f6f295719702b5835"
     },
     {
       "path": "remote/weknora_test.go",
       "sha256": "0f219860804529a71404439b2154eef39addcb2106af6d10d4cd340c8ad79bbd"
+    },
+    {
+      "path": "remote/wiki_maintenance.go",
+      "sha256": "f91245253ecfba913257e9a72c1c355955f42f759ec9628ccd0fe97d1fcc132b"
+    },
+    {
+      "path": "remote/wiki_maintenance_test.go",
+      "sha256": "1550a8ffb03e38209dce89c16397eb6e7ecc03077518c0d2d78ea3b7b6f401e3"
     },
     {
       "path": "rules/load.go",
@@ -1078,7 +1110,7 @@
     },
     {
       "path": "upstream/manifest.json",
-      "sha256": "941c6ea32ffb2bc23ce96f9d2b50410ce1d75717d458e5b1f21a76639139206c"
+      "sha256": "131a87404162d085b8d22206f6f942aa3ebf26deb535e98702f4032c34837a08"
     },
     {
       "path": "upstream/pipeline-manifest.json",

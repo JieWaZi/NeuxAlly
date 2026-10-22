@@ -1875,6 +1875,49 @@ export type GithubComJieWaZiNeuxAllyServerApisKnowledgeLibraryList = {
 };
 
 /**
+ * Wiki修订消息
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeMaintenanceMessageInput = {
+    /**
+     * 账号标识
+     */
+    accountId?: string;
+    /**
+     * 聊天标识
+     */
+    chatId?: string;
+    /**
+     * 页面版本
+     */
+    expectedVersion?: number;
+    /**
+     * 模型名称
+     */
+    model?: string;
+    /**
+     * 页面标识
+     */
+    pageId: string;
+    permissionLevel: GithubComJieWaZiNeuxAllyServerConstantsPermissionLevel & unknown;
+    /**
+     * 推理强度
+     */
+    reasoning?: string;
+    /**
+     * 请求标识
+     */
+    requestId: string;
+    /**
+     * 智能体标识
+     */
+    runtimeId: string;
+    /**
+     * 修改要求
+     */
+    text: string;
+};
+
+/**
  * 整理知识请求
  */
 export type GithubComJieWaZiNeuxAllyServerApisKnowledgeOrganizeInput = {
@@ -22033,6 +22076,98 @@ export type RetryJobResponses = {
 };
 
 export type RetryJobResponse = RetryJobResponses[keyof RetryJobResponses];
+
+export type SendMaintenanceMessageData = {
+    body: GithubComJieWaZiNeuxAllyServerApisKnowledgeMaintenanceMessageInput & unknown;
+    path: {
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/libraries/{libraryId}/maintenance-chats';
+};
+
+export type SendMaintenanceMessageErrors = {
+    /**
+     * >
+     * * `[AgentInputInvalid][40000009001]`
+     * * `[BadRequest][40000000001]`
+     * * `[KnowledgeInvalid][40000009501]`
+     * * `[SkillContentInvalid][40000000013]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[AgentOperationForbidden][40300009001]`
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[InternalServerError][50000000001]`
+     * * `[KnowledgeStorageError][50000009501]`
+     * * `[SkillUnavailable][50000000008]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type SendMaintenanceMessageError = SendMaintenanceMessageErrors[keyof SendMaintenanceMessageErrors];
+
+export type SendMaintenanceMessageResponses = {
+    200: GithubComJieWaZiNeuxAllyServerServicesExecutionAcceptedExecution;
+};
+
+export type SendMaintenanceMessageResponse = SendMaintenanceMessageResponses[keyof SendMaintenanceMessageResponses];
 
 export type ExportLibraryMarkdownData = {
     body?: never;

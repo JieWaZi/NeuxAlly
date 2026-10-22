@@ -294,6 +294,9 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		respond(w, Capabilities{Profile: "neux-knowledge-v1", Profiles: h.options.Profiles, Details: details, Operations: operations}, nil)
 		return
 	}
+	if h.wikiMaintenanceRoute(w, r, parts, lib, currentPolicy, p.Subject) {
+		return
+	}
 	if h.libraryDeletionRoute(w, r, parts, lib) {
 		return
 	}

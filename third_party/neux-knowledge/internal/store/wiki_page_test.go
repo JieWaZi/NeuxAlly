@@ -693,24 +693,10 @@ func TestDeleteByKnowledgeBaseIDScopesSoftAndHardDeletes(t *testing.T) {
 	require.NoError(t, repo.CreateFolder(ctx, victimFolder))
 	require.NoError(t, repo.CreateFolder(ctx, otherFolder))
 
-	victimIssue := &types.WikiPageIssue{
-		ID: "i-victim", TenantID: 1, KnowledgeBaseID: "kb-victim",
-		Slug: victim.Slug, IssueType: "lint", Description: "victim",
-		ReportedBy: "test", CreatedAt: time.Now(), UpdatedAt: time.Now(),
-	}
-	otherIssue := &types.WikiPageIssue{
-		ID: "i-other", TenantID: 1, KnowledgeBaseID: "kb-other",
-		Slug: otherKB.Slug, IssueType: "lint", Description: "other",
-		ReportedBy: "test", CreatedAt: time.Now(), UpdatedAt: time.Now(),
-	}
-	require.NoError(t, repo.CreateIssue(ctx, victimIssue))
-	require.NoError(t, repo.CreateIssue(ctx, otherIssue))
-
 	// Empty kbID must not become a table-wide delete.
 	require.NoError(t, repo.DeleteByKnowledgeBaseID(ctx, 1, ""))
 	require.NoError(t, repo.DeleteFoldersByKnowledgeBaseID(ctx, 1, ""))
 	require.NoError(t, repo.DeleteRevisionsByKnowledgeBaseID(ctx, 1, ""))
-	require.NoError(t, repo.DeleteIssuesByKnowledgeBaseID(ctx, 1, ""))
 	_, err := repo.GetBySlug(ctx, "kb-victim", victim.Slug)
 	require.NoError(t, err)
 
@@ -718,35 +704,27 @@ func TestDeleteByKnowledgeBaseIDScopesSoftAndHardDeletes(t *testing.T) {
 	require.NoError(t, repo.DeleteByKnowledgeBaseID(ctx, 99, "kb-victim"))
 	require.NoError(t, repo.DeleteFoldersByKnowledgeBaseID(ctx, 99, "kb-victim"))
 	require.NoError(t, repo.DeleteRevisionsByKnowledgeBaseID(ctx, 99, "kb-victim"))
-	require.NoError(t, repo.DeleteIssuesByKnowledgeBaseID(ctx, 99, "kb-victim"))
 	_, err = repo.GetBySlug(ctx, "kb-victim", victim.Slug)
 	require.NoError(t, err)
 
 	require.NoError(t, repo.DeleteByKnowledgeBaseID(ctx, 1, "kb-victim"))
 	require.NoError(t, repo.DeleteFoldersByKnowledgeBaseID(ctx, 1, "kb-victim"))
 	require.NoError(t, repo.DeleteRevisionsByKnowledgeBaseID(ctx, 1, "kb-victim"))
-	require.NoError(t, repo.DeleteIssuesByKnowledgeBaseID(ctx, 1, "kb-victim"))
 
 	_, err = repo.GetBySlug(ctx, "kb-victim", victim.Slug)
 	require.ErrorIs(t, err, ErrWikiPageNotFound)
 	_, err = repo.GetFolderByID(ctx, "kb-victim", "f-victim")
 	require.ErrorIs(t, err, ErrWikiFolderNotFound)
-	issues, err := repo.ListIssues(ctx, "kb-victim", "", "")
-	require.NoError(t, err)
-	assert.Empty(t, issues)
 	assert.Zero(t, countWikiRevisions(t, db, victim.ID))
 
 	// Soft-deleted rows remain when queried without the GORM deleted_at filter.
-	var pageCount, folderCount, issueCount int64
+	var pageCount, folderCount int64
 	require.NoError(t, db.Unscoped().Model(&types.WikiPage{}).
 		Where("id = ?", victim.ID).Count(&pageCount).Error)
 	require.NoError(t, db.Unscoped().Model(&types.WikiFolder{}).
 		Where("id = ?", "f-victim").Count(&folderCount).Error)
-	require.NoError(t, db.Unscoped().Model(&types.WikiPageIssue{}).
-		Where("id = ?", "i-victim").Count(&issueCount).Error)
 	assert.Equal(t, int64(1), pageCount)
 	assert.Equal(t, int64(1), folderCount)
-	assert.Equal(t, int64(1), issueCount)
 
 	// Other KB and other tenant are untouched.
 	_, err = repo.GetBySlug(ctx, "kb-other", otherKB.Slug)
@@ -757,34 +735,6 @@ func TestDeleteByKnowledgeBaseIDScopesSoftAndHardDeletes(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, int64(1), countWikiRevisions(t, db, otherKB.ID))
 	assert.Equal(t, int64(1), countWikiRevisions(t, db, otherTenant.ID))
-	otherIssues, err := repo.ListIssues(ctx, "kb-other", "", "")
-	require.NoError(t, err)
-	require.Len(t, otherIssues, 1)
-}
-
-// Issue IDs are listed to readers of a KB; updating one must be scoped to the
-// KB the caller was authorized for.
-func TestUpdateIssueStatus_ScopedToKnowledgeBase(t *testing.T) {
-	db := setupWikiPagesTestDB(t)
-	require.NoError(t, db.Create(&types.WikiPageIssue{
-		ID: "issue-1", TenantID: 7, KnowledgeBaseID: "kb-a", Slug: "page", Status: "pending",
-	}).Error)
-	repo := &wikiPageRepository{db: db}
-	status := func() string {
-		var got string
-		require.NoError(t, db.Raw(`SELECT status FROM wiki_page_issues WHERE id = 'issue-1'`).Scan(&got).Error)
-		return got
-	}
-
-	err := repo.UpdateIssueStatus(context.Background(), "kb-b", "issue-1", "resolved")
-	require.ErrorIs(t, err, ErrWikiIssueNotFound)
-	assert.Equal(t, "pending", status())
-
-	require.NoError(t, repo.UpdateIssueStatus(context.Background(), "kb-a", "issue-1", "resolved"))
-	assert.Equal(t, "resolved", status())
-	// Setting the same status again is not "not found": both supported
-	// databases count matched rows, and updated_at changes anyway.
-	require.NoError(t, repo.UpdateIssueStatus(context.Background(), "kb-a", "issue-1", "resolved"))
 }
 
 func TestSearchAcross_RanksTitleAboveContentAndStaysInRequestedKBs(t *testing.T) {

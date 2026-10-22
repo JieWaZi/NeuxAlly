@@ -1,6 +1,6 @@
 import { KnowledgeLibrarySettings } from "./knowledge-library-settings";
 import { CreateLibrary } from "./knowledge-library-dialogs";
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import type { KnowledgeWikiCommands } from "./knowledge-wiki-command";
@@ -42,11 +42,7 @@ import type { createLibraryDeleter } from "./delete-library";
 import { useKnowledgeWrites } from "./knowledge-writes";
 import { useKnowledgeWorkspaceQueries } from "./knowledge-workspace-queries";
 import { knowledgeKeys, toLibrary, toSource } from "./knowledge-queries";
-import { buildCreateLibraryBody } from "./knowledge-library-config";
-import {
-  knowledgeClient,
-  KNOWLEDGE_SOURCE_PAGE_SIZE,
-} from "@/shared/api/knowledge";
+import { KNOWLEDGE_SOURCE_PAGE_SIZE } from "@/shared/api/knowledge";
 import {
   readRoute,
   isOrganizableSourceState,
@@ -54,11 +50,7 @@ import {
   type Route,
   type KnowledgeReadState,
 } from "./knowledge-model";
-import {
-  encodeUpload,
-  isKnowledgeJobBusy,
-  resourceKey,
-} from "./knowledge-transfer";
+import { isKnowledgeJobBusy, resourceKey } from "./knowledge-transfer";
 import { useKnowledgeSourcePaginationLabels } from "./use-knowledge-source-pagination";
 import { useCopy } from "./use-copy";
 
@@ -210,6 +202,7 @@ export function KnowledgePage() {
     () => new Map<string, KnowledgeOrganizeIntent>(),
   );
   const [createLoaded, setCreateLoaded] = useState(false);
+  const [maintenance, setMaintenance] = useState<ReactNode>();
   const [wikiCommands] = useState<KnowledgeWikiCommands>(() => new Map());
   const [editorControllers] = useState(
     () => new Map<string, KnowledgeEditorController>(),
@@ -288,12 +281,15 @@ export function KnowledgePage() {
     scope: string;
     message: string;
   }>();
-  async function openAction(capability: string, callback: () => void) {
+  async function openAction(
+    capability: string,
+    callback: () => void | Promise<void>,
+  ) {
     setActionError(undefined);
     try {
       if (!knowledgeAdapter(ref).localConfiguration)
         await knowledgeAdapter(ref).assertCapability(capability);
-      callback();
+      await callback();
     } catch (cause) {
       setActionError({
         scope: identity,
@@ -364,6 +360,13 @@ export function KnowledgePage() {
             key={identity}
             resource={ref}
             commands={wikiCommands}
+            onMaintenance={(page) =>
+              void openAction("maintenanceChat", async () => {
+                const module =
+                  await import("./knowledge-wiki-maintenance-chat");
+                setMaintenance(module.renderWikiMaintenance(ref, page));
+              })
+            }
             pageId={params.get("page") ?? ""}
             onPage={(id) => {
               const query = new URLSearchParams(params);
@@ -443,6 +446,7 @@ export function KnowledgePage() {
   );
   return (
     <>
+      {maintenance}
       {detail ? (
         <DetailDockLayout
           navigation={
@@ -537,6 +541,8 @@ export function KnowledgePage() {
             setModal(undefined);
           }}
           create={async (value, execution, requestId, controller) => {
+            const { buildCreateLibraryBody } =
+              await import("./knowledge-library-write-body");
             const response = await knowledgeAdapter(value.ref).createLibrary(
               withLocalErrorSurface({
                 body: {
@@ -602,10 +608,12 @@ export function KnowledgePage() {
           opened
           close={() => setModal(undefined)}
           upload={async (file, requestId, signal) => {
-            const body = await encodeUpload(file, requestId);
-            signal.throwIfAborted();
-            const receipt = await knowledgeClient(ref).importSource(
-              body,
+            const { uploadKnowledgeSource } =
+              await import("./knowledge-upload-source");
+            const receipt = await uploadKnowledgeSource(
+              ref,
+              file,
+              requestId,
               signal,
             );
             await Promise.all([

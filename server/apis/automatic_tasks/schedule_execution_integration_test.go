@@ -515,7 +515,14 @@ func TestAutomaticEntriesExecuteAndDeleteThroughRealCore(t *testing.T) {
 				t.Fatal(err)
 			}
 			if state.Chat.ActiveExecutionID == "" {
-				break
+				// 日志终态先于SQLite查询投影收尾；成员续聊前需确认原团队已整体空闲。
+				active, err := threads.CountActiveWork(ctx, memberRun.ThreadID)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if active == 0 {
+					break
+				}
 			}
 			if time.Now().After(deadline) {
 				t.Fatal("第二次团队首轮未结束")

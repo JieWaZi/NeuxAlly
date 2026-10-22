@@ -14,7 +14,7 @@ const (
 
 const (
 	personalAssistantRoleName    = "私人助理"
-	personalAssistantWakerName   = "NeuxAlly"
+	personalAssistantWakerName   = "lumi"
 	personalAssistantDescription = "AI私人助理，协助你解答问题、整理资料、创作内容和制定计划，并在已配置的工具与授权范围内处理任务。"
 
 	personalAssistantIdentity = `## Role

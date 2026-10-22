@@ -6,8 +6,8 @@ import (
 )
 
 // HandleTable is a typed, invocation-local bidirectional mapping used when a
-// prompt needs compact handles for durable values (wiki issue iN handles,
-// ingest ref-N slug handles, c000 citation-batch handles). Handles must never
+// prompt needs compact handles for durable values (ingest ref-N slug
+// handles, c000 citation-batch handles). Handles must never
 // be persisted; Resolve converts model output back to the durable value first.
 // It is the exported word-boundary-aware wrapper over handleTable.
 type HandleTable struct {

@@ -19772,6 +19772,201 @@
         }
       }
     },
+    "/api/v1/knowledge/libraries/{libraryId}/maintenance-chats": {
+      "post": {
+        "tags": [
+          "github.com/JieWaZi/NeuxAlly/server/apis/knowledge"
+        ],
+        "summary": "发送Wiki修订消息",
+        "operationId": "SendMaintenanceMessage",
+        "parameters": [
+          {
+            "name": "libraryId",
+            "in": "path",
+            "description": "知识库标识",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "知识库标识",
+              "x-go-field-name": "LibraryID",
+              "x-tag-in": "path",
+              "x-tag-name": "libraryId",
+              "x-tag-validate": "required"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/GithubComJieWaZiNeuxAllyServerApisKnowledgeMaintenanceMessageInput"
+                  },
+                  {
+                    "description": "请求体",
+                    "x-go-field-name": "Body",
+                    "x-tag-in": "body"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComJieWaZiNeuxAllyServerServicesExecutionAcceptedExecution"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": ">\n* `[AgentInputInvalid][40000009001]`\n* `[BadRequest][40000000001]`\n* `[KnowledgeInvalid][40000009501]`\n* `[SkillContentInvalid][40000000013]`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
+                }
+              }
+            },
+            "x-status-errors": [
+              "[AgentInputInvalid][40000009001]",
+              "[BadRequest][40000000001]",
+              "[KnowledgeInvalid][40000009501]",
+              "[SkillContentInvalid][40000000013]"
+            ]
+          },
+          "401": {
+            "description": ">\n* `[KnowledgeRemoteUnauthorized][40100009501]`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
+                }
+              }
+            },
+            "x-status-errors": [
+              "[KnowledgeRemoteUnauthorized][40100009501]"
+            ]
+          },
+          "403": {
+            "description": ">\n* `[AgentOperationForbidden][40300009001]`\n* `[KnowledgeForbidden][40300009501]`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
+                }
+              }
+            },
+            "x-status-errors": [
+              "[AgentOperationForbidden][40300009001]",
+              "[KnowledgeForbidden][40300009501]"
+            ]
+          },
+          "404": {
+            "description": ">\n* `[KnowledgeNotFound][40400009501]`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
+                }
+              }
+            },
+            "x-status-errors": [
+              "[KnowledgeNotFound][40400009501]"
+            ]
+          },
+          "409": {
+            "description": ">\n* `[KnowledgeCancelled][40900009502]`\n* `[KnowledgeConflict][40900009501]`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
+                }
+              }
+            },
+            "x-status-errors": [
+              "[KnowledgeCancelled][40900009502]",
+              "[KnowledgeConflict][40900009501]"
+            ]
+          },
+          "422": {
+            "description": ">\n* `[KnowledgeCandidateInvalid][42200009501]`\n* `[KnowledgeUnsupported][42200009502]`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
+                }
+              }
+            },
+            "x-status-errors": [
+              "[KnowledgeCandidateInvalid][42200009501]",
+              "[KnowledgeUnsupported][42200009502]"
+            ]
+          },
+          "500": {
+            "description": ">\n* `[InternalServerError][50000000001]`\n* `[KnowledgeStorageError][50000009501]`\n* `[SkillUnavailable][50000000008]`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
+                }
+              }
+            },
+            "x-status-errors": [
+              "[InternalServerError][50000000001]",
+              "[KnowledgeStorageError][50000009501]",
+              "[SkillUnavailable][50000000008]"
+            ]
+          },
+          "502": {
+            "description": ">\n* `[KnowledgeRemoteIncompatible][50200009502]`\n* `[KnowledgeRemoteUnreachable][50200009501]`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
+                }
+              }
+            },
+            "x-status-errors": [
+              "[KnowledgeRemoteIncompatible][50200009502]",
+              "[KnowledgeRemoteUnreachable][50200009501]"
+            ]
+          },
+          "503": {
+            "description": ">\n* `[DatabaseBusy][50300001001]`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
+                }
+              }
+            },
+            "x-status-errors": [
+              "[DatabaseBusy][50300001001]"
+            ]
+          },
+          "504": {
+            "description": ">\n* `[KnowledgeRemoteOutcomeUnknown][50400009501]`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubComShrewxGinxPkgStatuserrorStatusErr"
+                }
+              }
+            },
+            "x-status-errors": [
+              "[KnowledgeRemoteOutcomeUnknown][50400009501]"
+            ]
+          }
+        }
+      }
+    },
     "/api/v1/knowledge/libraries/{libraryId}/markdown-export": {
       "get": {
         "tags": [
@@ -45378,6 +45573,89 @@
         "description": "知识库列表",
         "x-go-struct-name": "GithubComJieWaZiNeuxAllyServerApisKnowledgeLibraryList",
         "x-go-vendor-type": "github.com/JieWaZi/NeuxAlly/server/apis/knowledge.LibraryList"
+      },
+      "GithubComJieWaZiNeuxAllyServerApisKnowledgeMaintenanceMessageInput": {
+        "type": "object",
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "description": "账号标识",
+            "x-go-field-name": "AccountID",
+            "x-tag-validate": "max=32"
+          },
+          "chatId": {
+            "type": "string",
+            "description": "聊天标识",
+            "x-go-field-name": "ChatID",
+            "x-tag-json": "chatId,omitempty",
+            "x-tag-validate": "max=32"
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "format": "int32",
+            "description": "页面版本",
+            "x-go-field-name": "ExpectedVersion",
+            "x-tag-validate": "min=1"
+          },
+          "model": {
+            "type": "string",
+            "description": "模型名称",
+            "x-go-field-name": "Model",
+            "x-tag-validate": "max=200"
+          },
+          "pageId": {
+            "type": "string",
+            "description": "页面标识",
+            "x-go-field-name": "PageID",
+            "x-tag-validate": "required"
+          },
+          "permissionLevel": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GithubComJieWaZiNeuxAllyServerConstantsPermissionLevel"
+              },
+              {
+                "description": "权限等级",
+                "x-go-field-name": "PermissionLevel",
+                "x-tag-validate": "required"
+              }
+            ]
+          },
+          "reasoning": {
+            "type": "string",
+            "description": "推理强度",
+            "x-go-field-name": "Reasoning",
+            "x-tag-validate": "max=80"
+          },
+          "requestId": {
+            "type": "string",
+            "description": "请求标识",
+            "x-go-field-name": "RequestID",
+            "x-tag-validate": "required,max=64"
+          },
+          "runtimeId": {
+            "type": "string",
+            "description": "智能体标识",
+            "x-go-field-name": "RuntimeID",
+            "x-tag-validate": "required,max=120"
+          },
+          "text": {
+            "type": "string",
+            "description": "修改要求",
+            "x-go-field-name": "Text",
+            "x-tag-validate": "required,max=65536"
+          }
+        },
+        "required": [
+          "requestId",
+          "pageId",
+          "text",
+          "runtimeId",
+          "permissionLevel"
+        ],
+        "description": "Wiki修订消息",
+        "x-go-struct-name": "GithubComJieWaZiNeuxAllyServerApisKnowledgeMaintenanceMessageInput",
+        "x-go-vendor-type": "github.com/JieWaZi/NeuxAlly/server/apis/knowledge.MaintenanceMessageInput"
       },
       "GithubComJieWaZiNeuxAllyServerApisKnowledgeOrganizeInput": {
         "type": "object",

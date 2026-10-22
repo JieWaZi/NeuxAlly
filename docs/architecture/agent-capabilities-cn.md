@@ -4,7 +4,7 @@
 
 系统 ally 技能教授任务方法，allycli 负责发现、参数和调用，Core 负责身份、授权、领域规则与真实回执。技能与命令名称是当前技术契约，产品名称为 NeuxAlly。
 
-server/internal/agentcapability/contract 是命令 Schema 与解析的共同来源，agentcapability 负责执行授权和有界观察，agentcli 提供客户端。记忆、IM、团队与工作流业务状态仍由各自领域拥有。
+server/internal/agentcapability/contract 是命令 Schema 与解析的共同来源，agentcapability 负责执行授权和有界观察，agentcli 提供客户端。记忆、IM、团队、工作流与知识业务状态仍由各自领域拥有。所有领域的当前命令、完成语义和调用示例统一见 [allycli README](../../server/cmd/allycli/README.md)。
 
 ## 授权与请求
 
@@ -21,3 +21,7 @@ skills/ally 是产品技能源，与个人开发技能安装环境分别维护�
 修改资源运行 pnpm skills:generate 与 pnpm skills:check。直接 Go 命令使用已提交 bundle；重新构建并启动 Core 后，新执行才使用新打包内容。
 
 指南按场景解释决策与验证，不静态重复所有命令 Schema。工作流 SDK、参数及结果 Schema 优先通过实时发现获取。
+
+知识查询参考固定 WeKnora 的渐进式 RAG、维基研究员及公共来源规则，统一维护在系统技能知识参考中。普通伙伴按问题语境选择简单事实、机制实现或跨资料研究的深度；搜索无效时调整术语，摘要不足时读取正文，精确数字与代码回读持久原件，回答前检查请求覆盖与来源依据。维基研究员通过独立伙伴档案强化主动研究取向，使用相同 CLI 和执行授权。具体知识读取与维护边界见 [知识库](knowledge-cn.md)。
+
+知识维护继续使用同一系统技能与 CLI，`knowledge.maintenance` 指南适配固定 WeKnora 的修复流程。页面维护会话固定原库与原页，实际存储、历史及回执由知识核心拥有；授权与远端边界见 [知识库](knowledge-cn.md)。

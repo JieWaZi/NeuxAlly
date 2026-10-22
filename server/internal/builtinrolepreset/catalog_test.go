@@ -74,7 +74,7 @@ func TestEnsureCatalogSeedsPersonalAssistantPreset(t *testing.T) {
 	if len(preset.Expertise) != 5 || len(preset.WorkStyle) != 5 || len(preset.WorkMethods) != 4 {
 		t.Fatalf("unexpected projection: %+v", preset)
 	}
-	if len(catalog.deletedDocuments) != 1 ||
+	if len(catalog.deletedDocuments) != len(Definitions()) ||
 		catalog.deletedDocuments[0] != PersonalAssistantRolePresetID {
 		t.Fatalf("EnsureCatalog() must not persist documents: %+v", catalog.deletedDocuments)
 	}

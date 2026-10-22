@@ -98,6 +98,8 @@ type service struct {
 	agentBinary string
 	// agentBindings 提供伙伴当前普通业务能力的领域绑定。
 	agentBindings func(models.Chat, string, []string) []agentcapability.Binding
+	// validateIntent 在任何首发、续发或重试接纳前校验领域持久约束。
+	validateIntent func(context.Context, WorkIntent) error
 	// agentSessions 保存同一原生会话进程独占的连接文件位置。
 	agentSessions *agentSessionFiles
 	// acquireTeamChatInput 将团队成员 Chat 的直接输入纳入团队聚合接纳边界。
@@ -158,6 +160,8 @@ type Config struct {
 	AgentBinary string
 	// AgentBindings 按冻结伙伴和目录范围签发普通能力。
 	AgentBindings func(models.Chat, string, []string) []agentcapability.Binding
+	// ValidateIntent 校验入口无关的领域接纳约束；为空时不增加额外限制。
+	ValidateIntent func(context.Context, WorkIntent) error
 	// AcquireTeamChatInput 保护团队成员直接输入，普通 Chat 通过不持锁。
 	AcquireTeamChatInput func(context.Context, string, bool) (context.Context, func(), error)
 	// Accounts 管理受管账号的使用租约和配置投射。
@@ -257,6 +261,7 @@ func New(config Config) (Core, error) {
 		agentEndpoint:        config.AgentEndpoint,
 		agentBinary:          config.AgentBinary,
 		agentBindings:        config.AgentBindings,
+		validateIntent:       config.ValidateIntent,
 		agentSessions:        &agentSessionFiles{slots: map[string]agentSessionSlot{}},
 		accounts:             config.Accounts,
 		acquireTeamChatInput: config.AcquireTeamChatInput,

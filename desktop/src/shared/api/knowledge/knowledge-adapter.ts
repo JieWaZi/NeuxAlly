@@ -87,6 +87,7 @@ export function knowledgeAdapter(input: ResourceRef): Implementation {
     getJob: true,
     resumeJob: true,
     retryJob: true,
+    sendMaintenanceMessage: true,
     listPages: true,
     getPageBySlug: true,
     getWikiIndex: true,

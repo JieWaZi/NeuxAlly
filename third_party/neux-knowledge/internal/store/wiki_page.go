@@ -17,9 +17,6 @@ import (
 // ErrWikiPageNotFound is returned when a wiki page is not found
 var ErrWikiPageNotFound = errors.New("wiki page not found")
 
-// ErrWikiIssueNotFound means no issue with that ID belongs to the knowledge base.
-var ErrWikiIssueNotFound = errors.New("wiki issue not found")
-
 // ErrWikiPageConflict is returned when an optimistic lock conflict is detected
 var ErrWikiPageConflict = errors.New("wiki page version conflict")
 
@@ -1303,15 +1300,6 @@ func (r *wikiPageRepository) DeleteRevisionsByKnowledgeBaseID(
 	return r.deleteByTenantAndKnowledgeBase(ctx, tenantID, kbID, &types.WikiPageRevision{})
 }
 
-// DeleteIssuesByKnowledgeBaseID soft-deletes all wiki page issues in a
-// knowledge base. Issues carry DeletedAt, so GORM sets deleted_at and
-// subsequent queries auto-filter them out.
-func (r *wikiPageRepository) DeleteIssuesByKnowledgeBaseID(
-	ctx context.Context, tenantID uint64, kbID string,
-) error {
-	return r.deleteByTenantAndKnowledgeBase(ctx, tenantID, kbID, &types.WikiPageIssue{})
-}
-
 // escapeLikePattern escapes LIKE / ILIKE metacharacters so the returned string
 // can be safely concatenated with % wildcards without unintended matches.
 // It is a thin alias for escapeLikeKeyword, which owns the (order-sensitive)
@@ -1463,39 +1451,4 @@ func (r *wikiPageRepository) CountOrphans(ctx context.Context, kbID string) (int
 		return 0, err
 	}
 	return count, nil
-}
-
-func (r *wikiPageRepository) CreateIssue(ctx context.Context, issue *types.WikiPageIssue) error {
-	return r.db.WithContext(ctx).Create(issue).Error
-}
-
-func (r *wikiPageRepository) ListIssues(ctx context.Context, kbID string, slug string, status string) ([]*types.WikiPageIssue, error) {
-	query := r.db.WithContext(ctx).Where("knowledge_base_id = ?", kbID)
-	if slug != "" {
-		query = query.Where("slug = ?", slug)
-	}
-	if status != "" {
-		query = query.Where("status = ?", status)
-	}
-
-	var issues []*types.WikiPageIssue
-	if err := query.Order("created_at DESC").Find(&issues).Error; err != nil {
-		return nil, err
-	}
-	return issues, nil
-}
-
-func (r *wikiPageRepository) UpdateIssueStatus(ctx context.Context, kbID string, issueID string, status string) error {
-	// Scoped to the knowledge base the caller was authorized for: issue IDs are
-	// listed to readers, so an ID alone must not reach another KB's issue.
-	result := r.db.WithContext(ctx).Model(&types.WikiPageIssue{}).
-		Where("id = ? AND knowledge_base_id = ?", issueID, kbID).
-		Update("status", status)
-	if result.Error != nil {
-		return result.Error
-	}
-	if result.RowsAffected == 0 {
-		return ErrWikiIssueNotFound
-	}
-	return nil
 }

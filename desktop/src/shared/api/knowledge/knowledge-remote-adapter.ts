@@ -139,6 +139,12 @@ export function remoteKnowledgeAdapter(ref: ResourceRef) {
       official
         ? Promise.resolve().then(knowledgeUnsupported)
         : api.getRemoteJob<true>(scope(options)),
+    sendMaintenanceMessage: async (
+      _options: KnowledgeOptions<typeof api.sendMaintenanceMessage>,
+    ) => {
+      _options.signal?.throwIfAborted();
+      return knowledgeUnsupported();
+    },
     listPages: (options: KnowledgeOptions<typeof api.listPages>) =>
       api.listRemotePages<true>(scope(options)),
     getPageBySlug: (options: KnowledgeOptions<typeof api.getPageBySlug>) =>

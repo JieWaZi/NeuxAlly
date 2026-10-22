@@ -22,7 +22,7 @@ import {
   readExecutionDefaults,
   buildExecutionDefaults,
 } from "./knowledge-execution-defaults";
-import { buildUpdateLibraryBody } from "./knowledge-library-config";
+import { buildUpdateLibraryBody } from "./knowledge-library-write-body";
 import { knowledgeKeys, sourcesOptions } from "./knowledge-queries";
 import { resourceKey } from "./knowledge-transfer";
 import type { Library } from "./knowledge-model";

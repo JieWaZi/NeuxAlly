@@ -8,6 +8,7 @@ import (
 	"github.com/JieWaZi/neux-knowledge/remote"
 	"math"
 	"strings"
+	"unicode/utf8"
 )
 
 // ReadProvider 只适配同一知识读取合同，不暴露本机生成、写入或索引端口。
@@ -16,6 +17,11 @@ type ReadProvider interface {
 	Pages(context.Context, ResourceRef, core.PageQuery) ([]*core.Page, int64, error)
 	Page(context.Context, ResourceRef, string, string) (*core.Page, error)
 	Source(context.Context, ResourceRef, string) (map[string]any, error)
+}
+
+// ExtendedReadProvider 复用已授权的提供者读取扩展对象，不增加连接或业务状态。
+type ExtendedReadProvider interface {
+	ExtendedRead(context.Context, ResourceRef, string, map[string]any) (map[string]any, error)
 }
 
 // LocalReadProvider 仅转调唯一独立SDK。
@@ -137,7 +143,16 @@ func (p LocalReadProvider) Page(ctx context.Context, ref ResourceRef, id, slug s
 	if err := RequireLocal(ref); err != nil {
 		return nil, err
 	}
-	v, err := p.Engine.GetPage(ctx, ref.KnowledgeBaseID, id)
+	if (id == "") == (slug == "") {
+		return nil, status_error.KnowledgeInvalid
+	}
+	var v *core.Page
+	var err error
+	if slug != "" {
+		v, err = p.Engine.GetPageBySlug(ctx, ref.KnowledgeBaseID, slug)
+	} else {
+		v, err = p.Engine.GetPage(ctx, ref.KnowledgeBaseID, id)
+	}
 	return v, MapError(err)
 }
 func (p LocalReadProvider) Source(ctx context.Context, ref ResourceRef, id string) (map[string]any, error) {
@@ -174,6 +189,7 @@ func (p RemoteReadProvider) Library(ctx context.Context, ref ResourceRef) (*core
 	return &core.Library{ID: v.ID, Name: v.Name, Kind: "official"}, nil
 }
 func (p RemoteReadProvider) Pages(ctx context.Context, ref ResourceRef, q core.PageQuery) ([]*core.Page, int64, error) {
+	q.LibraryID = ref.KnowledgeBaseID
 	if p.Custom != nil {
 		v, err := p.Custom.ListPages(ctx, q)
 		if err != nil {
@@ -201,24 +217,280 @@ func (p RemoteReadProvider) Pages(ctx context.Context, ref ResourceRef, q core.P
 	return items, v.Total, nil
 }
 func (p RemoteReadProvider) Page(ctx context.Context, ref ResourceRef, id, slug string) (*core.Page, error) {
+	if (id == "") == (slug == "") {
+		return nil, status_error.KnowledgeInvalid
+	}
 	if p.Custom != nil {
-		v, err := p.Custom.GetPage(ctx, id)
+		var v *core.Page
+		var err error
+		if slug != "" {
+			v, err = p.Custom.GetPageBySlug(ctx, slug)
+		} else {
+			v, err = p.Custom.GetPage(ctx, id)
+		}
 		return v, MapRemoteError(err)
 	}
 	if p.Official == nil {
 		return nil, status_error.KnowledgeUnsupported
 	}
 	if slug == "" {
-		return nil, status_error.KnowledgeInvalid
+		return nil, status_error.KnowledgeUnsupported
 	}
 	v, err := p.Official.GetPage(ctx, ref.KnowledgeBaseID, slug)
 	if err != nil {
 		return nil, MapRemoteError(err)
 	}
-	if v.ID != id {
+	if id != "" && v.ID != id {
 		return nil, status_error.KnowledgeNotFound
 	}
 	return officialReadPage(*v), nil
+}
+
+// ExtendedRead 将读取交给唯一核心；任务身份额外核对库边界，接纳状态不推断为完成。
+func (p LocalReadProvider) ExtendedRead(ctx context.Context, ref ResourceRef, operation string, params map[string]any) (map[string]any, error) {
+	if err := RequireLocal(ref); err != nil {
+		return nil, err
+	}
+	var data map[string]any
+	var err error
+	offset, limit := number(params, "offset"), number(params, "limit")
+	switch operation {
+	case "knowledge.libraries.get":
+		var v *core.Library
+		v, err = p.Engine.GetLibrary(ctx, ref.KnowledgeBaseID)
+		data = map[string]any{"library": v}
+	case "knowledge.sources.list":
+		var rows []*core.SourceVersion
+		var total int64
+		rows, total, err = p.Engine.ListSourcesQuery(ctx, ref.KnowledgeBaseID, core.SourceQuery{Offset: offset, Limit: limit, Query: stringParam(params, "query"), State: stringParam(params, "state"), Sort: stringParam(params, "sort")})
+		data = map[string]any{"items": rows, "total": total}
+	case "knowledge.sources.read":
+		var source *core.SourceVersion
+		source, err = p.Engine.GetSource(ctx, ref.KnowledgeBaseID, stringParam(params, "sourceVersionId"))
+		if err != nil {
+			return nil, MapError(err)
+		}
+		var rows []core.IndexedDocumentChunk
+		rows, err = p.Engine.ListDocumentChunks(ctx, ref.KnowledgeBaseID, source.ID)
+		if err != nil {
+			return nil, MapError(err)
+		}
+		return sourceChunks(ref, source, rows, params)
+	case "knowledge.pages.list":
+		var rows []*core.Page
+		var total int64
+		rows, total, err = p.Pages(ctx, ref, pageReadQuery(params))
+		return map[string]any{"items": rows, "total": total}, err
+	case "knowledge.themes.list":
+		var rows []*core.Theme
+		rows, err = p.Engine.ListThemes(ctx, ref.KnowledgeBaseID)
+		data = map[string]any{"items": rows}
+	case "knowledge.index.get":
+		types, _ := params["pageTypes"].([]string)
+		var v *core.WikiIndexResponse
+		v, err = p.Engine.GetIndexView(ctx, ref.KnowledgeBaseID, types, limit, stringParam(params, "cursor"))
+		data = map[string]any{"index": v}
+	case "knowledge.revisions.list":
+		var rows []*core.Revision
+		var total int64
+		rows, total, err = p.Engine.ListRevisions(ctx, ref.KnowledgeBaseID, stringParam(params, "pageId"), offset, limit)
+		data = map[string]any{"items": rows, "total": total}
+	case "knowledge.revisions.get":
+		var v *core.Revision
+		v, err = p.Engine.GetRevision(ctx, ref.KnowledgeBaseID, stringParam(params, "pageId"), number(params, "version"))
+		data = map[string]any{"revision": v}
+	case "knowledge.jobs.list":
+		var rows []*core.Job
+		var total int64
+		rows, total, err = p.Engine.ListJobs(ctx, ref.KnowledgeBaseID, offset, limit)
+		data = map[string]any{"items": rows, "total": total}
+	case "knowledge.jobs.get":
+		var v *core.Job
+		v, err = p.Engine.GetJob(ctx, stringParam(params, "jobId"))
+		if err == nil && v.LibraryID != ref.KnowledgeBaseID {
+			return nil, status_error.KnowledgeNotFound
+		}
+		data = map[string]any{"job": v}
+	case "knowledge.audit.get":
+		var v *core.LintReport
+		v, err = p.Engine.LintLibrary(ctx, ref.KnowledgeBaseID)
+		data = map[string]any{"audit": v}
+	case "knowledge.activity.list":
+		var rows []*core.AuditLog
+		var cursor uint64
+		rows, cursor, err = p.Engine.ListLibraryActivity(ctx, ref.KnowledgeBaseID, activityParams(params))
+		data = map[string]any{"items": rows, "nextCursor": cursor}
+	case "knowledge.export.get":
+		ids, _ := params["pageIds"].([]string)
+		var v *core.MarkdownExport
+		v, err = p.Engine.ExportMarkdown(ctx, core.ExportInput{LibraryID: ref.KnowledgeBaseID, PageIDs: ids})
+		data = map[string]any{"export": v}
+	default:
+		return nil, status_error.KnowledgeUnsupported
+	}
+	return data, MapError(err)
+}
+
+// ExtendedRead 只调用自有远端已存在的读取合同；官方未适配操作准确拒绝。
+func (p RemoteReadProvider) ExtendedRead(ctx context.Context, ref ResourceRef, operation string, params map[string]any) (map[string]any, error) {
+	if operation == "knowledge.libraries.get" {
+		v, err := p.Library(ctx, ref)
+		return map[string]any{"library": v}, err
+	}
+	if operation == "knowledge.pages.list" {
+		rows, total, err := p.Pages(ctx, ref, pageReadQuery(params))
+		return map[string]any{"items": rows, "total": total}, err
+	}
+	if operation == "knowledge.sources.list" && p.Custom == nil && p.Official != nil {
+		offset, limit := number(params, "offset"), number(params, "limit")
+		if limit < 1 || offset%limit != 0 {
+			return nil, status_error.KnowledgeInvalid
+		}
+		v, err := p.Official.ListSources(ctx, ref.KnowledgeBaseID, offset/limit+1, limit, core.SourceQuery{Query: stringParam(params, "query"), State: stringParam(params, "state"), Sort: stringParam(params, "sort")})
+		if err != nil {
+			return nil, MapRemoteError(err)
+		}
+		return map[string]any{"items": v.Data, "total": v.Total, "versioning": "unavailable"}, nil
+	}
+	if p.Custom == nil {
+		return nil, status_error.KnowledgeUnsupported
+	}
+	var data map[string]any
+	var err error
+	offset, limit := number(params, "offset"), number(params, "limit")
+	switch operation {
+	case "knowledge.sources.list":
+		var v *remote.CustomList[*core.SourceVersion]
+		v, err = p.Custom.ListSources(ctx, offset, limit, core.SourceQuery{Query: stringParam(params, "query"), State: stringParam(params, "state"), Sort: stringParam(params, "sort")})
+		if err == nil {
+			data = map[string]any{"items": v.Items, "total": v.Total}
+		}
+	case "knowledge.sources.read":
+		var source *core.SourceVersion
+		source, err = p.Custom.GetSource(ctx, stringParam(params, "sourceVersionId"))
+		if err != nil {
+			return nil, MapRemoteError(err)
+		}
+		var rows []core.IndexedDocumentChunk
+		rows, err = p.Custom.ListSourceChunks(ctx, source.ID)
+		if err != nil {
+			return nil, MapRemoteError(err)
+		}
+		return sourceChunks(ref, source, rows, params)
+	case "knowledge.themes.list":
+		var rows []*core.Theme
+		rows, err = p.Custom.ListThemes(ctx)
+		data = map[string]any{"items": rows}
+	case "knowledge.revisions.list":
+		var v *remote.CustomList[*core.Revision]
+		v, err = p.Custom.ListRevisions(ctx, stringParam(params, "pageId"), offset, limit)
+		if err == nil {
+			data = map[string]any{"items": v.Items, "total": v.Total}
+		}
+	case "knowledge.revisions.get":
+		var v *core.Revision
+		v, err = p.Custom.GetRevision(ctx, stringParam(params, "pageId"), number(params, "version"))
+		data = map[string]any{"revision": v}
+	case "knowledge.jobs.list":
+		var v *remote.CustomList[*core.Job]
+		v, err = p.Custom.ListJobs(ctx, offset, limit)
+		if err == nil {
+			data = map[string]any{"items": v.Items, "total": v.Total}
+		}
+	case "knowledge.jobs.get":
+		var v *core.Job
+		v, err = p.Custom.GetJob(ctx, stringParam(params, "jobId"))
+		data = map[string]any{"job": v}
+	case "knowledge.audit.get":
+		var v *core.LintReport
+		v, err = p.Custom.LintLibrary(ctx)
+		if err == nil && v.LibraryID != ref.KnowledgeBaseID {
+			return nil, status_error.KnowledgeRemoteIncompatible
+		}
+		data = map[string]any{"audit": v}
+	case "knowledge.activity.list":
+		var rows []*core.AuditLog
+		var cursor uint64
+		rows, cursor, err = p.Custom.ListLibraryActivity(ctx, activityParams(params))
+		data = map[string]any{"items": rows, "nextCursor": cursor}
+	case "knowledge.export.get":
+		ids, _ := params["pageIds"].([]string)
+		var v *core.MarkdownExport
+		v, err = p.Custom.ExportMarkdown(ctx, ids)
+		if err == nil && v.LibraryID != ref.KnowledgeBaseID {
+			return nil, status_error.KnowledgeRemoteIncompatible
+		}
+		data = map[string]any{"export": v}
+	default:
+		return nil, status_error.KnowledgeUnsupported
+	}
+	return data, MapRemoteError(err)
+}
+
+func activityParams(params map[string]any) core.ActivityQuery {
+	cursor, _ := params["afterId"].(uint64)
+	return core.ActivityQuery{AfterID: cursor, Limit: number(params, "limit"), Action: core.AuditAction(stringParam(params, "action")), Outcome: core.AuditOutcome(stringParam(params, "outcome")), ActorUserID: stringParam(params, "actorUserId")}
+}
+
+func pageReadQuery(params map[string]any) core.PageQuery {
+	q := core.PageQuery{Query: stringParam(params, "query"), PageType: stringParam(params, "pageType"), Status: "published", Offset: number(params, "offset"), Limit: number(params, "limit")}
+	if value, exists := params["themeId"]; exists {
+		theme := value.(string)
+		q.ThemeID = &theme
+	}
+	return q
+}
+
+// sourceChunks 对真实持久块作字面查询与分页；截断保持 UTF-8，定位仍指向原始完整块。
+func sourceChunks(ref ResourceRef, source *core.SourceVersion, rows []core.IndexedDocumentChunk, params map[string]any) (map[string]any, error) {
+	if source == nil || source.LibraryID != ref.KnowledgeBaseID || source.ID != stringParam(params, "sourceVersionId") {
+		return nil, status_error.KnowledgeNotFound
+	}
+	query, chunkID := strings.ToLower(stringParam(params, "query")), stringParam(params, "chunkId")
+	filtered := make([]core.IndexedDocumentChunk, 0, len(rows))
+	for _, row := range rows {
+		if row.LibraryID != ref.KnowledgeBaseID || row.SourceVersionID != source.ID {
+			return nil, status_error.KnowledgeNotFound
+		}
+		if chunkID != "" && row.ChunkID != chunkID {
+			continue
+		}
+		if query != "" && !strings.Contains(strings.ToLower(row.Content), query) {
+			continue
+		}
+		filtered = append(filtered, row)
+	}
+	if chunkID != "" && len(filtered) == 0 {
+		return nil, status_error.KnowledgeNotFound
+	}
+	offset, limit := number(params, "offset"), number(params, "limit")
+	start := min(offset, len(filtered))
+	end := min(start+limit, len(filtered))
+	items := make([]core.IndexedDocumentChunk, 0, end-start)
+	budget, truncated := 64<<10, false
+	for _, row := range filtered[start:end] {
+		if budget == 0 {
+			break
+		}
+		cut := len(row.Content) > budget
+		if cut {
+			size := budget
+			for size > 0 && !utf8.ValidString(row.Content[:size]) {
+				size--
+			}
+			row.Content = row.Content[:size]
+			truncated = true
+		}
+		budget -= len(row.Content)
+		// 向量不属于读取输出，也不保留到返回对象的内存引用。
+		row.Vector = nil
+		items = append(items, row)
+		if cut {
+			break
+		}
+	}
+	next := start + len(items)
+	return map[string]any{"source": source, "items": items, "total": len(filtered), "offset": offset, "nextOffset": next, "hasMore": next < len(filtered), "truncated": truncated}, nil
 }
 func (p RemoteReadProvider) Source(ctx context.Context, ref ResourceRef, id string) (map[string]any, error) {
 	if p.Custom != nil {
@@ -257,7 +529,7 @@ func MapRemoteError(err error) error {
 			return status_error.KnowledgeNotFound
 		case "version_conflict", "idempotency_conflict", "manual_protected":
 			return status_error.KnowledgeConflict
-		case "unsupported", "unsupported_profile":
+		case "unsupported", "unsupported_profile", "unsupported_source_state":
 			return status_error.KnowledgeUnsupported
 		case "invalid", "invalid_connection", "invalid_resource", "invalid_request", "invalid_query", "invalid_pagination":
 			return status_error.KnowledgeInvalid

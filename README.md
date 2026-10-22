@@ -56,7 +56,7 @@ pnpm dev:native
 
 </details>
 
-See the [user guides](docs/README.md) for setup and usage, or [CONTRIBUTING.md](CONTRIBUTING.md) to help build NeuxAlly. These documents are currently in Simplified Chinese.
+See the [user guides](docs/README.md) for setup and usage, the [allycli capability reference](server/cmd/allycli/README.md) for available system operations, or [CONTRIBUTING.md](CONTRIBUTING.md) to help build NeuxAlly. These documents are currently in Simplified Chinese.
 
 ---
 

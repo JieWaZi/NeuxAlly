@@ -6,8 +6,8 @@
       "upstreamPath": "internal/types/wiki_page.go",
       "sha256": "7df47d25fe2f984a9d46dab5c6244292a25562553e1a5676afafb8ff35215b66",
       "targetPath": "internal/domain/wiki_page.go",
-      "adaptation": "完整模型迁入；新增库内唯一slug、Wiki语言、唯一权威typed Evidence、人工位置/正文保护、系统主题与修订证据；页面Version保护所有写入；字段补中文注释。",
-      "targetSha256": "cdac6ac3586d3571b93356188ca856ef8771fc039fb9fbff7492a9b6ebf30fd9"
+      "adaptation": "完整模型迁入；新增库内唯一slug、Wiki语言、唯一权威typed Evidence、人工位置/正文保护、系统主题与修订证据；页面Version保护所有写入；字段补中文注释。 移除废弃问题计数投影；问题表结构仅供既有数据维护与明确清理。",
+      "targetSha256": "a6fa6a078b60ead4c055983ec475a74d2a86288f2c067e3a6ddc20e8eff4a2b2"
     },
     {
       "upstreamPath": "internal/types/json.go",
@@ -20,15 +20,15 @@
       "upstreamPath": "internal/application/repository/wiki_page.go",
       "sha256": "c4952e33cb18907747c1861c24dc604cf2036040292a4f2b55a579eb313d179a",
       "targetPath": "internal/store/wiki_page.go",
-      "adaptation": "完整仓储迁入；import裁剪；新增SQLite List/FindSimilarPages关键词分支与SearchAcross别名检索；metadata/autolink改CAS+历史事务；字段补中文注释；公开写入仍只经核心事务。",
-      "targetSha256": "7aa6fe863d355e151f3f23b1c18c68ec7a00b185642051b24f87cb903f5adf80"
+      "adaptation": "完整仓储迁入；import裁剪；新增SQLite List/FindSimilarPages关键词分支与SearchAcross别名检索；metadata/autolink改CAS+历史事务；字段补中文注释；公开写入仍只经核心事务。 移除没有生产调用的问题创建、读取、状态更新及旧清理包装。",
+      "targetSha256": "4f82a8d17abcfe7dd21b83fee7f3d61609cf2d7c6cc5475253e302530b8614bf"
     },
     {
       "upstreamPath": "internal/application/repository/wiki_page_test.go",
       "sha256": "931de90b4caacf6170565b8eaf0b2bb15be37ccac26072369a46c54dab25c083",
       "targetPath": "internal/store/wiki_page_test.go",
-      "adaptation": "完整原20项仓储测试迁入，import改纯Go驱动；仅测试DDL补本地新增字段，保留原行为断言。",
-      "targetSha256": "58fa29bcdc9c13e982fb4037d75cca85dd2d4d973a32b2820b27cbbc6c64c454"
+      "adaptation": "完整原20项仓储测试迁入，import改纯Go驱动；仅测试DDL补本地新增字段，保留原行为断言。 随废弃问题管理接口移除专属测试与旧清理断言，页面及目录删除边界保留。",
+      "targetSha256": "5be53fa860371457df9ea7536685151ffaeb11516e53ba418a3a67536b671526"
     },
     {
       "upstreamPath": "internal/application/service/wiki_linkify.go",
@@ -70,14 +70,14 @@
       "sha256": "07d5bb03150217b48ef91486bf8efde0498174042ce0b8bfc40248b6ded9c2d6",
       "targetPath": "internal/modelcontext/handle_table.go",
       "adaptation": "完整迁移；包名/import裁剪为独立核心，字段中文注释；仓储后续补SQLite关键词/别名与发布CAS适配。",
-      "targetSha256": "a7c261792f386e60ba316a2fe79f672810b4277442391baf3e307b97e3181561"
+      "targetSha256": "5508b6564fd70776d06741fbd2622c4ca9e50017104a62a1cc988d769244be7e"
     },
     {
       "upstreamPath": "internal/modelcontext/handles.go",
       "sha256": "24a75779c96d61a55768b17105f5dbb77e127c5751307d1cfa7a602bce25e411",
       "targetPath": "internal/modelcontext/handles.go",
       "adaptation": "完整迁移；包名/import裁剪为独立核心，字段中文注释；仓储后续补SQLite关键词/别名与发布CAS适配。",
-      "targetSha256": "e8885ffdfb02af70043bb6c9914e102da33a3047fafcbae6fbf67acdcb6af04a"
+      "targetSha256": "40a9366b8d33db46f6f3245bc7ebea029c69b529800e8845b7679f86aeb3a452"
     },
     {
       "upstreamPath": "internal/types/session.go",
@@ -90,8 +90,8 @@
       "upstreamPath": "internal/types/interfaces/wiki_page.go",
       "sha256": "6f7602edf521058735f91033283069ac2a6aeea808bcad71ba025dde9949ad8b",
       "targetPath": "internal/domain/interfaces/wiki_page.go",
-      "adaptation": "仅WikiPageRepository接口，去完整Service接口；沿已验证编译提取边界。",
-      "targetSha256": "71c2ded221ec91abc71296283f4736667d8e81f45e4c920519350677f304ef7d"
+      "adaptation": "仅WikiPageRepository接口，去完整Service接口；沿已验证编译提取边界。 移除没有生产调用的问题管理与旧清理接口。",
+      "targetSha256": "57c97d8533993fc6f8e44c6462b2b386543f3db07928f5fdcddc738baf42a9ee"
     },
     {
       "upstreamPath": "internal/application/repository/knowledge.go",
@@ -119,7 +119,7 @@
       "sha256": "f4554a9f3bc57dd401f44d46b5a5615f2f441809732c91cb6c152176b95bc396",
       "targetPath": "internal/wiki/wiki_links.go",
       "adaptation": "提取parseOutLinks真实算法；复用链接保护区段忽略代码示例，保存时派生出链和库内反链。",
-      "targetSha256": "0cf3ec72327f6b8ca618489c9a90b1f9169f33ab96e44257c86ccd014a42e05d"
+      "targetSha256": "f0479f7de5e8726231534b697c2f071c1407672fcaae2930fcd5c61650437531"
     },
     {
       "upstreamPath": "internal/infrastructure/chunker/fenced_code.go",
@@ -383,21 +383,21 @@
       "sha256": "703820b17e25b067d5ed5dd8d3ae2253a826bfbc342a94db317cf4ee7d4fc5f1",
       "targetPath": "internal/store/audit_log.go",
       "adaptation": "迁入List的默认50/上限100、精确过滤与id倒序游标规则，替换租户条件为库作用域；SQLite同事务读取与业务原子活动写入，不迁全局清理或deny滑动窗口。",
-      "targetSha256": "4f3809ed8bcf17883e5c7dba9078dabae368d99344a795e0ee708b86900d5c9b"
+      "targetSha256": "475439c35ba59299d32140cbf9b8e3f1008aac19737abb12d962177d29883a63"
     },
     {
       "upstreamPath": "internal/application/service/kb_activity.go",
       "sha256": "872688fac73b136818dfc159f0008b089c8f0d803212538cfe1be7a3289ee6c7",
       "targetPath": "internal/store/audit_log.go",
       "adaptation": "原样提取有界标题去重函数；复用任务/trigger/processing_status结果映射；主机Actor在Job冻结；原best-effort记录改为本地同库事务原子登记，详情采用本地显式白名单，不迁API-key/租户上下文。",
-      "targetSha256": "4f3809ed8bcf17883e5c7dba9078dabae368d99344a795e0ee708b86900d5c9b"
+      "targetSha256": "475439c35ba59299d32140cbf9b8e3f1008aac19737abb12d962177d29883a63"
     },
     {
       "upstreamPath": "internal/application/service/audit_log.go",
       "sha256": "3a0d01d236a4b3455c6af7f9b13d7122991585d5cf677ab8701429e32b8e0234",
       "targetPath": "internal/store/audit_log.go",
       "adaptation": "复用Log的空Outcome默认success及CreatedAt实际时间规则；本地业务提交要求活动失败回滚，未迁全局RBAC拒绝、保留期及后台清理服务。",
-      "targetSha256": "4f3809ed8bcf17883e5c7dba9078dabae368d99344a795e0ee708b86900d5c9b"
+      "targetSha256": "475439c35ba59299d32140cbf9b8e3f1008aac19737abb12d962177d29883a63"
     },
     {
       "upstreamPath": "internal/handler/audit_log.go",
@@ -810,6 +810,70 @@
       "functions": [],
       "adaptation": "原文件全部纯函数测试，types.Chunk换本地Chunk。",
       "targetSha256": "40a4fa50b6be9baa92511db5d42236d0742383b3438be532c291d6a023dc0658"
+    },
+    {
+      "upstreamPath": "internal/agent/tools/wiki_write_page.go",
+      "sha256": "b7544831604f97d278491a2ec2b0c6cccda12308c5863261c893cf14eed3a375",
+      "targetPath": "internal/store/wiki_maintenance.go",
+      "extracted": [
+        "normalizeAndValidateWikiSlug",
+        "wikiWritePageTool.Execute: summary namespace and agent attribution"
+      ],
+      "adaptation": "迁移slug规范化、字符白名单、系统摘要创建限制和Agent写入来源规则；工具路由与source_refs改由独立核心稳定ID、唯一Evidence和同库持久原文核验适配；正文、历史和回执复用现有事务与CAS。",
+      "targetSha256": "00cbae80d73722161d61fe320d746d8e6d4c126f35fa6bcf04480e5aeb5a31c1"
+    },
+    {
+      "upstreamPath": "internal/agent/tools/wiki_replace_text.go",
+      "sha256": "cf11c25f64b479203bc255e5ddd602586c6472ef704fc13e1c2b51a6ee31f351",
+      "targetPath": "internal/store/wiki_maintenance.go",
+      "extracted": [
+        "wikiReplaceTextTool.Execute: exact all-occurrence replacement and empty-match refusal"
+      ],
+      "adaptation": "迁移strings.Count/ReplaceAll全部精确匹配与未命中拒绝规则；明确替换允许删除表格行，保护片段同步精确变换并保留其他保护；证据可选完整替换仍经过核心验证。",
+      "targetSha256": "00cbae80d73722161d61fe320d746d8e6d4c126f35fa6bcf04480e5aeb5a31c1"
+    },
+    {
+      "upstreamPath": "internal/agent/tools/wiki_rename_page.go",
+      "sha256": "e116c3df38697e90672c72558a0196932a25de9fa9b9fcbef6ca672f4baa435e",
+      "targetPath": "internal/store/wiki_maintenance.go",
+      "extracted": [
+        "wikiRenamePageTool.Execute: plain and aliased incoming-link rewrite"
+      ],
+      "adaptation": "迁移[[slug]]与[[slug|alias]]链接级联规则；改用稳定页面ID原地重命名并以同一SQLite事务保存全部页面、历史、既有历史问题记录和回执，替代上游新建删除与补偿回滚。",
+      "targetSha256": "00cbae80d73722161d61fe320d746d8e6d4c126f35fa6bcf04480e5aeb5a31c1"
+    },
+    {
+      "upstreamPath": "internal/agent/tools/wiki_delete_page.go",
+      "sha256": "abfc6b4d9b1bf69834c34afde78d5ef56b4ff1916c39dd14b9a19e4170cc7dfd",
+      "targetPath": "internal/store/wiki_maintenance.go",
+      "extracted": [
+        "wikiDeletePageTool.Execute: readable-name and piped-link cleanup"
+      ],
+      "adaptation": "迁移普通链接转可读名称及别名链接保留标签规则；本地采用归档保留正文、证据及历史，级联链接清理与归档、回执同事务提交。",
+      "targetSha256": "00cbae80d73722161d61fe320d746d8e6d4c126f35fa6bcf04480e5aeb5a31c1"
+    },
+    {
+      "upstreamPath": "internal/agent/tools/wiki_replace_text_test.go",
+      "sha256": "6cf0ec1201cb9f4b9ea1a65af12502ccae450e39b2dd1dd7f4afad4eacfd40d7",
+      "targetPath": "core/page_maintenance_test.go",
+      "extracted": [
+        "TestWikiReplaceTextReplacesAllExactMatches",
+        "TestWikiReplaceTextExactMatchCases",
+        "TestWikiReplaceTextNotFoundDoesNotPersist"
+      ],
+      "adaptation": "迁移全部匹配、单次匹配、非递归、新文本为空、Unicode、Markdown及未命中拒绝断言，替换上游工具Fake为真实SQLite核心入口；补充幂等、版本、人工保护和关联链接验收。",
+      "targetSha256": "d625fb1ff41c55ef978c0c32d7ffdc57e2fc3e86279d13e68039f290165c8fb1"
+    },
+    {
+      "upstreamPath": "internal/agent/tools/wiki_write_page_test.go",
+      "sha256": "c709cc0f18ea50c148ff4e4ff57e909efb535946e0b5360f2340700d230b2a1f",
+      "targetPath": "core/page_maintenance_test.go",
+      "extracted": [
+        "TestNormalizeAndValidateWikiSlug",
+        "TestIsSummaryNamespace"
+      ],
+      "adaptation": "迁移规范化、CJK、分隔符及非法字符拒绝和系统摘要命名空间断言；本地增加预分配ID不能绕过系统摘要限制。",
+      "targetSha256": "d625fb1ff41c55ef978c0c32d7ffdc57e2fc3e86279d13e68039f290165c8fb1"
     }
   ],
   "localExtensions": [

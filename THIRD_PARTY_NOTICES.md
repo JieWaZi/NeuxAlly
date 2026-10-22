@@ -366,7 +366,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ## 独立知识核心与 WeKnora 迁移
 
+系统知识查询参考 `skills/ally/references/knowledge.md` 与内置维基研究员档案 `server/internal/builtinrolepreset/wiki_researcher.go` 借鉴并适配同一 WeKnora 固定提交的 `config/prompt_templates/agent_system_prompt.yaml`（`progressive_rag_agent`、`wiki_researcher`）、`internal/agent/grounding_prompt.go` 及公共回答规则。宿主使用自身 CLI、资源授权和伙伴档案机制，保留按证据缺口继续查阅、核验原件与区分事实和推断的原则；适用下方所述 MIT 许可。
+
 `third_party/neux-knowledge/` 是独立 `github.com/JieWaZi/neux-knowledge` 的生成源码快照，由 `scripts/sync-knowledge-core.mjs` 和逐文件 SHA-256 清单固定。该核心迁入 Tencent/WeKnora 固定提交 `8776a2d92d11ad3e76865d51cf3192e37e2a9976` 的实际 Wiki 仓储、模型、Map/Cite/Dedup/Taxonomy/Reduce 与链接处理，并适配 SQLite、原件版本及原子发布。迁移来源和修改边界见 [核心来源说明](third_party/neux-knowledge/THIRD_PARTY_NOTICES.md) 和 `upstream/` 清单；完整许可随快照保留。迁入分块等新增范围仍以同一固定提交与来源清单核对，不混用其他版本。
+
+Wiki 维护工具迁入同一固定提交的 `wiki_write_page`、`wiki_replace_text`、`wiki_rename_page`、`wiki_delete_page` 规则及对应测试，适配稳定页面身份、SQLite 事务、人工保护和版本比较。宿主的 `skills/ally/references/wiki-maintenance.md` 适配 `config/prompt_templates/agent_system_prompt.yaml` 中的 `wiki_fixer` 流程，命令名称和证据边界改用既有 allycli；版权仍属 Tencent，适用同一上游 MIT 许可。
 
 前端分块设置沿用同一固定提交的 `frontend/src/views/knowledge/settings/KBChunkingSettings.vue`，Vue/TDesign 控件适配为宿主共享表单、滑块与选择器。索引目录的 Markdown 拼接迁自 `frontend/src/views/knowledge/wiki/WikiBrowser.vue` 的 `appendIndexDirectoryLines`，适配为宿主共享 Markdown 渲染与页面链接导航。版权仍属于原权利人，适用同一上游许可。后端分块诊断迁移范围与必要适配登记于核心来源清单。
 

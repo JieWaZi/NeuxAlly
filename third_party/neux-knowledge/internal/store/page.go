@@ -99,7 +99,7 @@ func validateEvidence(tx *gorm.DB, l *types.Library, p *types.WikiPage, allowed 
 	p.SourceRefs = derived
 	return nil
 }
-func preparePage(tx *gorm.DB, l *types.Library, p *types.WikiPage, existing *types.WikiPage, generated bool, allowed map[string]bool) error {
+func preparePage(tx *gorm.DB, l *types.Library, p *types.WikiPage, existing *types.WikiPage, generated bool, allowed map[string]bool, edit pageEdit) error {
 	if p.KnowledgeBaseID != "" && p.KnowledgeBaseID != l.ID {
 		return fail(types.ErrScopeViolation, "page.write", "page belongs to another library")
 	}
@@ -125,20 +125,26 @@ func preparePage(tx *gorm.DB, l *types.Library, p *types.WikiPage, existing *typ
 		return fail(types.ErrCandidateInvalid, "page.write", "wiki language mismatch")
 	}
 	if existing != nil {
-		if p.Slug != existing.Slug {
+		if p.Slug != existing.Slug && !edit.rename {
 			return fail(types.ErrInvalid, "page.write", "stable page slug cannot be changed")
 		}
 		if generated {
 			if existing.ManualPlacement && (p.FolderID != existing.FolderID || p.SortOrder != existing.SortOrder || p.Title != existing.Title) {
 				return fail(types.ErrManualProtected, "page.write", "manual page placement is protected")
 			}
-			for _, text := range existing.ProtectedContent {
+			protection := append(types.StringArray(nil), existing.ProtectedContent...)
+			if edit.rewrite != nil {
+				for i, text := range protection {
+					protection[i] = edit.rewrite(text)
+				}
+			}
+			for _, text := range protection {
 				if !strings.Contains(p.Content, text) {
 					return fail(types.ErrManualProtected, "page.write", "manual content is protected")
 				}
 			}
 			p.ManualPlacement = existing.ManualPlacement
-			p.ProtectedContent = existing.ProtectedContent
+			p.ProtectedContent = protection
 		}
 	}
 	if !generated {
@@ -148,6 +154,13 @@ func preparePage(tx *gorm.DB, l *types.Library, p *types.WikiPage, existing *typ
 		}
 	} else {
 		p.LastEditSource = "pipeline"
+		if edit.agent {
+			p.LastEditSource = types.WikiEditSourceAgent
+			if existing == nil {
+				p.ProtectedContent = nil
+				p.ManualPlacement = false
+			}
+		}
 	}
 	if allowed != nil && existing != nil {
 		local := map[string]bool{}
@@ -161,6 +174,14 @@ func preparePage(tx *gorm.DB, l *types.Library, p *types.WikiPage, existing *typ
 	}
 	if err := validateEvidence(tx, l, p, allowed); err != nil {
 		return err
+	}
+	if edit.agent {
+		if err := validateAgentEvidence(tx, l, p, existing); err != nil {
+			return err
+		}
+		if existing != nil && edit.rewrite == nil && !edit.rename && p.Status != "archived" && len(wiki.MissingRowIdentities(existing.Content, p.Content)) > 0 {
+			return fail(types.ErrCandidateInvalid, "page.agent-write", "whole page write dropped stored table rows; use exact replacement for deliberate removal")
+		}
 	}
 	p.CategoryPath = nil
 	p.Depth = 0
@@ -179,6 +200,10 @@ func revisionOf(p *types.WikiPage) *types.WikiPageRevision {
 	return &types.WikiPageRevision{ID: newID(), KnowledgeBaseID: p.KnowledgeBaseID, PageID: p.ID, Slug: p.Slug, Version: p.Version, Title: p.Title, PageType: p.PageType, Status: p.Status, Content: p.Content, Summary: p.Summary, Aliases: p.Aliases, EditSource: p.LastEditSource, EditorID: p.LastEditorID, EditedAt: p.UpdatedAt, CreatedAt: time.Now(), WikiLanguage: p.WikiLanguage, Evidence: p.Evidence, SourceRefs: p.SourceRefs, ChunkRefs: p.ChunkRefs, PageMetadata: p.PageMetadata, ProtectedContent: p.ProtectedContent}
 }
 func writePage(tx *gorm.DB, l *types.Library, p *types.WikiPage, expected int, generated bool, allowed map[string]bool) (bool, error) {
+	return writePageWithEdit(tx, l, p, expected, generated, allowed, pageEdit{})
+}
+
+func writePageWithEdit(tx *gorm.DB, l *types.Library, p *types.WikiPage, expected int, generated bool, allowed map[string]bool, edit pageEdit) (bool, error) {
 	var old *types.WikiPage
 	if p.ID != "" {
 		var err error
@@ -193,7 +218,7 @@ func writePage(tx *gorm.DB, l *types.Library, p *types.WikiPage, expected int, g
 	} else if expected != 0 {
 		return false, fail(types.ErrVersionConflict, "page.write", "new page requires version zero")
 	}
-	if err := preparePage(tx, l, p, old, generated, allowed); err != nil {
+	if err := preparePage(tx, l, p, old, generated, allowed, edit); err != nil {
 		return false, err
 	}
 	p.UpdatedAt = time.Now()
@@ -216,6 +241,9 @@ func writePage(tx *gorm.DB, l *types.Library, p *types.WikiPage, expected int, g
 	// 上游 CAS 保存正文及派生引用；本地新增权威证据属于同一事务和版本。
 	evidence, _ := json.Marshal(p.Evidence)
 	err := tx.Model(&types.WikiPage{}).Where("id = ? AND version = ?", p.ID, p.Version).Updates(map[string]any{"wiki_language": p.WikiLanguage, "evidence": string(evidence), "manual_placement": p.ManualPlacement, "protected_content": p.ProtectedContent}).Error
+	if err == nil && edit.rename {
+		err = tx.Model(&types.WikiPage{}).Where("knowledge_base_id = ? AND id = ? AND version = ?", l.ID, p.ID, p.Version).Update("slug", p.Slug).Error
+	}
 	return old.FolderID != p.FolderID || old.SortOrder != p.SortOrder || old.ManualPlacement != p.ManualPlacement, err
 }
 

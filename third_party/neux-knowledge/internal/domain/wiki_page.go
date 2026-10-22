@@ -899,14 +899,11 @@ type WikiStats struct {
 	RecentUpdates []*WikiPage `json:"recent_updates"` // last N updated pages
 	// PendingTasks 仍待处理的来源数量。
 	PendingTasks int64 `json:"pending_tasks" extensions:"x-agent"` // number of documents waiting to be ingested
-	// PendingIssues 尚未解决的知识问题数量。
-	PendingIssues int64 `json:"pending_issues" extensions:"x-agent"` // number of pending wiki issues
 	// IsActive 当前是否存在实际进行中的整理。
 	IsActive bool `json:"is_active" extensions:"x-agent"` // whether wiki ingestion is currently running
 }
 
-// WikiPageIssue represents an issue flagged on a specific wiki page.
-// These issues are typically identified by agents or linters and stored for review.
+// WikiPageIssue 保留既有问题记录的表结构，供页面重命名和明确清理同步历史数据。
 type WikiPageIssue struct {
 	// ID 稳定记录标识。
 	ID string `json:"id" gorm:"type:varchar(36);primaryKey" extensions:"x-agent=issue_id"`
@@ -922,7 +919,7 @@ type WikiPageIssue struct {
 	Description string `json:"description" gorm:"type:text" extensions:"x-agent"`
 	// SuspectedKnowledgeIDs 需要核查的可疑来源标识。
 	SuspectedKnowledgeIDs StringArray `json:"suspected_knowledge_ids" gorm:"type:json" extensions:"x-agent=knowledge_ids"`
-	// Status 页面或问题的当前状态。
+	// Status 历史问题记录的状态。
 	Status string `json:"status" gorm:"type:varchar(20);default:'pending';index" extensions:"x-agent"`
 	// ReportedBy 实际报告问题的主体。
 	ReportedBy string `json:"reported_by" gorm:"type:varchar(100)" extensions:"x-agent"`

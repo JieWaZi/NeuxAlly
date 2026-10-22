@@ -97,6 +97,18 @@ func (p *frozenKnowledgeReads) Source(ctx context.Context, ref bridge.ResourceRe
 	return remote.Source(ctx, ref, id)
 }
 
+// ExtendedRead 复用同一冻结连接校验，不在远端失败时读取本机同名库。
+func (p *frozenKnowledgeReads) ExtendedRead(ctx context.Context, ref bridge.ResourceRef, operation string, params map[string]any) (map[string]any, error) {
+	if ref.Backend == "local" {
+		return p.Local.ExtendedRead(ctx, ref, operation, params)
+	}
+	provider, err := p.remote(ctx, ref)
+	if err != nil {
+		return nil, err
+	}
+	return provider.ExtendedRead(ctx, ref, operation, params)
+}
+
 func (s *Service) freezeReadProvider(ctx context.Context) (*frozenKnowledgeReads, error) {
 	out := &frozenKnowledgeReads{Local: bridge.LocalReadProvider{Engine: s.config.Engine, FreezeEmbedder: s.config.FreezeEmbedder}, Connections: s.config.Connections, Snapshots: map[string]models.KnowledgeConnection{}}
 	if s.config.Connections == nil {

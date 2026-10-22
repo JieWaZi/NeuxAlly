@@ -495,6 +495,12 @@ func loadChat(ctx context.Context, configuration *Configuration, handlerFactory 
 		return mapCoreError("start_chat_service", status_error.CoreChatInitializationFailed, err)
 	}
 	executionCore, err := execution.New(execution.Config{
+		ValidateIntent: func(ctx context.Context, intent execution.WorkIntent) error {
+			if KnowledgeService == nil {
+				return nil
+			}
+			return KnowledgeService.ValidateWorkIntent(ctx, intent)
+		},
 		AcquireTeamChatInput: func(ctx context.Context, chatID string, userInput bool) (context.Context, func(), error) {
 			if ChannelService == nil {
 				return ctx, func() {}, nil

@@ -135,8 +135,8 @@ func TestWorkflowReusesAllyAndStartsAnOrdinaryChat(t *testing.T) {
 		t.Fatalf("built-in creation: %+v %v", definition, err)
 	}
 	waker, err := s.Wakers.Get(ctx, definition.CreationWakerID)
-	if err != nil || waker.Name != "NeuxAlly" || waker.RoleName != "私人助理" {
-		t.Fatalf("workflow did not reuse NeuxAlly: %+v %v", waker, err)
+	if err != nil || waker.Name != "lumi" || waker.RoleName != "私人助理" {
+		t.Fatalf("workflow did not reuse lumi: %+v %v", waker, err)
 	}
 	listed, err := s.Wakers.List(ctx, "", 100, 0)
 	if err != nil {
@@ -152,7 +152,7 @@ func TestWorkflowReusesAllyAndStartsAnOrdinaryChat(t *testing.T) {
 		}
 	}
 	if !visible {
-		t.Fatal("existing NeuxAlly partner missing from the partner page")
+		t.Fatal("existing lumi partner missing from the partner page")
 	}
 	encoded, err := json.Marshal(definition)
 	if err != nil {

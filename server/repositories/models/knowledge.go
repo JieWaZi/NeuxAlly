@@ -64,6 +64,8 @@ type KnowledgeOperationLink struct {
 	KnowledgeBaseID string `gorm:"index:idx_knowledge_operation_ref,priority:3" json:"knowledgeBaseId"`
 	// ResourceID 是核心回执确认的资源身份。
 	ResourceID string `json:"resourceId"`
+	// ExpectedResourceID 冻结写入前已知的目标身份，供未知结果对账校验，不代表已提交。
+	ExpectedResourceID string `json:"-"`
 	// JobID 是核心知识任务引用。
 	JobID string `gorm:"index" json:"jobId"`
 	// ChatID 是用户通过普通聊天发起操作时的聊天引用。

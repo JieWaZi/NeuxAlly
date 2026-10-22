@@ -40,7 +40,7 @@ func TestEnsureDefaultsSeedsPersonalAssistantWaker(t *testing.T) {
 	if waker.Avatar != constants.PersonalAssistantAvatar {
 		t.Fatalf("avatar = %q", waker.Avatar)
 	}
-	if waker.Name != "NeuxAlly" || waker.RoleName != "私人助理" {
+	if waker.Name != "lumi" || waker.RoleName != "私人助理" {
 		t.Fatalf("unexpected waker: %+v", waker)
 	}
 }

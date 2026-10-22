@@ -202,7 +202,9 @@ export function KnowledgeWikiHistory({
                             ? "pipelineEdit"
                             : entry.editSource === "revert"
                               ? "restoreEdit"
-                              : "unknownEdit",
+                              : entry.editSource === "agent"
+                                ? "agentEdit"
+                                : "unknownEdit",
                       )}
                     </span>
                     <WikiTime value={entry.editedAt} />

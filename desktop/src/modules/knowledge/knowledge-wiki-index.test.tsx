@@ -75,6 +75,7 @@ it.each(["ready", "switch", "failure"] as const)(
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <KnowledgeWikiView
+            onMaintenance={() => {}}
             resource={{
               backend: "local",
               connectionId: "local",
@@ -159,6 +160,7 @@ it("索引生成的Markdown继续复用链接净化，正文HTML不执行", asyn
     >
       <TooltipProvider>
         <KnowledgeWikiView
+          onMaintenance={() => {}}
           resource={{
             backend: "local",
             connectionId: "local",

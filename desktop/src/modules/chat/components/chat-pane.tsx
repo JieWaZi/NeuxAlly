@@ -36,12 +36,14 @@ import { getWakerOptions } from "@/shared/api/generated/@tanstack/react-query.ge
 export function ChatPane({
   scopeKey,
   chatId,
+  wakerId: initialWakerId,
   title,
   defaults,
   draft,
   emptyState,
   centered = false,
   showComposer = true,
+  allowExecutionRetry = true,
   isHistoryLoading = false,
   onSend,
   onAccepted,
@@ -52,12 +54,16 @@ export function ChatPane({
 }: {
   scopeKey: string;
   chatId?: string;
+  /** 新会话在接纳前绑定伙伴，接纳后以 Chat 的真实身份为准。 */
+  wakerId?: string;
   title: string;
   defaults?: ExecutionSelection;
   draft?: string;
   emptyState?: ReactNode;
   centered?: boolean;
   showComposer?: boolean;
+  /** 受限工作入口可关闭原生重试，改由其专用发送入口重新接纳。 */
+  allowExecutionRetry?: boolean;
   /** 上层入口尚在解析 Chat 身份时，只延长消息区的加载状态。 */
   isHistoryLoading?: boolean;
   onSend: (
@@ -93,7 +99,7 @@ export function ChatPane({
     ...chatMessagesInfiniteOptions(chatId || "pending"),
     enabled: active && Boolean(chatId),
   });
-  const wakerId = detail.data?.chat?.wakerId;
+  const wakerId = detail.data?.chat?.wakerId || initialWakerId;
   const partner = useQuery({
     ...getWakerOptions({ path: { wakerId: wakerId || "pending" } }),
     enabled: active && Boolean(wakerId),
@@ -226,6 +232,7 @@ export function ChatPane({
   return (
     <ChatThread
       runtime={state.runtime}
+      wakerId={wakerId}
       wakerName={partner.data?.name || title}
       wakerAvatar={partner.data?.avatar}
       isRunning={state.isRunning}
@@ -289,7 +296,7 @@ export function ChatPane({
         chatId || scopeKey,
         `chat:${chatId ?? "pending"}`,
       ]}
-      onRetryExecution={state.retryExecution}
+      onRetryExecution={allowExecutionRetry ? state.retryExecution : undefined}
       contextMetrics={state.contextMetrics}
       hasEarlierMessages={Boolean(history.hasNextPage)}
       isLoadingEarlier={history.isFetchingNextPage}

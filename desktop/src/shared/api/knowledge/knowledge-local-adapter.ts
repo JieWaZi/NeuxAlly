@@ -42,6 +42,7 @@ export function localKnowledgeAdapter(ref: ResourceRef) {
       "localConfiguration",
       "activity",
       "graph",
+      "maintenanceChat",
     ];
     return {
       operations: Object.fromEntries(keys.map((key) => [key, true])),
@@ -129,6 +130,9 @@ export function localKnowledgeAdapter(ref: ResourceRef) {
       api.resumeJob<true>(scope(options)),
     retryJob: (options: KnowledgeOptions<typeof api.retryJob>) =>
       api.retryJob<true>(scope(options)),
+    sendMaintenanceMessage: (
+      options: KnowledgeOptions<typeof api.sendMaintenanceMessage>,
+    ) => api.sendMaintenanceMessage<true>(scope(options)),
     listPages: (options: KnowledgeOptions<typeof api.listPages>) =>
       api.listPages<true>(scope(options)),
     getPageBySlug: (options: KnowledgeOptions<typeof api.getPageBySlug>) =>

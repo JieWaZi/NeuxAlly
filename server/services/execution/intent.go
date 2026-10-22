@@ -159,6 +159,11 @@ func (m *service) Start(
 	ctx context.Context,
 	intent WorkIntent,
 ) (AcceptedExecution, error) {
+	if m.validateIntent != nil {
+		if err := m.validateIntent(ctx, intent); err != nil {
+			return AcceptedExecution{}, err
+		}
+	}
 	if intent.RetryExecutionID != "" {
 		return m.retryExecution(ctx, strings.TrimSpace(intent.Chat.ChatID), strings.TrimSpace(intent.RetryExecutionID))
 	}

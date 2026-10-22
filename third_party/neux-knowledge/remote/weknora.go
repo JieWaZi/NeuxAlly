@@ -90,7 +90,7 @@ func (c *WeKnora) Capabilities() map[string]Capability {
 	for _, op := range []string{"libraries", "pages", "folders", "graph", "revisions", "search", "sources", "source_download"} {
 		caps[op] = Capability{Supported: true, Permission: "unknown"}
 	}
-	for _, op := range []string{"libraryDelete", "library_delete", "raw_upload", "organize", "archive", "atomic_restore", "versioned_edit", "software_rules", "manual_placement_protection", "no_source_summaries"} {
+	for _, op := range []string{"write", "agentWrite", "replaceText", "renamePage", "deletePage", "libraryDelete", "library_delete", "raw_upload", "organize", "archive", "atomic_restore", "versioned_edit", "software_rules", "manual_placement_protection", "no_source_summaries"} {
 		caps[op] = Capability{Permission: "unknown", Reason: "official_profile_has_no_verified_custom_contract"}
 	}
 	return caps

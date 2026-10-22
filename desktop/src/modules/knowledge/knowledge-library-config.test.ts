@@ -1,7 +1,7 @@
 import { defaultLibraryChunkingConfig } from "./knowledge-model";
 import { describe, expect, it } from "vitest";
+import { buildCreateLibraryBody } from "./knowledge-library-write-body";
 import {
-  buildCreateLibraryBody,
   readLibraryIndexingStrategy,
   readLibraryWikiSettings,
 } from "./knowledge-library-config";

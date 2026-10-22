@@ -183,6 +183,11 @@ func appendMutationActivity(ctx context.Context, tx *gorm.DB, r *types.Receipt, 
 	case "library.update":
 		// UpdateLibrary 持有同事务旧值并登记真实字段差异，此处不重复登记。
 		return nil
+	case "page.agent-write", "page.replace-text", "page.rename", "page.delete":
+		// 维护动作与正文、级联页面及回执共享事务；原请求重放不重复记活动。
+		action = types.AuditActionWikiContentChanged
+		targetType, targetID = "wiki", r.LibraryID
+		details["count"] = len(r.PageIDs)
 	case "source.import":
 		action = types.AuditActionKnowledgeCreated
 		targetType = "knowledge"

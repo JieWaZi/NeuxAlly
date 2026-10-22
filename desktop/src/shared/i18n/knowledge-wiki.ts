@@ -1,4 +1,15 @@
 export const knowledgeWikiZh = {
+  maintenanceContinue: "修订中断后，可在此继续发送修订要求。",
+  maintenanceAttachments:
+    "修订只核查库中来源，请先移除附件；新增资料需先导入知识库。",
+  aiRevise: "AI 修订",
+  maintenanceHelp:
+    "围绕「{{title}}」修订 Wiki。伙伴会回读页面与来源，最小修改后核验结果，页面保留历史版本。",
+  maintenanceContext: "当前页：{{title}} · 版本 {{version}}",
+  maintenanceDraft: "请检查当前页面，依据原始资料核实后进行必要的最小修订。",
+  maintenanceFailed: "未能接纳修订，请重试；输入已保留。",
+  agentEdit: "AI 修订",
+
   references: "页面引用",
   linkedFrom: "被链接",
   sourceDocuments: "来源文档",
@@ -106,6 +117,20 @@ export const knowledgeWikiZh = {
   refreshing: "正在刷新 Wiki…",
 } as const;
 export const knowledgeWikiEn: Record<keyof typeof knowledgeWikiZh, string> = {
+  maintenanceContinue:
+    "If a revision stops, send further revision instructions here.",
+  maintenanceAttachments:
+    "Revisions use sources already in this library. Remove attachments and import new documents first.",
+  aiRevise: "AI revision",
+  maintenanceHelp:
+    "Revise \u201c{{title}}\u201d using its original sources. The partner will verify minimal changes; page history is retained.",
+  maintenanceContext: "Current page: {{title}} \u00b7 version {{version}}",
+  maintenanceDraft:
+    "Review the current page, verify its original sources, and make the necessary minimal revisions.",
+  maintenanceFailed:
+    "Revision was not accepted. Your input is preserved; retry.",
+  agentEdit: "AI revision",
+
   references: "Page references",
   linkedFrom: "Linked from",
   sourceDocuments: "Source documents",

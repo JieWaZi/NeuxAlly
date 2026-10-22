@@ -368,3 +368,16 @@ it("远端快照未保留时不显示恢复；切换版本后迟到响应不覆�
     "首版正文",
   );
 });
+
+it("AI维护修订在历史中标记实际Agent来源", async () => {
+  show();
+  server.use(
+    http.get(`${root}/pages/one/revisions`, () =>
+      HttpResponse.json({
+        items: [{ ...revisions[0], editSource: "agent" }],
+        total: 1,
+      }),
+    ),
+  );
+  await screen.findByText("AI 修订");
+});

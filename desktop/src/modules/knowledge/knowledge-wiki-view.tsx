@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { trackHorizontalDrag } from "@/shared/lib/horizontal-drag";
 import { VerticalResizeHandle } from "@/shared/ui/vertical-resize-handle";
 import { useQuery } from "@tanstack/react-query";
-import { History, Pencil, Trash2 } from "lucide-react";
+import { History, Pencil, Trash2, Sparkles } from "lucide-react";
 import { defaultRemarkPlugins } from "streamdown";
 import {
   remarkWikiLinks,
@@ -58,6 +58,7 @@ export function KnowledgeWikiView({
   writable,
   structureVersion,
   commands: sharedCommands,
+  onMaintenance,
 }: {
   resource: ResourceRef;
   pageId: string;
@@ -65,6 +66,7 @@ export function KnowledgeWikiView({
   writable: boolean;
   structureVersion: number;
   commands?: KnowledgeWikiCommands;
+  onMaintenance: (page: WikiPage) => void;
 }) {
   const t = useWikiCopy();
   const adapter = knowledgeAdapter(resource);
@@ -72,6 +74,8 @@ export function KnowledgeWikiView({
   const commands = sharedCommands ?? localCommands;
   const keyFor = (operation: string) => `${resourceKey(resource)}:${operation}`;
   const [actionError, setActionError] = useState("");
+  const beginMaintenance = (targetPage: WikiPage) =>
+    void act("maintenanceChat", () => onMaintenance(targetPage));
   const [folderAction, setFolderAction] = useState<{
     kind: "rename" | "delete";
     folder: WikiTheme;
@@ -195,8 +199,15 @@ export function KnowledgeWikiView({
   const pageActions = currentPage?.id ? (
     <>
       {editable && (
-        <PageAction
-          intent="edit"
+        <IconAction
+          icon={Sparkles}
+          label={t("aiRevise")}
+          onClick={() => beginMaintenance(currentPage)}
+        />
+      )}
+      {editable && (
+        <IconAction
+          icon={Pencil}
           label={t("edit")}
           onClick={() =>
             void act(
@@ -210,9 +221,7 @@ export function KnowledgeWikiView({
               keyFor(`page:edit:${page.data?.id}`),
             )
           }
-        >
-          <Pencil />
-        </PageAction>
+        />
       )}
       <IconAction
         icon={History}

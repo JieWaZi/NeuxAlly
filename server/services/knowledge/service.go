@@ -487,6 +487,17 @@ func (s *Service) currentResources(ctx context.Context) ([]bridge.ResourceRef, e
 
 // AgentBindings 冻结普通执行可见库；整理通过CLI选择当前消息范围并逐次校验。
 func (s *Service) AgentBindings(ctx context.Context, chat models.Chat) []agentcapability.Binding {
+	maintenance, err := s.maintenanceChatLink(ctx, chat.ID)
+	if err != nil {
+		return deniedKnowledgeReads(err)
+	}
+	if maintenance != nil {
+		bindings, err := s.MaintenanceBindings(ctx, chat, bridge.ResourceRef{Backend: maintenance.Backend, ConnectionID: maintenance.ConnectionID, KnowledgeBaseID: maintenance.KnowledgeBaseID}, maintenance.ResourceID)
+		if err != nil {
+			return deniedKnowledgeReads(err)
+		}
+		return bindings
+	}
 	provider, err := s.freezeReadProvider(ctx)
 	if err != nil {
 		return deniedKnowledgeReads(err)
@@ -509,6 +520,7 @@ func (s *Service) AgentBindings(ctx context.Context, chat models.Chat) []agentca
 	}
 	if chat.ID != "" && chat.WakerID != "" && chat.ActiveExecutionID != "" {
 		bindings = append(bindings, s.chatOrganizeBinding(ctx, chat, refs))
+		bindings = append(bindings, s.wikiBindings(ctx, chat, refs, provider, "")...)
 	}
 	return bindings
 }

@@ -46,3 +46,23 @@ func (e *Engine) WriteTheme(ctx context.Context, in WriteThemeInput) (*Receipt, 
 func (e *Engine) ListThemes(ctx context.Context, libraryID string) ([]*Theme, error) {
 	return e.store.ListThemes(ctx, libraryID)
 }
+
+// WriteAgentPage 保存智能体页面内容并保留已有人工保护。
+func (e *Engine) WriteAgentPage(ctx context.Context, in WritePageInput) (*Receipt, error) {
+	return e.store.WriteAgentPage(ctx, in)
+}
+
+// ReplacePageText 精确替换全部匹配文本并原子保存证据与历史。
+func (e *Engine) ReplacePageText(ctx context.Context, in ReplacePageTextInput) (*Receipt, error) {
+	return e.store.ReplacePageText(ctx, in)
+}
+
+// RenamePage 保持页面稳定身份并原子级联可读链接。
+func (e *Engine) RenamePage(ctx context.Context, in RenamePageInput) (*Receipt, error) {
+	return e.store.RenamePage(ctx, in)
+}
+
+// DeletePage 归档当前页面并原子清理入链，保留修订历史。
+func (e *Engine) DeletePage(ctx context.Context, in DeletePageInput) (*Receipt, error) {
+	return e.store.DeletePage(ctx, in)
+}

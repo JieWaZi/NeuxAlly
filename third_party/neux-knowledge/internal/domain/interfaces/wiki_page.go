@@ -204,19 +204,4 @@ type WikiPageRepository interface {
 	// DELETE — same semantics as DeleteRevisionsByPage but scoped to the
 	// whole KB.
 	DeleteRevisionsByKnowledgeBaseID(ctx context.Context, tenantID uint64, kbID string) error
-
-	// DeleteIssuesByKnowledgeBaseID soft-deletes all wiki page issues for
-	// tenantID+kbID. Issues reference the KB and must be cleaned up
-	// alongside pages to avoid orphans.
-	DeleteIssuesByKnowledgeBaseID(ctx context.Context, tenantID uint64, kbID string) error
-
-	// CreateIssue inserts a new wiki page issue record.
-	CreateIssue(ctx context.Context, issue *types.WikiPageIssue) error
-
-	// ListIssues retrieves issues with optional filtering by slug and status.
-	ListIssues(ctx context.Context, kbID string, slug string, status string) ([]*types.WikiPageIssue, error)
-
-	// UpdateIssueStatus updates the status of an issue of kbID; ErrWikiIssueNotFound
-	// when no such issue belongs to it.
-	UpdateIssueStatus(ctx context.Context, kbID string, issueID string, status string) error
 }
