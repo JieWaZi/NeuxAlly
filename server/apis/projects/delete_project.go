@@ -34,9 +34,16 @@ func (d *DeleteProject) Output(ctx *gin.Context) (interface{}, error) {
 			map[string]interface{}{"ProjectID": d.ProjectID},
 		))
 	}
-	err = global.TransactionControllerManager.Transaction(ctx, func(transactionContext context.Context) error {
-		return global.ProjectControllerManager.Delete(transactionContext, d.ProjectID)
-	})
+	run := func() error {
+		return global.TransactionControllerManager.Transaction(ctx, func(transactionContext context.Context) error {
+			return global.ProjectControllerManager.Delete(transactionContext, d.ProjectID)
+		})
+	}
+	if global.KnowledgeService != nil {
+		err = global.KnowledgeService.WithPolicyWrite(run)
+	} else {
+		err = run()
+	}
 	if err != nil {
 		return nil, ginx.WithStack(err)
 	}

@@ -84,46 +84,53 @@ func (d *DeleteWaker) Output(ctx *gin.Context) (interface{}, error) {
 		}
 		offset += len(page)
 	}
-	err = global.TransactionControllerManager.Transaction(
-		ctx,
-		func(transactionContext context.Context) error {
-			if global.AutomaticTaskControllerManager != nil {
-				if err := global.AutomaticTaskControllerManager.DeleteByWaker(transactionContext, d.WakerID); err != nil {
+	run := func() error {
+		return global.TransactionControllerManager.Transaction(
+			ctx,
+			func(transactionContext context.Context) error {
+				if global.AutomaticTaskControllerManager != nil {
+					if err := global.AutomaticTaskControllerManager.DeleteByWaker(transactionContext, d.WakerID); err != nil {
+						return err
+					}
+				}
+				if err := global.ProjectControllerManager.DeleteByWaker(
+					transactionContext,
+					d.WakerID,
+				); err != nil {
 					return err
 				}
-			}
-			if err := global.ProjectControllerManager.DeleteByWaker(
-				transactionContext,
-				d.WakerID,
-			); err != nil {
-				return err
-			}
-			if err := global.ProfileDocumentControllerManager.DeleteWakerDocuments(
-				transactionContext,
-				d.WakerID,
-			); err != nil {
-				return err
-			}
-			if err := global.SkillControllerManager.DeleteByWaker(
-				transactionContext,
-				d.WakerID,
-			); err != nil {
-				return err
-			}
-			if err := global.MCPConnectorControllerManager.DeleteByWaker(
-				transactionContext,
-				d.WakerID,
-			); err != nil {
-				return err
-			}
-			if global.PluginControllerManager != nil {
-				if err := global.PluginControllerManager.DeleteByWaker(transactionContext, d.WakerID); err != nil {
+				if err := global.ProfileDocumentControllerManager.DeleteWakerDocuments(
+					transactionContext,
+					d.WakerID,
+				); err != nil {
 					return err
 				}
-			}
-			return global.WakerControllerManager.Delete(transactionContext, d.WakerID)
-		},
-	)
+				if err := global.SkillControllerManager.DeleteByWaker(
+					transactionContext,
+					d.WakerID,
+				); err != nil {
+					return err
+				}
+				if err := global.MCPConnectorControllerManager.DeleteByWaker(
+					transactionContext,
+					d.WakerID,
+				); err != nil {
+					return err
+				}
+				if global.PluginControllerManager != nil {
+					if err := global.PluginControllerManager.DeleteByWaker(transactionContext, d.WakerID); err != nil {
+						return err
+					}
+				}
+				return global.WakerControllerManager.Delete(transactionContext, d.WakerID)
+			},
+		)
+	}
+	if global.KnowledgeService != nil {
+		err = global.KnowledgeService.WithPolicyWrite(run)
+	} else {
+		err = run()
+	}
 	if err != nil {
 		return nil, ginx.WithStack(err)
 	}

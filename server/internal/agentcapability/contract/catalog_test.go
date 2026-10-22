@@ -2,10 +2,26 @@ package contract
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/JieWaZi/NeuxAlly/server/constants"
 )
+
+func TestKnowledgeStartAcceptsChatSelectionAndRejectsInvalidAttachmentIndexes(t *testing.T) {
+	op, _ := Find("knowledge.jobs.start")
+	if err := op.Validate(map[string]any{"libraryId": "library", "backend": "local", "connectionId": "local", "attachmentIndexes": []int{1}, "message": "Organize by topic"}); err != nil {
+		t.Fatalf("natural chat request rejected: %v", err)
+	}
+	if err := op.Validate(map[string]any{}); err != nil {
+		t.Fatalf("preauthorized maintenance request rejected: %v", err)
+	}
+	for _, indexes := range []any{[]int{-1}, []int{0, 0}, []float64{0.5}, []string{"file.md"}} {
+		if op.Validate(map[string]any{"libraryId": "library", "attachmentIndexes": indexes}) == nil {
+			t.Fatalf("invalid indexes accepted: %v", indexes)
+		}
+	}
+}
 
 func TestMemoryScopeContractsDistinguishSearchAndOwnership(t *testing.T) {
 	search, _ := Find("memory.entries.search")
@@ -74,5 +90,18 @@ func TestWorkflowSDKTopicsAreDiscoveredAndCheckedByKind(t *testing.T) {
 	if prepare.Validate(map[string]any{"primitives": []string{}}) == nil ||
 		prepare.Validate(map[string]any{"primitives": []string{"functionTask"}, "features": []string{"unknown"}}) == nil {
 		t.Fatal("preparation accepted missing primitives or an unknown feature")
+	}
+}
+
+func TestKnowledgeCommandsMatchCurrentChatBoundary(t *testing.T) {
+	ids := []string{}
+	for _, operation := range Operations() {
+		if strings.HasPrefix(operation.ID, "knowledge.") {
+			ids = append(ids, operation.ID)
+		}
+	}
+	want := []string{"knowledge.jobs.start", "knowledge.libraries.list", "knowledge.pages.search", "knowledge.pages.get", "knowledge.sources.get"}
+	if !reflect.DeepEqual(ids, want) {
+		t.Fatalf("knowledge command boundary=%v want=%v", ids, want)
 	}
 }

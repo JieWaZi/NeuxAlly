@@ -54,7 +54,7 @@ type frame struct {
 	Payload json.RawMessage `json:"payload"`
 }
 
-var allowedTopics = map[string]bool{"notifications": true, "work-board": true, "work-results": true, "entities": true, "automatic-tasks": true, "im": true, "runtimes": true, "system": true, "chat": true, "team": true, "workflow": true, "account-login": true, "plugins": true, "resources": true}
+var allowedTopics = map[string]bool{"notifications": true, "work-board": true, "work-results": true, "entities": true, "automatic-tasks": true, "im": true, "runtimes": true, "system": true, "chat": true, "team": true, "workflow": true, "account-login": true, "plugins": true, "resources": true, "knowledge": true}
 
 func decodeControl(data []byte) (control, error) {
 	var result control
@@ -98,6 +98,8 @@ func validResourceShape(topic string, resource eventhub.Resource) bool {
 		return false
 	}
 	switch topic {
+	case "knowledge":
+		return resource.Kind == "knowledge_library" && resource.ParentID != ""
 	case "chat":
 		return resource.Kind == "chat" && resource.ParentID == ""
 	case "team":

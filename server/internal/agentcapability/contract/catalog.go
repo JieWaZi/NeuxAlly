@@ -129,6 +129,13 @@ func catalog() []Operation {
 	memoryWriteScope := choice("scope", []string{constants.MemoryScopePartner.String(), constants.MemoryScopeProject.String()}, true)
 	memoryWriteScope.Schema["description"] = "Choose ownership for this entry; project scope requires a bound project."
 	result := []Operation{
+		operation("knowledge.jobs.start", "Start the knowledge organization requested in chat using a visible local library and selected current-message attachments; generation finishes separately. Preauthorized maintenance may omit selection fields.", mutation, accepted, "knowledge", text("libraryId", false), text("backend", false), text("connectionId", false), Field{Name: "attachmentIndexes", Schema: map[string]any{"type": "array", "items": map[string]any{"type": "integer", "minimum": 0}, "uniqueItems": true, "maxItems": 100}}, list("sourceVersionIds"), text("message", false)),
+
+		operation("knowledge.libraries.list", "List knowledge resources frozen for this execution.", read, immediate, "knowledge"),
+		operation("knowledge.pages.search", "Search published Wiki pages within a frozen resource. The first page also returns up to five original-document chunk hits using the library index strategy; each hit preserves its child locator and full parent context.", read, immediate, "knowledge", text("libraryId", true), text("backend", false), text("connectionId", false), text("query", false), scalar("offset", "integer", false)),
+		operation("knowledge.pages.get", "Read one page within a frozen knowledge resource.", read, immediate, "knowledge", text("libraryId", true), text("backend", false), text("connectionId", false), text("pageId", true), text("slug", false)),
+		operation("knowledge.sources.get", "Read one immutable source within a frozen resource.", read, immediate, "knowledge", text("libraryId", true), text("backend", false), text("connectionId", false), text("sourceVersionId", true)),
+
 		operation("im.targets.list", "Discover authorized message recipients.", read, immediate, "im.delivery", page...),
 		operation("im.deliveries.create", "Register a durable delivery; acceptance is not platform confirmation.", external, accepted, "im.delivery", text("targetId", true), text("content", false), list("files")),
 		operation("im.deliveries.get", "Read the actual state of an authorized delivery.", read, immediate, "im.delivery", text("deliveryId", true)),

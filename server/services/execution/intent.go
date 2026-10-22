@@ -162,6 +162,7 @@ func (m *service) Start(
 	if intent.RetryExecutionID != "" {
 		return m.retryExecution(ctx, strings.TrimSpace(intent.Chat.ChatID), strings.TrimSpace(intent.RetryExecutionID))
 	}
+
 	inputContext := ctx
 	releaseTeam := func() {}
 	if m.acquireTeamChatInput != nil && strings.TrimSpace(intent.Chat.ChatID) != "" {

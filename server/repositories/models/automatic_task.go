@@ -49,6 +49,8 @@ type AutomaticTaskMemberConfiguration struct {
 
 // AutomaticTaskConfiguration 是用户可编辑并在每次接纳时冻结的执行配置。
 type AutomaticTaskConfiguration struct {
+	// Knowledge 固定用户明确选中的知识维护资源和操作，普通任务为空。
+	Knowledge *KnowledgeMaintenanceAuthorization `gorm:"serializer:json;type:text" json:"knowledge,omitempty"`
 	// TargetKind 是伙伴、团队或工作流中的唯一目标类型。
 	TargetKind constants.AutomaticTaskTargetKind `gorm:"size:24;not null;default:''" json:"targetKind"`
 	// WorkflowID 是工作流目标，其他目标必须为空。

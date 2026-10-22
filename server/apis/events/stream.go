@@ -92,10 +92,6 @@ type session struct {
 	factory sourceFactory
 }
 
-func trustedOrigin(request *http.Request) bool {
-	origin := request.Header.Get("Origin")
-	return origin == "" || origin == "ally://app" || origin == "http://127.0.0.1:1420"
-}
 func serve(ctx *gin.Context, hub *eventhub.Hub, factory sourceFactory) error {
 	supported := false
 	for _, protocol := range websocket.Subprotocols(ctx.Request) {

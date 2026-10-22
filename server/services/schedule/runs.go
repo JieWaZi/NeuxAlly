@@ -211,12 +211,22 @@ func (s *Service) Admit(ctx context.Context, command AdmissionCommand) (RunView,
 		defer release()
 		accepted, run.ThreadID, startErr = s.startTeam(ctx, run, content)
 	} else {
-		accepted, startErr = s.config.Executions.Start(ctx, execution.WorkIntent{
+		intent := execution.WorkIntent{
 			ClientRequestID: run.ID, ExecutionID: run.ExecutionID, Admission: constants.ExecutionAdmissionCommitBeforeDispatch,
 			Chat:    execution.ChatTarget{Create: &execution.CreateChatSpec{WakerID: run.WakerID, ProjectID: run.Configuration.ProjectID, WorkingDirectory: run.Configuration.WorkingDirectory, HiddenFromWakerHistory: true}},
 			Input:   execution.WorkInput{Actor: constants.AutomaticTaskActor, Content: content},
 			Options: execution.WorkOptions{RuntimeID: run.Configuration.RuntimeID, AccountID: run.Configuration.AccountID, Model: run.Configuration.Model, Reasoning: run.Configuration.Reasoning, PermissionLevel: run.Configuration.PermissionLevel},
-		})
+		}
+		if run.Configuration.Knowledge != nil {
+			if s.config.BindKnowledge == nil {
+				startErr = status_error.KnowledgeUnsupported
+			} else {
+				intent, startErr = s.config.BindKnowledge(ctx, intent, *run.Configuration.Knowledge)
+			}
+		}
+		if startErr == nil {
+			accepted, startErr = s.config.Executions.Start(ctx, intent)
+		}
 	}
 	if startErr != nil {
 		// 首批事实可能已提交但响应失败。先以稳定身份对账，绝不创建第二个 Chat。

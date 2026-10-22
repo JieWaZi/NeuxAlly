@@ -674,6 +674,8 @@ func createRequestContent(request pendingMessage) []interface{} {
 		request.runtime.Reasoning,
 		request.runtime.PermissionLevel,
 		request.runtime.WorkspaceReadOnly,
+		"", // 保留历史普通首发摘要中两个空槽，避免改变已接纳请求身份。
+		"",
 		request.runtime.SessionPolicy,
 		request.runtime.HistoryTurns,
 		request.runtime.HistoryMode,
@@ -775,7 +777,7 @@ type messageChat struct {
 	previousMessages []messageview.Message
 	// runtimeSessions 是从同一份权威日志恢复的 Runtime 续接状态。
 	runtimeSessions map[string]models.RuntimeSession
-	// workspaceDirectory 是本次 Chat 的实际 Runtime 工作目录。
+	// workspaceDirectory 是 Chat 私有的指令、技能与附件目录。
 	workspaceDirectory string
 	// projectLinks 是工作区 projects/ 下的来源软链接集合。
 	projectLinks []workspace.ProjectLink
@@ -801,7 +803,7 @@ type resolvedChatWorkspace struct {
 
 // preparedMessageFiles 保存发送前已经物化且可能需要回滚的文件副作用。
 type preparedMessageFiles struct {
-	// executionWorkspaceDirectory 是对话受管执行工作区根目录，也是 Runtime cwd。
+	// executionWorkspaceDirectory 是 Chat 私有的受管资源与附件目录。
 	executionWorkspaceDirectory string
 	// chatID 是执行工作区归属校验使用的对话标识。
 	chatID string
@@ -902,6 +904,7 @@ func (m *service) resolveMessageChat(
 		if err := validateFrozenWorkspace(state.chat); err != nil {
 			return messageChat{}, err
 		}
+
 		return state, nil
 	}
 
@@ -939,6 +942,7 @@ func (m *service) resolveMessageChat(
 	if input.projectID == "" && input.workingDirectory == "" {
 		resolvedWorkspace.additionalDirectories = []string{workspaceDirectory}
 	}
+
 	now := nowMillis()
 	chat := models.Chat{
 		HiddenFromWakerHistory:       input.hiddenFromWakerHistory,
@@ -1146,7 +1150,9 @@ func (m *service) prepareMessageFiles(
 				return nil, err
 			}
 		}
-		if state.chat.ProjectID != "" || len(state.chat.AdditionalWorkingDirectories) != 1 || filepath.Clean(state.chat.AdditionalWorkingDirectories[0]) != filepath.Clean(managedDirectory) {
+		validDirectories := len(state.chat.AdditionalWorkingDirectories) == 1 && filepath.Clean(state.chat.AdditionalWorkingDirectories[0]) == filepath.Clean(managedDirectory)
+
+		if state.chat.ProjectID != "" || !validDirectories {
 			return nil, status_error.ChatDirectoryOwnershipInvalid
 		}
 	}
@@ -1563,6 +1569,7 @@ func (m *service) buildRunRequest(
 		}
 	}
 	additionalWritableDirectories := append([]string(nil), state.chat.AdditionalWorkingDirectories...)
+
 	if request.runtime.WorkspaceReadOnly {
 		additionalWritableDirectories = nil
 	}

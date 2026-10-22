@@ -1,10 +1,16 @@
 # 智能体与账号
 
+知识模型生成使用 `GenerateText` 独立入口，复用 ACP 适配与账号事实，直接返回正文、停止原因、用量和实际配置诊断，不进入 Execution 或聊天 JSONL。具体约束见[知识库](knowledge-cn.md#cli-调用与生命周期)。
+
 ## Runtime 边界
 
 internal/runtimes 提供数据库无关的探测、能力与执行适配。它复用 acp-go 的公共适配器，将智能体事件、审批、问答、会话与错误归一给 Execution。增加智能体通过现有注册和能力边界完成，不向 Chat 暴露私有协议。
 
 界面支持 Codex、Claude Code、Cursor、Kimi、Pi、OpenCode、Gemini CLI、Grok Build、WorkBuddy。是否可用由本机安装、版本、登录、模型及真实 initialize 能力决定。
+
+ACP initialize 不声明尚无请求合同的原生 Schema 输出能力；宿主能力接收结构化候选与原生 Schema 输出分别判断。
+
+软件能力通过系统 `ally` Skill 交付。Core 将同包技能资源和当前平台的受管 CLI 一起准备到不可变目录，入口为 `scripts/allycli`（Windows 为 `scripts/allycli.exe`），知识指南为同目录下的 `references/knowledge.md`。CLI 字节与执行位参与内容摘要，程序更新后生成对应的新目录。执行指令提供 `SKILL.md`、CLI 和知识指南的明确绝对路径；`ALLYCLI_BINARY_PATH` 与进程 `PATH` 指向 Skill 内入口。智能体从 Skill 所在目录解析资源，无需搜索工作区或全局安装目录。
 
 探测保存可查询的安装证据与能力快照。查询使用持久事实，连接测试与能力刷新是明确操作；未完成探测不能解释为未安装。多安装路径需明确选择实际版本。
 

@@ -211,6 +211,13 @@ func TestCreationScopeManagedAndExplicitDirectory(t *testing.T) {
 		t.Run(map[bool]string{true: "managed", false: "explicit"}[managed], func(t *testing.T) {
 			directory := t.TempDir()
 			runtime := &creationScopeRuntime{requests: make(chan runtimes.RunRequest, 4)}
+			finishRuntime := make(chan struct{})
+			runtime.duringRun = func(ctx context.Context, _ runtimes.RunRequest) {
+				select {
+				case <-finishRuntime:
+				case <-ctx.Done():
+				}
+			}
 			s, _ := openCoreWorkflowPorts(t, directory, runtime, fixtureEnvironment{})
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
@@ -240,16 +247,29 @@ func TestCreationScopeManagedAndExplicitDirectory(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			// CompletedAt 先于执行占位释放写入；先订阅，再结束 Runtime，只以公开终态允许续发。
+			subscription, err := s.Chats.SubscribeEvents(ctx, session.ChatID, 0)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer subscription.Close()
+			close(finishRuntime)
+		waitForTerminal:
 			for {
-				completed, err := s.Chats.ReadExecution(ctx, session.ChatID, session.AcceptedExecutionID)
-				if err != nil {
-					t.Fatal(err)
-				}
-				if completed.CompletedAt != nil {
-					break
-				}
 				select {
-				case <-time.After(5 * time.Millisecond):
+				case event, open := <-subscription.Events:
+					if !open {
+						t.Fatal("creation subscription closed before execution settled")
+					}
+					if event.ExecutionID != session.AcceptedExecutionID {
+						continue
+					}
+					switch event.Type {
+					case constants.ChatEventTypeExecutionCompleted:
+						break waitForTerminal
+					case constants.ChatEventTypeExecutionFailed, constants.ChatEventTypeExecutionCanceled:
+						t.Fatalf("creation execution did not complete: %+v", event)
+					}
 				case <-ctx.Done():
 					t.Fatal(ctx.Err())
 				}

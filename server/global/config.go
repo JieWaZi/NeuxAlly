@@ -19,6 +19,7 @@ import (
 	"github.com/JieWaZi/NeuxAlly/server/internal/agentcapability"
 	"github.com/JieWaZi/NeuxAlly/server/internal/builtinrolepreset"
 	"github.com/JieWaZi/NeuxAlly/server/internal/builtinwaker"
+	knowledgebridge "github.com/JieWaZi/NeuxAlly/server/internal/knowledge"
 	"github.com/JieWaZi/NeuxAlly/server/internal/logx"
 	"github.com/JieWaZi/NeuxAlly/server/internal/memory"
 	"github.com/JieWaZi/NeuxAlly/server/internal/notification/events"
@@ -36,16 +37,24 @@ import (
 	"github.com/JieWaZi/NeuxAlly/server/services/chat"
 	"github.com/JieWaZi/NeuxAlly/server/services/execution"
 	imservice "github.com/JieWaZi/NeuxAlly/server/services/im"
+	knowledgeservice "github.com/JieWaZi/NeuxAlly/server/services/knowledge"
 	"github.com/JieWaZi/NeuxAlly/server/services/notification"
 	"github.com/JieWaZi/NeuxAlly/server/services/runtimeenvironment"
 	"github.com/JieWaZi/NeuxAlly/server/services/schedule"
 	"github.com/JieWaZi/NeuxAlly/server/services/workflow"
+	"github.com/JieWaZi/neux-knowledge/core"
 	"github.com/shrewx/ginx/pkg/conf"
 	"github.com/shrewx/ginx/pkg/dbhelper"
 	"gorm.io/gorm"
 )
 
 var (
+	// KnowledgeService 复用页面、聊天与自动入口的真实知识维护。
+	KnowledgeService *knowledgeservice.Service
+	// KnowledgeEngine 拥有专属知识库和受管原件生命周期。
+	KnowledgeEngine *core.Engine
+	// KnowledgeControllerManager 仅持久化本机知识接入引用。
+	KnowledgeControllerManager controllers.KnowledgeController
 	// AgentCapabilities 只接纳当前执行授权，不接受桌面全局管理令牌。
 	AgentCapabilities *agentcapability.Registry
 	// EventHub 是当前 Core 生命周期内所有安全事件的窄路由器。
@@ -271,9 +280,11 @@ func Load(ctx context.Context, configuration *Configuration, handlerFactory sche
 		func() error { return cleanupSkillArtifacts(ctx, configuration) },
 		func() error { return loadBuiltinSkills(ctx, configuration) },
 		func() error { return loadMemory(ctx, configuration) },
+		func() error { return loadKnowledge(ctx, configuration) },
 		func() error { return loadRuntime(ctx) },
 		func() error { return loadChat(ctx, configuration, handlerFactory) },
 		func() error { return loadNotifications(ctx) },
+		func() error { return loadKnowledgeRemote(ctx) },
 	)
 }
 
@@ -301,6 +312,7 @@ func loadDB(ctx context.Context, configuration *Configuration) error {
 	EventHub = events.New()
 	AgentCapabilities = agentcapability.New(builtinskills.Guide)
 	DB = controllers.WithEventPublisher(database.DB, EventHub)
+	KnowledgeControllerManager = controllers.NewKnowledgeController(DB)
 	IMControllerManager = controllers.NewIMController(DB)
 	WakerControllerManager = controllers.NewWakerController(DB)
 	RolePresetControllerManager = controllers.NewRolePresetController(DB)
@@ -494,6 +506,11 @@ func loadChat(ctx context.Context, configuration *Configuration, handlerFactory 
 		AgentBinary:   agentBinaryPath(),
 		AgentBindings: func(chat models.Chat, executionID string, roots []string) []agentcapability.Binding {
 			bindings := MemoryService.AgentBindings(memory.Context{RunID: executionID, ChatID: chat.ID, PartnerID: chat.WakerID, ProjectID: chat.ProjectID})
+			if KnowledgeService != nil {
+				knowledgeChat := chat
+				knowledgeChat.ActiveExecutionID = executionID
+				bindings = append(bindings, KnowledgeService.AgentBindings(context.Background(), knowledgeChat)...)
+			}
 			if IMService != nil {
 				bindings = append(bindings, IMService.AgentBindings(chat, executionID, roots, EventHub)...)
 			}
@@ -517,6 +534,11 @@ func loadChat(ctx context.Context, configuration *Configuration, handlerFactory 
 		return mapCoreError("initialize_execution_service", status_error.CoreChatInitializationFailed, err)
 	}
 	ExecutionService = executionCore
+	libraryEmbeddings := knowledgebridge.LibraryEmbeddings{Engine: KnowledgeEngine, References: KnowledgeControllerManager}
+	KnowledgeService = knowledgeservice.New(knowledgeservice.Config{ResolveModel: resolveKnowledgeModel, Generator: newKnowledgeModelGenerator, FreezeEmbedder: libraryEmbeddings.Freeze, Connections: KnowledgeConnectionControllerManager, Engine: KnowledgeEngine, References: KnowledgeControllerManager, Projects: ProjectControllerManager, Chats: ChatService, Events: EventHub})
+	if err := KnowledgeService.Start(ctx); err != nil {
+		return err
+	}
 	if err := ExecutionService.Open(ctx); err != nil {
 		return mapCoreError("open_execution_service", status_error.CoreChatInitializationFailed, err)
 	}
@@ -573,10 +595,11 @@ func loadChat(ctx context.Context, configuration *Configuration, handlerFactory 
 		Projects:         ProjectControllerManager,
 	})
 	ScheduleService = schedule.New(schedule.Config{
-		Workflows:    WorkflowService,
-		WorkflowRuns: WorkflowRunControllerManager,
-		APIHandler:   handlerFactory,
-		Tasks:        AutomaticTaskControllerManager, Transactions: TransactionControllerManager,
+		BindKnowledge: KnowledgeService.BindIntent,
+		Workflows:     WorkflowService,
+		WorkflowRuns:  WorkflowRunControllerManager,
+		APIHandler:    handlerFactory,
+		Tasks:         AutomaticTaskControllerManager, Transactions: TransactionControllerManager,
 		Wakers: WakerControllerManager, Projects: ProjectControllerManager,
 		Executions: ExecutionService, Chats: chatModule, DataDirectory: configuration.DataDirectory,
 		ManagedFilesDirectory: configuration.ManagedFilesDirectory,
@@ -597,6 +620,14 @@ func loadChat(ctx context.Context, configuration *Configuration, handlerFactory 
 // Close 按依赖逆序停止后台流程并关闭数据库连接。
 func Close() error {
 	var result error
+	if err := closeKnowledgeRemote(); err != nil {
+		result = err
+	}
+	KnowledgeConnectionControllerManager = nil
+	if KnowledgeService != nil {
+		KnowledgeService.Close()
+		KnowledgeService = nil
+	}
 	if AgentCapabilities != nil {
 		AgentCapabilities.Close()
 		AgentCapabilities = nil
@@ -656,6 +687,12 @@ func Close() error {
 		}
 		cancelClose()
 		RuntimeSDK = nil
+	}
+	if KnowledgeEngine != nil {
+		if err := KnowledgeEngine.Close(); err != nil && result == nil {
+			result = knowledgebridge.MapError(err)
+		}
+		KnowledgeEngine = nil
 	}
 	if MemoryService != nil {
 		MemoryService.Close()
@@ -737,3 +774,11 @@ func coreExecutablePath() string {
 
 // PluginContents 保存当前 Core 的短期内容使用计数。
 var PluginContents *plugins.ContentStore
+
+// loadKnowledge 打开独立知识数据库，不启动模型或第二套执行宿主。
+func loadKnowledge(ctx context.Context, configuration *Configuration) error {
+	KnowledgeConnectionControllerManager = controllers.NewKnowledgeConnectionController(DB)
+	var err error
+	KnowledgeEngine, err = knowledgebridge.Open(ctx, configuration.DataDirectory, configuration.ManagedFilesDirectory)
+	return err
+}

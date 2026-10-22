@@ -71,6 +71,8 @@ type Workflows interface {
 
 // Config 提供自动任务需要的稳定依赖，时钟可用于确定性验收。
 type Config struct {
+	// BindKnowledge 为已有自动任务冻结明确的知识维护授权，不另设调度器。
+	BindKnowledge func(context.Context, execution.WorkIntent, models.KnowledgeMaintenanceAuthorization) (execution.WorkIntent, error)
 	// WorkflowRuns 读取工作流真实运行、操作许可和节点状态。
 	WorkflowRuns controllers.WorkflowRunController
 	// APIHandler 由 API 层提供本机 HTTP 适配器，服务只拥有监听生命周期。

@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
@@ -88,7 +89,7 @@ func (m *service) prepareAgent(request *runtimes.RunRequest, chat models.Chat, e
 	if err != nil {
 		return nil, nil, nil, status_error.AgentContextStorageError
 	}
-	skill, err := builtinskills.SystemDirectory(root)
+	skill, err := builtinskills.SystemDirectory(root, binary)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -98,7 +99,8 @@ func (m *service) prepareAgent(request *runtimes.RunRequest, chat models.Chat, e
 		}
 	}
 	request.Skills = append(request.Skills, runtimes.Skill{Name: constants.AgentCLISkillName, Path: skill})
-	request.Instructions = append(request.Instructions, runtimes.Instruction{Name: "软件能力", Content: "For NeuxAlly-provided operations, read the ally skill and use allycli capabilities to discover the current authorized commands. Read only the relevant guide and live operation contract."})
+	binary = builtinskills.CLIPath(skill)
+	request.Instructions = append(request.Instructions, runtimes.Instruction{Name: "软件能力", Content: fmt.Sprintf("For NeuxAlly-provided operations, read the ally skill at %q. Its executable is %q; invoke this exact quoted path with capabilities to discover the current authorized commands. Resolve all skill-relative paths from the directory containing SKILL.md, never from the working directory. For knowledge tasks, read %q. These paths are supplied directly; do not search the workspace or global installation directories. Read only the relevant guide and live operation contract.", filepath.Join(skill, "SKILL.md"), binary, filepath.Join(skill, "references", "knowledge.md"))})
 	roots := []string{}
 	for _, candidate := range append([]string{request.Workspace.Path}, chat.AdditionalWorkingDirectories...) {
 		if actual, err := filepath.EvalSymlinks(candidate); err == nil {
@@ -106,7 +108,7 @@ func (m *service) prepareAgent(request *runtimes.RunRequest, chat models.Chat, e
 		}
 	}
 	bindings := []agentcapability.Binding{}
-	if m.agentBindings != nil {
+	if m.agentBindings != nil && (allowedDomains == nil || len(*allowedDomains) > 0) {
 		for _, binding := range m.agentBindings(chat, executionID, roots) {
 			domain, _, _ := strings.Cut(binding.Operation, ".")
 			if allowedDomains == nil || slices.Contains(*allowedDomains, domain) {
@@ -156,6 +158,7 @@ func (m *service) prepareAgent(request *runtimes.RunRequest, chat models.Chat, e
 	}
 	request.Target.Environment[constants.AgentCLIContextEnvironment] = path
 	request.Target.Environment[constants.AgentCLIBinaryEnvironment] = binary
+
 	inheritedPath := request.Target.Environment["PATH"]
 	if inheritedPath == "" {
 		inheritedPath = os.Getenv("PATH")

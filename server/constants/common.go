@@ -605,3 +605,12 @@ const (
 
 // PluginStdioMode 是 Core 内部的原生 MCP 工作目录子进程模式。
 const PluginStdioMode = "plugin-stdio"
+
+// KnowledgeSourceStateQueued 表示来源已进入本次任务，尚未被真实阅读阶段领取。
+const KnowledgeSourceStateQueued = "queued"
+
+// KnowledgeSourceStateProcessing 表示来源已被真实阅读阶段领取，任务尚未结算。
+const KnowledgeSourceStateProcessing = "processing"
+
+// KnowledgeChatOrganizeOperation 标识普通聊天整理请求的持久输入锚点。
+const KnowledgeChatOrganizeOperation = "chat.organize"

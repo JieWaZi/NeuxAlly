@@ -43,7 +43,11 @@ func TestLoadSystemSkillStaysOutsideEditablePartnerCatalog(t *testing.T) {
 	if err != nil || len(enabled) != 0 {
 		t.Fatalf("system skill leaked into editable partner state: %+v %v", enabled, err)
 	}
-	directory, err := builtinskills.SystemDirectory(configuration.DataDirectory)
+	binary := filepath.Join(t.TempDir(), "allycli")
+	if err := os.WriteFile(binary, []byte("cli fixture"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	directory, err := builtinskills.SystemDirectory(configuration.DataDirectory, binary)
 	if err != nil {
 		t.Fatal(err)
 	}

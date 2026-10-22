@@ -21,6 +21,16 @@ func outputSchema(id string) map[string]any {
 		return object("items", "total", "pageNum", "pageSize", "nextCursor")
 	case "im.deliveries.create", "im.deliveries.get":
 		return object("deliveryId", "state", "errorCode", "partsSent", "createdAt")
+	case "knowledge.jobs.start":
+		return object("receipt", "noop")
+	case "knowledge.libraries.list":
+		return object("items", "total")
+	case "knowledge.pages.search":
+		return object("ref", "items", "total", "chunks", "retrievalMode")
+	case "knowledge.pages.get":
+		return object("page")
+	case "knowledge.sources.get":
+		return object("source")
 	case "workflow.source.get":
 		return object("workflowId", "revisionId", "currentRevisionId", "source", "sourceDigest", "sdkVersion")
 	case "workflow.source.validate":
