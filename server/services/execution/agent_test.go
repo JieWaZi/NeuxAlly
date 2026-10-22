@@ -25,10 +25,17 @@ type agentTestJournal struct {
 	chatservice.Journal
 	// chat 是测试推进的实际当前执行身份。
 	chat models.Chat
+	// contextReads 记录误用完整历史准备入口的次数。
+	contextReads int
 }
 
 func (j *agentTestJournal) LoadExecutionContext(context.Context, string) (chatservice.ExecutionContext, error) {
+	j.contextReads++
 	return chatservice.ExecutionContext{Chat: j.chat}, nil
+}
+
+func (j *agentTestJournal) LoadExecutionChat(context.Context, string) (models.Chat, error) {
+	return j.chat, nil
 }
 
 func TestNativeSessionKeepsContextPathButRotatesAndRevokesCredentials(t *testing.T) {
@@ -106,6 +113,19 @@ func TestNativeSessionKeepsContextPathButRotatesAndRevokesCredentials(t *testing
 	}
 	if send(first.Token) != 401 || send(second.Token) != 200 {
 		t.Fatal("old invocation crossed into a later grant")
+	}
+	journal.chat.WakerID = "other-waker"
+	if send(second.Token) != 401 {
+		t.Fatal("changed partner retained the old capability grant")
+	}
+	journal.chat.WakerID = "waker"
+	journal.chat.ActiveExecutionID = "other-execution"
+	if send(second.Token) != 401 {
+		t.Fatal("changed active execution retained the old capability grant")
+	}
+	journal.chat.ActiveExecutionID = "second"
+	if journal.contextReads != 0 {
+		t.Fatalf("capability validation loaded full message context %d times", journal.contextReads)
 	}
 	newRequest := runtimes.RunRequest{Target: request.Target, Session: runtimes.SessionDirective{Mode: runtimes.SessionModeNew}}
 	_, revokeNew, _, err := manager.prepareAgent(&newRequest, journal.chat, "second", nil, &[]string{}, nil)

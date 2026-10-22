@@ -50,6 +50,7 @@ func (s *Store) Create(chatID string, inputs []AppendInput) ([]Record, error) {
 	state.initialized = true
 	state.lastSequence = records[len(records)-1].Sequence
 	state.scope = scope
+	state.scopeLogInfo, _ = os.Stat(path)
 	return records, nil
 }
 
@@ -95,6 +96,7 @@ func (s *Store) Append(chatID string, inputs []AppendInput) ([]Record, error) {
 	}
 	state.lastSequence = records[len(records)-1].Sequence
 	state.scope = scope
+	state.scopeLogInfo, _ = os.Stat(path)
 	if err := s.appendIndexLocked(chatID, records); err != nil {
 		state.indexDirty = true
 	}

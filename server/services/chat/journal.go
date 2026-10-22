@@ -97,6 +97,8 @@ type TerminalCommit struct {
 type Journal interface {
 	// ForkChat 创建独立原生会话并发布可恢复的继承历史。
 	ForkChat(ctx context.Context, input ForkInput, fork NativeFork) (string, error)
+	// LoadExecutionChat 返回追平权威日志后的 Chat 身份和当前执行状态，不加载历史消息。
+	LoadExecutionChat(ctx context.Context, chatID string) (models.Chat, error)
 	// LoadExecutionContext 返回已有 Chat 的权威执行准备快照。
 	LoadExecutionContext(ctx context.Context, chatID string) (ExecutionContext, error)
 	// CommitStartedTurn 原子提交 Runtime 已接受输入后的首批事实。
@@ -105,7 +107,9 @@ type Journal interface {
 	CommitAcceptedTurn(ctx context.Context, turn StartedTurn) (AcceptedTurn, error)
 	// MarkExecutionStarted 在预先接纳的 Execution 获得 Runtime Invocation 后提交启动事实。
 	MarkExecutionStarted(ctx context.Context, execution models.Execution, invocationID string) (models.Execution, error)
-	// ReadRecords 返回实时消息投影所需的当前权威记录。
+	// ReadExecutionRecords 返回 Chat 创建记录和指定执行的完整权威事实。
+	ReadExecutionRecords(chatID string, executionID string) ([]eventlog.Record, error)
+	// ReadRecords 返回完整 Chat 的权威记录。
 	ReadRecords(chatID string) ([]eventlog.Record, error)
 	// AppendExecutionFacts 提交完整 Runtime 消息、Invocation 或 Session 事实。
 	AppendExecutionFacts(ctx context.Context, chatID string, facts []eventlog.AppendInput) ([]eventlog.Record, error)
@@ -225,6 +229,24 @@ func (m *service) CommitAcceptedTurn(
 	return AcceptedTurn{Chat: chat, Execution: turn.Execution}, nil
 }
 
+// LoadExecutionChat 返回追平权威日志后的 Chat 身份，不构建历史消息或私有 Diff。
+func (m *service) LoadExecutionChat(ctx context.Context, chatID string) (models.Chat, error) {
+	summary, err := m.GetChatSummary(ctx, chatID)
+	if err == nil {
+		return summary.Chat, nil
+	}
+	if !hasStatusErrorCode(err, status_error.ChatNotFound.Code()) {
+		return models.Chat{}, err
+	}
+	// 查询索引可以重建；仅明确缺失时回到权威状态，数据库故障不能退回陈旧授权。
+	_, state, err := m.loadChatState(chatID)
+	if err != nil {
+		return models.Chat{}, err
+	}
+	m.queryIndexes.ensureChatState(ctx, state)
+	return state.chat, nil
+}
+
 // LoadExecutionContext 返回已有 Chat 的权威执行准备快照。
 func (m *service) LoadExecutionContext(
 	ctx context.Context,
@@ -314,6 +336,25 @@ func (m *service) commitTurnFacts(turn StartedTurn) ([]eventlog.Record, error) {
 		return m.eventCommitter.create(turn.Chat.ID, turn.Facts)
 	}
 	return m.eventCommitter.append(turn.Chat.ID, turn.Facts)
+}
+
+// ReadExecutionRecords 通过消息索引读取指定执行，保留实时投影所需的 Chat 路径范围。
+func (m *service) ReadExecutionRecords(chatID string, executionID string) ([]eventlog.Record, error) {
+	chatID = strings.TrimSpace(chatID)
+	executionID = strings.TrimSpace(executionID)
+	if chatID == "" || executionID == "" {
+		return nil, status_error.BadRequest
+	}
+	records, err := m.logStore.ReadMessage(chatID, executionID)
+	if err != nil {
+		return nil, err
+	}
+	for _, record := range records {
+		if record.Type == constants.ChatEventTypeExecutionCreated && record.ExecutionID == executionID {
+			return records, nil
+		}
+	}
+	return nil, status_error.ExecutionNotFound
 }
 
 // ReadRecords 返回实时消息投影所需的当前权威记录。

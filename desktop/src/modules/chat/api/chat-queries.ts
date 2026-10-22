@@ -23,9 +23,11 @@ export {
 
 import {
   infiniteQueryOptions,
+  useQueryClient,
   type InfiniteData,
   type QueryClient,
 } from "@tanstack/react-query";
+import { useEffect } from "react";
 
 import { clearChatLastActiveIfMatches } from "@/shared/lib/chat-navigation";
 
@@ -90,7 +92,20 @@ export function chatMessagesInfiniteOptions(chatId: string) {
   return infiniteQueryOptions({
     queryKey: chatMessagesKey(chatId),
     initialPageParam: undefined as MessageCursor | undefined,
-    queryFn: async ({ pageParam, signal }) => {
+    queryFn: async ({ pageParam, signal, client }) => {
+      if (pageParam) {
+        // JSONL 只追加；固定游标的旧窗口可复用，新边界必须重新读取。
+        const cached = client.getQueryData<
+          InfiniteData<ListChatMessagesResponse, MessageCursor | undefined>
+        >(chatMessagesKey(chatId));
+        const index = cached?.pageParams.findIndex(
+          (cursor) => cursor?.beforeSequence === pageParam.beforeSequence,
+        );
+        if (index !== undefined && index >= 0) {
+          const page = cached?.pages[index];
+          if (page) return page;
+        }
+      }
       const { data } = await listChatMessages({
         path: { chatId },
         query: { limit: 50, ...pageParam },
@@ -103,6 +118,25 @@ export function chatMessagesInfiniteOptions(chatId: string) {
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
   });
+}
+
+/** 隐藏会话只标记历史陈旧，恢复可见时对账最新窗口，保留已加载的旧页。 */
+export function useChatHistoryVisibility(
+  chatId: string | undefined,
+  active: boolean,
+) {
+  const client = useQueryClient();
+  useEffect(() => {
+    if (!chatId) return;
+    const markStale = () => {
+      void client.invalidateQueries({
+        queryKey: chatMessagesKey(chatId),
+        refetchType: "none",
+      });
+    };
+    if (!active) markStale();
+    return markStale;
+  }, [active, chatId, client]);
 }
 
 function filterDeletedChatsFromListPages<

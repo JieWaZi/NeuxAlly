@@ -302,7 +302,7 @@ func (m *service) ReadMessageHistory(
 	if len(window.Records) == 0 {
 		return MessageHistoryPage{Resources: []messageview.Message{}}, nil
 	}
-	messages, err := messageview.ReplayMessages(window.Records)
+	messages, err := messageview.ReplayPublicMessages(window.Records)
 	if err != nil {
 		logx.Errorf(
 			"project chat message window failed: chat_id=%s error=%v",

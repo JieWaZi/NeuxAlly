@@ -41,13 +41,22 @@ type MessageViewBuilder struct {
 
 // ReplayMessages 重放权威日志，构建截至最新序号的消息展示视图。
 func ReplayMessages(records []eventlog.Record) ([]Message, error) {
+	return replayMessages(records, false)
+}
+
+// ReplayPublicMessages 构建公开历史快照，跳过仅供分叉和文件详情使用的完整 Diff。
+func ReplayPublicMessages(records []eventlog.Record) ([]Message, error) {
+	return replayMessages(records, true)
+}
+
+func replayMessages(records []eventlog.Record, public bool) ([]Message, error) {
 	builder := NewMessageViewBuilder()
 	for _, record := range records {
 		if _, err := builder.Apply(record); err != nil {
 			return nil, err
 		}
 	}
-	return builder.Messages(), nil
+	return builder.snapshotMessages(public), nil
 }
 
 // NewMessageViewBuilder 建立一个可复用的增量消息视图构建器。
@@ -159,11 +168,29 @@ func (p *MessageViewBuilder) applyApprovalResolved(record eventlog.Record) (stri
 
 // Messages 返回与构建器内部状态隔离的完整消息快照。
 func (p *MessageViewBuilder) Messages() []Message {
+	return p.snapshotMessages(false)
+}
+
+func (p *MessageViewBuilder) snapshotMessages(public bool) []Message {
 	messages := make([]Message, len(p.messages))
 	for index, message := range p.messages {
-		messages[index] = cloneMessage(message, false)
+		messages[index] = p.snapshotMessage(message, public)
 	}
 	return messages
+}
+
+// snapshotMessage 在读取边界派生文件视图，避免每条事件都重扫此前的工具历史。
+func (p *MessageViewBuilder) snapshotMessage(message Message, public bool) Message {
+	if len(message.RuntimeEvents) > 0 {
+		message.FileChanges = messageFileChanges(message.DisplayParts)
+		if !public {
+			message.FileChangeDiffs = messageFileChangeDiffs(
+				message.RuntimeEvents, message.DisplayParts, message.FileChanges, p.workspacePathScope(),
+			)
+		}
+	}
+	// 继承消息没有 Runtime 事件，直接保留权威继承快照中的摘要和私有 Diff。
+	return cloneMessage(message, public)
 }
 
 // PublicMessage 返回不携带 Runtime 原始事件的指定消息快照。
@@ -172,8 +199,17 @@ func (p *MessageViewBuilder) PublicMessage(messageID string) *Message {
 	if !exists {
 		return nil
 	}
-	message := cloneMessage(p.messages[index], true)
+	message := p.snapshotMessage(p.messages[index], true)
 	return &message
+}
+
+// MessageRevision 读取当前消息修订号，供事件游标恢复去重使用，不生成完整快照。
+func (p *MessageViewBuilder) MessageRevision(messageID string) int64 {
+	index, exists := p.messageIndexes[messageID]
+	if !exists {
+		return 0
+	}
+	return p.messages[index].Revision
 }
 
 func (p *MessageViewBuilder) applyChatCreated(record eventlog.Record) error {
@@ -337,13 +373,6 @@ func (p *MessageViewBuilder) applyRuntimeContent(
 	if err := p.applyDisplayEvent(message, event); err != nil {
 		return err
 	}
-	message.FileChanges = messageFileChanges(message.DisplayParts)
-	message.FileChangeDiffs = messageFileChangeDiffs(
-		message.RuntimeEvents,
-		message.DisplayParts,
-		message.FileChanges,
-		p.workspacePathScope(),
-	)
 	return nil
 }
 
@@ -726,7 +755,6 @@ func cloneMessage(message Message, public bool) Message {
 	clone.CodeReferences = append([]eventlog.CodeReference(nil), message.CodeReferences...)
 	clone.DisplayParts = append([]MessageDisplayPart(nil), message.DisplayParts...)
 	clone.FileChanges = append([]ToolFileChangeSummary(nil), message.FileChanges...)
-	clone.FileChangeDiffs = append([]MessageFileChangeDiff(nil), message.FileChangeDiffs...)
 	for index, part := range clone.DisplayParts {
 		if part.ToolSafeSummary != nil {
 			summary := *part.ToolSafeSummary
@@ -747,6 +775,7 @@ func cloneMessage(message Message, public bool) Message {
 		clone.FileChangeDiffs = nil
 	} else {
 		clone.RuntimeEvents = append([]MessageRuntimeEvent(nil), message.RuntimeEvents...)
+		clone.FileChangeDiffs = append([]MessageFileChangeDiff(nil), message.FileChangeDiffs...)
 	}
 	return clone
 }

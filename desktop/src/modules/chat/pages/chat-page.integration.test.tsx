@@ -378,6 +378,7 @@ vi.mock("@/shared/desktop", () => ({
 }));
 
 vi.mock("../api/chat-queries", () => ({
+  useChatHistoryVisibility: () => undefined,
   cancelChatExecutionMutation: () => ({
     mutationFn: async () => undefined,
   }),

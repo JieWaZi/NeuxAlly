@@ -52,6 +52,7 @@ const {
         onEvent: (event: ChatEvent) => void;
         onReconnect?: () => void;
         onUnavailable?: () => void;
+        after?: number;
       },
     ) => {
       subscriptionOptions.current = options;
@@ -146,6 +147,54 @@ describe("useChatRuntime queue", () => {
         dismissErrorNotice(notice.id);
     });
     notices.unmount();
+  });
+
+  it("隐藏会话暂停实时历史消费，重新可见时恢复原会话订阅", () => {
+    const options = runtimeOptions("chat-hidden");
+    const { rerender } = renderHook(
+      ({ active }) => useChatRuntime({ ...options, queueActive: active }),
+      { wrapper, initialProps: { active: false } },
+    );
+    expect(subscribeChatMock).not.toHaveBeenCalled();
+    rerender({ active: true });
+    expect(subscribeChatMock).toHaveBeenCalledTimes(1);
+    const close = subscribeChatMock.mock.results[0]?.value;
+    rerender({ active: false });
+    expect(close).toHaveBeenCalledTimes(1);
+    rerender({ active: true });
+    expect(subscribeChatMock).toHaveBeenCalledTimes(2);
+    expect(subscribeChatMock.mock.calls[1]?.[0]).toBe("chat-hidden");
+  });
+
+  it("事件到达后立即隐藏不会推进尚未投影的历史游标", () => {
+    vi.useFakeTimers();
+    const options = runtimeOptions("chat-batch-hidden");
+    const { rerender, unmount } = renderHook(
+      ({ active }) => useChatRuntime({ ...options, queueActive: active }),
+      { wrapper, initialProps: { active: true } },
+    );
+    try {
+      act(() => {
+        subscriptionOptions.current?.onEvent({
+          sequence: 2,
+          type: "runtime.event",
+          message: {
+            id: "execution-1",
+            executionId: "execution-1",
+            role: "assistant",
+            status: "running",
+            content: "未提交批次",
+            revision: 2,
+          },
+        });
+      });
+      rerender({ active: false });
+      rerender({ active: true });
+      expect(subscribeChatMock.mock.calls[1]?.[1].after).toBe(1);
+    } finally {
+      unmount();
+      vi.useRealTimers();
+    }
   });
 
   it("消息重试绑定失败执行，连点只调用一次接口，结果触发权威刷新", async () => {

@@ -125,11 +125,11 @@ func (m *service) prepareAgent(request *runtimes.RunRequest, chat models.Chat, e
 	grant, activate, revoke, err := m.agent.Prepare(agentcapability.GrantSpec{ExecutionID: executionID, Bindings: bindings, FileRoots: roots, Record: func(ctx context.Context, op contract.Operation, result agentcapability.Result) error {
 		return facts.record(ctx, m.journal, chat.ID, executionID, op, result)
 	}, Validate: func(ctx context.Context) error {
-		current, err := m.journal.LoadExecutionContext(ctx, chat.ID)
+		current, err := m.journal.LoadExecutionChat(ctx, chat.ID)
 		if err != nil {
 			return err
 		}
-		if current.Chat.WakerID != chat.WakerID || current.Chat.ActiveExecutionID != executionID {
+		if current.WakerID != chat.WakerID || current.ActiveExecutionID != executionID {
 			return status_error.AgentContextUnauthorized
 		}
 		return nil

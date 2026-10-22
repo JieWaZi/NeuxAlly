@@ -21,6 +21,7 @@ import { useRouteSceneActive } from "@/shared/workspace/app-scene-workspace";
 import {
   cancelChatExecutionMutation,
   chatMessagesInfiniteOptions,
+  useChatHistoryVisibility,
   getChatOptions,
   resolveApprovalMutation,
   resolveElicitationMutation,
@@ -95,6 +96,7 @@ export function ChatPane({
     active,
     enabled: Boolean(chatId),
   });
+  useChatHistoryVisibility(chatId, active);
   const history = useInfiniteQuery({
     ...chatMessagesInfiniteOptions(chatId || "pending"),
     enabled: active && Boolean(chatId),
@@ -298,9 +300,13 @@ export function ChatPane({
       ]}
       onRetryExecution={allowExecutionRetry ? state.retryExecution : undefined}
       contextMetrics={state.contextMetrics}
-      hasEarlierMessages={Boolean(history.hasNextPage)}
+      hasEarlierMessages={active && Boolean(history.hasNextPage)}
       isLoadingEarlier={history.isFetchingNextPage}
-      onLoadEarlier={() => history.fetchNextPage().then(() => {})}
+      onLoadEarlier={() =>
+        history
+          .fetchNextPage({ cancelRefetch: false, throwOnError: true })
+          .then(() => {})
+      }
       pendingApprovals={active ? state.pendingApprovals : []}
       approvalSubmissionState={approval.isPending ? "submitting" : "idle"}
       onResolveApproval={(approvalId, optionId) => {

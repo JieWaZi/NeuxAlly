@@ -196,7 +196,7 @@ func (s *runtimeEventSink) ensureLiveAdapterLocked() error {
 	if s.liveAdapter != nil {
 		return nil
 	}
-	records, err := s.journal.ReadRecords(s.chatID)
+	records, err := s.journal.ReadExecutionRecords(s.chatID, s.executionID)
 	if err != nil {
 		return err
 	}

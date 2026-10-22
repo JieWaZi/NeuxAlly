@@ -201,3 +201,13 @@ func TestExecutionOutcomePreservesConfirmedCancellation(t *testing.T) {
 		t.Fatalf("cancellation facts lost: %+v", outcome)
 	}
 }
+
+// LoadExecutionChat 不参与此日志边界测试。
+func (j *terminalJournal) LoadExecutionChat(context.Context, string) (models.Chat, error) {
+	panic("unexpected LoadExecutionChat call")
+}
+
+// ReadExecutionRecords 不参与此日志边界测试。
+func (j *terminalJournal) ReadExecutionRecords(string, string) ([]eventlog.Record, error) {
+	panic("unexpected ReadExecutionRecords call")
+}
