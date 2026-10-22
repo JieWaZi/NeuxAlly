@@ -101,6 +101,8 @@ type Server struct {
 
 // Package 是对原始包的一次确定性解析结果。
 type Package struct {
+	// legacySourcePath 保留旧版仓库快照中已固定的包子目录；新导入直接以包根存储。
+	legacySourcePath string
 	// Manifest 是已验证的包元数据。
 	Manifest Manifest `json:"manifest"`
 	// Format 是实际采用的包格式。
@@ -111,6 +113,50 @@ type Package struct {
 	Servers []Server `json:"servers"`
 	// Diagnostics 是不阻断其他组件的逐项诊断。
 	Diagnostics []Diagnostic `json:"diagnostics"`
+}
+
+// UnmarshalJSON 保留历史不可变版本的包根，避免丢弃旧快照的路径语义。
+func (pkg *Package) UnmarshalJSON(data []byte) error {
+	type snapshot Package
+	var stored struct {
+		// snapshot 是当前格式的组件描述。
+		*snapshot
+		// SourcePath 是旧版快照中相对于内容根的包路径。
+		SourcePath string `json:"sourcePath"`
+	}
+	stored.snapshot = (*snapshot)(pkg)
+	if err := json.Unmarshal(data, &stored); err != nil {
+		return err
+	}
+	pkg.legacySourcePath = stored.SourcePath
+	return nil
+}
+
+// MarshalJSON 在保存旧版快照时保留包根，不向新导入增加历史字段。
+func (pkg Package) MarshalJSON() ([]byte, error) {
+	type snapshot Package
+	return json.Marshal(struct {
+		// snapshot 是当前格式的组件描述。
+		snapshot
+		// SourcePath 仅为仍引用仓库快照的旧版本保留。
+		SourcePath string `json:"sourcePath,omitempty"`
+	}{snapshot: snapshot(pkg), SourcePath: pkg.legacySourcePath})
+}
+
+// RuntimeRoot 从已验证的内容根解析实际交付目录，不猜测目录或修改固定快照。
+func (pkg Package) RuntimeRoot(contentRoot string) (string, error) {
+	if pkg.legacySourcePath == "" {
+		return contentRoot, nil
+	}
+	root, err := contained(contentRoot, pkg.legacySourcePath)
+	if err != nil {
+		return "", status_error.PluginContentInvalid
+	}
+	info, err := os.Stat(root)
+	if err != nil || !info.IsDir() {
+		return "", status_error.PluginContentInvalid
+	}
+	return root, nil
 }
 
 // Load 优先读取通用清单，缺失时按 Claude 导入规则发现受支持组件。

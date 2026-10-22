@@ -157,6 +157,14 @@ func (m *service) preparePlugins(ctx context.Context, waker string, request pend
 			}
 			continue
 		}
+		// 旧版内容摘要覆盖完整仓库，校验后再按固定元数据定位包根。
+		root, err = version.Package.RuntimeRoot(root)
+		if err != nil {
+			if required {
+				return result, err
+			}
+			continue
+		}
 		values := map[string]string{}
 		for _, field := range extension.Config {
 			if !field.Secret {
