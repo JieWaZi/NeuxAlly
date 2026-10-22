@@ -70,12 +70,20 @@ func (r *integrationRuntime) Run(ctx context.Context, request runtimes.RunReques
 type integrationEnvironment struct{}
 
 func (integrationEnvironment) Get(context.Context, string) (models.RuntimeEnvironment, error) {
-	return models.RuntimeEnvironment{RuntimeID: "codex", BaseRuntimeID: "codex", Enabled: true, Binary: "codex", DefaultModel: "model", DefaultAccountID: "another-default-account",
-		Detection: runtimes.DetectionResult{Runtime: runtimes.RuntimeSummary{ID: "codex", BaseRuntimeID: "codex"}, State: runtimes.DetectionStateReady, ResolvedBinary: "codex", Capabilities: runtimes.CapabilitySet{runtimes.CapabilityMCPStreamableHTTP: true},
+	// Runtime.Run 已由测试替身接管，仅用测试进程满足 Core 的可执行路径校验。
+	binary, err := os.Executable()
+	if err != nil {
+		return models.RuntimeEnvironment{}, err
+	}
+	return models.RuntimeEnvironment{RuntimeID: "codex", BaseRuntimeID: "codex", Enabled: true, Binary: binary, DefaultModel: "model", DefaultAccountID: "another-default-account",
+		Detection: runtimes.DetectionResult{Runtime: runtimes.RuntimeSummary{ID: "codex", BaseRuntimeID: "codex"}, State: runtimes.DetectionStateReady, ResolvedBinary: binary, Capabilities: runtimes.CapabilitySet{runtimes.CapabilityMCPStreamableHTTP: true},
 			Models: []runtimes.ModelOption{{ID: "model", PermissionLevels: []runtimes.PermissionLevel{runtimes.PermissionLevelDefault, runtimes.PermissionLevelAuto, runtimes.PermissionLevelFullAccess}}}}}, nil
 }
 
 func TestAutomaticEntriesExecuteAndDeleteThroughRealCore(t *testing.T) {
+	// 外部模型由替身处理，测试不依赖本机 CLI 或用户原生配置。
+	t.Setenv("PATH", t.TempDir())
+	t.Setenv("CODEX_HOME", t.TempDir())
 	ctx := context.Background()
 	dataDirectory := t.TempDir()
 	database, err := dbhelper.NewDB(conf.DB{Type: conf.Sqlite, DBName: filepath.Join(dataDirectory, "integration.db"), Migrate: true})
