@@ -1009,6 +1009,1839 @@ export type GithubComJieWaZiNeuxAllyServerApisImVerifyImLoginRequest = {
 };
 
 /**
+ * 归档原件请求
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeArchiveSourceInput = {
+    /**
+     * 已归档
+     */
+    archived?: boolean;
+    /**
+     * 状态版本
+     */
+    expectedVersion?: number;
+    /**
+     * 请求标识
+     */
+    requestId: string;
+};
+
+/**
+ * 当前聊天知识目标
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeChatLibraryList = {
+    /**
+     * 知识库列表
+     */
+    items?: Array<GithubComJieWaZiNeuxAllyServerServicesKnowledgeChatLibrary>;
+};
+
+/**
+ * 聊天操作附件沿用桌面文件选择器与既有Chat附件物化，不接受模型工具调用。
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeChatOperationAttachment = {
+    /**
+     * 用户所选文件
+     */
+    sourcePath: string;
+};
+
+/**
+ * 实现证据
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeCodeEvidence = {
+    /**
+     * 提交身份
+     */
+    commit?: string;
+    /**
+     * 结束行
+     */
+    endLine?: number;
+    /**
+     * 相对路径
+     */
+    path?: string;
+    /**
+     * 仓库身份
+     */
+    repository?: string;
+    /**
+     * 起始行
+     */
+    startLine?: number;
+    /**
+     * 符号
+     */
+    symbol?: string;
+    /**
+     * 核验时间
+     */
+    verifiedAt?: number;
+};
+
+/**
+ * 确认来源清理请求
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeConfirmSourcePurgeInput = {
+    /**
+     * 明确确认
+     */
+    confirmed?: boolean;
+    /**
+     * 影响摘要
+     */
+    previewDigest: string;
+    /**
+     * 请求标识
+     */
+    requestId: string;
+    /**
+     * 来源身份
+     */
+    sourceId: string;
+};
+
+/**
+ * 知识连接
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsConnection = {
+    /**
+     * 认证类型
+     */
+    authMode?: string;
+    /**
+     * 服务类型
+     */
+    backend?: string;
+    /**
+     * 服务地址
+     */
+    baseUrl?: string;
+    /**
+     * 已启用
+     */
+    enabled?: boolean;
+    /**
+     * 连接标识
+     */
+    id?: string;
+    /**
+     * 连接名称
+     */
+    name?: string;
+    /**
+     * 配置版本
+     */
+    revision?: number;
+};
+
+/**
+ * 连接检查结果
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsConnectionCheck = {
+    /**
+     * 服务类型
+     */
+    backend?: string;
+    /**
+     * 认证连接成功
+     */
+    connected?: boolean;
+    /**
+     * 可发现库数
+     */
+    visibleLibraries?: number;
+};
+
+/**
+ * 连接配置请求
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsConnectionInput = {
+    /**
+     * 认证类型
+     */
+    authMode: string;
+    /**
+     * 服务类型
+     */
+    backend: string;
+    /**
+     * 服务地址
+     */
+    baseUrl: string;
+    /**
+     * 认证凭据
+     */
+    credential?: string;
+    /**
+     * 已启用
+     */
+    enabled?: boolean;
+    /**
+     * 配置版本
+     */
+    expectedRevision?: number;
+    /**
+     * 连接名称
+     */
+    name: string;
+    /**
+     * 请求标识
+     */
+    requestId: string;
+};
+
+/**
+ * 连接列表
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsConnectionList = {
+    /**
+     * 连接配置
+     */
+    items?: Array<GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsConnection>;
+};
+
+/**
+ * 连接编辑回执
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsConnectionReceipt = {
+    /**
+     * 连接标识
+     */
+    connectionId?: string;
+    /**
+     * 提交版本
+     */
+    revision?: number;
+};
+
+/**
+ * 远端资源能力
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsRemoteCapabilities = {
+    /**
+     * 能力明细
+     */
+    details?: {
+        [key: string]: GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsRemoteCapabilityStatus;
+    };
+    /**
+     * 可用操作
+     */
+    operations?: {
+        [key: string]: boolean;
+    };
+    /**
+     * 操作权限
+     */
+    permissions?: {
+        [key: string]: string;
+    };
+    /**
+     * 协议版本
+     */
+    profile?: string;
+    /**
+     * 服务器配置
+     */
+    profiles?: Array<GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsRemoteProfile>;
+    /**
+     * 能力说明
+     */
+    reasons?: {
+        [key: string]: string;
+    };
+    ref?: GithubComJieWaZiNeuxAllyServerApisKnowledgeResourceRef & unknown;
+};
+
+/**
+ * 远端能力状态
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsRemoteCapabilityStatus = {
+    /**
+     * 资源条件
+     */
+    condition?: string;
+    /**
+     * 主体权限
+     */
+    permission?: string;
+    /**
+     * 协议支持
+     */
+    supported?: boolean;
+};
+
+/**
+ * 远端关系图
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsRemoteGraph = {
+    /**
+     * 定向关系
+     */
+    edges?: Array<GithubComJieWaZiNeuxKnowledgeRemoteGraphEdge>;
+    meta?: GithubComJieWaZiNeuxKnowledgeRemoteGraphMeta & unknown;
+    /**
+     * 页面句柄
+     */
+    nodes?: Array<GithubComJieWaZiNeuxKnowledgeRemoteGraphNode>;
+};
+
+/**
+ * 远端维护请求
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsRemoteMaintenanceInput = {
+    /**
+     * 页面版本
+     */
+    expectedPageVersion?: number;
+    /**
+     * 当前版本
+     */
+    expectedVersion?: number;
+    /**
+     * 维护要求
+     */
+    instruction: string;
+    /**
+     * 页面标识
+     */
+    pageId: string;
+    /**
+     * 服务器配置
+     */
+    profileId: string;
+    /**
+     * 请求标识
+     */
+    requestId: string;
+    /**
+     * 目录版本
+     */
+    structureVersion?: number;
+};
+
+/**
+ * 远端操作引用
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsRemoteOperation = {
+    /**
+     * 稳定错误码
+     */
+    errorCode?: number;
+    /**
+     * 任务标识
+     */
+    jobId?: string;
+    /**
+     * 操作类型
+     */
+    operation?: string;
+    /**
+     * 回执已确认
+     */
+    receiptConfirmed?: boolean;
+    ref?: GithubComJieWaZiNeuxAllyServerApisKnowledgeResourceRef & unknown;
+    /**
+     * 远端明确拒绝
+     */
+    rejected?: boolean;
+    /**
+     * 请求标识
+     */
+    requestId?: string;
+    /**
+     * 资源标识
+     */
+    resourceId?: string;
+};
+
+/**
+ * 待确认远端操作
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsRemoteOperationList = {
+    /**
+     * 操作引用
+     */
+    items?: Array<GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsRemoteOperation>;
+    /**
+     * 待确认总数
+     */
+    total?: number;
+};
+
+/**
+ * 远端整理请求
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsRemoteOrganizeInput = {
+    /**
+     * 当前版本
+     */
+    expectedVersion?: number;
+    /**
+     * 整理要求
+     */
+    instruction?: string;
+    /**
+     * 服务器配置
+     */
+    profileId: string;
+    /**
+     * 重建原件
+     */
+    rebuild?: boolean;
+    /**
+     * 请求标识
+     */
+    requestId: string;
+    /**
+     * 来源版本
+     */
+    sourceVersionIds?: Array<string>;
+    /**
+     * 目录版本
+     */
+    structureVersion?: number;
+};
+
+/**
+ * 服务器执行配置
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsRemoteProfile = {
+    /**
+     * 配置标识
+     */
+    id?: string;
+    /**
+     * 配置名称
+     */
+    name?: string;
+};
+
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsRemoteRevision = GithubComJieWaZiNeuxAllyServerApisKnowledgeRevision & {
+    /**
+     * 正文已读取
+     */
+    contentLoaded?: boolean;
+};
+
+/**
+ * 远端修订列表
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsRemoteRevisionList = {
+    /**
+     * 当前版本
+     */
+    currentVersion?: number;
+    /**
+     * 修订列表
+     */
+    items?: Array<GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsRemoteRevision>;
+    /**
+     * 修订总数
+     */
+    total?: number;
+};
+
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsRemoteTheme = GithubComJieWaZiNeuxAllyServerApisKnowledgeTheme & {
+    /**
+     * 子主题存在
+     */
+    hasChildren?: boolean;
+    /**
+     * 直接页面数
+     */
+    pageCount?: number;
+};
+
+/**
+ * 远端主题列表
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsRemoteThemeList = {
+    /**
+     * 主题列表
+     */
+    items?: Array<GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsRemoteTheme>;
+    /**
+     * 上级标识
+     */
+    parentId?: string;
+};
+
+/**
+ * 远端页面保存请求
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsRemoteWritePageInput = {
+    /**
+     * 当前版本
+     */
+    expectedVersion?: number;
+    page?: GithubComJieWaZiNeuxAllyServerApisKnowledgePage & unknown;
+    /**
+     * 请求标识
+     */
+    requestId: string;
+    /**
+     * 目录版本
+     */
+    structureVersion?: number;
+};
+
+/**
+ * 创建知识库请求
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeCreateLibraryInput = {
+    chunkingConfig?: GithubComJieWaZiNeuxKnowledgeInternalDomainChunkingConfig & unknown;
+    /**
+     * 嵌入模型标识
+     */
+    embeddingModelId?: string;
+    embeddingProfile?: GithubComJieWaZiNeuxAllyServerApisKnowledgeLibraryEmbeddingInput & unknown;
+    executionDefaults?: GithubComJieWaZiNeuxAllyServerApisKnowledgeLibraryExecutionDefaultsInput & unknown;
+    indexingStrategy?: GithubComJieWaZiNeuxKnowledgeInternalDomainIndexingStrategy & unknown;
+    /**
+     * 名称
+     */
+    name: string;
+    /**
+     * 用途
+     */
+    purpose?: string;
+    /**
+     * 请求标识
+     */
+    requestId: string;
+    wikiConfig?: GithubComJieWaZiNeuxKnowledgeInternalDomainWikiConfig & unknown;
+    /**
+     * 正文语言
+     */
+    wikiLanguage: string;
+};
+
+/**
+ * 创建页面请求
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeCreatePageInput = {
+    page?: GithubComJieWaZiNeuxAllyServerApisKnowledgePage & unknown;
+    /**
+     * 请求标识
+     */
+    requestId: string;
+    /**
+     * 目录版本
+     */
+    structureVersion?: number;
+};
+
+/**
+ * 创建主题请求
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeCreateThemeInput = {
+    /**
+     * 请求标识
+     */
+    requestId: string;
+    /**
+     * 目录版本
+     */
+    structureVersion?: number;
+    theme?: GithubComJieWaZiNeuxAllyServerApisKnowledgeTheme & unknown;
+};
+
+/**
+ * 删除知识库请求
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeDeleteLibraryInput = {
+    /**
+     * 当前版本
+     */
+    expectedVersion: number;
+    /**
+     * 请求标识
+     */
+    requestId: string;
+};
+
+/**
+ * 保存原件请求
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeImportSourceInput = {
+    /**
+     * 原始字节
+     */
+    bytes: string;
+    /**
+     * 原件版本
+     */
+    expectedVersion?: number;
+    /**
+     * 文件名
+     */
+    filename: string;
+    /**
+     * 媒体类型
+     */
+    mime?: string;
+    /**
+     * 请求标识
+     */
+    requestId: string;
+    /**
+     * 来源标识
+     */
+    sourceId?: string;
+};
+
+/**
+ * 知识任务
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeJob = {
+    /**
+     * 尝试序号
+     */
+    attempt?: number;
+    /**
+     * 尝试开始时间
+     */
+    attemptStartedAt?: number;
+    /**
+     * 取消屏障
+     */
+    cancelRequested?: boolean;
+    /**
+     * 创建时间
+     */
+    createdAt?: number;
+    /**
+     * 任务说明
+     */
+    diagnostic?: string;
+    /**
+     * 暂停说明
+     */
+    hostDiagnostic?: string;
+    /**
+     * 宿主错误码
+     */
+    hostErrorCode?: string;
+    /**
+     * 宿主状态
+     */
+    hostState?: string;
+    /**
+     * 任务标识
+     */
+    id?: string;
+    /**
+     * 知识库标识
+     */
+    libraryId?: string;
+    /**
+     * 请求标识
+     */
+    requestId?: string;
+    /**
+     * 来源版本
+     */
+    sourceVersionIds?: Array<string>;
+    /**
+     * 任务状态
+     */
+    state?: string;
+    /**
+     * 更新时间
+     */
+    updatedAt?: number;
+    /**
+     * 状态版本
+     */
+    version?: number;
+};
+
+/**
+ * 知识任务详情
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeJobDetail = {
+    configuration?: GithubComJieWaZiNeuxAllyServerApisKnowledgeTaskConfiguration & unknown;
+    job?: GithubComJieWaZiNeuxAllyServerApisKnowledgeJob & unknown;
+};
+
+/**
+ * 知识任务列表
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeJobList = {
+    activeJob?: GithubComJieWaZiNeuxAllyServerApisKnowledgeJob & unknown;
+    /**
+     * 任务
+     */
+    items?: Array<GithubComJieWaZiNeuxAllyServerApisKnowledgeJob>;
+    /**
+     * 总数
+     */
+    total?: number;
+};
+
+/**
+ * 知识库详情
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeLibrary = {
+    /**
+     * 已归档
+     */
+    archived?: boolean;
+    chunkingConfig?: GithubComJieWaZiNeuxKnowledgeInternalDomainChunkingConfig & unknown;
+    /**
+     * 创建时间
+     */
+    createdAt?: number;
+    /**
+     * 嵌入模型标识
+     */
+    embeddingModelId?: string;
+    /**
+     * 知识库标识
+     */
+    id?: string;
+    indexingStrategy?: GithubComJieWaZiNeuxKnowledgeInternalDomainIndexingStrategy & unknown;
+    /**
+     * 库类型
+     */
+    kind?: string;
+    /**
+     * 名称
+     */
+    name?: string;
+    /**
+     * Wiki数量
+     */
+    pageTotal?: number;
+    /**
+     * 统计时间
+     */
+    pageTotalObservedAt?: number;
+    /**
+     * 权限版本
+     */
+    policyVersion?: number;
+    /**
+     * 用途
+     */
+    purpose?: string;
+    ref?: GithubComJieWaZiNeuxAllyServerApisKnowledgeResourceRef & unknown;
+    /**
+     * 目录版本
+     */
+    structureVersion?: number;
+    /**
+     * 更新时间
+     */
+    updatedAt?: number;
+    /**
+     * 当前版本
+     */
+    version?: number;
+    wikiConfig?: GithubComJieWaZiNeuxKnowledgeInternalDomainWikiConfig & unknown;
+    /**
+     * 正文语言
+     */
+    wikiLanguage?: string;
+};
+
+/**
+ * 知识库活动
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeLibraryActivity = {
+    /**
+     * 动作
+     */
+    action?: string;
+    /**
+     * 发起角色
+     */
+    actorRole?: string;
+    /**
+     * 发起用户
+     */
+    actorUserId?: string;
+    createdAt?: TimeTime & unknown;
+    details?: EncodingJsonRawMessage & unknown;
+    /**
+     * 事件标识
+     */
+    id?: number;
+    /**
+     * 持久操作
+     */
+    operation?: string;
+    /**
+     * 执行结果
+     */
+    outcome?: string;
+    /**
+     * 请求标识
+     */
+    requestId?: string;
+    /**
+     * 知识库标识
+     */
+    scopeId?: string;
+    /**
+     * 作用域类型
+     */
+    scopeType?: string;
+    /**
+     * 对象标识
+     */
+    targetId?: string;
+    /**
+     * 对象类型
+     */
+    targetType?: string;
+};
+
+/**
+ * 知识库活动页
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeLibraryActivityList = {
+    /**
+     * 活动列表
+     */
+    data?: Array<GithubComJieWaZiNeuxAllyServerApisKnowledgeLibraryActivity>;
+    /**
+     * 下页游标
+     */
+    nextCursor?: number;
+};
+
+/**
+ * LibraryEmbeddingInput 是此库独立服务草稿，密钥只输入不回显。
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeLibraryEmbeddingInput = {
+    /**
+     * 访问密钥
+     */
+    apiKey?: string;
+    /**
+     * 服务地址
+     */
+    baseUrl: string;
+    /**
+     * 模型名称
+     */
+    model: string;
+};
+
+/**
+ * LibraryEmbeddingTestResult 是真实探测返回的维度，不代表配置已保存或资料已索引。
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeLibraryEmbeddingTestResult = {
+    /**
+     * 向量维度
+     */
+    dimensions?: number;
+};
+
+/**
+ * 知识库执行选择
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeLibraryExecutionDefaultsInput = {
+    /**
+     * 账号标识
+     */
+    accountId?: string;
+    /**
+     * 模型
+     */
+    model?: string;
+    /**
+     * 智能体
+     */
+    runtimeId: string;
+};
+
+/**
+ * 知识库列表
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeLibraryList = {
+    /**
+     * 知识库
+     */
+    items?: Array<GithubComJieWaZiNeuxAllyServerApisKnowledgeLibrary>;
+    /**
+     * 总数
+     */
+    total?: number;
+};
+
+/**
+ * 整理知识请求
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeOrganizeInput = {
+    /**
+     * 账号标识
+     */
+    accountId?: string;
+    /**
+     * 整理消息
+     */
+    message?: string;
+    /**
+     * 模型
+     */
+    model?: string;
+    /**
+     * 重建知识
+     */
+    rebuild?: boolean;
+    /**
+     * 请求标识
+     */
+    requestId: string;
+    /**
+     * 智能体
+     */
+    runtimeId?: string;
+    /**
+     * 来源版本
+     */
+    sourceVersionIds?: Array<string>;
+};
+
+/**
+ * 整理接纳响应
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeOrganizeResponse = {
+    configuration?: GithubComJieWaZiNeuxAllyServerApisKnowledgeTaskConfiguration & unknown;
+    /**
+     * 无新增来源
+     */
+    noop?: boolean;
+    receipt?: GithubComJieWaZiNeuxAllyServerApisKnowledgeReceipt & unknown;
+};
+
+/**
+ * 知识页面
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgePage = {
+    /**
+     * 别名
+     */
+    aliases?: Array<string>;
+    /**
+     * 目录路径
+     */
+    categoryPath?: Array<string>;
+    /**
+     * 阅读块引用
+     */
+    chunkRefs?: Array<string>;
+    /**
+     * 正文
+     */
+    content?: string;
+    evidence?: GithubComJieWaZiNeuxAllyServerApisKnowledgePageEvidence & unknown;
+    /**
+     * 页面标识
+     */
+    id?: string;
+    /**
+     * 入链
+     */
+    inLinks?: Array<string>;
+    /**
+     * 人工位置
+     */
+    manualPlacement?: boolean;
+    /**
+     * 出链
+     */
+    outLinks?: Array<string>;
+    /**
+     * 页面类型
+     */
+    pageType?: string;
+    /**
+     * 语义地址
+     */
+    slug?: string;
+    /**
+     * 排序
+     */
+    sortOrder?: number;
+    sourcePurgeReview?: GithubComJieWaZiNeuxAllyServerApisKnowledgeSourcePurgeReview & unknown;
+    /**
+     * 原件引用
+     */
+    sourceRefs?: Array<string>;
+    /**
+     * 状态
+     */
+    status?: string;
+    /**
+     * 页面说明
+     */
+    summary?: string;
+    /**
+     * 主题标识
+     */
+    themeId?: string;
+    /**
+     * 标题
+     */
+    title?: string;
+    /**
+     * 更新时间
+     */
+    updatedAt?: number;
+    /**
+     * 当前版本
+     */
+    version?: number;
+    /**
+     * 正文语言
+     */
+    wikiLanguage?: string;
+};
+
+/**
+ * 页面证据
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgePageEvidence = {
+    /**
+     * 实现证据
+     */
+    code?: Array<GithubComJieWaZiNeuxAllyServerApisKnowledgeCodeEvidence>;
+    /**
+     * 原件证据
+     */
+    sources?: Array<GithubComJieWaZiNeuxAllyServerApisKnowledgeSourceEvidence>;
+};
+
+/**
+ * 页面列表
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgePageList = {
+    /**
+     * 页面
+     */
+    items?: Array<GithubComJieWaZiNeuxAllyServerApisKnowledgePage>;
+    /**
+     * 总数
+     */
+    total?: number;
+};
+
+/**
+ * 分块预览结果
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgePreviewChunkingResult = {
+    /**
+     * 真实分块
+     */
+    chunks?: Array<GithubComJieWaZiNeuxKnowledgeCorePreviewChunkResult>;
+    profile?: GithubComJieWaZiNeuxAllyServerApisKnowledgePreviewDocumentProfile & unknown;
+    /**
+     * 策略诊断
+     */
+    rejected?: Array<GithubComJieWaZiNeuxAllyServerApisKnowledgePreviewTierRejection>;
+    /**
+     * 实际策略
+     */
+    selected_tier?: string;
+    stats?: GithubComJieWaZiNeuxKnowledgeCorePreviewChunkingStats & unknown;
+    /**
+     * 尝试策略
+     */
+    tier_chain?: Array<string>;
+};
+
+/**
+ * 文本分块特征
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgePreviewDocumentProfile = {
+    /**
+     * 大写短行数量
+     */
+    all_caps_short_line_count?: number;
+    /**
+     * 平均行长
+     */
+    avg_line_len?: number;
+    /**
+     * 空行段落数量
+     */
+    blank_paragraph_breaks?: number;
+    /**
+     * 中文章节数量
+     */
+    chinese_chapter_count?: number;
+    /**
+     * 代码字符比例
+     */
+    code_ratio?: number;
+    /**
+     * 语言提示
+     */
+    detected_langs?: Array<string>;
+    /**
+     * 英文章节数量
+     */
+    english_chapter_count?: number;
+    /**
+     * 换页数量
+     */
+    form_feed_count?: number;
+    /**
+     * 德文章节数量
+     */
+    german_chapter_count?: number;
+    /**
+     * 包含代码
+     */
+    has_code?: boolean;
+    /**
+     * 包含表格
+     */
+    has_tables?: boolean;
+    /**
+     * 标题层级数量
+     */
+    md_heading_counts?: {
+        [key: string]: unknown;
+    };
+    /**
+     * 标题总数
+     */
+    md_heading_total?: number;
+    /**
+     * 编号章节数量
+     */
+    numbered_section_count?: number;
+    /**
+     * 重复页脚数量
+     */
+    repeated_footer_count?: number;
+    /**
+     * 行长标准差
+     */
+    std_line_len?: number;
+    /**
+     * 全文字符数
+     */
+    total_chars?: number;
+    /**
+     * 全文行数
+     */
+    total_lines?: number;
+    /**
+     * 分隔行数量
+     */
+    visual_sep_count?: number;
+};
+
+/**
+ * 策略拒绝原因
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgePreviewTierRejection = {
+    /**
+     * 拒绝原因
+     */
+    reason?: string;
+    /**
+     * 分块策略
+     */
+    tier?: string;
+};
+
+/**
+ * 原件字节响应
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeRawSource = {
+    /**
+     * 原始字节
+     */
+    bytes?: string;
+    /**
+     * 文件名
+     */
+    filename?: string;
+    /**
+     * 媒体类型
+     */
+    mime?: string;
+};
+
+/**
+ * 知识操作回执
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeReceipt = {
+    /**
+     * 任务标识
+     */
+    jobId?: string;
+    /**
+     * 知识库标识
+     */
+    libraryId?: string;
+    /**
+     * 页面标识
+     */
+    pageIds?: Array<string>;
+    /**
+     * 请求标识
+     */
+    requestId?: string;
+    /**
+     * 资源标识
+     */
+    resourceId?: string;
+    /**
+     * 提交事实
+     */
+    state?: string;
+    /**
+     * 提交版本
+     */
+    version?: number;
+};
+
+/**
+ * 恢复来源清理请求
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeRecoverSourcePurgeInput = {
+    /**
+     * 当前授权版本
+     */
+    expectedPolicyVersion?: number;
+    /**
+     * 请求标识
+     */
+    requestId: string;
+};
+
+/**
+ * 聊天远端整理请求
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeRemoteChatInput = {
+    /**
+     * 所选附件
+     */
+    attachments: Array<GithubComJieWaZiNeuxAllyServerApisKnowledgeChatOperationAttachment>;
+    /**
+     * 服务器配置
+     */
+    profileId: string;
+    ref?: GithubComJieWaZiNeuxAllyServerApisKnowledgeResourceRef & unknown;
+    /**
+     * 请求标识
+     */
+    requestId: string;
+};
+
+/**
+ * 聊天远端操作列表
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeRemoteChatOperationList = {
+    /**
+     * 操作列表
+     */
+    items?: Array<GithubComJieWaZiNeuxAllyServerApisKnowledgeRemoteChatOperationRef>;
+    /**
+     * 总数
+     */
+    total?: number;
+};
+
+/**
+ * 聊天远端操作引用
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeRemoteChatOperationRef = {
+    /**
+     * 已确认任务
+     */
+    jobId?: string;
+    /**
+     * 原回执已确认
+     */
+    receiptConfirmed?: boolean;
+    ref?: GithubComJieWaZiNeuxAllyServerApisKnowledgeResourceRef & unknown;
+    /**
+     * 操作标识
+     */
+    requestId?: string;
+};
+
+/**
+ * 聊天远端知识操作只包含真实回执引用，不伪造聊天Execution。
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeRemoteChatResult = {
+    /**
+     * 可继续接纳
+     */
+    canResume?: boolean;
+    /**
+     * 聊天标识
+     */
+    chatId?: string;
+    job?: GithubComJieWaZiNeuxAllyServerApisKnowledgeJob & unknown;
+    /**
+     * 待确认请求
+     */
+    pendingRequestId?: string;
+    receipt?: GithubComJieWaZiNeuxAllyServerApisKnowledgeReceipt & unknown;
+    ref?: GithubComJieWaZiNeuxAllyServerApisKnowledgeResourceRef & unknown;
+    /**
+     * 操作标识
+     */
+    requestId?: string;
+    /**
+     * 接纳状态
+     */
+    state?: string;
+};
+
+/**
+ * 知识资源引用
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeResourceRef = {
+    /**
+     * 服务类型
+     */
+    backend?: string;
+    /**
+     * 连接标识
+     */
+    connectionId?: string;
+    /**
+     * 知识库标识
+     */
+    knowledgeBaseId?: string;
+};
+
+/**
+ * 恢复正文请求
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeRestorePageInput = {
+    /**
+     * 当前版本
+     */
+    expectedVersion?: number;
+    /**
+     * 请求标识
+     */
+    requestId: string;
+    /**
+     * 历史版本
+     */
+    revisionVersion?: number;
+    /**
+     * 目录版本
+     */
+    structureVersion?: number;
+};
+
+/**
+ * 恢复参数
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeResumeJobInput = {
+    /**
+     * 当前版本
+     */
+    expectedVersion: number;
+};
+
+/**
+ * 重试任务请求
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeRetryJobInput = {
+    /**
+     * 当前版本
+     */
+    expectedVersion?: number;
+    /**
+     * 请求标识
+     */
+    requestId: string;
+};
+
+/**
+ * 页面修订
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeRevision = {
+    /**
+     * 正文
+     */
+    content?: string;
+    /**
+     * 编辑来源
+     */
+    editSource?: string;
+    /**
+     * 编辑时间
+     */
+    editedAt?: number;
+    evidence?: GithubComJieWaZiNeuxAllyServerApisKnowledgePageEvidence & unknown;
+    /**
+     * 修订标识
+     */
+    id?: string;
+    /**
+     * 页面标识
+     */
+    pageId?: string;
+    /**
+     * 原件引用
+     */
+    sourceRefs?: Array<string>;
+    /**
+     * 页面说明
+     */
+    summary?: string;
+    /**
+     * 标题
+     */
+    title?: string;
+    /**
+     * 版本
+     */
+    version?: number;
+};
+
+/**
+ * 修订列表
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeRevisionList = {
+    /**
+     * 修订
+     */
+    items?: Array<GithubComJieWaZiNeuxAllyServerApisKnowledgeRevision>;
+    /**
+     * 总数
+     */
+    total?: number;
+};
+
+/**
+ * 权限重载结果
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeServerReloadResult = {
+    /**
+     * 已生效。
+     */
+    reloaded?: boolean;
+};
+
+/**
+ * 原件版本
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeSource = {
+    /**
+     * 已归档
+     */
+    archived?: boolean;
+    coverage?: EncodingJsonRawMessage & unknown;
+    /**
+     * 创建时间
+     */
+    createdAt?: number;
+    /**
+     * 文档摘要
+     */
+    description?: string;
+    /**
+     * 处理说明
+     */
+    diagnostic?: string;
+    /**
+     * 文件名
+     */
+    filename?: string;
+    /**
+     * 版本标识
+     */
+    id?: string;
+    /**
+     * 媒体类型
+     */
+    mime?: string;
+    profile?: GithubComJieWaZiNeuxKnowledgeInternalDomainKnowledgeProfile & unknown;
+    /**
+     * 状态版本
+     */
+    rowVersion?: number;
+    /**
+     * 字节摘要
+     */
+    sha256?: string;
+    /**
+     * 字节大小
+     */
+    size?: number;
+    /**
+     * 来源标识
+     */
+    sourceId?: string;
+    /**
+     * 处理状态
+     */
+    state?: string;
+    /**
+     * 摘要状态
+     */
+    summaryStatus?: string;
+    /**
+     * 原件版本
+     */
+    version?: number;
+};
+
+/**
+ * 原件证据
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeSourceEvidence = {
+    /**
+     * 论断类型
+     */
+    claimKind?: string;
+    /**
+     * 原文摘录
+     */
+    excerpt?: string;
+    /**
+     * 摘录摘要
+     */
+    excerptHash?: string;
+    locator?: GithubComJieWaZiNeuxAllyServerApisKnowledgeSourceLocator & unknown;
+    /**
+     * 原件摘要
+     */
+    sha256?: string;
+    /**
+     * 来源标识
+     */
+    sourceId?: string;
+    /**
+     * 来源版本
+     */
+    sourceVersionId?: string;
+};
+
+/**
+ * 原件列表
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeSourceList = {
+    /**
+     * 原件
+     */
+    items?: Array<GithubComJieWaZiNeuxAllyServerApisKnowledgeSource>;
+    /**
+     * 总数
+     */
+    total?: number;
+};
+
+/**
+ * 证据位置
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeSourceLocator = {
+    /**
+     * 结束行
+     */
+    endLine?: number;
+    /**
+     * 位置类型
+     */
+    kind?: string;
+    /**
+     * 页码
+     */
+    page?: number;
+    /**
+     * 章节
+     */
+    section?: string;
+    /**
+     * 起始行
+     */
+    startLine?: number;
+};
+
+/**
+ * SourcePurgeReview 仅暴露清理后需要人工核查的来源身份，不透传自由元数据。
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeSourcePurgeReview = {
+    /**
+     * 需要核查
+     */
+    needsReview?: boolean;
+    /**
+     * 清理操作
+     */
+    purgeIds?: Array<string>;
+    /**
+     * 不可用来源
+     */
+    unavailableSourceIds?: Array<string>;
+    /**
+     * 不可用版本
+     */
+    unavailableVersionIds?: Array<string>;
+};
+
+/**
+ * 知识任务模型选择
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeTaskConfiguration = {
+    /**
+     * 账号标识
+     */
+    accountId?: string;
+    /**
+     * 配置标识
+     */
+    id?: string;
+    /**
+     * 模型
+     */
+    model?: string;
+    /**
+     * 智能体
+     */
+    runtimeId?: string;
+};
+
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeTestLibraryEmbeddingInput = GithubComJieWaZiNeuxAllyServerApisKnowledgeLibraryEmbeddingInput & {
+    /**
+     * 知识库标识
+     */
+    libraryId?: string;
+};
+
+/**
+ * 知识主题
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeTheme = {
+    /**
+     * 主题标识
+     */
+    id?: string;
+    /**
+     * 人工主题
+     */
+    manual?: boolean;
+    /**
+     * 名称
+     */
+    name?: string;
+    /**
+     * 上级标识
+     */
+    parentId?: string;
+    /**
+     * 主题路径
+     */
+    path?: string;
+    /**
+     * 排序
+     */
+    sortOrder?: number;
+    /**
+     * 系统标记
+     */
+    systemKey?: string;
+};
+
+/**
+ * 主题列表
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeThemeList = {
+    /**
+     * 主题
+     */
+    items?: Array<GithubComJieWaZiNeuxAllyServerApisKnowledgeTheme>;
+};
+
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeUpdateLibraryEmbeddingProfileInput = GithubComJieWaZiNeuxAllyServerApisKnowledgeLibraryEmbeddingInput & {
+    /**
+     * 知识库版本
+     */
+    expectedLibraryVersion: number;
+    /**
+     * 配置版本
+     */
+    expectedVersion?: number;
+    /**
+     * 请求标识
+     */
+    requestId: string;
+};
+
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeUpdateLibraryExecutionDefaultsInput = GithubComJieWaZiNeuxAllyServerApisKnowledgeLibraryExecutionDefaultsInput & {
+    /**
+     * 当前版本
+     */
+    expectedVersion?: number;
+    /**
+     * 请求标识
+     */
+    requestId: string;
+};
+
+/**
+ * 修改知识库请求
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeUpdateLibraryInput = {
+    /**
+     * 已归档
+     */
+    archived?: boolean;
+    chunkingConfig?: GithubComJieWaZiNeuxKnowledgeInternalDomainChunkingConfig & unknown;
+    /**
+     * 嵌入模型标识
+     */
+    embeddingModelId?: string;
+    /**
+     * 当前版本
+     */
+    expectedVersion: number;
+    indexingStrategy?: GithubComJieWaZiNeuxKnowledgeInternalDomainIndexingStrategy & unknown;
+    /**
+     * 名称
+     */
+    name: string;
+    /**
+     * 权限版本
+     */
+    policyVersion?: number;
+    /**
+     * 用途
+     */
+    purpose?: string;
+    /**
+     * 请求标识
+     */
+    requestId: string;
+    wikiConfig?: GithubComJieWaZiNeuxKnowledgeInternalDomainWikiConfig & unknown;
+};
+
+/**
+ * Wiki索引条目
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeWikiIndexEntry = {
+    /**
+     * 分类路径
+     */
+    categoryPath?: Array<string>;
+    /**
+     * 分类层级
+     */
+    depth?: number;
+    /**
+     * 父页地址
+     */
+    parentSlug?: string;
+    /**
+     * 页面地址
+     */
+    slug?: string;
+    /**
+     * 同级顺序
+     */
+    sortOrder?: number;
+    /**
+     * 页面简介
+     */
+    summary?: string;
+    /**
+     * 页面标题
+     */
+    title?: string;
+    /**
+     * 完整路径
+     */
+    wikiPath?: string;
+};
+
+/**
+ * Wiki索引分组
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeWikiIndexGroup = {
+    /**
+     * 页面条目
+     */
+    items?: Array<GithubComJieWaZiNeuxAllyServerApisKnowledgeWikiIndexEntry>;
+    /**
+     * 后页游标
+     */
+    nextCursor?: string;
+    /**
+     * 分组总数
+     */
+    total?: number;
+    /**
+     * 页面类型
+     */
+    type?: string;
+};
+
+/**
+ * Wiki结构化索引
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeWikiIndexView = {
+    /**
+     * 分组目录
+     */
+    groups?: Array<GithubComJieWaZiNeuxAllyServerApisKnowledgeWikiIndexGroup>;
+    /**
+     * 索引导言
+     */
+    intro?: string;
+    /**
+     * 索引版本
+     */
+    version?: number;
+};
+
+/**
+ * 保存页面请求
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeWritePageInput = {
+    /**
+     * 当前版本
+     */
+    expectedVersion?: number;
+    page?: GithubComJieWaZiNeuxAllyServerApisKnowledgePage & unknown;
+    /**
+     * 请求标识
+     */
+    requestId: string;
+    /**
+     * 目录版本
+     */
+    structureVersion?: number;
+};
+
+/**
+ * 保存主题请求
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeWriteThemeInput = {
+    /**
+     * 删除主题
+     */
+    delete?: boolean;
+    /**
+     * 请求标识
+     */
+    requestId: string;
+    /**
+     * 目录版本
+     */
+    structureVersion?: number;
+    theme?: GithubComJieWaZiNeuxAllyServerApisKnowledgeTheme & unknown;
+};
+
+/**
  * 连接器输入
  */
 export type GithubComJieWaZiNeuxAllyServerApisMcpConnectorInput = {
@@ -2144,6 +3977,7 @@ export type GithubComJieWaZiNeuxAllyServerApisRuntimeOptionsRuntimeOption = {
      * 可执行路径
      */
     binary?: string;
+    capabilities?: GithubComJieWaZiNeuxAllyServerInternalRuntimesCapabilitySet & unknown;
     /**
      * 配置目录
      */
@@ -3902,6 +5736,16 @@ export type GithubComJieWaZiNeuxAllyServerConstantsImPlatform = '' | 'feishu' | 
 
 /**
  * >
+ * * `unknown` - KnowledgeLibraryLocationDefault 缺省时不限制保存位置。
+ * * `all` - KnowledgeLibraryLocationAll 包含本地及全部启用的远端连接。
+ * * `local` - KnowledgeLibraryLocationLocal 只读取本地知识库。
+ * * `remote` - KnowledgeLibraryLocationRemote 只读取启用连接中的远端知识库。
+ *
+ */
+export type GithubComJieWaZiNeuxAllyServerConstantsKnowledgeLibraryLocation = 'unknown' | 'all' | 'local' | 'remote';
+
+/**
+ * >
  * * `per_execution` - MCPActivationPolicyPerExecution 表示每轮执行按伙伴启用状态和 Runtime 能力挂载。
  * * `team_context` - MCPActivationPolicyTeamContext 表示仅在 Team 执行中按负责人、成员和只读角色挂载。
  * * `workflow_context` - MCPActivationPolicyWorkflowContext 表示由工作流入口按当前执行签发，伙伴不能独立启停。
@@ -4101,6 +5945,24 @@ export type GithubComJieWaZiNeuxAllyServerConstantsRolePresetInputMode = 'manual
  *
  */
 export type GithubComJieWaZiNeuxAllyServerConstantsRolePresetSource = '' | 'system' | 'user';
+
+/**
+ * >
+ * * `` - RuntimeCapabilityUnspecified 表示未指定 Runtime 能力。
+ * * `add_directory` - RuntimeCapabilityAddDirectory 表示 Runtime 支持声明附加工作目录。
+ * * `dynamic_models` - RuntimeCapabilityDynamicModels 表示本次探测取得了动态模型列表。
+ * * `image_path` - RuntimeCapabilityImagePath 表示 Runtime 支持通过本地路径原生提交图片。
+ * * `isolated_text_generation` - RuntimeCapabilityIsolatedTextGeneration 表示真实会话已确认可配置隔离文本生成策略。
+ * * `mcp_sse` - RuntimeCapabilityMCPSSE 表示 ACP Agent 声明支持旧版 SSE MCP。
+ * * `mcp_streamable_http` - RuntimeCapabilityMCPStreamableHTTP 表示 ACP Agent 声明支持 Streamable HTTP MCP。
+ * * `partial_messages` - RuntimeCapabilityPartialMessages 表示 Runtime 支持更细粒度的流式消息。
+ * * `resume_session` - RuntimeCapabilityResumeSession 表示 Runtime 支持恢复原生 Session。
+ * * `skill_directory` - RuntimeCapabilitySkillDirectory 表示 Runtime 支持从调用方指定目录原生加载技能。
+ * * `streaming_user_messages` - RuntimeCapabilityStreamingUserMessages 表示活跃调用可以继续接收用户消息。
+ * * `structured_output` - RuntimeCapabilityStructuredOutput 表示 Runtime 支持要求的结构化输出格式。
+ *
+ */
+export type GithubComJieWaZiNeuxAllyServerConstantsRuntimeCapability = '' | 'add_directory' | 'dynamic_models' | 'image_path' | 'isolated_text_generation' | 'mcp_sse' | 'mcp_streamable_http' | 'partial_messages' | 'resume_session' | 'skill_directory' | 'streaming_user_messages' | 'structured_output';
 
 /**
  * >
@@ -4553,6 +6415,24 @@ export type GithubComJieWaZiNeuxAllyServerInternalChatMessageviewToolSafeSummary
 };
 
 /**
+ * ResourceRef 保存提供者原生身份，禁止仅按库 ID 跨连接判断资源。
+ */
+export type GithubComJieWaZiNeuxAllyServerInternalKnowledgeResourceRef = {
+    /**
+     * Backend 是 local、weknora 或 custom。
+     */
+    backend?: string;
+    /**
+     * ConnectionID 是本机连接身份。
+     */
+    connectionId?: string;
+    /**
+     * KnowledgeBaseID 是提供者原生库身份。
+     */
+    knowledgeBaseId?: string;
+};
+
+/**
  * Author 保存包作者的公开署名资料。
  */
 export type GithubComJieWaZiNeuxAllyServerInternalPluginsAuthor = {
@@ -4979,6 +6859,13 @@ export type GithubComJieWaZiNeuxAllyServerInternalProfileWorkMethod = {
      * Steps 是按执行顺序排列的步骤。
      */
     steps?: Array<string>;
+};
+
+/**
+ * CapabilitySet 保存一次探测确认可用的 Runtime 能力。
+ */
+export type GithubComJieWaZiNeuxAllyServerInternalRuntimesCapabilitySet = {
+    [key: string]: boolean;
 };
 
 /**
@@ -5927,6 +7814,7 @@ export type GithubComJieWaZiNeuxAllyServerRepositoriesModelsAutomaticTaskConfigu
      * Instruction 是每次执行发送给伙伴的完整工作指令。
      */
     instruction?: string;
+    knowledge?: GithubComJieWaZiNeuxAllyServerRepositoriesModelsKnowledgeMaintenanceAuthorization & unknown;
     /**
      * MemberConfigs 是团队成员的任务专属覆盖；未列出的成员沿用运行时团队设置。
      */
@@ -6730,6 +8618,100 @@ export type GithubComJieWaZiNeuxAllyServerRepositoriesModelsImWorkflowDependency
 };
 
 /**
+ * KnowledgeMaintenanceAuthorization 记录用户明确允许的精确维护范围。
+ */
+export type GithubComJieWaZiNeuxAllyServerRepositoriesModelsKnowledgeMaintenanceAuthorization = {
+    /**
+     * 附件序号
+     */
+    attachmentIndexes?: Array<number>;
+    /**
+     * 服务类型
+     */
+    backend: string;
+    /**
+     * 连接标识
+     */
+    connectionId: string;
+    /**
+     * 知识库标识
+     */
+    knowledgeBaseId: string;
+    /**
+     * 维护操作
+     */
+    operation: string;
+    /**
+     * 来源版本
+     */
+    sourceVersionIds?: Array<string>;
+};
+
+/**
+ * LibraryEmbeddingProfile 是按库隔离的唯一嵌入服务配置，不继承记忆配置。
+ */
+export type GithubComJieWaZiNeuxAllyServerRepositoriesModelsLibraryEmbeddingProfile = {
+    /**
+     * BaseURL 是OpenAI兼容嵌入服务地址。
+     */
+    baseUrl?: string;
+    /**
+     * HasAPIKey 表示存在该库专属加密凭据。
+     */
+    hasApiKey?: boolean;
+    /**
+     * LibraryID 是唯一所属本地库。
+     */
+    libraryId?: string;
+    /**
+     * LibraryVersion 是该次保存成功时核心库版本，GET投影当前版本。
+     */
+    libraryVersion?: number;
+    /**
+     * Model 是此库独立选择的模型。
+     */
+    model?: string;
+    /**
+     * UpdatedAt 是保存时间，单位毫秒。
+     */
+    updatedAt?: number;
+    /**
+     * Version 是独立配置CAS版本，未配置为零。
+     */
+    version?: number;
+};
+
+/**
+ * LibraryExecutionDefaults 是本机知识库唯一的执行选择偏好，不属于通用知识核心配置。
+ */
+export type GithubComJieWaZiNeuxAllyServerRepositoriesModelsLibraryExecutionDefaults = {
+    /**
+     * AccountID 是既有账号引用，不包含认证资料。
+     */
+    accountId?: string;
+    /**
+     * LibraryID 是唯一所属本地知识库。
+     */
+    libraryId?: string;
+    /**
+     * Model 是用户选择的模型标识。
+     */
+    model?: string;
+    /**
+     * RuntimeID 是选定智能体，不包含程序路径。
+     */
+    runtimeId?: string;
+    /**
+     * UpdatedAt 是最近成功保存时间，单位毫秒。
+     */
+    updatedAt?: number;
+    /**
+     * Version 是本机偏好的乐观并发版本，未设置时为零。
+     */
+    version?: number;
+};
+
+/**
  * MCPToolSummary 保存连接测试发现的有界工具展示信息。
  */
 export type GithubComJieWaZiNeuxAllyServerRepositoriesModelsMcpToolSummary = {
@@ -7216,7 +9198,7 @@ export type GithubComJieWaZiNeuxAllyServerRepositoriesModelsWaker = {
      */
     roleName?: string;
     /**
-     * RunningCount 是列表查询聚合出的运行中会话数量。
+     * RunningCount 是列表查询聚合出的运行中普通会话数量。
      */
     runningCount?: number;
     /**
@@ -7224,7 +9206,7 @@ export type GithubComJieWaZiNeuxAllyServerRepositoriesModelsWaker = {
      */
     updatedAt?: number;
     /**
-     * WaitingCount 是列表查询聚合出的待审批或待输入会话数量。
+     * WaitingCount 是列表查询聚合出的待审批或待输入普通会话数量。
      */
     waitingCount?: number;
     /**
@@ -7450,7 +9432,7 @@ export type GithubComJieWaZiNeuxAllyServerRepositoriesModelsWorkResultReceipt = 
 };
 
 /**
- * WorkResultReference 引用原结果身份，不复制回复、文件或状态。
+ * WorkResultReference 引用原结果身份，不复制正文或执行状态。
  */
 export type GithubComJieWaZiNeuxAllyServerRepositoriesModelsWorkResultReference = {
     /**
@@ -8641,6 +10623,25 @@ export type GithubComJieWaZiNeuxAllyServerServicesImLoginProgress = {
 };
 
 /**
+ * ChatLibrary 是当前真实聊天可读的完整知识目标；选择器不签发写权限。
+ */
+export type GithubComJieWaZiNeuxAllyServerServicesKnowledgeChatLibrary = {
+    /**
+     * 支持聊天摄入
+     */
+    directIngestSupported?: boolean;
+    /**
+     * 库类型
+     */
+    kind?: string;
+    /**
+     * 知识库名称
+     */
+    name?: string;
+    ref?: GithubComJieWaZiNeuxAllyServerInternalKnowledgeResourceRef & unknown;
+};
+
+/**
  * Snapshot 是 REST 与 WS 共同读取的带版本通知摘要。
  */
 export type GithubComJieWaZiNeuxAllyServerServicesNotificationSnapshot = {
@@ -8831,6 +10832,1005 @@ export type GithubComJieWaZiNeuxAllyServerServicesWorkflowStartRunCommand = {
     revisionId?: string;
 };
 
+/**
+ * PreviewChunkResult describes one chunk emitted during preview.
+ */
+export type GithubComJieWaZiNeuxKnowledgeCorePreviewChunkResult = {
+    /**
+     * 分块正文
+     */
+    content?: string;
+    /**
+     * 上下文标题
+     */
+    context_header?: string;
+    /**
+     * 结束字符位置
+     */
+    end?: number;
+    /**
+     * 分块序号
+     */
+    seq?: number;
+    /**
+     * 字符数量
+     */
+    size_chars?: number;
+    /**
+     * 估算令牌数量
+     */
+    size_tokens_approx?: number;
+    /**
+     * 起始字符位置
+     */
+    start?: number;
+};
+
+/**
+ * PreviewChunkingPayload mirrors the snake_case JSON the rest of the API
+ * uses for ChunkingConfig fields. We don't reuse types.ChunkingConfig
+ * directly because it carries unrelated parser rules and table-processing
+ * metadata that the preview path does not use.
+ */
+export type GithubComJieWaZiNeuxKnowledgeCorePreviewChunkingPayload = {
+    /**
+     * 子块大小
+     */
+    child_chunk_size?: number;
+    /**
+     * 分块重叠
+     */
+    chunk_overlap?: number;
+    /**
+     * 分块大小
+     */
+    chunk_size?: number;
+    /**
+     * 启用父子分块
+     */
+    enable_parent_child?: boolean;
+    /**
+     * 语言提示
+     */
+    languages?: Array<string>;
+    /**
+     * 父块大小
+     */
+    parent_chunk_size?: number;
+    /**
+     * 分隔符
+     */
+    separators?: Array<string>;
+    /**
+     * 分块策略
+     */
+    strategy?: string;
+    /**
+     * 令牌上限
+     */
+    token_limit?: number;
+};
+
+/**
+ * PreviewChunkingRequest is the body shape accepted by /chunker/preview.
+ * Text is checked manually below so we can return a friendlier error than
+ * gin's default "Field validation for 'Text' failed on the 'required' tag".
+ */
+export type GithubComJieWaZiNeuxKnowledgeCorePreviewChunkingRequest = {
+    chunking_config?: GithubComJieWaZiNeuxKnowledgeCorePreviewChunkingPayload & unknown;
+    /**
+     * 样例文本
+     */
+    text?: string;
+};
+
+/**
+ * PreviewChunkingStats summarizes chunk-size distribution. Computed over
+ * the FULL chunk set, even when the response truncates to previewMaxChunks
+ * items, so avg/min/max/stddev reflect the real distribution, not just
+ * the first N.
+ */
+export type GithubComJieWaZiNeuxKnowledgeCorePreviewChunkingStats = {
+    /**
+     * 平均字符数量
+     */
+    avg_chars?: number;
+    /**
+     * 全部分块数量
+     */
+    count?: number;
+    /**
+     * 最大字符数量
+     */
+    max_chars?: number;
+    /**
+     * 最小字符数量
+     */
+    min_chars?: number;
+    /**
+     * 字符数量标准差
+     */
+    stddev_chars?: number;
+    /**
+     * TruncatedTo, when set, is the original chunk count before the
+     * response was truncated to previewMaxChunks for transport.
+     * 截断前分块总数
+     */
+    truncated_to?: number;
+};
+
+/**
+ * SourcePurgeList 是不含原文和内部文件键的权威清理清单窗口。
+ */
+export type GithubComJieWaZiNeuxKnowledgeCoreSourcePurgeList = {
+    /**
+     * 清理进度窗口。
+     */
+    items?: Array<GithubComJieWaZiNeuxKnowledgeInternalDomainSourcePurgeStatus>;
+    /**
+     * 同库记录总数。
+     */
+    total?: number;
+};
+
+/**
+ * ChunkingConfig represents the document splitting configuration
+ */
+export type GithubComJieWaZiNeuxKnowledgeInternalDomainChunkingConfig = {
+    /**
+     * ChildChunkSize is the size of child chunks used for embedding (default: 384).
+     * Only used when EnableParentChild is true.
+     * ChildChunkSize 子块的目标字符数，默认三百八十四。
+     */
+    child_chunk_size?: number;
+    /**
+     * Chunk overlap in characters.
+     * ChunkOverlap 相邻块的重叠字符数，上游归一化将零值视为默认。
+     */
+    chunk_overlap?: number;
+    /**
+     * Chunk size in characters. Empty on create uses the server default.
+     * ChunkSize 普通块的目标字符数，零值采用上游默认。
+     */
+    chunk_size?: number;
+    /**
+     * EnableParentChild splits into large parent chunks and small child chunks.
+     * Search matches a child and returns its parent.
+     * EnableParentChild 是否拆为提供上下文的父块和用于检索的子块。
+     */
+    enable_parent_child?: boolean;
+    /**
+     * Languages hints the splitter, for example de or zh. Empty detects the language from the document.
+     * Languages 用于多语言边界识别的语言提示。
+     */
+    languages?: Array<string>;
+    /**
+     * ParentChunkSize is the size of parent chunks (default: 4096).
+     * Only used when EnableParentChild is true.
+     * ParentChunkSize 父块的目标字符数，默认四千零九十六。
+     */
+    parent_chunk_size?: number;
+    /**
+     * ParserEngineRules configures which parser engine to use for each file type.
+     * When empty, DefaultParserEngine is used (builtin/simple routing, except
+     * types that only a specific engine can parse: ppt/pptx fall back to
+     * markitdown). A linked anydoc binding is preferred for every type it
+     * converts.
+     * ParserEngineRules 按文件类型选择解析器的完整规则；当前核心尚不支持非空规则。
+     */
+    parser_engine_rules?: Array<GithubComJieWaZiNeuxKnowledgeInternalDomainParserEngineRule>;
+    /**
+     * Separators, in the order they are tried.
+     * Separators 按优先顺序尝试的文本分隔符。
+     */
+    separators?: Array<string>;
+    /**
+     * Strategy selects how documents are split: auto, heading, heuristic,
+     * recursive or legacy. Empty keeps the server default.
+     * Strategy 自适应、标题、启发式或递归分块策略。
+     */
+    strategy?: string;
+    /**
+     * TableMetadataInstructions is extra guidance for CSV and Excel summaries. The output format stays fixed.
+     * TableMetadataInstructions 表格摘要的额外指导；当前核心尚未接入非空指导。
+     */
+    table_metadata_instructions?: string;
+    /**
+     * TokenLimit caps chunk size in approximate tokens. 0 uses ChunkSize as a character count.
+     * TokenLimit 近似 token 上限，零值使用字符数预算。
+     */
+    token_limit?: number;
+};
+
+/**
+ * CodeRef 固定软件实现证据的仓库与提交。
+ */
+export type GithubComJieWaZiNeuxKnowledgeInternalDomainCodeRef = {
+    /**
+     * 实际读取的提交。
+     */
+    commit?: string;
+    /**
+     * 结束行。
+     */
+    endLine?: number;
+    /**
+     * 仓库内相对路径。
+     */
+    path?: string;
+    /**
+     * 已授权代码仓库身份。
+     */
+    repository?: string;
+    /**
+     * 起始行。
+     */
+    startLine?: number;
+    /**
+     * 已确认符号。
+     */
+    symbol?: string;
+    /**
+     * 实际核验时间，Unix 毫秒。
+     */
+    verifiedAt?: number;
+};
+
+/**
+ * EmbeddingChunkIndex 保存上游分块的原文、父子关系及实际向量索引状态。
+ */
+export type GithubComJieWaZiNeuxKnowledgeInternalDomainEmbeddingChunkIndex = {
+    /**
+     * Reader 块身份。
+     */
+    chunkId?: string;
+    /**
+     * parent 或 child，父块不单独嵌入。
+     */
+    chunkType?: string;
+    /**
+     * 真实分块正文，不用页面摘要代替。
+     */
+    content?: string;
+    /**
+     * 上游分块的标题路径上下文。
+     */
+    contextHeader?: string;
+    /**
+     * 登记时间，Unix 毫秒。
+     */
+    createdAt?: number;
+    /**
+     * 最近处理说明。
+     */
+    diagnostic?: string;
+    /**
+     * 已验证向量维度。
+     */
+    dimensions?: number;
+    /**
+     * 期望嵌入模型标识。
+     */
+    embeddingModelId?: string;
+    /**
+     * 上游确认的原文 rune 结束偏移。
+     */
+    end?: number;
+    /**
+     * 稳定索引行标识。
+     */
+    id?: string;
+    /**
+     * 所属库。
+     */
+    libraryId?: string;
+    locator?: GithubComJieWaZiNeuxKnowledgeInternalDomainSourceLocator & unknown;
+    /**
+     * 子块的父块持久身份。
+     */
+    parentId?: string;
+    /**
+     * 上游同级块顺序。
+     */
+    sequence?: number;
+    /**
+     * 不可变来源版本。
+     */
+    sourceVersionId?: string;
+    /**
+     * 上游确认的原文 rune 起始偏移。
+     */
+    start?: number;
+    /**
+     * pending、indexed 或 failed。
+     */
+    state?: string;
+    /**
+     * 更新时间，Unix 毫秒。
+     */
+    updatedAt?: number;
+};
+
+/**
+ * ExportPageMetadata 由同一事务内的页面、库和主题派生，供 frontmatter 和清单共用。
+ */
+export type GithubComJieWaZiNeuxKnowledgeInternalDomainExportPageMetadata = {
+    /**
+     * 已保存的软件实现证据。
+     */
+    code?: Array<GithubComJieWaZiNeuxKnowledgeInternalDomainCodeRef>;
+    /**
+     * 所属库身份。
+     */
+    libraryId?: string;
+    /**
+     * 库配置版本。
+     */
+    libraryVersion?: number;
+    /**
+     * 页面稳定身份。
+     */
+    pageId?: string;
+    /**
+     * 页面知识类型。
+     */
+    pageType?: string;
+    /**
+     * 已发布正文版本。
+     */
+    pageVersion?: number;
+    /**
+     * 权限策略版本。
+     */
+    policyVersion?: number;
+    /**
+     * 页面地址，仅用于显示和关系映射。
+     */
+    slug?: string;
+    /**
+     * 页面在当前主题中的排序。
+     */
+    sortOrder?: number;
+    sourcePurgeReview?: GithubComJieWaZiNeuxKnowledgeInternalDomainSourcePurgeReview & unknown;
+    /**
+     * 来源身份和定位，无原文。
+     */
+    sources?: Array<GithubComJieWaZiNeuxKnowledgeInternalDomainExportSourceRef>;
+    /**
+     * 导航结构版本。
+     */
+    structureVersion?: number;
+    /**
+     * 当前主主题身份。
+     */
+    themeId?: string;
+    /**
+     * 从真实主题父链派生的名称链。
+     */
+    themePath?: Array<string>;
+    /**
+     * 已发布标题。
+     */
+    title?: string;
+    /**
+     * 已发布正文语言。
+     */
+    wikiLanguage?: string;
+};
+
+/**
+ * ExportSourceRef 只导出来源身份与定位，不包含原件或原文摘录。
+ */
+export type GithubComJieWaZiNeuxKnowledgeInternalDomainExportSourceRef = {
+    /**
+     * 页面保存的论断类型。
+     */
+    claimKind?: string;
+    /**
+     * 快照中的来源文件显示名称，不能作为输出路径。
+     */
+    filename?: string;
+    locator?: GithubComJieWaZiNeuxKnowledgeInternalDomainSourceLocator & unknown;
+    /**
+     * 页面原证据保存的来源字节摘要。
+     */
+    sha256?: string;
+    /**
+     * 页面原证据绑定的稳定来源身份。
+     */
+    sourceId?: string;
+    /**
+     * 页面原证据绑定的不可变版本。
+     */
+    sourceVersionId?: string;
+    /**
+     * 快照中仍存在的来源代次。
+     */
+    version?: number;
+};
+
+/**
+ * IndexingStrategy 控制知识库启用的索引与整理管线；各开关彼此独立。
+ */
+export type GithubComJieWaZiNeuxKnowledgeInternalDomainIndexingStrategy = {
+    /**
+     * GraphEnabled 是否启用知识图谱抽取。
+     */
+    graphEnabled?: boolean;
+    /**
+     * KeywordEnabled 是否启用关键词检索。
+     */
+    keywordEnabled?: boolean;
+    /**
+     * VectorEnabled 是否启用语义向量索引与检索。
+     */
+    vectorEnabled?: boolean;
+    /**
+     * WikiEnabled 是否启用文档 Wiki 整理。
+     */
+    wikiEnabled?: boolean;
+};
+
+/**
+ * KnowledgeProfile is the structured, per-document artifact produced next to
+ * the free-text summary. It is deliberately tiny: a headline, a handful of
+ * topic keywords, a document type and one question the document can answer.
+ * Knowledge-base level descriptions are derived from these rows, so every
+ * field here is something an aggregation can count or sample.
+ */
+export type GithubComJieWaZiNeuxKnowledgeInternalDomainKnowledgeProfile = {
+    /**
+     * DocType is a coarse label such as "user manual", "meeting notes" or "contract".
+     * DocType 文档的实际类型标签。
+     */
+    doc_type?: string;
+    /**
+     * Gist is a one-line statement of what the document is about.
+     * Gist 文档的一行主题概述。
+     */
+    gist?: string;
+    /**
+     * Topics lists 3-5 short topic keywords.
+     * Topics 用于查找文档的有界主题词。
+     */
+    topics?: Array<string>;
+    /**
+     * TypicalQuestion is one natural-language question this document answers.
+     * TypicalQuestion 该文档可回答的一个完整问题。
+     */
+    typical_question?: string;
+};
+
+/**
+ * LibraryDeletionStatus 对外只公开清理计数与边界，不公开对象键。
+ */
+export type GithubComJieWaZiNeuxKnowledgeInternalDomainLibraryDeletionStatus = {
+    /**
+     * 本地固定为0，远端按实际阻塞诊断返回。
+     */
+    blockedBlobCount?: number;
+    /**
+     * 已移除或确认不存在的对象数。
+     */
+    deletedBlobCount?: number;
+    /**
+     * 已删除库身份。
+     */
+    libraryId?: string;
+    /**
+     * 尚未处理的对象数。
+     */
+    pendingBlobCount?: number;
+    /**
+     * 删除时策略代次。
+     */
+    policyVersion?: number;
+    /**
+     * 其他来源仍引用的保留对象数。
+     */
+    retainedSharedBlobCount?: number;
+    /**
+     * 本地pending或completed；公开协议保留远端blocked。
+     */
+    state?: string;
+    /**
+     * 清理状态版本。
+     */
+    version?: number;
+};
+
+/**
+ * LintIssue 是只读核查发现；不携带隐式修复权限。
+ */
+export type GithubComJieWaZiNeuxKnowledgeInternalDomainLintIssue = {
+    /**
+     * 基于实际快照的中文问题说明。
+     */
+    description?: string;
+    /**
+     * 被核查页面的稳定身份。
+     */
+    pageId?: string;
+    /**
+     * 被核查页面的可读地址。
+     */
+    pageSlug?: string;
+    /**
+     * 本次快照内的页面版本。
+     */
+    pageVersion?: number;
+    /**
+     * warning 或 error，仅用于人工核查。
+     */
+    severity?: string;
+    /**
+     * 问题目标的页面地址或来源版本身份。
+     */
+    targetId?: string;
+    /**
+     * orphan_page、broken_link、empty_content 或 stale_ref。
+     */
+    type?: string;
+};
+
+/**
+ * LintReport 固定一次一致读取的库版本与全部发现，不持久化第二份问题事实。
+ */
+export type GithubComJieWaZiNeuxKnowledgeInternalDomainLintReport = {
+    /**
+     * 按页面及规则稳定排序的问题。
+     */
+    issues?: Array<GithubComJieWaZiNeuxKnowledgeInternalDomainLintIssue>;
+    /**
+     * 核查的知识库。
+     */
+    libraryId?: string;
+    /**
+     * 库配置版本。
+     */
+    libraryVersion?: number;
+    /**
+     * 实际核查的非归档页面数量。
+     */
+    pageCount?: number;
+    /**
+     * 本次读取的权限策略版本。
+     */
+    policyVersion?: number;
+    /**
+     * 导航结构版本。
+     */
+    structureVersion?: number;
+};
+
+/**
+ * MarkdownExport 是一个 SQLite 一致快照的导出清单与 Markdown 文件集合。
+ */
+export type GithubComJieWaZiNeuxKnowledgeInternalDomainMarkdownExport = {
+    /**
+     * 按稳定页面身份排序的已发布文件。
+     */
+    files?: Array<GithubComJieWaZiNeuxKnowledgeInternalDomainMarkdownFile>;
+    /**
+     * 当前导出格式版本，固定为 1。
+     */
+    formatVersion?: number;
+    /**
+     * 本次唯一来源知识库。
+     */
+    libraryId?: string;
+    /**
+     * 一致快照中的库配置版本。
+     */
+    libraryVersion?: number;
+    /**
+     * 一致快照中的权限策略版本。
+     */
+    policyVersion?: number;
+    /**
+     * 一致快照中的导航版本。
+     */
+    structureVersion?: number;
+};
+
+/**
+ * MarkdownFile 是可移交的导出副本；修改它不会回写 SQLite。
+ */
+export type GithubComJieWaZiNeuxKnowledgeInternalDomainMarkdownFile = {
+    /**
+     * JSON 形式的 YAML frontmatter 加原始知识正文。
+     */
+    markdown?: string;
+    metadata?: GithubComJieWaZiNeuxKnowledgeInternalDomainExportPageMetadata & unknown;
+    /**
+     * 基于页面身份摘要的安全文件名。
+     */
+    path?: string;
+    /**
+     * 完整 Markdown 文件字节摘要。
+     */
+    sha256?: string;
+};
+
+/**
+ * ParserEngineRule maps a set of file types to a specific parser engine.
+ */
+export type GithubComJieWaZiNeuxKnowledgeInternalDomainParserEngineRule = {
+    /**
+     * Engine 所选解析引擎标识。
+     */
+    engine?: string;
+    /**
+     * FileTypes 匹配的文件扩展名集合。
+     */
+    file_types?: Array<string>;
+    /**
+     * XLSXFirstRowAsHeader restores row-1 column context for flat XLSX tables.
+     * nil preserves the parser default; an explicit false disables the mode.
+     * XLSXFirstRowAsHeader 是否把表格首行用作列名，省略保留解析器默认。
+     */
+    xlsx_first_row_as_header?: boolean;
+};
+
+/**
+ * PurgePageImpact 固定引用页面版本及正文保留策略。
+ */
+export type GithubComJieWaZiNeuxKnowledgeInternalDomainPurgePageImpact = {
+    /**
+     * 当前被影响页面。
+     */
+    pageId?: string;
+    /**
+     * 人工或多来源知识保留当前正文，否则归档并清空正文。
+     */
+    preserveBody?: boolean;
+    /**
+     * 预览读取的页面版本。
+     */
+    version?: number;
+};
+
+/**
+ * PurgeVersion 只返回不可用身份与并发代次，不返回文件名或原文。
+ */
+export type GithubComJieWaZiNeuxKnowledgeInternalDomainPurgeVersion = {
+    /**
+     * 来源处理及归档状态代次。
+     */
+    rowVersion?: number;
+    /**
+     * 来源原件代次。
+     */
+    version?: number;
+    /**
+     * 待清理的不可变来源版本。
+     */
+    versionId?: string;
+};
+
+/**
+ * SourceLocator 只表达 Reader 实际确认的位置；unknown 不推造页码。
+ */
+export type GithubComJieWaZiNeuxKnowledgeInternalDomainSourceLocator = {
+    /**
+     * 原文结束行。
+     */
+    endLine?: number;
+    /**
+     * page、line、section、range 或 unknown。
+     */
+    kind?: string;
+    /**
+     * 实际页码，未知为 0。
+     */
+    page?: number;
+    /**
+     * 实际章节定位。
+     */
+    section?: string;
+    /**
+     * 原文起始行，未知为 0。
+     */
+    startLine?: number;
+};
+
+/**
+ * SourcePurgePreview 是无原文的影响预览；Digest 绑定实际库内记录及策略快照。
+ */
+export type GithubComJieWaZiNeuxKnowledgeInternalDomainSourcePurgePreview = {
+    /**
+     * 不同原件对象数量。
+     */
+    blobCount?: number;
+    /**
+     * 同库活任务或仍在执行阶段所属任务。
+     */
+    blockingJobIds?: Array<string>;
+    /**
+     * 已知保留与物理擦除边界。
+     */
+    boundaries?: Array<string>;
+    /**
+     * 影响快照的 SHA-256，不包含可读原文。
+     */
+    digest?: string;
+    /**
+     * 被清理的同库问题记录数。
+     */
+    issueCount?: number;
+    /**
+     * 内部诊断被清理的同库任务数。
+     */
+    jobCount?: number;
+    /**
+     * 目标库身份。
+     */
+    libraryId?: string;
+    /**
+     * 库配置版本。
+     */
+    libraryVersion?: number;
+    /**
+     * 实际受影响页面及保留正文策略。
+     */
+    pages?: Array<GithubComJieWaZiNeuxKnowledgeInternalDomainPurgePageImpact>;
+    /**
+     * 已登记但尚未完成的来源导入数。
+     */
+    pendingImportCount?: number;
+    /**
+     * 当前授权代次。
+     */
+    policyVersion?: number;
+    /**
+     * 本地固定verified；远端按真实归属诊断返回。
+     */
+    rawOwnership?: string;
+    /**
+     * 将清空潜在原文的历史修订数。
+     */
+    revisionCount?: number;
+    /**
+     * 其他来源仍使用的对象数量。
+     */
+    sharedBlobCount?: number;
+    /**
+     * 删除全部版本的稳定来源身份。
+     */
+    sourceId?: string;
+    /**
+     * 输入和诊断被清理的同库阶段数。
+     */
+    stageCount?: number;
+    /**
+     * 目录结构版本。
+     */
+    structureVersion?: number;
+    /**
+     * 全部待清理来源版本。
+     */
+    versions?: Array<GithubComJieWaZiNeuxKnowledgeInternalDomainPurgeVersion>;
+};
+
+/**
+ * SourcePurgeReview 是页面清理标记的安全投影，不包含自由元数据或原文。
+ */
+export type GithubComJieWaZiNeuxKnowledgeInternalDomainSourcePurgeReview = {
+    /**
+     * 保留的当前知识仍需人工核查。
+     */
+    needsReview?: boolean;
+    /**
+     * 对应持久清理清单身份。
+     */
+    purgeIds?: Array<string>;
+    /**
+     * 已不可用的稳定来源身份。
+     */
+    unavailableSourceIds?: Array<string>;
+    /**
+     * 已不可用的来源版本身份。
+     */
+    unavailableVersionIds?: Array<string>;
+};
+
+/**
+ * SourcePurgeStatus 只返回可验证清理事实，不声称介质物理擦除。
+ */
+export type GithubComJieWaZiNeuxKnowledgeInternalDomainSourcePurgeStatus = {
+    /**
+     * 本地固定为0，远端按实际阻塞诊断返回。
+     */
+    blockedBlobCount?: number;
+    /**
+     * 人工正文、备份和物理介质等保留边界。
+     */
+    boundaries?: Array<string>;
+    /**
+     * 已删除或已不存在的非共享原件数。
+     */
+    deletedBlobCount?: number;
+    /**
+     * 清理身份。
+     */
+    id?: string;
+    /**
+     * 原所属库。
+     */
+    libraryId?: string;
+    /**
+     * 已更新的知识页面身份。
+     */
+    pageIds?: Array<string>;
+    /**
+     * 尚需实际处理的原件数。
+     */
+    pendingBlobCount?: number;
+    /**
+     * 因其他来源使用而保留的原件数。
+     */
+    retainedSharedBlobCount?: number;
+    /**
+     * 已撤销来源身份。
+     */
+    sourceId?: string;
+    /**
+     * 本地pending或completed；公开协议保留远端blocked。
+     */
+    state?: string;
+    /**
+     * 清理进度版本。
+     */
+    version?: number;
+    /**
+     * 不可用来源版本。
+     */
+    versions?: Array<GithubComJieWaZiNeuxKnowledgeInternalDomainPurgeVersion>;
+};
+
+/**
+ * WikiConfig stores wiki-specific configuration for a knowledge base.
+ * Applicable to document-type knowledge bases with wiki feature enabled.
+ * Whether the wiki feature is turned on is controlled by IndexingStrategy.WikiEnabled;
+ * this struct only carries wiki-specific tunables.
+ */
+export type GithubComJieWaZiNeuxKnowledgeInternalDomainWikiConfig = {
+    /**
+     * ContentInstructions sets tone and emphasis for generated Wiki prose. Citations stay fixed.
+     * ContentInstructions 正文风格和重点补充指令。
+     */
+    content_instructions?: string;
+    extraction_granularity?: GithubComJieWaZiNeuxKnowledgeInternalDomainWikiExtractionGranularity & unknown;
+    /**
+     * ExtractionInstructions tells page extraction which concepts to keep. The output format stays fixed.
+     * ExtractionInstructions 候选知识提取重点指令。
+     */
+    extraction_instructions?: string;
+    /**
+     * Wiki ingest concurrency is two-level:
+     * 1. batch-level: multiple batches per KB run concurrently in the wiki
+     * worker pool, capped by IngestMaxInflight (below).
+     * 2. batch-internal: within one batch, Map and Reduce fan out with
+     * errgroups sized by IngestMapParallel / IngestReduceParallel.
+     * Effective peak in-flight LLM calls for one KB ≈
+     * IngestMaxInflight × max(IngestMapParallel, IngestReduceParallel),
+     * further bounded by the wiki pool size (WEKNORA_WIKI_ASYNQ_CONCURRENCY).
+     *
+     * IngestBatchSize controls how many pending ops a single batch claims and
+     * processes before scheduling a follow-up. 0 falls back to the hard-coded
+     * default (5). Larger batches amortize per-batch setup and let more docs
+     * share the batch-internal Map/Reduce fan-out; smaller batches spread a
+     * KB's backlog across more concurrent batches (finer scheduling grain).
+     * IngestBatchSize 每批接纳来源的数量。
+     */
+    ingest_batch_size?: number;
+    /**
+     * IngestMapParallel sets the errgroup limit for the Map phase
+     * (per-document extraction + summary + chunk citation) WITHIN one batch.
+     * 0 falls back to 10. Bound by the LLM provider's concurrency limit and
+     * the worker's outbound HTTP pool. Remember it multiplies with the number
+     * of concurrent batches (IngestMaxInflight).
+     * IngestMapParallel 单批来源提取阶段的并发上限。
+     */
+    ingest_map_parallel?: number;
+    /**
+     * IngestMaxInflight caps how many ingest batches for THIS KB may run
+     * concurrently in the shared wiki worker pool (standard/Redis mode
+     * only). 0 falls back to the hard-coded default (4). Since Phase 3
+     * removed the exclusive per-KB lock, one KB's backlog could otherwise
+     * monopolize the whole pool during a bulk import and starve other KBs;
+     * this knob trades a single KB's peak throughput for cross-KB fairness.
+     * Set it >= the wiki pool size to effectively disable the cap.
+     * IngestMaxInflight 库内并行整理批次数上限。
+     */
+    ingest_max_inflight?: number;
+    /**
+     * IngestReduceParallel sets the errgroup limit for the Reduce phase
+     * (per-slug page write) WITHIN one batch. 0 falls back to 10. Bound by the
+     * same LLM concurrency / HTTP pool considerations as the Map phase, plus
+     * DB connection pool size. Same multiplier caveat as IngestMapParallel.
+     * IngestReduceParallel 单批按页归并阶段的并发上限。
+     */
+    ingest_reduce_parallel?: number;
+    /**
+     * MaxPagesPerIngest limits pages created or updated per ingest. 0 means no limit.
+     * MaxPagesPerIngest 单次整理允许创建或修改的页面上限。
+     */
+    max_pages_per_ingest?: number;
+    /**
+     * SynthesisModelID is the model that writes Wiki pages. Empty uses summary_model_id.
+     * SynthesisModelID 上游生成模型配置标识，独立核心不构造供应商。
+     */
+    synthesis_model_id?: string;
+};
+
+/**
+ * >
+ * * `exhaustive` - WikiExtractionExhaustive extracts every named entity and recognizable concept, including stacks/libs mentioned in passing. Matches the pre-granularity behavior. Useful when the KB is being used as a glossary rather than a curated wiki.
+ * * `focused` - WikiExtractionFocused keeps only the document's main subjects (e.g. a resume yields the person + their projects, nothing else). Most aggressive slug pruning; avoids index bloat from incidental technology names and generic concepts.
+ * * `standard` - WikiExtractionStandard is the default: main subjects plus entities / concepts that are substantively discussed (a dedicated paragraph or multiple bullet points). Skips one-off mentions and commodity terms.
+ *
+ */
+export type GithubComJieWaZiNeuxKnowledgeInternalDomainWikiExtractionGranularity = 'exhaustive' | 'focused' | 'standard';
+
+/**
+ * GraphEdge 为定向知识关系。
+ */
+export type GithubComJieWaZiNeuxKnowledgeRemoteGraphEdge = {
+    /**
+     * Source 为起点句柄。
+     */
+    source?: string;
+    /**
+     * Target 为终点句柄。
+     */
+    target?: string;
+};
+
+/**
+ * GraphMeta 保留部分返回事实。
+ */
+export type GithubComJieWaZiNeuxKnowledgeRemoteGraphMeta = {
+    /**
+     * Mode 为服务端实际模式。
+     */
+    mode?: string;
+    /**
+     * Returned 为本次节点数。
+     */
+    returned?: number;
+    /**
+     * Total 为总节点数。
+     */
+    total?: number;
+    /**
+     * Truncated 表示未覆盖全图。
+     */
+    truncated?: boolean;
+};
+
+/**
+ * GraphNode 为官方关系节点。
+ */
+export type GithubComJieWaZiNeuxKnowledgeRemoteGraphNode = {
+    /**
+     * LinkCount 为总关联数量。
+     */
+    link_count?: number;
+    /**
+     * PageType 为类型。
+     */
+    page_type?: string;
+    /**
+     * Slug 为原始页面句柄。
+     */
+    slug?: string;
+    /**
+     * Title 为标题。
+     */
+    title?: string;
+};
+
 export type GithubComShrewxGinxAttachment = Blob | File;
 
 export type GithubComShrewxGinxCommonResponse = {
@@ -8855,6 +11855,8 @@ export type GithubComShrewxGinxPkgStatuserrorStatusErr = {
     message?: string;
 };
 
+export type TimeTime = string;
+
 export type ReadData = {
     body?: never;
     path?: never;
@@ -8878,6 +11880,7 @@ export type ReadErrors = {
      * * `[ChatMessageCursorInvalid][40000000012]`
      * * `[IMConfigurationInvalid][40000004001]`
      * * `[IMFileInvalid][40000004002]`
+     * * `[KnowledgeInvalid][40000009501]`
      * * `[MemoryEmbeddingConflict][40000000009]`
      * * `[MemoryEmbeddingNotConfigured][40000000007]`
      * * `[MemoryProjectNotBound][40000000008]`
@@ -8910,6 +11913,7 @@ export type ReadErrors = {
      * * `[AgentContextUnauthorized][40100009001]`
      * * `[AutomaticTaskTokenInvalid][40100001001]`
      * * `[IMLoginRequired][40100004001]`
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
      * * `[MemoryContextUnauthorized][40100000002]`
      * * `[Unauthorized][40100000001]`
      *
@@ -8921,6 +11925,7 @@ export type ReadErrors = {
      * * `[IMChatNotAuthorized][40300004001]`
      * * `[IMTargetNotAuthorized][40300004003]`
      * * `[IMWorkflowDeliveryNotAllowed][40300004002]`
+     * * `[KnowledgeForbidden][40300009501]`
      * * `[PluginForbidden][40300006501]`
      *
      */
@@ -8941,6 +11946,7 @@ export type ReadErrors = {
      * * `[ExecutionNotFound][40400000004]`
      * * `[IMResourceNotFound][40400004001]`
      * * `[IMTargetUnavailable][40400004002]`
+     * * `[KnowledgeNotFound][40400009501]`
      * * `[MCPConnectorNotFound][40400000009]`
      * * `[MemoryNotFound][40400000010]`
      * * `[PluginNotFound][40400006501]`
@@ -9003,6 +12009,8 @@ export type ReadErrors = {
      * * `[IMConnectionInUse][40900004004]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
      * * `[MCPConnectorNameConflict][40900000010]`
      * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
@@ -9025,6 +12033,14 @@ export type ReadErrors = {
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeEmbeddingNotConfigured][42200009503]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
      * * `[AutomaticTaskRateLimited][42900001001]`
@@ -9061,6 +12077,7 @@ export type ReadErrors = {
      * * `[DatabaseError][50000000002]`
      * * `[IMCredentialError][50000004001]`
      * * `[InternalServerError][50000000001]`
+     * * `[KnowledgeStorageError][50000009501]`
      * * `[MCPConnectorCredentialError][50000000022]`
      * * `[ManagedWorkspaceError][50000000033]`
      * * `[MemoryContextTokenGenerationFailed][50000000020]`
@@ -9104,6 +12121,10 @@ export type ReadErrors = {
      * * `[AIAccountModelsUnavailable][50200000003]`
      * * `[IMPlatformUnavailable][50200004001]`
      * * `[IMProtocolInvalid][50200004002]`
+     * * `[KnowledgeEmbeddingResponseInvalid][50200009602]`
+     * * `[KnowledgeEmbeddingUnavailable][50200009601]`
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
      * * `[MCPConnectorProtocolInvalid][50200000002]`
      * * `[MemoryEmbeddingUnavailable][50200000001]`
      * * `[PluginAuthorizationFailed][50200006501]`
@@ -9118,6 +12139,12 @@ export type ReadErrors = {
      *
      */
     503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
 };
 
 export type ReadError = ReadErrors[keyof ReadErrors];
@@ -9151,6 +12178,7 @@ export type CommandErrors = {
      * * `[ChatMessageCursorInvalid][40000000012]`
      * * `[IMConfigurationInvalid][40000004001]`
      * * `[IMFileInvalid][40000004002]`
+     * * `[KnowledgeInvalid][40000009501]`
      * * `[MemoryEmbeddingConflict][40000000009]`
      * * `[MemoryEmbeddingNotConfigured][40000000007]`
      * * `[MemoryProjectNotBound][40000000008]`
@@ -9183,6 +12211,7 @@ export type CommandErrors = {
      * * `[AgentContextUnauthorized][40100009001]`
      * * `[AutomaticTaskTokenInvalid][40100001001]`
      * * `[IMLoginRequired][40100004001]`
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
      * * `[MemoryContextUnauthorized][40100000002]`
      * * `[Unauthorized][40100000001]`
      *
@@ -9194,6 +12223,7 @@ export type CommandErrors = {
      * * `[IMChatNotAuthorized][40300004001]`
      * * `[IMTargetNotAuthorized][40300004003]`
      * * `[IMWorkflowDeliveryNotAllowed][40300004002]`
+     * * `[KnowledgeForbidden][40300009501]`
      * * `[PluginForbidden][40300006501]`
      *
      */
@@ -9214,6 +12244,7 @@ export type CommandErrors = {
      * * `[ExecutionNotFound][40400000004]`
      * * `[IMResourceNotFound][40400004001]`
      * * `[IMTargetUnavailable][40400004002]`
+     * * `[KnowledgeNotFound][40400009501]`
      * * `[MCPConnectorNotFound][40400000009]`
      * * `[MemoryNotFound][40400000010]`
      * * `[PluginNotFound][40400006501]`
@@ -9276,6 +12307,8 @@ export type CommandErrors = {
      * * `[IMConnectionInUse][40900004004]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
      * * `[MCPConnectorNameConflict][40900000010]`
      * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
@@ -9298,6 +12331,14 @@ export type CommandErrors = {
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeEmbeddingNotConfigured][42200009503]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
      * * `[AutomaticTaskRateLimited][42900001001]`
@@ -9334,6 +12375,7 @@ export type CommandErrors = {
      * * `[DatabaseError][50000000002]`
      * * `[IMCredentialError][50000004001]`
      * * `[InternalServerError][50000000001]`
+     * * `[KnowledgeStorageError][50000009501]`
      * * `[MCPConnectorCredentialError][50000000022]`
      * * `[ManagedWorkspaceError][50000000033]`
      * * `[MemoryContextTokenGenerationFailed][50000000020]`
@@ -9377,6 +12419,10 @@ export type CommandErrors = {
      * * `[AIAccountModelsUnavailable][50200000003]`
      * * `[IMPlatformUnavailable][50200004001]`
      * * `[IMProtocolInvalid][50200004002]`
+     * * `[KnowledgeEmbeddingResponseInvalid][50200009602]`
+     * * `[KnowledgeEmbeddingUnavailable][50200009601]`
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
      * * `[MCPConnectorProtocolInvalid][50200000002]`
      * * `[MemoryEmbeddingUnavailable][50200000001]`
      * * `[PluginAuthorizationFailed][50200006501]`
@@ -9391,6 +12437,12 @@ export type CommandErrors = {
      *
      */
     503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
 };
 
 export type CommandError = CommandErrors[keyof CommandErrors];
@@ -9605,6 +12657,7 @@ export type StartAiAccountLoginErrors = {
      * * `[ChatMessageCursorInvalid][40000000012]`
      * * `[IMConfigurationInvalid][40000004001]`
      * * `[IMFileInvalid][40000004002]`
+     * * `[KnowledgeInvalid][40000009501]`
      * * `[MemoryEmbeddingConflict][40000000009]`
      * * `[MemoryEmbeddingNotConfigured][40000000007]`
      * * `[MemoryProjectNotBound][40000000008]`
@@ -9637,6 +12690,7 @@ export type StartAiAccountLoginErrors = {
      * * `[AgentContextUnauthorized][40100009001]`
      * * `[AutomaticTaskTokenInvalid][40100001001]`
      * * `[IMLoginRequired][40100004001]`
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
      * * `[MemoryContextUnauthorized][40100000002]`
      * * `[Unauthorized][40100000001]`
      *
@@ -9648,6 +12702,7 @@ export type StartAiAccountLoginErrors = {
      * * `[IMChatNotAuthorized][40300004001]`
      * * `[IMTargetNotAuthorized][40300004003]`
      * * `[IMWorkflowDeliveryNotAllowed][40300004002]`
+     * * `[KnowledgeForbidden][40300009501]`
      * * `[PluginForbidden][40300006501]`
      *
      */
@@ -9668,6 +12723,7 @@ export type StartAiAccountLoginErrors = {
      * * `[ExecutionNotFound][40400000004]`
      * * `[IMResourceNotFound][40400004001]`
      * * `[IMTargetUnavailable][40400004002]`
+     * * `[KnowledgeNotFound][40400009501]`
      * * `[MCPConnectorNotFound][40400000009]`
      * * `[MemoryNotFound][40400000010]`
      * * `[PluginNotFound][40400006501]`
@@ -9730,6 +12786,8 @@ export type StartAiAccountLoginErrors = {
      * * `[IMConnectionInUse][40900004004]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
      * * `[MCPConnectorNameConflict][40900000010]`
      * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
@@ -9752,6 +12810,14 @@ export type StartAiAccountLoginErrors = {
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeEmbeddingNotConfigured][42200009503]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
      * * `[AutomaticTaskRateLimited][42900001001]`
@@ -9788,6 +12854,7 @@ export type StartAiAccountLoginErrors = {
      * * `[DatabaseError][50000000002]`
      * * `[IMCredentialError][50000004001]`
      * * `[InternalServerError][50000000001]`
+     * * `[KnowledgeStorageError][50000009501]`
      * * `[MCPConnectorCredentialError][50000000022]`
      * * `[ManagedWorkspaceError][50000000033]`
      * * `[MemoryContextTokenGenerationFailed][50000000020]`
@@ -9831,6 +12898,10 @@ export type StartAiAccountLoginErrors = {
      * * `[AIAccountModelsUnavailable][50200000003]`
      * * `[IMPlatformUnavailable][50200004001]`
      * * `[IMProtocolInvalid][50200004002]`
+     * * `[KnowledgeEmbeddingResponseInvalid][50200009602]`
+     * * `[KnowledgeEmbeddingUnavailable][50200009601]`
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
      * * `[MCPConnectorProtocolInvalid][50200000002]`
      * * `[MemoryEmbeddingUnavailable][50200000001]`
      * * `[PluginAuthorizationFailed][50200006501]`
@@ -9845,6 +12916,12 @@ export type StartAiAccountLoginErrors = {
      *
      */
     503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
 };
 
 export type StartAiAccountLoginError = StartAiAccountLoginErrors[keyof StartAiAccountLoginErrors];
@@ -9887,6 +12964,7 @@ export type CancelAiAccountLoginErrors = {
      * * `[ChatMessageCursorInvalid][40000000012]`
      * * `[IMConfigurationInvalid][40000004001]`
      * * `[IMFileInvalid][40000004002]`
+     * * `[KnowledgeInvalid][40000009501]`
      * * `[MemoryEmbeddingConflict][40000000009]`
      * * `[MemoryEmbeddingNotConfigured][40000000007]`
      * * `[MemoryProjectNotBound][40000000008]`
@@ -9919,6 +12997,7 @@ export type CancelAiAccountLoginErrors = {
      * * `[AgentContextUnauthorized][40100009001]`
      * * `[AutomaticTaskTokenInvalid][40100001001]`
      * * `[IMLoginRequired][40100004001]`
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
      * * `[MemoryContextUnauthorized][40100000002]`
      * * `[Unauthorized][40100000001]`
      *
@@ -9930,6 +13009,7 @@ export type CancelAiAccountLoginErrors = {
      * * `[IMChatNotAuthorized][40300004001]`
      * * `[IMTargetNotAuthorized][40300004003]`
      * * `[IMWorkflowDeliveryNotAllowed][40300004002]`
+     * * `[KnowledgeForbidden][40300009501]`
      * * `[PluginForbidden][40300006501]`
      *
      */
@@ -9950,6 +13030,7 @@ export type CancelAiAccountLoginErrors = {
      * * `[ExecutionNotFound][40400000004]`
      * * `[IMResourceNotFound][40400004001]`
      * * `[IMTargetUnavailable][40400004002]`
+     * * `[KnowledgeNotFound][40400009501]`
      * * `[MCPConnectorNotFound][40400000009]`
      * * `[MemoryNotFound][40400000010]`
      * * `[PluginNotFound][40400006501]`
@@ -10012,6 +13093,8 @@ export type CancelAiAccountLoginErrors = {
      * * `[IMConnectionInUse][40900004004]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
      * * `[MCPConnectorNameConflict][40900000010]`
      * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
@@ -10034,6 +13117,14 @@ export type CancelAiAccountLoginErrors = {
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeEmbeddingNotConfigured][42200009503]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
      * * `[AutomaticTaskRateLimited][42900001001]`
@@ -10070,6 +13161,7 @@ export type CancelAiAccountLoginErrors = {
      * * `[DatabaseError][50000000002]`
      * * `[IMCredentialError][50000004001]`
      * * `[InternalServerError][50000000001]`
+     * * `[KnowledgeStorageError][50000009501]`
      * * `[MCPConnectorCredentialError][50000000022]`
      * * `[ManagedWorkspaceError][50000000033]`
      * * `[MemoryContextTokenGenerationFailed][50000000020]`
@@ -10113,6 +13205,10 @@ export type CancelAiAccountLoginErrors = {
      * * `[AIAccountModelsUnavailable][50200000003]`
      * * `[IMPlatformUnavailable][50200004001]`
      * * `[IMProtocolInvalid][50200004002]`
+     * * `[KnowledgeEmbeddingResponseInvalid][50200009602]`
+     * * `[KnowledgeEmbeddingUnavailable][50200009601]`
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
      * * `[MCPConnectorProtocolInvalid][50200000002]`
      * * `[MemoryEmbeddingUnavailable][50200000001]`
      * * `[PluginAuthorizationFailed][50200006501]`
@@ -10127,6 +13223,12 @@ export type CancelAiAccountLoginErrors = {
      *
      */
     503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
 };
 
 export type CancelAiAccountLoginError = CancelAiAccountLoginErrors[keyof CancelAiAccountLoginErrors];
@@ -10367,6 +13469,7 @@ export type ListGlobalAutomaticTasksErrors = {
      * * `[ChatMessageCursorInvalid][40000000012]`
      * * `[IMConfigurationInvalid][40000004001]`
      * * `[IMFileInvalid][40000004002]`
+     * * `[KnowledgeInvalid][40000009501]`
      * * `[MemoryEmbeddingConflict][40000000009]`
      * * `[MemoryEmbeddingNotConfigured][40000000007]`
      * * `[MemoryProjectNotBound][40000000008]`
@@ -10399,6 +13502,7 @@ export type ListGlobalAutomaticTasksErrors = {
      * * `[AgentContextUnauthorized][40100009001]`
      * * `[AutomaticTaskTokenInvalid][40100001001]`
      * * `[IMLoginRequired][40100004001]`
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
      * * `[MemoryContextUnauthorized][40100000002]`
      * * `[Unauthorized][40100000001]`
      *
@@ -10410,6 +13514,7 @@ export type ListGlobalAutomaticTasksErrors = {
      * * `[IMChatNotAuthorized][40300004001]`
      * * `[IMTargetNotAuthorized][40300004003]`
      * * `[IMWorkflowDeliveryNotAllowed][40300004002]`
+     * * `[KnowledgeForbidden][40300009501]`
      * * `[PluginForbidden][40300006501]`
      *
      */
@@ -10430,6 +13535,7 @@ export type ListGlobalAutomaticTasksErrors = {
      * * `[ExecutionNotFound][40400000004]`
      * * `[IMResourceNotFound][40400004001]`
      * * `[IMTargetUnavailable][40400004002]`
+     * * `[KnowledgeNotFound][40400009501]`
      * * `[MCPConnectorNotFound][40400000009]`
      * * `[MemoryNotFound][40400000010]`
      * * `[PluginNotFound][40400006501]`
@@ -10492,6 +13598,8 @@ export type ListGlobalAutomaticTasksErrors = {
      * * `[IMConnectionInUse][40900004004]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
      * * `[MCPConnectorNameConflict][40900000010]`
      * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
@@ -10514,6 +13622,14 @@ export type ListGlobalAutomaticTasksErrors = {
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeEmbeddingNotConfigured][42200009503]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
      * * `[AutomaticTaskRateLimited][42900001001]`
@@ -10550,6 +13666,7 @@ export type ListGlobalAutomaticTasksErrors = {
      * * `[DatabaseError][50000000002]`
      * * `[IMCredentialError][50000004001]`
      * * `[InternalServerError][50000000001]`
+     * * `[KnowledgeStorageError][50000009501]`
      * * `[MCPConnectorCredentialError][50000000022]`
      * * `[ManagedWorkspaceError][50000000033]`
      * * `[MemoryContextTokenGenerationFailed][50000000020]`
@@ -10593,6 +13710,10 @@ export type ListGlobalAutomaticTasksErrors = {
      * * `[AIAccountModelsUnavailable][50200000003]`
      * * `[IMPlatformUnavailable][50200004001]`
      * * `[IMProtocolInvalid][50200004002]`
+     * * `[KnowledgeEmbeddingResponseInvalid][50200009602]`
+     * * `[KnowledgeEmbeddingUnavailable][50200009601]`
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
      * * `[MCPConnectorProtocolInvalid][50200000002]`
      * * `[MemoryEmbeddingUnavailable][50200000001]`
      * * `[PluginAuthorizationFailed][50200006501]`
@@ -10607,6 +13728,12 @@ export type ListGlobalAutomaticTasksErrors = {
      *
      */
     503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
 };
 
 export type ListGlobalAutomaticTasksError = ListGlobalAutomaticTasksErrors[keyof ListGlobalAutomaticTasksErrors];
@@ -10654,6 +13781,12 @@ export type CreateWorkflowAutomaticTaskErrors = {
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
      * * `[AutomaticTaskServiceInvalid][50000001001]`
@@ -10724,6 +13857,7 @@ export type GetGlobalAutomaticTaskErrors = {
      * * `[ChatMessageCursorInvalid][40000000012]`
      * * `[IMConfigurationInvalid][40000004001]`
      * * `[IMFileInvalid][40000004002]`
+     * * `[KnowledgeInvalid][40000009501]`
      * * `[MemoryEmbeddingConflict][40000000009]`
      * * `[MemoryEmbeddingNotConfigured][40000000007]`
      * * `[MemoryProjectNotBound][40000000008]`
@@ -10756,6 +13890,7 @@ export type GetGlobalAutomaticTaskErrors = {
      * * `[AgentContextUnauthorized][40100009001]`
      * * `[AutomaticTaskTokenInvalid][40100001001]`
      * * `[IMLoginRequired][40100004001]`
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
      * * `[MemoryContextUnauthorized][40100000002]`
      * * `[Unauthorized][40100000001]`
      *
@@ -10767,6 +13902,7 @@ export type GetGlobalAutomaticTaskErrors = {
      * * `[IMChatNotAuthorized][40300004001]`
      * * `[IMTargetNotAuthorized][40300004003]`
      * * `[IMWorkflowDeliveryNotAllowed][40300004002]`
+     * * `[KnowledgeForbidden][40300009501]`
      * * `[PluginForbidden][40300006501]`
      *
      */
@@ -10787,6 +13923,7 @@ export type GetGlobalAutomaticTaskErrors = {
      * * `[ExecutionNotFound][40400000004]`
      * * `[IMResourceNotFound][40400004001]`
      * * `[IMTargetUnavailable][40400004002]`
+     * * `[KnowledgeNotFound][40400009501]`
      * * `[MCPConnectorNotFound][40400000009]`
      * * `[MemoryNotFound][40400000010]`
      * * `[PluginNotFound][40400006501]`
@@ -10849,6 +13986,8 @@ export type GetGlobalAutomaticTaskErrors = {
      * * `[IMConnectionInUse][40900004004]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
      * * `[MCPConnectorNameConflict][40900000010]`
      * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
@@ -10871,6 +14010,14 @@ export type GetGlobalAutomaticTaskErrors = {
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeEmbeddingNotConfigured][42200009503]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
      * * `[AutomaticTaskRateLimited][42900001001]`
@@ -10907,6 +14054,7 @@ export type GetGlobalAutomaticTaskErrors = {
      * * `[DatabaseError][50000000002]`
      * * `[IMCredentialError][50000004001]`
      * * `[InternalServerError][50000000001]`
+     * * `[KnowledgeStorageError][50000009501]`
      * * `[MCPConnectorCredentialError][50000000022]`
      * * `[ManagedWorkspaceError][50000000033]`
      * * `[MemoryContextTokenGenerationFailed][50000000020]`
@@ -10950,6 +14098,10 @@ export type GetGlobalAutomaticTaskErrors = {
      * * `[AIAccountModelsUnavailable][50200000003]`
      * * `[IMPlatformUnavailable][50200004001]`
      * * `[IMProtocolInvalid][50200004002]`
+     * * `[KnowledgeEmbeddingResponseInvalid][50200009602]`
+     * * `[KnowledgeEmbeddingUnavailable][50200009601]`
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
      * * `[MCPConnectorProtocolInvalid][50200000002]`
      * * `[MemoryEmbeddingUnavailable][50200000001]`
      * * `[PluginAuthorizationFailed][50200006501]`
@@ -10964,6 +14116,12 @@ export type GetGlobalAutomaticTaskErrors = {
      *
      */
     503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
 };
 
 export type GetGlobalAutomaticTaskError = GetGlobalAutomaticTaskErrors[keyof GetGlobalAutomaticTaskErrors];
@@ -11002,6 +14160,7 @@ export type UpdateWorkflowAutomaticTaskErrors = {
      * * `[ChatMessageCursorInvalid][40000000012]`
      * * `[IMConfigurationInvalid][40000004001]`
      * * `[IMFileInvalid][40000004002]`
+     * * `[KnowledgeInvalid][40000009501]`
      * * `[MemoryEmbeddingConflict][40000000009]`
      * * `[MemoryEmbeddingNotConfigured][40000000007]`
      * * `[MemoryProjectNotBound][40000000008]`
@@ -11034,6 +14193,7 @@ export type UpdateWorkflowAutomaticTaskErrors = {
      * * `[AgentContextUnauthorized][40100009001]`
      * * `[AutomaticTaskTokenInvalid][40100001001]`
      * * `[IMLoginRequired][40100004001]`
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
      * * `[MemoryContextUnauthorized][40100000002]`
      * * `[Unauthorized][40100000001]`
      *
@@ -11045,6 +14205,7 @@ export type UpdateWorkflowAutomaticTaskErrors = {
      * * `[IMChatNotAuthorized][40300004001]`
      * * `[IMTargetNotAuthorized][40300004003]`
      * * `[IMWorkflowDeliveryNotAllowed][40300004002]`
+     * * `[KnowledgeForbidden][40300009501]`
      * * `[PluginForbidden][40300006501]`
      *
      */
@@ -11065,6 +14226,7 @@ export type UpdateWorkflowAutomaticTaskErrors = {
      * * `[ExecutionNotFound][40400000004]`
      * * `[IMResourceNotFound][40400004001]`
      * * `[IMTargetUnavailable][40400004002]`
+     * * `[KnowledgeNotFound][40400009501]`
      * * `[MCPConnectorNotFound][40400000009]`
      * * `[MemoryNotFound][40400000010]`
      * * `[PluginNotFound][40400006501]`
@@ -11127,6 +14289,8 @@ export type UpdateWorkflowAutomaticTaskErrors = {
      * * `[IMConnectionInUse][40900004004]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
      * * `[MCPConnectorNameConflict][40900000010]`
      * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
@@ -11149,6 +14313,14 @@ export type UpdateWorkflowAutomaticTaskErrors = {
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeEmbeddingNotConfigured][42200009503]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
      * * `[AutomaticTaskRateLimited][42900001001]`
@@ -11185,6 +14357,7 @@ export type UpdateWorkflowAutomaticTaskErrors = {
      * * `[DatabaseError][50000000002]`
      * * `[IMCredentialError][50000004001]`
      * * `[InternalServerError][50000000001]`
+     * * `[KnowledgeStorageError][50000009501]`
      * * `[MCPConnectorCredentialError][50000000022]`
      * * `[ManagedWorkspaceError][50000000033]`
      * * `[MemoryContextTokenGenerationFailed][50000000020]`
@@ -11228,6 +14401,10 @@ export type UpdateWorkflowAutomaticTaskErrors = {
      * * `[AIAccountModelsUnavailable][50200000003]`
      * * `[IMPlatformUnavailable][50200004001]`
      * * `[IMProtocolInvalid][50200004002]`
+     * * `[KnowledgeEmbeddingResponseInvalid][50200009602]`
+     * * `[KnowledgeEmbeddingUnavailable][50200009601]`
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
      * * `[MCPConnectorProtocolInvalid][50200000002]`
      * * `[MemoryEmbeddingUnavailable][50200000001]`
      * * `[PluginAuthorizationFailed][50200006501]`
@@ -11242,6 +14419,12 @@ export type UpdateWorkflowAutomaticTaskErrors = {
      *
      */
     503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
 };
 
 export type UpdateWorkflowAutomaticTaskError = UpdateWorkflowAutomaticTaskErrors[keyof UpdateWorkflowAutomaticTaskErrors];
@@ -12825,6 +16008,7 @@ export type StreamEventsErrors = {
      * * `[ChatMessageCursorInvalid][40000000012]`
      * * `[IMConfigurationInvalid][40000004001]`
      * * `[IMFileInvalid][40000004002]`
+     * * `[KnowledgeInvalid][40000009501]`
      * * `[MemoryEmbeddingConflict][40000000009]`
      * * `[MemoryEmbeddingNotConfigured][40000000007]`
      * * `[MemoryProjectNotBound][40000000008]`
@@ -12857,6 +16041,7 @@ export type StreamEventsErrors = {
      * * `[AgentContextUnauthorized][40100009001]`
      * * `[AutomaticTaskTokenInvalid][40100001001]`
      * * `[IMLoginRequired][40100004001]`
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
      * * `[MemoryContextUnauthorized][40100000002]`
      * * `[Unauthorized][40100000001]`
      *
@@ -12868,6 +16053,7 @@ export type StreamEventsErrors = {
      * * `[IMChatNotAuthorized][40300004001]`
      * * `[IMTargetNotAuthorized][40300004003]`
      * * `[IMWorkflowDeliveryNotAllowed][40300004002]`
+     * * `[KnowledgeForbidden][40300009501]`
      * * `[PluginForbidden][40300006501]`
      *
      */
@@ -12888,6 +16074,7 @@ export type StreamEventsErrors = {
      * * `[ExecutionNotFound][40400000004]`
      * * `[IMResourceNotFound][40400004001]`
      * * `[IMTargetUnavailable][40400004002]`
+     * * `[KnowledgeNotFound][40400009501]`
      * * `[MCPConnectorNotFound][40400000009]`
      * * `[MemoryNotFound][40400000010]`
      * * `[PluginNotFound][40400006501]`
@@ -12950,6 +16137,8 @@ export type StreamEventsErrors = {
      * * `[IMConnectionInUse][40900004004]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
      * * `[MCPConnectorNameConflict][40900000010]`
      * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
@@ -12972,6 +16161,14 @@ export type StreamEventsErrors = {
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeEmbeddingNotConfigured][42200009503]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
      * * `[AutomaticTaskRateLimited][42900001001]`
@@ -13008,6 +16205,7 @@ export type StreamEventsErrors = {
      * * `[DatabaseError][50000000002]`
      * * `[IMCredentialError][50000004001]`
      * * `[InternalServerError][50000000001]`
+     * * `[KnowledgeStorageError][50000009501]`
      * * `[MCPConnectorCredentialError][50000000022]`
      * * `[ManagedWorkspaceError][50000000033]`
      * * `[MemoryContextTokenGenerationFailed][50000000020]`
@@ -13051,6 +16249,10 @@ export type StreamEventsErrors = {
      * * `[AIAccountModelsUnavailable][50200000003]`
      * * `[IMPlatformUnavailable][50200004001]`
      * * `[IMProtocolInvalid][50200004002]`
+     * * `[KnowledgeEmbeddingResponseInvalid][50200009602]`
+     * * `[KnowledgeEmbeddingUnavailable][50200009601]`
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
      * * `[MCPConnectorProtocolInvalid][50200000002]`
      * * `[MemoryEmbeddingUnavailable][50200000001]`
      * * `[PluginAuthorizationFailed][50200006501]`
@@ -13065,6 +16267,12 @@ export type StreamEventsErrors = {
      *
      */
     503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
 };
 
 export type StreamEventsError = StreamEventsErrors[keyof StreamEventsErrors];
@@ -13508,6 +16716,7096 @@ export type GetImStatusResponses = {
 };
 
 export type GetImStatusResponse = GetImStatusResponses[keyof GetImStatusResponses];
+
+export type ChatLibrariesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * 聊天标识
+         */
+        chatId?: string;
+        /**
+         * 伙伴标识
+         */
+        wakerId?: string;
+    };
+    url: '/api/v1/knowledge/chat-libraries';
+};
+
+export type ChatLibrariesErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeStorageError][50000009501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type ChatLibrariesError = ChatLibrariesErrors[keyof ChatLibrariesErrors];
+
+export type ChatLibrariesResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeChatLibraryList;
+};
+
+export type ChatLibrariesResponse = ChatLibrariesResponses[keyof ChatLibrariesResponses];
+
+export type GetRemoteChatOperationData = {
+    body?: never;
+    path: {
+        /**
+         * 聊天标识
+         */
+        chatId: string;
+    };
+    query: {
+        /**
+         * 操作标识
+         */
+        requestId: string;
+    };
+    url: '/api/v1/knowledge/chat-operations/{chatId}';
+};
+
+export type GetRemoteChatOperationErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeStorageError][50000009501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type GetRemoteChatOperationError = GetRemoteChatOperationErrors[keyof GetRemoteChatOperationErrors];
+
+export type GetRemoteChatOperationResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeRemoteChatResult;
+};
+
+export type GetRemoteChatOperationResponse = GetRemoteChatOperationResponses[keyof GetRemoteChatOperationResponses];
+
+export type OrganizeRemoteChatData = {
+    body: GithubComJieWaZiNeuxAllyServerApisKnowledgeRemoteChatInput & unknown;
+    path: {
+        /**
+         * 聊天标识
+         */
+        chatId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/chat-operations/{chatId}';
+};
+
+export type OrganizeRemoteChatErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     * * `[MessageAttachmentInvalid][40000000017]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[ChatDirectoryOwnershipInvalid][50000000007]`
+     * * `[KnowledgeStorageError][50000009501]`
+     * * `[ManagedWorkspaceError][50000000033]`
+     * * `[MessageAttachmentStorageError][50000000032]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type OrganizeRemoteChatError = OrganizeRemoteChatErrors[keyof OrganizeRemoteChatErrors];
+
+export type OrganizeRemoteChatResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeRemoteChatResult;
+};
+
+export type OrganizeRemoteChatResponse = OrganizeRemoteChatResponses[keyof OrganizeRemoteChatResponses];
+
+export type ListRemoteChatOperationsData = {
+    body?: never;
+    path: {
+        /**
+         * 聊天标识
+         */
+        chatId: string;
+    };
+    query?: {
+        /**
+         * 每页条数
+         */
+        limit?: number;
+        /**
+         * 起始位置
+         */
+        offset?: number;
+    };
+    url: '/api/v1/knowledge/chat-operations/{chatId}/requests';
+};
+
+export type ListRemoteChatOperationsErrors = {
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type ListRemoteChatOperationsError = ListRemoteChatOperationsErrors[keyof ListRemoteChatOperationsErrors];
+
+export type ListRemoteChatOperationsResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeRemoteChatOperationList;
+};
+
+export type ListRemoteChatOperationsResponse = ListRemoteChatOperationsResponses[keyof ListRemoteChatOperationsResponses];
+
+export type PreviewChunkingData = {
+    body: GithubComJieWaZiNeuxKnowledgeCorePreviewChunkingRequest & unknown;
+    path?: never;
+    query?: never;
+    url: '/api/v1/knowledge/chunking/preview';
+};
+
+export type PreviewChunkingErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[OperationCanceled][40800000001]`
+     * * `[OperationTimeout][40800000002]`
+     *
+     */
+    408: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeStorageError][50000009501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type PreviewChunkingError = PreviewChunkingErrors[keyof PreviewChunkingErrors];
+
+export type PreviewChunkingResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgePreviewChunkingResult;
+};
+
+export type PreviewChunkingResponse = PreviewChunkingResponses[keyof PreviewChunkingResponses];
+
+export type ListConnectionsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/knowledge/connections';
+};
+
+export type ListConnectionsErrors = {
+    /**
+     * >
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type ListConnectionsError = ListConnectionsErrors[keyof ListConnectionsErrors];
+
+export type ListConnectionsResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsConnectionList;
+};
+
+export type ListConnectionsResponse = ListConnectionsResponses[keyof ListConnectionsResponses];
+
+export type CreateConnectionData = {
+    body: GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsConnectionInput & unknown;
+    path?: never;
+    query?: never;
+    url: '/api/v1/knowledge/connections';
+};
+
+export type CreateConnectionErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type CreateConnectionError = CreateConnectionErrors[keyof CreateConnectionErrors];
+
+export type CreateConnectionResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsConnectionReceipt;
+};
+
+export type CreateConnectionResponse = CreateConnectionResponses[keyof CreateConnectionResponses];
+
+export type ListAvailableLibrariesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * 每页条数
+         */
+        limit?: number;
+        location?: GithubComJieWaZiNeuxAllyServerConstantsKnowledgeLibraryLocation & unknown;
+        /**
+         * 起始位置
+         */
+        offset?: number;
+    };
+    url: '/api/v1/knowledge/connections/libraries';
+};
+
+export type ListAvailableLibrariesErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeStorageError][50000009501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type ListAvailableLibrariesError = ListAvailableLibrariesErrors[keyof ListAvailableLibrariesErrors];
+
+export type ListAvailableLibrariesResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeLibraryList;
+};
+
+export type ListAvailableLibrariesResponse = ListAvailableLibrariesResponses[keyof ListAvailableLibrariesResponses];
+
+export type UpdateConnectionData = {
+    body: GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsConnectionInput & unknown;
+    path: {
+        /**
+         * 连接标识
+         */
+        connectionId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/connections/{connectionId}';
+};
+
+export type UpdateConnectionErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type UpdateConnectionError = UpdateConnectionErrors[keyof UpdateConnectionErrors];
+
+export type UpdateConnectionResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsConnectionReceipt;
+};
+
+export type UpdateConnectionResponse = UpdateConnectionResponses[keyof UpdateConnectionResponses];
+
+export type CheckConnectionData = {
+    body?: never;
+    path: {
+        /**
+         * 连接标识
+         */
+        connectionId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/connections/{connectionId}/check';
+};
+
+export type CheckConnectionErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type CheckConnectionError = CheckConnectionErrors[keyof CheckConnectionErrors];
+
+export type CheckConnectionResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsConnectionCheck;
+};
+
+export type CheckConnectionResponse = CheckConnectionResponses[keyof CheckConnectionResponses];
+
+export type ListRemoteLibrariesData = {
+    body?: never;
+    path: {
+        /**
+         * 连接标识
+         */
+        connectionId: string;
+    };
+    query?: {
+        /**
+         * 每页条数
+         */
+        limit?: number;
+        /**
+         * 分页参数
+         * 起始位置
+         */
+        offset?: number;
+    };
+    url: '/api/v1/knowledge/connections/{connectionId}/libraries';
+};
+
+export type ListRemoteLibrariesErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type ListRemoteLibrariesError = ListRemoteLibrariesErrors[keyof ListRemoteLibrariesErrors];
+
+export type ListRemoteLibrariesResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeLibraryList;
+};
+
+export type ListRemoteLibrariesResponse = ListRemoteLibrariesResponses[keyof ListRemoteLibrariesResponses];
+
+export type CreateRemoteLibraryData = {
+    body: GithubComJieWaZiNeuxAllyServerApisKnowledgeCreateLibraryInput & unknown;
+    path: {
+        /**
+         * 连接标识
+         */
+        connectionId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/connections/{connectionId}/libraries';
+};
+
+export type CreateRemoteLibraryErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type CreateRemoteLibraryError = CreateRemoteLibraryErrors[keyof CreateRemoteLibraryErrors];
+
+export type CreateRemoteLibraryResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeReceipt;
+};
+
+export type CreateRemoteLibraryResponse = CreateRemoteLibraryResponses[keyof CreateRemoteLibraryResponses];
+
+export type DeleteRemoteLibraryData = {
+    body: GithubComJieWaZiNeuxAllyServerApisKnowledgeDeleteLibraryInput & unknown;
+    path: {
+        /**
+         * 连接标识
+         */
+        connectionId: string;
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/connections/{connectionId}/libraries/{libraryId}';
+};
+
+export type DeleteRemoteLibraryErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type DeleteRemoteLibraryError = DeleteRemoteLibraryErrors[keyof DeleteRemoteLibraryErrors];
+
+export type DeleteRemoteLibraryResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeReceipt;
+};
+
+export type DeleteRemoteLibraryResponse = DeleteRemoteLibraryResponses[keyof DeleteRemoteLibraryResponses];
+
+export type GetRemoteLibraryData = {
+    body?: never;
+    path: {
+        /**
+         * 连接标识
+         */
+        connectionId: string;
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/connections/{connectionId}/libraries/{libraryId}';
+};
+
+export type GetRemoteLibraryErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type GetRemoteLibraryError = GetRemoteLibraryErrors[keyof GetRemoteLibraryErrors];
+
+export type GetRemoteLibraryResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeLibrary;
+};
+
+export type GetRemoteLibraryResponse = GetRemoteLibraryResponses[keyof GetRemoteLibraryResponses];
+
+export type UpdateRemoteLibraryData = {
+    body: GithubComJieWaZiNeuxAllyServerApisKnowledgeUpdateLibraryInput & unknown;
+    path: {
+        /**
+         * 连接标识
+         */
+        connectionId: string;
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/connections/{connectionId}/libraries/{libraryId}';
+};
+
+export type UpdateRemoteLibraryErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type UpdateRemoteLibraryError = UpdateRemoteLibraryErrors[keyof UpdateRemoteLibraryErrors];
+
+export type UpdateRemoteLibraryResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeReceipt;
+};
+
+export type UpdateRemoteLibraryResponse = UpdateRemoteLibraryResponses[keyof UpdateRemoteLibraryResponses];
+
+export type ListRemoteLibraryActivityData = {
+    body?: never;
+    path: {
+        /**
+         * 连接标识
+         */
+        connectionId: string;
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: {
+        /**
+         * 动作筛选
+         */
+        action?: string;
+        /**
+         * 发起人筛选
+         */
+        actor?: string;
+        /**
+         * 上页游标
+         */
+        afterId?: number;
+        /**
+         * 每页数量
+         */
+        limit?: number;
+        /**
+         * 结果筛选
+         */
+        outcome?: string;
+    };
+    url: '/api/v1/knowledge/connections/{connectionId}/libraries/{libraryId}/activity';
+};
+
+export type ListRemoteLibraryActivityErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type ListRemoteLibraryActivityError = ListRemoteLibraryActivityErrors[keyof ListRemoteLibraryActivityErrors];
+
+export type ListRemoteLibraryActivityResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeLibraryActivityList;
+};
+
+export type ListRemoteLibraryActivityResponse = ListRemoteLibraryActivityResponses[keyof ListRemoteLibraryActivityResponses];
+
+export type AuditRemoteLibraryData = {
+    body?: never;
+    path: {
+        /**
+         * 连接标识
+         */
+        connectionId: string;
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/connections/{connectionId}/libraries/{libraryId}/audit';
+};
+
+export type AuditRemoteLibraryErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type AuditRemoteLibraryError = AuditRemoteLibraryErrors[keyof AuditRemoteLibraryErrors];
+
+export type AuditRemoteLibraryResponses = {
+    200: GithubComJieWaZiNeuxKnowledgeInternalDomainLintReport;
+};
+
+export type AuditRemoteLibraryResponse = AuditRemoteLibraryResponses[keyof AuditRemoteLibraryResponses];
+
+export type GetRemoteCapabilitiesData = {
+    body?: never;
+    path: {
+        /**
+         * 连接标识
+         */
+        connectionId: string;
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/connections/{connectionId}/libraries/{libraryId}/capabilities';
+};
+
+export type GetRemoteCapabilitiesErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type GetRemoteCapabilitiesError = GetRemoteCapabilitiesErrors[keyof GetRemoteCapabilitiesErrors];
+
+export type GetRemoteCapabilitiesResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsRemoteCapabilities;
+};
+
+export type GetRemoteCapabilitiesResponse = GetRemoteCapabilitiesResponses[keyof GetRemoteCapabilitiesResponses];
+
+export type GetRemoteLibraryDeletionData = {
+    body?: never;
+    path: {
+        /**
+         * 连接标识
+         */
+        connectionId: string;
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/connections/{connectionId}/libraries/{libraryId}/deletion';
+};
+
+export type GetRemoteLibraryDeletionErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type GetRemoteLibraryDeletionError = GetRemoteLibraryDeletionErrors[keyof GetRemoteLibraryDeletionErrors];
+
+export type GetRemoteLibraryDeletionResponses = {
+    200: GithubComJieWaZiNeuxKnowledgeInternalDomainLibraryDeletionStatus;
+};
+
+export type GetRemoteLibraryDeletionResponse = GetRemoteLibraryDeletionResponses[keyof GetRemoteLibraryDeletionResponses];
+
+export type RecoverRemoteLibraryDeletionData = {
+    body: GithubComJieWaZiNeuxAllyServerApisKnowledgeDeleteLibraryInput & unknown;
+    path: {
+        /**
+         * 连接标识
+         */
+        connectionId: string;
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/connections/{connectionId}/libraries/{libraryId}/deletion/recover';
+};
+
+export type RecoverRemoteLibraryDeletionErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type RecoverRemoteLibraryDeletionError = RecoverRemoteLibraryDeletionErrors[keyof RecoverRemoteLibraryDeletionErrors];
+
+export type RecoverRemoteLibraryDeletionResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeReceipt;
+};
+
+export type RecoverRemoteLibraryDeletionResponse = RecoverRemoteLibraryDeletionResponses[keyof RecoverRemoteLibraryDeletionResponses];
+
+export type GetRemoteGraphData = {
+    body?: never;
+    path: {
+        /**
+         * 连接标识
+         */
+        connectionId: string;
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: {
+        /**
+         * 中心地址
+         */
+        center?: string;
+        /**
+         * 层数
+         */
+        depth?: number;
+        /**
+         * 节点上限
+         */
+        limit?: number;
+        /**
+         * 图形模式
+         */
+        mode?: string;
+    };
+    url: '/api/v1/knowledge/connections/{connectionId}/libraries/{libraryId}/graph';
+};
+
+export type GetRemoteGraphErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type GetRemoteGraphError = GetRemoteGraphErrors[keyof GetRemoteGraphErrors];
+
+export type GetRemoteGraphResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsRemoteGraph;
+};
+
+export type GetRemoteGraphResponse = GetRemoteGraphResponses[keyof GetRemoteGraphResponses];
+
+export type ListRemoteJobsData = {
+    body?: never;
+    path: {
+        /**
+         * 连接标识
+         */
+        connectionId: string;
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: {
+        /**
+         * 每页条数
+         */
+        limit?: number;
+        /**
+         * 分页参数
+         * 起始位置
+         */
+        offset?: number;
+    };
+    url: '/api/v1/knowledge/connections/{connectionId}/libraries/{libraryId}/jobs';
+};
+
+export type ListRemoteJobsErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type ListRemoteJobsError = ListRemoteJobsErrors[keyof ListRemoteJobsErrors];
+
+export type ListRemoteJobsResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeJobList;
+};
+
+export type ListRemoteJobsResponse = ListRemoteJobsResponses[keyof ListRemoteJobsResponses];
+
+export type GetRemoteJobData = {
+    body?: never;
+    path: {
+        /**
+         * 连接标识
+         */
+        connectionId: string;
+        /**
+         * 任务标识
+         */
+        jobId: string;
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/connections/{connectionId}/libraries/{libraryId}/jobs/{jobId}';
+};
+
+export type GetRemoteJobErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type GetRemoteJobError = GetRemoteJobErrors[keyof GetRemoteJobErrors];
+
+export type GetRemoteJobResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeJobDetail;
+};
+
+export type GetRemoteJobResponse = GetRemoteJobResponses[keyof GetRemoteJobResponses];
+
+export type MaintainRemoteData = {
+    body: GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsRemoteMaintenanceInput & unknown;
+    path: {
+        /**
+         * 连接标识
+         */
+        connectionId: string;
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/connections/{connectionId}/libraries/{libraryId}/maintenance';
+};
+
+export type MaintainRemoteErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type MaintainRemoteError = MaintainRemoteErrors[keyof MaintainRemoteErrors];
+
+export type MaintainRemoteResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeReceipt;
+};
+
+export type MaintainRemoteResponse = MaintainRemoteResponses[keyof MaintainRemoteResponses];
+
+export type ExportRemoteLibraryMarkdownData = {
+    body?: never;
+    path: {
+        /**
+         * 连接标识
+         */
+        connectionId: string;
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: {
+        /**
+         * 可选页面标识；重复 query 参数表示多个页面，空集合表示全部页面。
+         */
+        pageId?: Array<string>;
+    };
+    url: '/api/v1/knowledge/connections/{connectionId}/libraries/{libraryId}/markdown-export';
+};
+
+export type ExportRemoteLibraryMarkdownErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type ExportRemoteLibraryMarkdownError = ExportRemoteLibraryMarkdownErrors[keyof ExportRemoteLibraryMarkdownErrors];
+
+export type ExportRemoteLibraryMarkdownResponses = {
+    200: GithubComJieWaZiNeuxKnowledgeInternalDomainMarkdownExport;
+};
+
+export type ExportRemoteLibraryMarkdownResponse = ExportRemoteLibraryMarkdownResponses[keyof ExportRemoteLibraryMarkdownResponses];
+
+export type ListRemoteOperationsData = {
+    body?: never;
+    path: {
+        /**
+         * 连接标识
+         */
+        connectionId: string;
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: {
+        /**
+         * 每页条数
+         */
+        limit?: number;
+        /**
+         * 分页参数
+         * 起始位置
+         */
+        offset?: number;
+    };
+    url: '/api/v1/knowledge/connections/{connectionId}/libraries/{libraryId}/operations';
+};
+
+export type ListRemoteOperationsErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type ListRemoteOperationsError = ListRemoteOperationsErrors[keyof ListRemoteOperationsErrors];
+
+export type ListRemoteOperationsResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsRemoteOperationList;
+};
+
+export type ListRemoteOperationsResponse = ListRemoteOperationsResponses[keyof ListRemoteOperationsResponses];
+
+export type GetRemoteOperationData = {
+    body?: never;
+    path: {
+        /**
+         * 连接标识
+         */
+        connectionId: string;
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+        /**
+         * 请求标识
+         */
+        requestId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/connections/{connectionId}/libraries/{libraryId}/operations/{requestId}';
+};
+
+export type GetRemoteOperationErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type GetRemoteOperationError = GetRemoteOperationErrors[keyof GetRemoteOperationErrors];
+
+export type GetRemoteOperationResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsRemoteOperation;
+};
+
+export type GetRemoteOperationResponse = GetRemoteOperationResponses[keyof GetRemoteOperationResponses];
+
+export type OrganizeRemoteData = {
+    body: GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsRemoteOrganizeInput & unknown;
+    path: {
+        /**
+         * 连接标识
+         */
+        connectionId: string;
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/connections/{connectionId}/libraries/{libraryId}/organize';
+};
+
+export type OrganizeRemoteErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type OrganizeRemoteError = OrganizeRemoteErrors[keyof OrganizeRemoteErrors];
+
+export type OrganizeRemoteResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeReceipt;
+};
+
+export type OrganizeRemoteResponse = OrganizeRemoteResponses[keyof OrganizeRemoteResponses];
+
+export type GetRemotePageBySlugData = {
+    body?: never;
+    path: {
+        /**
+         * 连接标识
+         */
+        connectionId: string;
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: {
+        /**
+         * 语义地址
+         */
+        slug?: string;
+    };
+    url: '/api/v1/knowledge/connections/{connectionId}/libraries/{libraryId}/page-by-slug';
+};
+
+export type GetRemotePageBySlugErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type GetRemotePageBySlugError = GetRemotePageBySlugErrors[keyof GetRemotePageBySlugErrors];
+
+export type GetRemotePageBySlugResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgePage;
+};
+
+export type GetRemotePageBySlugResponse = GetRemotePageBySlugResponses[keyof GetRemotePageBySlugResponses];
+
+export type ListRemotePagesData = {
+    body?: never;
+    path: {
+        /**
+         * 连接标识
+         */
+        connectionId: string;
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: {
+        /**
+         * 每页条数
+         */
+        limit?: number;
+        /**
+         * 分页参数
+         * 起始位置
+         */
+        offset?: number;
+        /**
+         * 页面类型
+         */
+        pageType?: string;
+        /**
+         * 关键词
+         */
+        query?: string;
+        /**
+         * 主题标识
+         */
+        themeId?: string;
+    };
+    url: '/api/v1/knowledge/connections/{connectionId}/libraries/{libraryId}/pages';
+};
+
+export type ListRemotePagesErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type ListRemotePagesError = ListRemotePagesErrors[keyof ListRemotePagesErrors];
+
+export type ListRemotePagesResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgePageList;
+};
+
+export type ListRemotePagesResponse = ListRemotePagesResponses[keyof ListRemotePagesResponses];
+
+export type CreateRemotePageData = {
+    body: GithubComJieWaZiNeuxAllyServerApisKnowledgeCreatePageInput & unknown;
+    path: {
+        /**
+         * 连接标识
+         */
+        connectionId: string;
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/connections/{connectionId}/libraries/{libraryId}/pages';
+};
+
+export type CreateRemotePageErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type CreateRemotePageError = CreateRemotePageErrors[keyof CreateRemotePageErrors];
+
+export type CreateRemotePageResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeReceipt;
+};
+
+export type CreateRemotePageResponse = CreateRemotePageResponses[keyof CreateRemotePageResponses];
+
+export type GetRemotePageData = {
+    body?: never;
+    path: {
+        /**
+         * 连接标识
+         */
+        connectionId: string;
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+        /**
+         * 页面标识
+         */
+        pageId: string;
+    };
+    query?: {
+        /**
+         * 语义地址
+         */
+        slug?: string;
+    };
+    url: '/api/v1/knowledge/connections/{connectionId}/libraries/{libraryId}/pages/{pageId}';
+};
+
+export type GetRemotePageErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type GetRemotePageError = GetRemotePageErrors[keyof GetRemotePageErrors];
+
+export type GetRemotePageResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgePage;
+};
+
+export type GetRemotePageResponse = GetRemotePageResponses[keyof GetRemotePageResponses];
+
+export type WriteRemotePageData = {
+    body: GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsRemoteWritePageInput & unknown;
+    path: {
+        /**
+         * 连接标识
+         */
+        connectionId: string;
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+        /**
+         * 页面标识
+         */
+        pageId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/connections/{connectionId}/libraries/{libraryId}/pages/{pageId}';
+};
+
+export type WriteRemotePageErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type WriteRemotePageError = WriteRemotePageErrors[keyof WriteRemotePageErrors];
+
+export type WriteRemotePageResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeReceipt;
+};
+
+export type WriteRemotePageResponse = WriteRemotePageResponses[keyof WriteRemotePageResponses];
+
+export type RestoreRemotePageData = {
+    body: GithubComJieWaZiNeuxAllyServerApisKnowledgeRestorePageInput & unknown;
+    path: {
+        /**
+         * 连接标识
+         */
+        connectionId: string;
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+        /**
+         * 页面标识
+         */
+        pageId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/connections/{connectionId}/libraries/{libraryId}/pages/{pageId}/restore';
+};
+
+export type RestoreRemotePageErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type RestoreRemotePageError = RestoreRemotePageErrors[keyof RestoreRemotePageErrors];
+
+export type RestoreRemotePageResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeReceipt;
+};
+
+export type RestoreRemotePageResponse = RestoreRemotePageResponses[keyof RestoreRemotePageResponses];
+
+export type ListRemoteRevisionsData = {
+    body?: never;
+    path: {
+        /**
+         * 连接标识
+         */
+        connectionId: string;
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+        /**
+         * 页面标识
+         */
+        pageId: string;
+    };
+    query?: {
+        /**
+         * 每页条数
+         */
+        limit?: number;
+        /**
+         * 分页参数
+         * 起始位置
+         */
+        offset?: number;
+        /**
+         * 语义地址
+         */
+        slug?: string;
+    };
+    url: '/api/v1/knowledge/connections/{connectionId}/libraries/{libraryId}/pages/{pageId}/revisions';
+};
+
+export type ListRemoteRevisionsErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type ListRemoteRevisionsError = ListRemoteRevisionsErrors[keyof ListRemoteRevisionsErrors];
+
+export type ListRemoteRevisionsResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsRemoteRevisionList;
+};
+
+export type ListRemoteRevisionsResponse = ListRemoteRevisionsResponses[keyof ListRemoteRevisionsResponses];
+
+export type GetRemoteRevisionData = {
+    body?: never;
+    path: {
+        /**
+         * 连接标识
+         */
+        connectionId: string;
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+        /**
+         * 页面标识
+         */
+        pageId: string;
+        /**
+         * 历史版本
+         */
+        version: number;
+    };
+    query?: {
+        /**
+         * 语义地址
+         */
+        slug?: string;
+    };
+    url: '/api/v1/knowledge/connections/{connectionId}/libraries/{libraryId}/pages/{pageId}/revisions/{version}';
+};
+
+export type GetRemoteRevisionErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type GetRemoteRevisionError = GetRemoteRevisionErrors[keyof GetRemoteRevisionErrors];
+
+export type GetRemoteRevisionResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeRevision;
+};
+
+export type GetRemoteRevisionResponse = GetRemoteRevisionResponses[keyof GetRemoteRevisionResponses];
+
+export type GetRemoteReceiptData = {
+    body?: never;
+    path: {
+        /**
+         * 连接标识
+         */
+        connectionId: string;
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+        /**
+         * 请求标识
+         */
+        requestId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/connections/{connectionId}/libraries/{libraryId}/receipts/{requestId}';
+};
+
+export type GetRemoteReceiptErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type GetRemoteReceiptError = GetRemoteReceiptErrors[keyof GetRemoteReceiptErrors];
+
+export type GetRemoteReceiptResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeReceipt;
+};
+
+export type GetRemoteReceiptResponse = GetRemoteReceiptResponses[keyof GetRemoteReceiptResponses];
+
+export type ListRemoteSourcePurgesData = {
+    body?: never;
+    path: {
+        /**
+         * 连接标识
+         */
+        connectionId: string;
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: {
+        /**
+         * 每页条数
+         */
+        limit?: number;
+        /**
+         * 起始位置
+         */
+        offset?: number;
+    };
+    url: '/api/v1/knowledge/connections/{connectionId}/libraries/{libraryId}/source-purges';
+};
+
+export type ListRemoteSourcePurgesErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type ListRemoteSourcePurgesError = ListRemoteSourcePurgesErrors[keyof ListRemoteSourcePurgesErrors];
+
+export type ListRemoteSourcePurgesResponses = {
+    200: GithubComJieWaZiNeuxKnowledgeCoreSourcePurgeList;
+};
+
+export type ListRemoteSourcePurgesResponse = ListRemoteSourcePurgesResponses[keyof ListRemoteSourcePurgesResponses];
+
+export type ConfirmRemoteSourcePurgeData = {
+    body: GithubComJieWaZiNeuxAllyServerApisKnowledgeConfirmSourcePurgeInput & unknown;
+    path: {
+        /**
+         * 连接标识
+         */
+        connectionId: string;
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/connections/{connectionId}/libraries/{libraryId}/source-purges/confirm';
+};
+
+export type ConfirmRemoteSourcePurgeErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type ConfirmRemoteSourcePurgeError = ConfirmRemoteSourcePurgeErrors[keyof ConfirmRemoteSourcePurgeErrors];
+
+export type ConfirmRemoteSourcePurgeResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeReceipt;
+};
+
+export type ConfirmRemoteSourcePurgeResponse = ConfirmRemoteSourcePurgeResponses[keyof ConfirmRemoteSourcePurgeResponses];
+
+export type PreviewRemoteSourcePurgeData = {
+    body?: never;
+    path: {
+        /**
+         * 连接标识
+         */
+        connectionId: string;
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query: {
+        /**
+         * 来源身份
+         */
+        sourceId: string;
+    };
+    url: '/api/v1/knowledge/connections/{connectionId}/libraries/{libraryId}/source-purges/preview';
+};
+
+export type PreviewRemoteSourcePurgeErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type PreviewRemoteSourcePurgeError = PreviewRemoteSourcePurgeErrors[keyof PreviewRemoteSourcePurgeErrors];
+
+export type PreviewRemoteSourcePurgeResponses = {
+    200: GithubComJieWaZiNeuxKnowledgeInternalDomainSourcePurgePreview;
+};
+
+export type PreviewRemoteSourcePurgeResponse = PreviewRemoteSourcePurgeResponses[keyof PreviewRemoteSourcePurgeResponses];
+
+export type GetRemoteSourcePurgeData = {
+    body?: never;
+    path: {
+        /**
+         * 连接标识
+         */
+        connectionId: string;
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+        /**
+         * 清理标识
+         */
+        purgeId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/connections/{connectionId}/libraries/{libraryId}/source-purges/{purgeId}';
+};
+
+export type GetRemoteSourcePurgeErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type GetRemoteSourcePurgeError = GetRemoteSourcePurgeErrors[keyof GetRemoteSourcePurgeErrors];
+
+export type GetRemoteSourcePurgeResponses = {
+    200: GithubComJieWaZiNeuxKnowledgeInternalDomainSourcePurgeStatus;
+};
+
+export type GetRemoteSourcePurgeResponse = GetRemoteSourcePurgeResponses[keyof GetRemoteSourcePurgeResponses];
+
+export type RecoverRemoteSourcePurgeData = {
+    body: GithubComJieWaZiNeuxAllyServerApisKnowledgeRecoverSourcePurgeInput & unknown;
+    path: {
+        /**
+         * 连接标识
+         */
+        connectionId: string;
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+        /**
+         * 清理标识
+         */
+        purgeId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/connections/{connectionId}/libraries/{libraryId}/source-purges/{purgeId}/recover';
+};
+
+export type RecoverRemoteSourcePurgeErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type RecoverRemoteSourcePurgeError = RecoverRemoteSourcePurgeErrors[keyof RecoverRemoteSourcePurgeErrors];
+
+export type RecoverRemoteSourcePurgeResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeReceipt;
+};
+
+export type RecoverRemoteSourcePurgeResponse = RecoverRemoteSourcePurgeResponses[keyof RecoverRemoteSourcePurgeResponses];
+
+export type ListRemoteSourcesData = {
+    body?: never;
+    path: {
+        /**
+         * 连接标识
+         */
+        connectionId: string;
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: {
+        /**
+         * 每页条数
+         */
+        limit?: number;
+        /**
+         * 起始位置
+         */
+        offset?: number;
+        /**
+         * 文件名关键词
+         */
+        query?: string;
+        /**
+         * 上传时间排序
+         */
+        sort?: string;
+        /**
+         * 资料状态
+         */
+        state?: string;
+    };
+    url: '/api/v1/knowledge/connections/{connectionId}/libraries/{libraryId}/sources';
+};
+
+export type ListRemoteSourcesErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type ListRemoteSourcesError = ListRemoteSourcesErrors[keyof ListRemoteSourcesErrors];
+
+export type ListRemoteSourcesResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeSourceList;
+};
+
+export type ListRemoteSourcesResponse = ListRemoteSourcesResponses[keyof ListRemoteSourcesResponses];
+
+export type ImportRemoteSourceData = {
+    body: GithubComJieWaZiNeuxAllyServerApisKnowledgeImportSourceInput & unknown;
+    path: {
+        /**
+         * 连接标识
+         */
+        connectionId: string;
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/connections/{connectionId}/libraries/{libraryId}/sources';
+};
+
+export type ImportRemoteSourceErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type ImportRemoteSourceError = ImportRemoteSourceErrors[keyof ImportRemoteSourceErrors];
+
+export type ImportRemoteSourceResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeReceipt;
+};
+
+export type ImportRemoteSourceResponse = ImportRemoteSourceResponses[keyof ImportRemoteSourceResponses];
+
+export type GetRemoteSourceData = {
+    body?: never;
+    path: {
+        /**
+         * 连接标识
+         */
+        connectionId: string;
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+        /**
+         * 原件标识
+         */
+        sourceId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/connections/{connectionId}/libraries/{libraryId}/sources/{sourceId}';
+};
+
+export type GetRemoteSourceErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type GetRemoteSourceError = GetRemoteSourceErrors[keyof GetRemoteSourceErrors];
+
+export type GetRemoteSourceResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeSource;
+};
+
+export type GetRemoteSourceResponse = GetRemoteSourceResponses[keyof GetRemoteSourceResponses];
+
+export type ArchiveRemoteSourceData = {
+    body: GithubComJieWaZiNeuxAllyServerApisKnowledgeArchiveSourceInput & unknown;
+    path: {
+        /**
+         * 连接标识
+         */
+        connectionId: string;
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+        /**
+         * 原件标识
+         */
+        sourceId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/connections/{connectionId}/libraries/{libraryId}/sources/{sourceId}/archive';
+};
+
+export type ArchiveRemoteSourceErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type ArchiveRemoteSourceError = ArchiveRemoteSourceErrors[keyof ArchiveRemoteSourceErrors];
+
+export type ArchiveRemoteSourceResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeReceipt;
+};
+
+export type ArchiveRemoteSourceResponse = ArchiveRemoteSourceResponses[keyof ArchiveRemoteSourceResponses];
+
+export type GetRemoteSourceChunksData = {
+    body?: never;
+    path: {
+        /**
+         * 连接标识
+         */
+        connectionId: string;
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+        /**
+         * 来源版本
+         */
+        sourceId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/connections/{connectionId}/libraries/{libraryId}/sources/{sourceId}/chunks';
+};
+
+export type GetRemoteSourceChunksErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type GetRemoteSourceChunksError = GetRemoteSourceChunksErrors[keyof GetRemoteSourceChunksErrors];
+
+export type GetRemoteSourceChunksResponses = {
+    200: Array<GithubComJieWaZiNeuxKnowledgeInternalDomainEmbeddingChunkIndex>;
+};
+
+export type GetRemoteSourceChunksResponse = GetRemoteSourceChunksResponses[keyof GetRemoteSourceChunksResponses];
+
+export type GetRemoteRawData = {
+    body?: never;
+    path: {
+        /**
+         * 连接标识
+         */
+        connectionId: string;
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+        /**
+         * 原件标识
+         */
+        sourceId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/connections/{connectionId}/libraries/{libraryId}/sources/{sourceId}/raw';
+};
+
+export type GetRemoteRawErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type GetRemoteRawError = GetRemoteRawErrors[keyof GetRemoteRawErrors];
+
+export type GetRemoteRawResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeRawSource;
+};
+
+export type GetRemoteRawResponse = GetRemoteRawResponses[keyof GetRemoteRawResponses];
+
+export type ListRemoteThemesData = {
+    body?: never;
+    path: {
+        /**
+         * 连接标识
+         */
+        connectionId: string;
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: {
+        /**
+         * 上级标识
+         */
+        parentId?: string;
+    };
+    url: '/api/v1/knowledge/connections/{connectionId}/libraries/{libraryId}/themes';
+};
+
+export type ListRemoteThemesErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type ListRemoteThemesError = ListRemoteThemesErrors[keyof ListRemoteThemesErrors];
+
+export type ListRemoteThemesResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsRemoteThemeList;
+};
+
+export type ListRemoteThemesResponse = ListRemoteThemesResponses[keyof ListRemoteThemesResponses];
+
+export type CreateRemoteThemeData = {
+    body: GithubComJieWaZiNeuxAllyServerApisKnowledgeCreateThemeInput & unknown;
+    path: {
+        /**
+         * 连接标识
+         */
+        connectionId: string;
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/connections/{connectionId}/libraries/{libraryId}/themes';
+};
+
+export type CreateRemoteThemeErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type CreateRemoteThemeError = CreateRemoteThemeErrors[keyof CreateRemoteThemeErrors];
+
+export type CreateRemoteThemeResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeReceipt;
+};
+
+export type CreateRemoteThemeResponse = CreateRemoteThemeResponses[keyof CreateRemoteThemeResponses];
+
+export type WriteRemoteThemeData = {
+    body: GithubComJieWaZiNeuxAllyServerApisKnowledgeWriteThemeInput & unknown;
+    path: {
+        /**
+         * 连接标识
+         */
+        connectionId: string;
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+        /**
+         * 主题标识
+         */
+        themeId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/connections/{connectionId}/libraries/{libraryId}/themes/{themeId}';
+};
+
+export type WriteRemoteThemeErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type WriteRemoteThemeError = WriteRemoteThemeErrors[keyof WriteRemoteThemeErrors];
+
+export type WriteRemoteThemeResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeReceipt;
+};
+
+export type WriteRemoteThemeResponse = WriteRemoteThemeResponses[keyof WriteRemoteThemeResponses];
+
+export type TestLibraryEmbeddingData = {
+    body: GithubComJieWaZiNeuxAllyServerApisKnowledgeTestLibraryEmbeddingInput & unknown;
+    path?: never;
+    query?: never;
+    url: '/api/v1/knowledge/embedding/test';
+};
+
+export type TestLibraryEmbeddingErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[OperationCanceled][40800000001]`
+     * * `[OperationTimeout][40800000002]`
+     *
+     */
+    408: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeEmbeddingNotConfigured][42200009503]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeStorageError][50000009501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeEmbeddingResponseInvalid][50200009602]`
+     * * `[KnowledgeEmbeddingUnavailable][50200009601]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type TestLibraryEmbeddingError = TestLibraryEmbeddingErrors[keyof TestLibraryEmbeddingErrors];
+
+export type TestLibraryEmbeddingResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeLibraryEmbeddingTestResult;
+};
+
+export type TestLibraryEmbeddingResponse = TestLibraryEmbeddingResponses[keyof TestLibraryEmbeddingResponses];
+
+export type ListLibrariesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * 每页条数
+         */
+        limit?: number;
+        /**
+         * 分页参数
+         * 起始位置
+         */
+        offset?: number;
+    };
+    url: '/api/v1/knowledge/libraries';
+};
+
+export type ListLibrariesErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeStorageError][50000009501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type ListLibrariesError = ListLibrariesErrors[keyof ListLibrariesErrors];
+
+export type ListLibrariesResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeLibraryList;
+};
+
+export type ListLibrariesResponse = ListLibrariesResponses[keyof ListLibrariesResponses];
+
+export type CreateLibraryData = {
+    body: GithubComJieWaZiNeuxAllyServerApisKnowledgeCreateLibraryInput & unknown;
+    path?: never;
+    query?: never;
+    url: '/api/v1/knowledge/libraries';
+};
+
+export type CreateLibraryErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeEmbeddingNotConfigured][42200009503]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeStorageError][50000009501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type CreateLibraryError = CreateLibraryErrors[keyof CreateLibraryErrors];
+
+export type CreateLibraryResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeReceipt;
+};
+
+export type CreateLibraryResponse = CreateLibraryResponses[keyof CreateLibraryResponses];
+
+export type DeleteLibraryData = {
+    body: GithubComJieWaZiNeuxAllyServerApisKnowledgeDeleteLibraryInput & unknown;
+    path: {
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/libraries/{libraryId}';
+};
+
+export type DeleteLibraryErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeStorageError][50000009501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type DeleteLibraryError = DeleteLibraryErrors[keyof DeleteLibraryErrors];
+
+export type DeleteLibraryResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeReceipt;
+};
+
+export type DeleteLibraryResponse = DeleteLibraryResponses[keyof DeleteLibraryResponses];
+
+export type GetLibraryData = {
+    body?: never;
+    path: {
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/libraries/{libraryId}';
+};
+
+export type GetLibraryErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeStorageError][50000009501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type GetLibraryError = GetLibraryErrors[keyof GetLibraryErrors];
+
+export type GetLibraryResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeLibrary;
+};
+
+export type GetLibraryResponse = GetLibraryResponses[keyof GetLibraryResponses];
+
+export type UpdateLibraryData = {
+    body: GithubComJieWaZiNeuxAllyServerApisKnowledgeUpdateLibraryInput & unknown;
+    path: {
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/libraries/{libraryId}';
+};
+
+export type UpdateLibraryErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeStorageError][50000009501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type UpdateLibraryError = UpdateLibraryErrors[keyof UpdateLibraryErrors];
+
+export type UpdateLibraryResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeReceipt;
+};
+
+export type UpdateLibraryResponse = UpdateLibraryResponses[keyof UpdateLibraryResponses];
+
+export type ListLibraryActivityData = {
+    body?: never;
+    path: {
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: {
+        /**
+         * 动作筛选
+         */
+        action?: string;
+        /**
+         * 发起人筛选
+         */
+        actor?: string;
+        /**
+         * 上页游标
+         */
+        afterId?: number;
+        /**
+         * 每页数量
+         */
+        limit?: number;
+        /**
+         * 结果筛选
+         */
+        outcome?: string;
+    };
+    url: '/api/v1/knowledge/libraries/{libraryId}/activity';
+};
+
+export type ListLibraryActivityErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeStorageError][50000009501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type ListLibraryActivityError = ListLibraryActivityErrors[keyof ListLibraryActivityErrors];
+
+export type ListLibraryActivityResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeLibraryActivityList;
+};
+
+export type ListLibraryActivityResponse = ListLibraryActivityResponses[keyof ListLibraryActivityResponses];
+
+export type AuditLibraryData = {
+    body?: never;
+    path: {
+        /**
+         * 知识库标识。
+         */
+        libraryId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/libraries/{libraryId}/audit';
+};
+
+export type AuditLibraryErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeStorageError][50000009501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type AuditLibraryError = AuditLibraryErrors[keyof AuditLibraryErrors];
+
+export type AuditLibraryResponses = {
+    200: GithubComJieWaZiNeuxKnowledgeInternalDomainLintReport;
+};
+
+export type AuditLibraryResponse = AuditLibraryResponses[keyof AuditLibraryResponses];
+
+export type GetLibraryDeletionData = {
+    body?: never;
+    path: {
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/libraries/{libraryId}/deletion';
+};
+
+export type GetLibraryDeletionErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeStorageError][50000009501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type GetLibraryDeletionError = GetLibraryDeletionErrors[keyof GetLibraryDeletionErrors];
+
+export type GetLibraryDeletionResponses = {
+    200: GithubComJieWaZiNeuxKnowledgeInternalDomainLibraryDeletionStatus;
+};
+
+export type GetLibraryDeletionResponse = GetLibraryDeletionResponses[keyof GetLibraryDeletionResponses];
+
+export type RecoverLibraryDeletionData = {
+    body: GithubComJieWaZiNeuxAllyServerApisKnowledgeDeleteLibraryInput & unknown;
+    path: {
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/libraries/{libraryId}/deletion/recover';
+};
+
+export type RecoverLibraryDeletionErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeStorageError][50000009501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type RecoverLibraryDeletionError = RecoverLibraryDeletionErrors[keyof RecoverLibraryDeletionErrors];
+
+export type RecoverLibraryDeletionResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeReceipt;
+};
+
+export type RecoverLibraryDeletionResponse = RecoverLibraryDeletionResponses[keyof RecoverLibraryDeletionResponses];
+
+export type GetLibraryEmbeddingProfileData = {
+    body?: never;
+    path: {
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/libraries/{libraryId}/embedding';
+};
+
+export type GetLibraryEmbeddingProfileErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeStorageError][50000009501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type GetLibraryEmbeddingProfileError = GetLibraryEmbeddingProfileErrors[keyof GetLibraryEmbeddingProfileErrors];
+
+export type GetLibraryEmbeddingProfileResponses = {
+    200: GithubComJieWaZiNeuxAllyServerRepositoriesModelsLibraryEmbeddingProfile;
+};
+
+export type GetLibraryEmbeddingProfileResponse = GetLibraryEmbeddingProfileResponses[keyof GetLibraryEmbeddingProfileResponses];
+
+export type UpdateLibraryEmbeddingProfileData = {
+    body: GithubComJieWaZiNeuxAllyServerApisKnowledgeUpdateLibraryEmbeddingProfileInput & unknown;
+    path: {
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/libraries/{libraryId}/embedding';
+};
+
+export type UpdateLibraryEmbeddingProfileErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeStorageError][50000009501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type UpdateLibraryEmbeddingProfileError = UpdateLibraryEmbeddingProfileErrors[keyof UpdateLibraryEmbeddingProfileErrors];
+
+export type UpdateLibraryEmbeddingProfileResponses = {
+    200: GithubComJieWaZiNeuxAllyServerRepositoriesModelsLibraryEmbeddingProfile;
+};
+
+export type UpdateLibraryEmbeddingProfileResponse = UpdateLibraryEmbeddingProfileResponses[keyof UpdateLibraryEmbeddingProfileResponses];
+
+export type GetLibraryExecutionDefaultsData = {
+    body?: never;
+    path: {
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/libraries/{libraryId}/execution-defaults';
+};
+
+export type GetLibraryExecutionDefaultsErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeStorageError][50000009501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type GetLibraryExecutionDefaultsError = GetLibraryExecutionDefaultsErrors[keyof GetLibraryExecutionDefaultsErrors];
+
+export type GetLibraryExecutionDefaultsResponses = {
+    200: GithubComJieWaZiNeuxAllyServerRepositoriesModelsLibraryExecutionDefaults;
+};
+
+export type GetLibraryExecutionDefaultsResponse = GetLibraryExecutionDefaultsResponses[keyof GetLibraryExecutionDefaultsResponses];
+
+export type UpdateLibraryExecutionDefaultsData = {
+    body: GithubComJieWaZiNeuxAllyServerApisKnowledgeUpdateLibraryExecutionDefaultsInput & unknown;
+    path: {
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/libraries/{libraryId}/execution-defaults';
+};
+
+export type UpdateLibraryExecutionDefaultsErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeStorageError][50000009501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type UpdateLibraryExecutionDefaultsError = UpdateLibraryExecutionDefaultsErrors[keyof UpdateLibraryExecutionDefaultsErrors];
+
+export type UpdateLibraryExecutionDefaultsResponses = {
+    200: GithubComJieWaZiNeuxAllyServerRepositoriesModelsLibraryExecutionDefaults;
+};
+
+export type UpdateLibraryExecutionDefaultsResponse = UpdateLibraryExecutionDefaultsResponses[keyof UpdateLibraryExecutionDefaultsResponses];
+
+export type ListJobsData = {
+    body?: never;
+    path: {
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: {
+        /**
+         * 每页条数
+         */
+        limit?: number;
+        /**
+         * 分页参数
+         * 起始位置
+         */
+        offset?: number;
+    };
+    url: '/api/v1/knowledge/libraries/{libraryId}/jobs';
+};
+
+export type ListJobsErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeStorageError][50000009501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type ListJobsError = ListJobsErrors[keyof ListJobsErrors];
+
+export type ListJobsResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeJobList;
+};
+
+export type ListJobsResponse = ListJobsResponses[keyof ListJobsResponses];
+
+export type GetJobData = {
+    body?: never;
+    path: {
+        /**
+         * 任务标识
+         */
+        jobId: string;
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/libraries/{libraryId}/jobs/{jobId}';
+};
+
+export type GetJobErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeStorageError][50000009501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type GetJobError = GetJobErrors[keyof GetJobErrors];
+
+export type GetJobResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeJobDetail;
+};
+
+export type GetJobResponse = GetJobResponses[keyof GetJobResponses];
+
+export type ResumeJobData = {
+    body: GithubComJieWaZiNeuxAllyServerApisKnowledgeResumeJobInput & unknown;
+    path: {
+        /**
+         * 任务标识
+         */
+        jobId: string;
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/libraries/{libraryId}/jobs/{jobId}/resume';
+};
+
+export type ResumeJobErrors = {
+    /**
+     * >
+     * * `[BadRequest][40000000001]`
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeStorageError][50000009501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type ResumeJobError = ResumeJobErrors[keyof ResumeJobErrors];
+
+export type ResumeJobResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeJob;
+};
+
+export type ResumeJobResponse = ResumeJobResponses[keyof ResumeJobResponses];
+
+export type RetryJobData = {
+    body: GithubComJieWaZiNeuxAllyServerApisKnowledgeRetryJobInput & unknown;
+    path: {
+        /**
+         * 任务标识
+         */
+        jobId: string;
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/libraries/{libraryId}/jobs/{jobId}/retry';
+};
+
+export type RetryJobErrors = {
+    /**
+     * >
+     * * `[BadRequest][40000000001]`
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeStorageError][50000009501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type RetryJobError = RetryJobErrors[keyof RetryJobErrors];
+
+export type RetryJobResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeReceipt;
+};
+
+export type RetryJobResponse = RetryJobResponses[keyof RetryJobResponses];
+
+export type ExportLibraryMarkdownData = {
+    body?: never;
+    path: {
+        /**
+         * 知识库标识。
+         */
+        libraryId: string;
+    };
+    query?: {
+        /**
+         * 可选页面标识；重复 query 参数表示多个页面，空集合表示全部页面。
+         */
+        pageId?: Array<string>;
+    };
+    url: '/api/v1/knowledge/libraries/{libraryId}/markdown-export';
+};
+
+export type ExportLibraryMarkdownErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeStorageError][50000009501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type ExportLibraryMarkdownError = ExportLibraryMarkdownErrors[keyof ExportLibraryMarkdownErrors];
+
+export type ExportLibraryMarkdownResponses = {
+    200: GithubComJieWaZiNeuxKnowledgeInternalDomainMarkdownExport;
+};
+
+export type ExportLibraryMarkdownResponse = ExportLibraryMarkdownResponses[keyof ExportLibraryMarkdownResponses];
+
+export type OrganizeData = {
+    body: GithubComJieWaZiNeuxAllyServerApisKnowledgeOrganizeInput & unknown;
+    path: {
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/libraries/{libraryId}/organize';
+};
+
+export type OrganizeErrors = {
+    /**
+     * >
+     * * `[BadRequest][40000000001]`
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeStorageError][50000009501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type OrganizeError = OrganizeErrors[keyof OrganizeErrors];
+
+export type OrganizeResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeOrganizeResponse;
+};
+
+export type OrganizeResponse = OrganizeResponses[keyof OrganizeResponses];
+
+export type GetPageBySlugData = {
+    body?: never;
+    path: {
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query: {
+        /**
+         * 语义地址
+         */
+        slug: string;
+    };
+    url: '/api/v1/knowledge/libraries/{libraryId}/page-by-slug';
+};
+
+export type GetPageBySlugErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeStorageError][50000009501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type GetPageBySlugError = GetPageBySlugErrors[keyof GetPageBySlugErrors];
+
+export type GetPageBySlugResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgePage;
+};
+
+export type GetPageBySlugResponse = GetPageBySlugResponses[keyof GetPageBySlugResponses];
+
+export type ListPagesData = {
+    body?: never;
+    path: {
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: {
+        /**
+         * 每页条数
+         */
+        limit?: number;
+        /**
+         * 分页参数
+         * 起始位置
+         */
+        offset?: number;
+        /**
+         * 页面类型
+         */
+        pageType?: string;
+        /**
+         * 关键词
+         */
+        query?: string;
+        /**
+         * 主题标识
+         */
+        themeId?: string;
+    };
+    url: '/api/v1/knowledge/libraries/{libraryId}/pages';
+};
+
+export type ListPagesErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeStorageError][50000009501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type ListPagesError = ListPagesErrors[keyof ListPagesErrors];
+
+export type ListPagesResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgePageList;
+};
+
+export type ListPagesResponse = ListPagesResponses[keyof ListPagesResponses];
+
+export type CreatePageData = {
+    body: GithubComJieWaZiNeuxAllyServerApisKnowledgeCreatePageInput & unknown;
+    path: {
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/libraries/{libraryId}/pages';
+};
+
+export type CreatePageErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeStorageError][50000009501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type CreatePageError = CreatePageErrors[keyof CreatePageErrors];
+
+export type CreatePageResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeReceipt;
+};
+
+export type CreatePageResponse = CreatePageResponses[keyof CreatePageResponses];
+
+export type GetPageData = {
+    body?: never;
+    path: {
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+        /**
+         * 页面标识
+         */
+        pageId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/libraries/{libraryId}/pages/{pageId}';
+};
+
+export type GetPageErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeStorageError][50000009501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type GetPageError = GetPageErrors[keyof GetPageErrors];
+
+export type GetPageResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgePage;
+};
+
+export type GetPageResponse = GetPageResponses[keyof GetPageResponses];
+
+export type WritePageData = {
+    body: GithubComJieWaZiNeuxAllyServerApisKnowledgeWritePageInput & unknown;
+    path: {
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+        /**
+         * 页面标识
+         */
+        pageId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/libraries/{libraryId}/pages/{pageId}';
+};
+
+export type WritePageErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeStorageError][50000009501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type WritePageError = WritePageErrors[keyof WritePageErrors];
+
+export type WritePageResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeReceipt;
+};
+
+export type WritePageResponse = WritePageResponses[keyof WritePageResponses];
+
+export type RestorePageData = {
+    body: GithubComJieWaZiNeuxAllyServerApisKnowledgeRestorePageInput & unknown;
+    path: {
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+        /**
+         * 页面标识
+         */
+        pageId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/libraries/{libraryId}/pages/{pageId}/restore';
+};
+
+export type RestorePageErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeStorageError][50000009501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type RestorePageError = RestorePageErrors[keyof RestorePageErrors];
+
+export type RestorePageResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeReceipt;
+};
+
+export type RestorePageResponse = RestorePageResponses[keyof RestorePageResponses];
+
+export type ListRevisionsData = {
+    body?: never;
+    path: {
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+        /**
+         * 页面标识
+         */
+        pageId: string;
+    };
+    query?: {
+        /**
+         * 每页条数
+         */
+        limit?: number;
+        /**
+         * 分页参数
+         * 起始位置
+         */
+        offset?: number;
+    };
+    url: '/api/v1/knowledge/libraries/{libraryId}/pages/{pageId}/revisions';
+};
+
+export type ListRevisionsErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeStorageError][50000009501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type ListRevisionsError = ListRevisionsErrors[keyof ListRevisionsErrors];
+
+export type ListRevisionsResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeRevisionList;
+};
+
+export type ListRevisionsResponse = ListRevisionsResponses[keyof ListRevisionsResponses];
+
+export type ListSourcePurgesData = {
+    body?: never;
+    path: {
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: {
+        /**
+         * 每页条数
+         */
+        limit?: number;
+        /**
+         * 起始位置
+         */
+        offset?: number;
+    };
+    url: '/api/v1/knowledge/libraries/{libraryId}/source-purges';
+};
+
+export type ListSourcePurgesErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeStorageError][50000009501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type ListSourcePurgesError = ListSourcePurgesErrors[keyof ListSourcePurgesErrors];
+
+export type ListSourcePurgesResponses = {
+    200: GithubComJieWaZiNeuxKnowledgeCoreSourcePurgeList;
+};
+
+export type ListSourcePurgesResponse = ListSourcePurgesResponses[keyof ListSourcePurgesResponses];
+
+export type ConfirmSourcePurgeData = {
+    body: GithubComJieWaZiNeuxAllyServerApisKnowledgeConfirmSourcePurgeInput & unknown;
+    path: {
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/libraries/{libraryId}/source-purges/confirm';
+};
+
+export type ConfirmSourcePurgeErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeStorageError][50000009501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type ConfirmSourcePurgeError = ConfirmSourcePurgeErrors[keyof ConfirmSourcePurgeErrors];
+
+export type ConfirmSourcePurgeResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeReceipt;
+};
+
+export type ConfirmSourcePurgeResponse = ConfirmSourcePurgeResponses[keyof ConfirmSourcePurgeResponses];
+
+export type PreviewSourcePurgeData = {
+    body?: never;
+    path: {
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query: {
+        /**
+         * 来源身份
+         */
+        sourceId: string;
+    };
+    url: '/api/v1/knowledge/libraries/{libraryId}/source-purges/preview';
+};
+
+export type PreviewSourcePurgeErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeStorageError][50000009501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type PreviewSourcePurgeError = PreviewSourcePurgeErrors[keyof PreviewSourcePurgeErrors];
+
+export type PreviewSourcePurgeResponses = {
+    200: GithubComJieWaZiNeuxKnowledgeInternalDomainSourcePurgePreview;
+};
+
+export type PreviewSourcePurgeResponse = PreviewSourcePurgeResponses[keyof PreviewSourcePurgeResponses];
+
+export type GetSourcePurgeData = {
+    body?: never;
+    path: {
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+        /**
+         * 清理标识
+         */
+        purgeId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/libraries/{libraryId}/source-purges/{purgeId}';
+};
+
+export type GetSourcePurgeErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeStorageError][50000009501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type GetSourcePurgeError = GetSourcePurgeErrors[keyof GetSourcePurgeErrors];
+
+export type GetSourcePurgeResponses = {
+    200: GithubComJieWaZiNeuxKnowledgeInternalDomainSourcePurgeStatus;
+};
+
+export type GetSourcePurgeResponse = GetSourcePurgeResponses[keyof GetSourcePurgeResponses];
+
+export type RecoverSourcePurgeData = {
+    body: GithubComJieWaZiNeuxAllyServerApisKnowledgeRecoverSourcePurgeInput & unknown;
+    path: {
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+        /**
+         * 清理标识
+         */
+        purgeId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/libraries/{libraryId}/source-purges/{purgeId}/recover';
+};
+
+export type RecoverSourcePurgeErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeStorageError][50000009501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type RecoverSourcePurgeError = RecoverSourcePurgeErrors[keyof RecoverSourcePurgeErrors];
+
+export type RecoverSourcePurgeResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeReceipt;
+};
+
+export type RecoverSourcePurgeResponse = RecoverSourcePurgeResponses[keyof RecoverSourcePurgeResponses];
+
+export type ListSourcesData = {
+    body?: never;
+    path: {
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: {
+        /**
+         * 每页条数
+         */
+        limit?: number;
+        /**
+         * 起始位置
+         */
+        offset?: number;
+        /**
+         * 文件名关键词
+         */
+        query?: string;
+        /**
+         * 上传时间排序
+         */
+        sort?: string;
+        /**
+         * 资料状态
+         */
+        state?: string;
+    };
+    url: '/api/v1/knowledge/libraries/{libraryId}/sources';
+};
+
+export type ListSourcesErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeStorageError][50000009501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type ListSourcesError = ListSourcesErrors[keyof ListSourcesErrors];
+
+export type ListSourcesResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeSourceList;
+};
+
+export type ListSourcesResponse = ListSourcesResponses[keyof ListSourcesResponses];
+
+export type ImportSourceData = {
+    body: GithubComJieWaZiNeuxAllyServerApisKnowledgeImportSourceInput & unknown;
+    path: {
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/libraries/{libraryId}/sources';
+};
+
+export type ImportSourceErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeStorageError][50000009501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type ImportSourceError = ImportSourceErrors[keyof ImportSourceErrors];
+
+export type ImportSourceResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeReceipt;
+};
+
+export type ImportSourceResponse = ImportSourceResponses[keyof ImportSourceResponses];
+
+export type GetSourceData = {
+    body?: never;
+    path: {
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+        /**
+         * 来源版本
+         */
+        sourceId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/libraries/{libraryId}/sources/{sourceId}';
+};
+
+export type GetSourceErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeStorageError][50000009501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type GetSourceError = GetSourceErrors[keyof GetSourceErrors];
+
+export type GetSourceResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeSource;
+};
+
+export type GetSourceResponse = GetSourceResponses[keyof GetSourceResponses];
+
+export type ArchiveSourceData = {
+    body: GithubComJieWaZiNeuxAllyServerApisKnowledgeArchiveSourceInput & unknown;
+    path: {
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+        /**
+         * 来源版本
+         */
+        sourceId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/libraries/{libraryId}/sources/{sourceId}/archive';
+};
+
+export type ArchiveSourceErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeStorageError][50000009501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type ArchiveSourceError = ArchiveSourceErrors[keyof ArchiveSourceErrors];
+
+export type ArchiveSourceResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeReceipt;
+};
+
+export type ArchiveSourceResponse = ArchiveSourceResponses[keyof ArchiveSourceResponses];
+
+export type GetSourceChunksData = {
+    body?: never;
+    path: {
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+        /**
+         * 来源版本
+         */
+        sourceId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/libraries/{libraryId}/sources/{sourceId}/chunks';
+};
+
+export type GetSourceChunksErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeStorageError][50000009501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type GetSourceChunksError = GetSourceChunksErrors[keyof GetSourceChunksErrors];
+
+export type GetSourceChunksResponses = {
+    200: Array<GithubComJieWaZiNeuxKnowledgeInternalDomainEmbeddingChunkIndex>;
+};
+
+export type GetSourceChunksResponse = GetSourceChunksResponses[keyof GetSourceChunksResponses];
+
+export type GetRawData = {
+    body?: never;
+    path: {
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+        /**
+         * 来源版本
+         */
+        sourceId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/libraries/{libraryId}/sources/{sourceId}/raw';
+};
+
+export type GetRawErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeStorageError][50000009501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type GetRawError = GetRawErrors[keyof GetRawErrors];
+
+export type GetRawResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeRawSource;
+};
+
+export type GetRawResponse = GetRawResponses[keyof GetRawResponses];
+
+export type ListThemesData = {
+    body?: never;
+    path: {
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/libraries/{libraryId}/themes';
+};
+
+export type ListThemesErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeStorageError][50000009501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type ListThemesError = ListThemesErrors[keyof ListThemesErrors];
+
+export type ListThemesResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeThemeList;
+};
+
+export type ListThemesResponse = ListThemesResponses[keyof ListThemesResponses];
+
+export type CreateThemeData = {
+    body: GithubComJieWaZiNeuxAllyServerApisKnowledgeCreateThemeInput & unknown;
+    path: {
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/libraries/{libraryId}/themes';
+};
+
+export type CreateThemeErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeStorageError][50000009501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type CreateThemeError = CreateThemeErrors[keyof CreateThemeErrors];
+
+export type CreateThemeResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeReceipt;
+};
+
+export type CreateThemeResponse = CreateThemeResponses[keyof CreateThemeResponses];
+
+export type WriteThemeData = {
+    body: GithubComJieWaZiNeuxAllyServerApisKnowledgeWriteThemeInput & unknown;
+    path: {
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+        /**
+         * 主题标识
+         */
+        themeId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/libraries/{libraryId}/themes/{themeId}';
+};
+
+export type WriteThemeErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeStorageError][50000009501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type WriteThemeError = WriteThemeErrors[keyof WriteThemeErrors];
+
+export type WriteThemeResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeReceipt;
+};
+
+export type WriteThemeResponse = WriteThemeResponses[keyof WriteThemeResponses];
+
+export type GetWikiIndexData = {
+    body?: never;
+    path: {
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: {
+        /**
+         * 分页游标
+         */
+        cursor?: string;
+        /**
+         * 每组条数
+         */
+        limit?: number;
+        /**
+         * 页面类型
+         */
+        pageTypes?: string;
+    };
+    url: '/api/v1/knowledge/libraries/{libraryId}/wiki/index';
+};
+
+export type GetWikiIndexErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeStorageError][50000009501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type GetWikiIndexError = GetWikiIndexErrors[keyof GetWikiIndexErrors];
+
+export type GetWikiIndexResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeWikiIndexView;
+};
+
+export type GetWikiIndexResponse = GetWikiIndexResponses[keyof GetWikiIndexResponses];
+
+export type ReloadPolicyData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/knowledge/server/reload-policy';
+};
+
+export type ReloadPolicyErrors = {
+    /**
+     * >
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[CoreConfigurationInvalid][50000000023]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type ReloadPolicyError = ReloadPolicyErrors[keyof ReloadPolicyErrors];
+
+export type ReloadPolicyResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeServerReloadResult;
+};
+
+export type ReloadPolicyResponse = ReloadPolicyResponses[keyof ReloadPolicyResponses];
 
 export type ReindexMemoryIndexData = {
     body?: never;
@@ -14138,6 +24436,7 @@ export type ListPluginsErrors = {
      * * `[ChatMessageCursorInvalid][40000000012]`
      * * `[IMConfigurationInvalid][40000004001]`
      * * `[IMFileInvalid][40000004002]`
+     * * `[KnowledgeInvalid][40000009501]`
      * * `[MemoryEmbeddingConflict][40000000009]`
      * * `[MemoryEmbeddingNotConfigured][40000000007]`
      * * `[MemoryProjectNotBound][40000000008]`
@@ -14170,6 +24469,7 @@ export type ListPluginsErrors = {
      * * `[AgentContextUnauthorized][40100009001]`
      * * `[AutomaticTaskTokenInvalid][40100001001]`
      * * `[IMLoginRequired][40100004001]`
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
      * * `[MemoryContextUnauthorized][40100000002]`
      * * `[Unauthorized][40100000001]`
      *
@@ -14181,6 +24481,7 @@ export type ListPluginsErrors = {
      * * `[IMChatNotAuthorized][40300004001]`
      * * `[IMTargetNotAuthorized][40300004003]`
      * * `[IMWorkflowDeliveryNotAllowed][40300004002]`
+     * * `[KnowledgeForbidden][40300009501]`
      * * `[PluginForbidden][40300006501]`
      *
      */
@@ -14201,6 +24502,7 @@ export type ListPluginsErrors = {
      * * `[ExecutionNotFound][40400000004]`
      * * `[IMResourceNotFound][40400004001]`
      * * `[IMTargetUnavailable][40400004002]`
+     * * `[KnowledgeNotFound][40400009501]`
      * * `[MCPConnectorNotFound][40400000009]`
      * * `[MemoryNotFound][40400000010]`
      * * `[PluginNotFound][40400006501]`
@@ -14263,6 +24565,8 @@ export type ListPluginsErrors = {
      * * `[IMConnectionInUse][40900004004]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
      * * `[MCPConnectorNameConflict][40900000010]`
      * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
@@ -14285,6 +24589,14 @@ export type ListPluginsErrors = {
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeEmbeddingNotConfigured][42200009503]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
      * * `[AutomaticTaskRateLimited][42900001001]`
@@ -14321,6 +24633,7 @@ export type ListPluginsErrors = {
      * * `[DatabaseError][50000000002]`
      * * `[IMCredentialError][50000004001]`
      * * `[InternalServerError][50000000001]`
+     * * `[KnowledgeStorageError][50000009501]`
      * * `[MCPConnectorCredentialError][50000000022]`
      * * `[ManagedWorkspaceError][50000000033]`
      * * `[MemoryContextTokenGenerationFailed][50000000020]`
@@ -14364,6 +24677,10 @@ export type ListPluginsErrors = {
      * * `[AIAccountModelsUnavailable][50200000003]`
      * * `[IMPlatformUnavailable][50200004001]`
      * * `[IMProtocolInvalid][50200004002]`
+     * * `[KnowledgeEmbeddingResponseInvalid][50200009602]`
+     * * `[KnowledgeEmbeddingUnavailable][50200009601]`
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
      * * `[MCPConnectorProtocolInvalid][50200000002]`
      * * `[MemoryEmbeddingUnavailable][50200000001]`
      * * `[PluginAuthorizationFailed][50200006501]`
@@ -14378,6 +24695,12 @@ export type ListPluginsErrors = {
      *
      */
     503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
 };
 
 export type ListPluginsError = ListPluginsErrors[keyof ListPluginsErrors];
@@ -14460,6 +24783,7 @@ export type PrepareCatalogPluginErrors = {
      * * `[ChatMessageCursorInvalid][40000000012]`
      * * `[IMConfigurationInvalid][40000004001]`
      * * `[IMFileInvalid][40000004002]`
+     * * `[KnowledgeInvalid][40000009501]`
      * * `[MemoryEmbeddingConflict][40000000009]`
      * * `[MemoryEmbeddingNotConfigured][40000000007]`
      * * `[MemoryProjectNotBound][40000000008]`
@@ -14492,6 +24816,7 @@ export type PrepareCatalogPluginErrors = {
      * * `[AgentContextUnauthorized][40100009001]`
      * * `[AutomaticTaskTokenInvalid][40100001001]`
      * * `[IMLoginRequired][40100004001]`
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
      * * `[MemoryContextUnauthorized][40100000002]`
      * * `[Unauthorized][40100000001]`
      *
@@ -14503,6 +24828,7 @@ export type PrepareCatalogPluginErrors = {
      * * `[IMChatNotAuthorized][40300004001]`
      * * `[IMTargetNotAuthorized][40300004003]`
      * * `[IMWorkflowDeliveryNotAllowed][40300004002]`
+     * * `[KnowledgeForbidden][40300009501]`
      * * `[PluginForbidden][40300006501]`
      *
      */
@@ -14523,6 +24849,7 @@ export type PrepareCatalogPluginErrors = {
      * * `[ExecutionNotFound][40400000004]`
      * * `[IMResourceNotFound][40400004001]`
      * * `[IMTargetUnavailable][40400004002]`
+     * * `[KnowledgeNotFound][40400009501]`
      * * `[MCPConnectorNotFound][40400000009]`
      * * `[MemoryNotFound][40400000010]`
      * * `[PluginNotFound][40400006501]`
@@ -14585,6 +24912,8 @@ export type PrepareCatalogPluginErrors = {
      * * `[IMConnectionInUse][40900004004]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
      * * `[MCPConnectorNameConflict][40900000010]`
      * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
@@ -14607,6 +24936,14 @@ export type PrepareCatalogPluginErrors = {
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeEmbeddingNotConfigured][42200009503]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
      * * `[AutomaticTaskRateLimited][42900001001]`
@@ -14643,6 +24980,7 @@ export type PrepareCatalogPluginErrors = {
      * * `[DatabaseError][50000000002]`
      * * `[IMCredentialError][50000004001]`
      * * `[InternalServerError][50000000001]`
+     * * `[KnowledgeStorageError][50000009501]`
      * * `[MCPConnectorCredentialError][50000000022]`
      * * `[ManagedWorkspaceError][50000000033]`
      * * `[MemoryContextTokenGenerationFailed][50000000020]`
@@ -14686,6 +25024,10 @@ export type PrepareCatalogPluginErrors = {
      * * `[AIAccountModelsUnavailable][50200000003]`
      * * `[IMPlatformUnavailable][50200004001]`
      * * `[IMProtocolInvalid][50200004002]`
+     * * `[KnowledgeEmbeddingResponseInvalid][50200009602]`
+     * * `[KnowledgeEmbeddingUnavailable][50200009601]`
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
      * * `[MCPConnectorProtocolInvalid][50200000002]`
      * * `[MemoryEmbeddingUnavailable][50200000001]`
      * * `[PluginAuthorizationFailed][50200006501]`
@@ -14700,6 +25042,12 @@ export type PrepareCatalogPluginErrors = {
      *
      */
     503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
 };
 
 export type PrepareCatalogPluginError = PrepareCatalogPluginErrors[keyof PrepareCatalogPluginErrors];
@@ -14733,6 +25081,7 @@ export type PreparePluginErrors = {
      * * `[ChatMessageCursorInvalid][40000000012]`
      * * `[IMConfigurationInvalid][40000004001]`
      * * `[IMFileInvalid][40000004002]`
+     * * `[KnowledgeInvalid][40000009501]`
      * * `[MemoryEmbeddingConflict][40000000009]`
      * * `[MemoryEmbeddingNotConfigured][40000000007]`
      * * `[MemoryProjectNotBound][40000000008]`
@@ -14765,6 +25114,7 @@ export type PreparePluginErrors = {
      * * `[AgentContextUnauthorized][40100009001]`
      * * `[AutomaticTaskTokenInvalid][40100001001]`
      * * `[IMLoginRequired][40100004001]`
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
      * * `[MemoryContextUnauthorized][40100000002]`
      * * `[Unauthorized][40100000001]`
      *
@@ -14776,6 +25126,7 @@ export type PreparePluginErrors = {
      * * `[IMChatNotAuthorized][40300004001]`
      * * `[IMTargetNotAuthorized][40300004003]`
      * * `[IMWorkflowDeliveryNotAllowed][40300004002]`
+     * * `[KnowledgeForbidden][40300009501]`
      * * `[PluginForbidden][40300006501]`
      *
      */
@@ -14796,6 +25147,7 @@ export type PreparePluginErrors = {
      * * `[ExecutionNotFound][40400000004]`
      * * `[IMResourceNotFound][40400004001]`
      * * `[IMTargetUnavailable][40400004002]`
+     * * `[KnowledgeNotFound][40400009501]`
      * * `[MCPConnectorNotFound][40400000009]`
      * * `[MemoryNotFound][40400000010]`
      * * `[PluginNotFound][40400006501]`
@@ -14858,6 +25210,8 @@ export type PreparePluginErrors = {
      * * `[IMConnectionInUse][40900004004]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
      * * `[MCPConnectorNameConflict][40900000010]`
      * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
@@ -14880,6 +25234,14 @@ export type PreparePluginErrors = {
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeEmbeddingNotConfigured][42200009503]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
      * * `[AutomaticTaskRateLimited][42900001001]`
@@ -14916,6 +25278,7 @@ export type PreparePluginErrors = {
      * * `[DatabaseError][50000000002]`
      * * `[IMCredentialError][50000004001]`
      * * `[InternalServerError][50000000001]`
+     * * `[KnowledgeStorageError][50000009501]`
      * * `[MCPConnectorCredentialError][50000000022]`
      * * `[ManagedWorkspaceError][50000000033]`
      * * `[MemoryContextTokenGenerationFailed][50000000020]`
@@ -14959,6 +25322,10 @@ export type PreparePluginErrors = {
      * * `[AIAccountModelsUnavailable][50200000003]`
      * * `[IMPlatformUnavailable][50200004001]`
      * * `[IMProtocolInvalid][50200004002]`
+     * * `[KnowledgeEmbeddingResponseInvalid][50200009602]`
+     * * `[KnowledgeEmbeddingUnavailable][50200009601]`
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
      * * `[MCPConnectorProtocolInvalid][50200000002]`
      * * `[MemoryEmbeddingUnavailable][50200000001]`
      * * `[PluginAuthorizationFailed][50200006501]`
@@ -14973,6 +25340,12 @@ export type PreparePluginErrors = {
      *
      */
     503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
 };
 
 export type PreparePluginError = PreparePluginErrors[keyof PreparePluginErrors];
@@ -15100,6 +25473,7 @@ export type GetPluginErrors = {
      * * `[ChatMessageCursorInvalid][40000000012]`
      * * `[IMConfigurationInvalid][40000004001]`
      * * `[IMFileInvalid][40000004002]`
+     * * `[KnowledgeInvalid][40000009501]`
      * * `[MemoryEmbeddingConflict][40000000009]`
      * * `[MemoryEmbeddingNotConfigured][40000000007]`
      * * `[MemoryProjectNotBound][40000000008]`
@@ -15132,6 +25506,7 @@ export type GetPluginErrors = {
      * * `[AgentContextUnauthorized][40100009001]`
      * * `[AutomaticTaskTokenInvalid][40100001001]`
      * * `[IMLoginRequired][40100004001]`
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
      * * `[MemoryContextUnauthorized][40100000002]`
      * * `[Unauthorized][40100000001]`
      *
@@ -15143,6 +25518,7 @@ export type GetPluginErrors = {
      * * `[IMChatNotAuthorized][40300004001]`
      * * `[IMTargetNotAuthorized][40300004003]`
      * * `[IMWorkflowDeliveryNotAllowed][40300004002]`
+     * * `[KnowledgeForbidden][40300009501]`
      * * `[PluginForbidden][40300006501]`
      *
      */
@@ -15163,6 +25539,7 @@ export type GetPluginErrors = {
      * * `[ExecutionNotFound][40400000004]`
      * * `[IMResourceNotFound][40400004001]`
      * * `[IMTargetUnavailable][40400004002]`
+     * * `[KnowledgeNotFound][40400009501]`
      * * `[MCPConnectorNotFound][40400000009]`
      * * `[MemoryNotFound][40400000010]`
      * * `[PluginNotFound][40400006501]`
@@ -15225,6 +25602,8 @@ export type GetPluginErrors = {
      * * `[IMConnectionInUse][40900004004]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
      * * `[MCPConnectorNameConflict][40900000010]`
      * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
@@ -15247,6 +25626,14 @@ export type GetPluginErrors = {
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeEmbeddingNotConfigured][42200009503]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
      * * `[AutomaticTaskRateLimited][42900001001]`
@@ -15283,6 +25670,7 @@ export type GetPluginErrors = {
      * * `[DatabaseError][50000000002]`
      * * `[IMCredentialError][50000004001]`
      * * `[InternalServerError][50000000001]`
+     * * `[KnowledgeStorageError][50000009501]`
      * * `[MCPConnectorCredentialError][50000000022]`
      * * `[ManagedWorkspaceError][50000000033]`
      * * `[MemoryContextTokenGenerationFailed][50000000020]`
@@ -15326,6 +25714,10 @@ export type GetPluginErrors = {
      * * `[AIAccountModelsUnavailable][50200000003]`
      * * `[IMPlatformUnavailable][50200004001]`
      * * `[IMProtocolInvalid][50200004002]`
+     * * `[KnowledgeEmbeddingResponseInvalid][50200009602]`
+     * * `[KnowledgeEmbeddingUnavailable][50200009601]`
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
      * * `[MCPConnectorProtocolInvalid][50200000002]`
      * * `[MemoryEmbeddingUnavailable][50200000001]`
      * * `[PluginAuthorizationFailed][50200006501]`
@@ -15340,6 +25732,12 @@ export type GetPluginErrors = {
      *
      */
     503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
 };
 
 export type GetPluginError = GetPluginErrors[keyof GetPluginErrors];
@@ -15783,6 +26181,7 @@ export type InstallPluginErrors = {
      * * `[ChatMessageCursorInvalid][40000000012]`
      * * `[IMConfigurationInvalid][40000004001]`
      * * `[IMFileInvalid][40000004002]`
+     * * `[KnowledgeInvalid][40000009501]`
      * * `[MemoryEmbeddingConflict][40000000009]`
      * * `[MemoryEmbeddingNotConfigured][40000000007]`
      * * `[MemoryProjectNotBound][40000000008]`
@@ -15815,6 +26214,7 @@ export type InstallPluginErrors = {
      * * `[AgentContextUnauthorized][40100009001]`
      * * `[AutomaticTaskTokenInvalid][40100001001]`
      * * `[IMLoginRequired][40100004001]`
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
      * * `[MemoryContextUnauthorized][40100000002]`
      * * `[Unauthorized][40100000001]`
      *
@@ -15826,6 +26226,7 @@ export type InstallPluginErrors = {
      * * `[IMChatNotAuthorized][40300004001]`
      * * `[IMTargetNotAuthorized][40300004003]`
      * * `[IMWorkflowDeliveryNotAllowed][40300004002]`
+     * * `[KnowledgeForbidden][40300009501]`
      * * `[PluginForbidden][40300006501]`
      *
      */
@@ -15846,6 +26247,7 @@ export type InstallPluginErrors = {
      * * `[ExecutionNotFound][40400000004]`
      * * `[IMResourceNotFound][40400004001]`
      * * `[IMTargetUnavailable][40400004002]`
+     * * `[KnowledgeNotFound][40400009501]`
      * * `[MCPConnectorNotFound][40400000009]`
      * * `[MemoryNotFound][40400000010]`
      * * `[PluginNotFound][40400006501]`
@@ -15908,6 +26310,8 @@ export type InstallPluginErrors = {
      * * `[IMConnectionInUse][40900004004]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
      * * `[MCPConnectorNameConflict][40900000010]`
      * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
@@ -15930,6 +26334,14 @@ export type InstallPluginErrors = {
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeEmbeddingNotConfigured][42200009503]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
      * * `[AutomaticTaskRateLimited][42900001001]`
@@ -15966,6 +26378,7 @@ export type InstallPluginErrors = {
      * * `[DatabaseError][50000000002]`
      * * `[IMCredentialError][50000004001]`
      * * `[InternalServerError][50000000001]`
+     * * `[KnowledgeStorageError][50000009501]`
      * * `[MCPConnectorCredentialError][50000000022]`
      * * `[ManagedWorkspaceError][50000000033]`
      * * `[MemoryContextTokenGenerationFailed][50000000020]`
@@ -16009,6 +26422,10 @@ export type InstallPluginErrors = {
      * * `[AIAccountModelsUnavailable][50200000003]`
      * * `[IMPlatformUnavailable][50200004001]`
      * * `[IMProtocolInvalid][50200004002]`
+     * * `[KnowledgeEmbeddingResponseInvalid][50200009602]`
+     * * `[KnowledgeEmbeddingUnavailable][50200009601]`
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
      * * `[MCPConnectorProtocolInvalid][50200000002]`
      * * `[MemoryEmbeddingUnavailable][50200000001]`
      * * `[PluginAuthorizationFailed][50200006501]`
@@ -16023,6 +26440,12 @@ export type InstallPluginErrors = {
      *
      */
     503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
 };
 
 export type InstallPluginError = InstallPluginErrors[keyof InstallPluginErrors];
@@ -16922,6 +27345,7 @@ export type SetAutomaticTaskApiErrors = {
      * * `[ChatMessageCursorInvalid][40000000012]`
      * * `[IMConfigurationInvalid][40000004001]`
      * * `[IMFileInvalid][40000004002]`
+     * * `[KnowledgeInvalid][40000009501]`
      * * `[MemoryEmbeddingConflict][40000000009]`
      * * `[MemoryEmbeddingNotConfigured][40000000007]`
      * * `[MemoryProjectNotBound][40000000008]`
@@ -16954,6 +27378,7 @@ export type SetAutomaticTaskApiErrors = {
      * * `[AgentContextUnauthorized][40100009001]`
      * * `[AutomaticTaskTokenInvalid][40100001001]`
      * * `[IMLoginRequired][40100004001]`
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
      * * `[MemoryContextUnauthorized][40100000002]`
      * * `[Unauthorized][40100000001]`
      *
@@ -16965,6 +27390,7 @@ export type SetAutomaticTaskApiErrors = {
      * * `[IMChatNotAuthorized][40300004001]`
      * * `[IMTargetNotAuthorized][40300004003]`
      * * `[IMWorkflowDeliveryNotAllowed][40300004002]`
+     * * `[KnowledgeForbidden][40300009501]`
      * * `[PluginForbidden][40300006501]`
      *
      */
@@ -16985,6 +27411,7 @@ export type SetAutomaticTaskApiErrors = {
      * * `[ExecutionNotFound][40400000004]`
      * * `[IMResourceNotFound][40400004001]`
      * * `[IMTargetUnavailable][40400004002]`
+     * * `[KnowledgeNotFound][40400009501]`
      * * `[MCPConnectorNotFound][40400000009]`
      * * `[MemoryNotFound][40400000010]`
      * * `[PluginNotFound][40400006501]`
@@ -17047,6 +27474,8 @@ export type SetAutomaticTaskApiErrors = {
      * * `[IMConnectionInUse][40900004004]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
      * * `[MCPConnectorNameConflict][40900000010]`
      * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
@@ -17069,6 +27498,14 @@ export type SetAutomaticTaskApiErrors = {
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeEmbeddingNotConfigured][42200009503]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
      * * `[AutomaticTaskRateLimited][42900001001]`
@@ -17105,6 +27542,7 @@ export type SetAutomaticTaskApiErrors = {
      * * `[DatabaseError][50000000002]`
      * * `[IMCredentialError][50000004001]`
      * * `[InternalServerError][50000000001]`
+     * * `[KnowledgeStorageError][50000009501]`
      * * `[MCPConnectorCredentialError][50000000022]`
      * * `[ManagedWorkspaceError][50000000033]`
      * * `[MemoryContextTokenGenerationFailed][50000000020]`
@@ -17148,6 +27586,10 @@ export type SetAutomaticTaskApiErrors = {
      * * `[AIAccountModelsUnavailable][50200000003]`
      * * `[IMPlatformUnavailable][50200004001]`
      * * `[IMProtocolInvalid][50200004002]`
+     * * `[KnowledgeEmbeddingResponseInvalid][50200009602]`
+     * * `[KnowledgeEmbeddingUnavailable][50200009601]`
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
      * * `[MCPConnectorProtocolInvalid][50200000002]`
      * * `[MemoryEmbeddingUnavailable][50200000001]`
      * * `[PluginAuthorizationFailed][50200006501]`
@@ -17162,6 +27604,12 @@ export type SetAutomaticTaskApiErrors = {
      *
      */
     503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
 };
 
 export type SetAutomaticTaskApiError = SetAutomaticTaskApiErrors[keyof SetAutomaticTaskApiErrors];
@@ -17430,6 +27878,7 @@ export type ListAutomaticTasksErrors = {
      * * `[ChatMessageCursorInvalid][40000000012]`
      * * `[IMConfigurationInvalid][40000004001]`
      * * `[IMFileInvalid][40000004002]`
+     * * `[KnowledgeInvalid][40000009501]`
      * * `[MemoryEmbeddingConflict][40000000009]`
      * * `[MemoryEmbeddingNotConfigured][40000000007]`
      * * `[MemoryProjectNotBound][40000000008]`
@@ -17462,6 +27911,7 @@ export type ListAutomaticTasksErrors = {
      * * `[AgentContextUnauthorized][40100009001]`
      * * `[AutomaticTaskTokenInvalid][40100001001]`
      * * `[IMLoginRequired][40100004001]`
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
      * * `[MemoryContextUnauthorized][40100000002]`
      * * `[Unauthorized][40100000001]`
      *
@@ -17473,6 +27923,7 @@ export type ListAutomaticTasksErrors = {
      * * `[IMChatNotAuthorized][40300004001]`
      * * `[IMTargetNotAuthorized][40300004003]`
      * * `[IMWorkflowDeliveryNotAllowed][40300004002]`
+     * * `[KnowledgeForbidden][40300009501]`
      * * `[PluginForbidden][40300006501]`
      *
      */
@@ -17493,6 +27944,7 @@ export type ListAutomaticTasksErrors = {
      * * `[ExecutionNotFound][40400000004]`
      * * `[IMResourceNotFound][40400004001]`
      * * `[IMTargetUnavailable][40400004002]`
+     * * `[KnowledgeNotFound][40400009501]`
      * * `[MCPConnectorNotFound][40400000009]`
      * * `[MemoryNotFound][40400000010]`
      * * `[PluginNotFound][40400006501]`
@@ -17555,6 +28007,8 @@ export type ListAutomaticTasksErrors = {
      * * `[IMConnectionInUse][40900004004]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
      * * `[MCPConnectorNameConflict][40900000010]`
      * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
@@ -17577,6 +28031,14 @@ export type ListAutomaticTasksErrors = {
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeEmbeddingNotConfigured][42200009503]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
      * * `[AutomaticTaskRateLimited][42900001001]`
@@ -17613,6 +28075,7 @@ export type ListAutomaticTasksErrors = {
      * * `[DatabaseError][50000000002]`
      * * `[IMCredentialError][50000004001]`
      * * `[InternalServerError][50000000001]`
+     * * `[KnowledgeStorageError][50000009501]`
      * * `[MCPConnectorCredentialError][50000000022]`
      * * `[ManagedWorkspaceError][50000000033]`
      * * `[MemoryContextTokenGenerationFailed][50000000020]`
@@ -17656,6 +28119,10 @@ export type ListAutomaticTasksErrors = {
      * * `[AIAccountModelsUnavailable][50200000003]`
      * * `[IMPlatformUnavailable][50200004001]`
      * * `[IMProtocolInvalid][50200004002]`
+     * * `[KnowledgeEmbeddingResponseInvalid][50200009602]`
+     * * `[KnowledgeEmbeddingUnavailable][50200009601]`
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
      * * `[MCPConnectorProtocolInvalid][50200000002]`
      * * `[MemoryEmbeddingUnavailable][50200000001]`
      * * `[PluginAuthorizationFailed][50200006501]`
@@ -17670,6 +28137,12 @@ export type ListAutomaticTasksErrors = {
      *
      */
     503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
 };
 
 export type ListAutomaticTasksError = ListAutomaticTasksErrors[keyof ListAutomaticTasksErrors];
@@ -17724,6 +28197,12 @@ export type CreateAutomaticTaskErrors = {
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
      * * `[AutomaticTaskServiceInvalid][50000001001]`
      * * `[AutomaticTaskTokenGenerationFailed][50000001002]`
      * * `[ProjectSourceUnavailable][50000000005]`
@@ -17768,6 +28247,7 @@ export type ListAutomaticTaskAttentionErrors = {
      * * `[ChatMessageCursorInvalid][40000000012]`
      * * `[IMConfigurationInvalid][40000004001]`
      * * `[IMFileInvalid][40000004002]`
+     * * `[KnowledgeInvalid][40000009501]`
      * * `[MemoryEmbeddingConflict][40000000009]`
      * * `[MemoryEmbeddingNotConfigured][40000000007]`
      * * `[MemoryProjectNotBound][40000000008]`
@@ -17800,6 +28280,7 @@ export type ListAutomaticTaskAttentionErrors = {
      * * `[AgentContextUnauthorized][40100009001]`
      * * `[AutomaticTaskTokenInvalid][40100001001]`
      * * `[IMLoginRequired][40100004001]`
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
      * * `[MemoryContextUnauthorized][40100000002]`
      * * `[Unauthorized][40100000001]`
      *
@@ -17811,6 +28292,7 @@ export type ListAutomaticTaskAttentionErrors = {
      * * `[IMChatNotAuthorized][40300004001]`
      * * `[IMTargetNotAuthorized][40300004003]`
      * * `[IMWorkflowDeliveryNotAllowed][40300004002]`
+     * * `[KnowledgeForbidden][40300009501]`
      * * `[PluginForbidden][40300006501]`
      *
      */
@@ -17831,6 +28313,7 @@ export type ListAutomaticTaskAttentionErrors = {
      * * `[ExecutionNotFound][40400000004]`
      * * `[IMResourceNotFound][40400004001]`
      * * `[IMTargetUnavailable][40400004002]`
+     * * `[KnowledgeNotFound][40400009501]`
      * * `[MCPConnectorNotFound][40400000009]`
      * * `[MemoryNotFound][40400000010]`
      * * `[PluginNotFound][40400006501]`
@@ -17893,6 +28376,8 @@ export type ListAutomaticTaskAttentionErrors = {
      * * `[IMConnectionInUse][40900004004]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
      * * `[MCPConnectorNameConflict][40900000010]`
      * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
@@ -17915,6 +28400,14 @@ export type ListAutomaticTaskAttentionErrors = {
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeEmbeddingNotConfigured][42200009503]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
      * * `[AutomaticTaskRateLimited][42900001001]`
@@ -17951,6 +28444,7 @@ export type ListAutomaticTaskAttentionErrors = {
      * * `[DatabaseError][50000000002]`
      * * `[IMCredentialError][50000004001]`
      * * `[InternalServerError][50000000001]`
+     * * `[KnowledgeStorageError][50000009501]`
      * * `[MCPConnectorCredentialError][50000000022]`
      * * `[ManagedWorkspaceError][50000000033]`
      * * `[MemoryContextTokenGenerationFailed][50000000020]`
@@ -17994,6 +28488,10 @@ export type ListAutomaticTaskAttentionErrors = {
      * * `[AIAccountModelsUnavailable][50200000003]`
      * * `[IMPlatformUnavailable][50200004001]`
      * * `[IMProtocolInvalid][50200004002]`
+     * * `[KnowledgeEmbeddingResponseInvalid][50200009602]`
+     * * `[KnowledgeEmbeddingUnavailable][50200009601]`
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
      * * `[MCPConnectorProtocolInvalid][50200000002]`
      * * `[MemoryEmbeddingUnavailable][50200000001]`
      * * `[PluginAuthorizationFailed][50200006501]`
@@ -18008,6 +28506,12 @@ export type ListAutomaticTaskAttentionErrors = {
      *
      */
     503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
 };
 
 export type ListAutomaticTaskAttentionError = ListAutomaticTaskAttentionErrors[keyof ListAutomaticTaskAttentionErrors];
@@ -18079,6 +28583,7 @@ export type DeleteAutomaticTaskErrors = {
      * * `[ChatMessageCursorInvalid][40000000012]`
      * * `[IMConfigurationInvalid][40000004001]`
      * * `[IMFileInvalid][40000004002]`
+     * * `[KnowledgeInvalid][40000009501]`
      * * `[MemoryEmbeddingConflict][40000000009]`
      * * `[MemoryEmbeddingNotConfigured][40000000007]`
      * * `[MemoryProjectNotBound][40000000008]`
@@ -18111,6 +28616,7 @@ export type DeleteAutomaticTaskErrors = {
      * * `[AgentContextUnauthorized][40100009001]`
      * * `[AutomaticTaskTokenInvalid][40100001001]`
      * * `[IMLoginRequired][40100004001]`
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
      * * `[MemoryContextUnauthorized][40100000002]`
      * * `[Unauthorized][40100000001]`
      *
@@ -18122,6 +28628,7 @@ export type DeleteAutomaticTaskErrors = {
      * * `[IMChatNotAuthorized][40300004001]`
      * * `[IMTargetNotAuthorized][40300004003]`
      * * `[IMWorkflowDeliveryNotAllowed][40300004002]`
+     * * `[KnowledgeForbidden][40300009501]`
      * * `[PluginForbidden][40300006501]`
      *
      */
@@ -18142,6 +28649,7 @@ export type DeleteAutomaticTaskErrors = {
      * * `[ExecutionNotFound][40400000004]`
      * * `[IMResourceNotFound][40400004001]`
      * * `[IMTargetUnavailable][40400004002]`
+     * * `[KnowledgeNotFound][40400009501]`
      * * `[MCPConnectorNotFound][40400000009]`
      * * `[MemoryNotFound][40400000010]`
      * * `[PluginNotFound][40400006501]`
@@ -18204,6 +28712,8 @@ export type DeleteAutomaticTaskErrors = {
      * * `[IMConnectionInUse][40900004004]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
      * * `[MCPConnectorNameConflict][40900000010]`
      * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
@@ -18226,6 +28736,14 @@ export type DeleteAutomaticTaskErrors = {
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeEmbeddingNotConfigured][42200009503]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
      * * `[AutomaticTaskRateLimited][42900001001]`
@@ -18262,6 +28780,7 @@ export type DeleteAutomaticTaskErrors = {
      * * `[DatabaseError][50000000002]`
      * * `[IMCredentialError][50000004001]`
      * * `[InternalServerError][50000000001]`
+     * * `[KnowledgeStorageError][50000009501]`
      * * `[MCPConnectorCredentialError][50000000022]`
      * * `[ManagedWorkspaceError][50000000033]`
      * * `[MemoryContextTokenGenerationFailed][50000000020]`
@@ -18305,6 +28824,10 @@ export type DeleteAutomaticTaskErrors = {
      * * `[AIAccountModelsUnavailable][50200000003]`
      * * `[IMPlatformUnavailable][50200004001]`
      * * `[IMProtocolInvalid][50200004002]`
+     * * `[KnowledgeEmbeddingResponseInvalid][50200009602]`
+     * * `[KnowledgeEmbeddingUnavailable][50200009601]`
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
      * * `[MCPConnectorProtocolInvalid][50200000002]`
      * * `[MemoryEmbeddingUnavailable][50200000001]`
      * * `[PluginAuthorizationFailed][50200006501]`
@@ -18319,6 +28842,12 @@ export type DeleteAutomaticTaskErrors = {
      *
      */
     503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
 };
 
 export type DeleteAutomaticTaskError = DeleteAutomaticTaskErrors[keyof DeleteAutomaticTaskErrors];
@@ -18361,6 +28890,7 @@ export type GetAutomaticTaskErrors = {
      * * `[ChatMessageCursorInvalid][40000000012]`
      * * `[IMConfigurationInvalid][40000004001]`
      * * `[IMFileInvalid][40000004002]`
+     * * `[KnowledgeInvalid][40000009501]`
      * * `[MemoryEmbeddingConflict][40000000009]`
      * * `[MemoryEmbeddingNotConfigured][40000000007]`
      * * `[MemoryProjectNotBound][40000000008]`
@@ -18393,6 +28923,7 @@ export type GetAutomaticTaskErrors = {
      * * `[AgentContextUnauthorized][40100009001]`
      * * `[AutomaticTaskTokenInvalid][40100001001]`
      * * `[IMLoginRequired][40100004001]`
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
      * * `[MemoryContextUnauthorized][40100000002]`
      * * `[Unauthorized][40100000001]`
      *
@@ -18404,6 +28935,7 @@ export type GetAutomaticTaskErrors = {
      * * `[IMChatNotAuthorized][40300004001]`
      * * `[IMTargetNotAuthorized][40300004003]`
      * * `[IMWorkflowDeliveryNotAllowed][40300004002]`
+     * * `[KnowledgeForbidden][40300009501]`
      * * `[PluginForbidden][40300006501]`
      *
      */
@@ -18424,6 +28956,7 @@ export type GetAutomaticTaskErrors = {
      * * `[ExecutionNotFound][40400000004]`
      * * `[IMResourceNotFound][40400004001]`
      * * `[IMTargetUnavailable][40400004002]`
+     * * `[KnowledgeNotFound][40400009501]`
      * * `[MCPConnectorNotFound][40400000009]`
      * * `[MemoryNotFound][40400000010]`
      * * `[PluginNotFound][40400006501]`
@@ -18486,6 +29019,8 @@ export type GetAutomaticTaskErrors = {
      * * `[IMConnectionInUse][40900004004]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
      * * `[MCPConnectorNameConflict][40900000010]`
      * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
@@ -18508,6 +29043,14 @@ export type GetAutomaticTaskErrors = {
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeEmbeddingNotConfigured][42200009503]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
      * * `[AutomaticTaskRateLimited][42900001001]`
@@ -18544,6 +29087,7 @@ export type GetAutomaticTaskErrors = {
      * * `[DatabaseError][50000000002]`
      * * `[IMCredentialError][50000004001]`
      * * `[InternalServerError][50000000001]`
+     * * `[KnowledgeStorageError][50000009501]`
      * * `[MCPConnectorCredentialError][50000000022]`
      * * `[ManagedWorkspaceError][50000000033]`
      * * `[MemoryContextTokenGenerationFailed][50000000020]`
@@ -18587,6 +29131,10 @@ export type GetAutomaticTaskErrors = {
      * * `[AIAccountModelsUnavailable][50200000003]`
      * * `[IMPlatformUnavailable][50200004001]`
      * * `[IMProtocolInvalid][50200004002]`
+     * * `[KnowledgeEmbeddingResponseInvalid][50200009602]`
+     * * `[KnowledgeEmbeddingUnavailable][50200009601]`
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
      * * `[MCPConnectorProtocolInvalid][50200000002]`
      * * `[MemoryEmbeddingUnavailable][50200000001]`
      * * `[PluginAuthorizationFailed][50200006501]`
@@ -18601,6 +29149,12 @@ export type GetAutomaticTaskErrors = {
      *
      */
     503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
 };
 
 export type GetAutomaticTaskError = GetAutomaticTaskErrors[keyof GetAutomaticTaskErrors];
@@ -18657,6 +29211,12 @@ export type UpdateAutomaticTaskErrors = {
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
      * * `[AutomaticTaskServiceInvalid][50000001001]`
@@ -18723,6 +29283,12 @@ export type SetAutomaticTaskEnabledErrors = {
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
      * * `[AutomaticTaskServiceInvalid][50000001001]`
      * * `[AutomaticTaskTokenGenerationFailed][50000001002]`
      * * `[ProjectSourceUnavailable][50000000005]`
@@ -18780,6 +29346,7 @@ export type ListAutomaticRunsErrors = {
      * * `[ChatMessageCursorInvalid][40000000012]`
      * * `[IMConfigurationInvalid][40000004001]`
      * * `[IMFileInvalid][40000004002]`
+     * * `[KnowledgeInvalid][40000009501]`
      * * `[MemoryEmbeddingConflict][40000000009]`
      * * `[MemoryEmbeddingNotConfigured][40000000007]`
      * * `[MemoryProjectNotBound][40000000008]`
@@ -18812,6 +29379,7 @@ export type ListAutomaticRunsErrors = {
      * * `[AgentContextUnauthorized][40100009001]`
      * * `[AutomaticTaskTokenInvalid][40100001001]`
      * * `[IMLoginRequired][40100004001]`
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
      * * `[MemoryContextUnauthorized][40100000002]`
      * * `[Unauthorized][40100000001]`
      *
@@ -18823,6 +29391,7 @@ export type ListAutomaticRunsErrors = {
      * * `[IMChatNotAuthorized][40300004001]`
      * * `[IMTargetNotAuthorized][40300004003]`
      * * `[IMWorkflowDeliveryNotAllowed][40300004002]`
+     * * `[KnowledgeForbidden][40300009501]`
      * * `[PluginForbidden][40300006501]`
      *
      */
@@ -18843,6 +29412,7 @@ export type ListAutomaticRunsErrors = {
      * * `[ExecutionNotFound][40400000004]`
      * * `[IMResourceNotFound][40400004001]`
      * * `[IMTargetUnavailable][40400004002]`
+     * * `[KnowledgeNotFound][40400009501]`
      * * `[MCPConnectorNotFound][40400000009]`
      * * `[MemoryNotFound][40400000010]`
      * * `[PluginNotFound][40400006501]`
@@ -18905,6 +29475,8 @@ export type ListAutomaticRunsErrors = {
      * * `[IMConnectionInUse][40900004004]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
      * * `[MCPConnectorNameConflict][40900000010]`
      * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
@@ -18927,6 +29499,14 @@ export type ListAutomaticRunsErrors = {
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeEmbeddingNotConfigured][42200009503]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
      * * `[AutomaticTaskRateLimited][42900001001]`
@@ -18963,6 +29543,7 @@ export type ListAutomaticRunsErrors = {
      * * `[DatabaseError][50000000002]`
      * * `[IMCredentialError][50000004001]`
      * * `[InternalServerError][50000000001]`
+     * * `[KnowledgeStorageError][50000009501]`
      * * `[MCPConnectorCredentialError][50000000022]`
      * * `[ManagedWorkspaceError][50000000033]`
      * * `[MemoryContextTokenGenerationFailed][50000000020]`
@@ -19006,6 +29587,10 @@ export type ListAutomaticRunsErrors = {
      * * `[AIAccountModelsUnavailable][50200000003]`
      * * `[IMPlatformUnavailable][50200004001]`
      * * `[IMProtocolInvalid][50200004002]`
+     * * `[KnowledgeEmbeddingResponseInvalid][50200009602]`
+     * * `[KnowledgeEmbeddingUnavailable][50200009601]`
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
      * * `[MCPConnectorProtocolInvalid][50200000002]`
      * * `[MemoryEmbeddingUnavailable][50200000001]`
      * * `[PluginAuthorizationFailed][50200006501]`
@@ -19020,6 +29605,12 @@ export type ListAutomaticRunsErrors = {
      *
      */
     503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
 };
 
 export type ListAutomaticRunsError = ListAutomaticRunsErrors[keyof ListAutomaticRunsErrors];
@@ -19062,6 +29653,7 @@ export type TriggerAutomaticTaskErrors = {
      * * `[ChatMessageCursorInvalid][40000000012]`
      * * `[IMConfigurationInvalid][40000004001]`
      * * `[IMFileInvalid][40000004002]`
+     * * `[KnowledgeInvalid][40000009501]`
      * * `[MemoryEmbeddingConflict][40000000009]`
      * * `[MemoryEmbeddingNotConfigured][40000000007]`
      * * `[MemoryProjectNotBound][40000000008]`
@@ -19094,6 +29686,7 @@ export type TriggerAutomaticTaskErrors = {
      * * `[AgentContextUnauthorized][40100009001]`
      * * `[AutomaticTaskTokenInvalid][40100001001]`
      * * `[IMLoginRequired][40100004001]`
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
      * * `[MemoryContextUnauthorized][40100000002]`
      * * `[Unauthorized][40100000001]`
      *
@@ -19105,6 +29698,7 @@ export type TriggerAutomaticTaskErrors = {
      * * `[IMChatNotAuthorized][40300004001]`
      * * `[IMTargetNotAuthorized][40300004003]`
      * * `[IMWorkflowDeliveryNotAllowed][40300004002]`
+     * * `[KnowledgeForbidden][40300009501]`
      * * `[PluginForbidden][40300006501]`
      *
      */
@@ -19125,6 +29719,7 @@ export type TriggerAutomaticTaskErrors = {
      * * `[ExecutionNotFound][40400000004]`
      * * `[IMResourceNotFound][40400004001]`
      * * `[IMTargetUnavailable][40400004002]`
+     * * `[KnowledgeNotFound][40400009501]`
      * * `[MCPConnectorNotFound][40400000009]`
      * * `[MemoryNotFound][40400000010]`
      * * `[PluginNotFound][40400006501]`
@@ -19187,6 +29782,8 @@ export type TriggerAutomaticTaskErrors = {
      * * `[IMConnectionInUse][40900004004]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
      * * `[MCPConnectorNameConflict][40900000010]`
      * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
@@ -19209,6 +29806,14 @@ export type TriggerAutomaticTaskErrors = {
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeEmbeddingNotConfigured][42200009503]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
      * * `[AutomaticTaskRateLimited][42900001001]`
@@ -19245,6 +29850,7 @@ export type TriggerAutomaticTaskErrors = {
      * * `[DatabaseError][50000000002]`
      * * `[IMCredentialError][50000004001]`
      * * `[InternalServerError][50000000001]`
+     * * `[KnowledgeStorageError][50000009501]`
      * * `[MCPConnectorCredentialError][50000000022]`
      * * `[ManagedWorkspaceError][50000000033]`
      * * `[MemoryContextTokenGenerationFailed][50000000020]`
@@ -19288,6 +29894,10 @@ export type TriggerAutomaticTaskErrors = {
      * * `[AIAccountModelsUnavailable][50200000003]`
      * * `[IMPlatformUnavailable][50200004001]`
      * * `[IMProtocolInvalid][50200004002]`
+     * * `[KnowledgeEmbeddingResponseInvalid][50200009602]`
+     * * `[KnowledgeEmbeddingUnavailable][50200009601]`
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
      * * `[MCPConnectorProtocolInvalid][50200000002]`
      * * `[MemoryEmbeddingUnavailable][50200000001]`
      * * `[PluginAuthorizationFailed][50200006501]`
@@ -19302,6 +29912,12 @@ export type TriggerAutomaticTaskErrors = {
      *
      */
     503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
 };
 
 export type TriggerAutomaticTaskError = TriggerAutomaticTaskErrors[keyof TriggerAutomaticTaskErrors];
@@ -19845,6 +30461,7 @@ export type ListWakerPluginsErrors = {
      * * `[ChatMessageCursorInvalid][40000000012]`
      * * `[IMConfigurationInvalid][40000004001]`
      * * `[IMFileInvalid][40000004002]`
+     * * `[KnowledgeInvalid][40000009501]`
      * * `[MemoryEmbeddingConflict][40000000009]`
      * * `[MemoryEmbeddingNotConfigured][40000000007]`
      * * `[MemoryProjectNotBound][40000000008]`
@@ -19877,6 +30494,7 @@ export type ListWakerPluginsErrors = {
      * * `[AgentContextUnauthorized][40100009001]`
      * * `[AutomaticTaskTokenInvalid][40100001001]`
      * * `[IMLoginRequired][40100004001]`
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
      * * `[MemoryContextUnauthorized][40100000002]`
      * * `[Unauthorized][40100000001]`
      *
@@ -19888,6 +30506,7 @@ export type ListWakerPluginsErrors = {
      * * `[IMChatNotAuthorized][40300004001]`
      * * `[IMTargetNotAuthorized][40300004003]`
      * * `[IMWorkflowDeliveryNotAllowed][40300004002]`
+     * * `[KnowledgeForbidden][40300009501]`
      * * `[PluginForbidden][40300006501]`
      *
      */
@@ -19908,6 +30527,7 @@ export type ListWakerPluginsErrors = {
      * * `[ExecutionNotFound][40400000004]`
      * * `[IMResourceNotFound][40400004001]`
      * * `[IMTargetUnavailable][40400004002]`
+     * * `[KnowledgeNotFound][40400009501]`
      * * `[MCPConnectorNotFound][40400000009]`
      * * `[MemoryNotFound][40400000010]`
      * * `[PluginNotFound][40400006501]`
@@ -19970,6 +30590,8 @@ export type ListWakerPluginsErrors = {
      * * `[IMConnectionInUse][40900004004]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
      * * `[MCPConnectorNameConflict][40900000010]`
      * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
@@ -19992,6 +30614,14 @@ export type ListWakerPluginsErrors = {
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeEmbeddingNotConfigured][42200009503]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
      * * `[AutomaticTaskRateLimited][42900001001]`
@@ -20028,6 +30658,7 @@ export type ListWakerPluginsErrors = {
      * * `[DatabaseError][50000000002]`
      * * `[IMCredentialError][50000004001]`
      * * `[InternalServerError][50000000001]`
+     * * `[KnowledgeStorageError][50000009501]`
      * * `[MCPConnectorCredentialError][50000000022]`
      * * `[ManagedWorkspaceError][50000000033]`
      * * `[MemoryContextTokenGenerationFailed][50000000020]`
@@ -20071,6 +30702,10 @@ export type ListWakerPluginsErrors = {
      * * `[AIAccountModelsUnavailable][50200000003]`
      * * `[IMPlatformUnavailable][50200004001]`
      * * `[IMProtocolInvalid][50200004002]`
+     * * `[KnowledgeEmbeddingResponseInvalid][50200009602]`
+     * * `[KnowledgeEmbeddingUnavailable][50200009601]`
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
      * * `[MCPConnectorProtocolInvalid][50200000002]`
      * * `[MemoryEmbeddingUnavailable][50200000001]`
      * * `[PluginAuthorizationFailed][50200006501]`
@@ -20085,6 +30720,12 @@ export type ListWakerPluginsErrors = {
      *
      */
     503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
 };
 
 export type ListWakerPluginsError = ListWakerPluginsErrors[keyof ListWakerPluginsErrors];
@@ -21325,6 +31966,7 @@ export type DeleteWorkflowErrors = {
      * * `[ChatMessageCursorInvalid][40000000012]`
      * * `[IMConfigurationInvalid][40000004001]`
      * * `[IMFileInvalid][40000004002]`
+     * * `[KnowledgeInvalid][40000009501]`
      * * `[MemoryEmbeddingConflict][40000000009]`
      * * `[MemoryEmbeddingNotConfigured][40000000007]`
      * * `[MemoryProjectNotBound][40000000008]`
@@ -21357,6 +31999,7 @@ export type DeleteWorkflowErrors = {
      * * `[AgentContextUnauthorized][40100009001]`
      * * `[AutomaticTaskTokenInvalid][40100001001]`
      * * `[IMLoginRequired][40100004001]`
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
      * * `[MemoryContextUnauthorized][40100000002]`
      * * `[Unauthorized][40100000001]`
      *
@@ -21368,6 +32011,7 @@ export type DeleteWorkflowErrors = {
      * * `[IMChatNotAuthorized][40300004001]`
      * * `[IMTargetNotAuthorized][40300004003]`
      * * `[IMWorkflowDeliveryNotAllowed][40300004002]`
+     * * `[KnowledgeForbidden][40300009501]`
      * * `[PluginForbidden][40300006501]`
      *
      */
@@ -21388,6 +32032,7 @@ export type DeleteWorkflowErrors = {
      * * `[ExecutionNotFound][40400000004]`
      * * `[IMResourceNotFound][40400004001]`
      * * `[IMTargetUnavailable][40400004002]`
+     * * `[KnowledgeNotFound][40400009501]`
      * * `[MCPConnectorNotFound][40400000009]`
      * * `[MemoryNotFound][40400000010]`
      * * `[PluginNotFound][40400006501]`
@@ -21450,6 +32095,8 @@ export type DeleteWorkflowErrors = {
      * * `[IMConnectionInUse][40900004004]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
      * * `[MCPConnectorNameConflict][40900000010]`
      * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
@@ -21472,6 +32119,14 @@ export type DeleteWorkflowErrors = {
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeEmbeddingNotConfigured][42200009503]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
      * * `[AutomaticTaskRateLimited][42900001001]`
@@ -21508,6 +32163,7 @@ export type DeleteWorkflowErrors = {
      * * `[DatabaseError][50000000002]`
      * * `[IMCredentialError][50000004001]`
      * * `[InternalServerError][50000000001]`
+     * * `[KnowledgeStorageError][50000009501]`
      * * `[MCPConnectorCredentialError][50000000022]`
      * * `[ManagedWorkspaceError][50000000033]`
      * * `[MemoryContextTokenGenerationFailed][50000000020]`
@@ -21551,6 +32207,10 @@ export type DeleteWorkflowErrors = {
      * * `[AIAccountModelsUnavailable][50200000003]`
      * * `[IMPlatformUnavailable][50200004001]`
      * * `[IMProtocolInvalid][50200004002]`
+     * * `[KnowledgeEmbeddingResponseInvalid][50200009602]`
+     * * `[KnowledgeEmbeddingUnavailable][50200009601]`
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
      * * `[MCPConnectorProtocolInvalid][50200000002]`
      * * `[MemoryEmbeddingUnavailable][50200000001]`
      * * `[PluginAuthorizationFailed][50200006501]`
@@ -21565,6 +32225,12 @@ export type DeleteWorkflowErrors = {
      *
      */
     503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
 };
 
 export type DeleteWorkflowError = DeleteWorkflowErrors[keyof DeleteWorkflowErrors];
@@ -21746,6 +32412,7 @@ export type SendWorkflowCreationMessageErrors = {
      * * `[ChatMessageCursorInvalid][40000000012]`
      * * `[IMConfigurationInvalid][40000004001]`
      * * `[IMFileInvalid][40000004002]`
+     * * `[KnowledgeInvalid][40000009501]`
      * * `[MemoryEmbeddingConflict][40000000009]`
      * * `[MemoryEmbeddingNotConfigured][40000000007]`
      * * `[MemoryProjectNotBound][40000000008]`
@@ -21778,6 +32445,7 @@ export type SendWorkflowCreationMessageErrors = {
      * * `[AgentContextUnauthorized][40100009001]`
      * * `[AutomaticTaskTokenInvalid][40100001001]`
      * * `[IMLoginRequired][40100004001]`
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
      * * `[MemoryContextUnauthorized][40100000002]`
      * * `[Unauthorized][40100000001]`
      *
@@ -21789,6 +32457,7 @@ export type SendWorkflowCreationMessageErrors = {
      * * `[IMChatNotAuthorized][40300004001]`
      * * `[IMTargetNotAuthorized][40300004003]`
      * * `[IMWorkflowDeliveryNotAllowed][40300004002]`
+     * * `[KnowledgeForbidden][40300009501]`
      * * `[PluginForbidden][40300006501]`
      *
      */
@@ -21809,6 +32478,7 @@ export type SendWorkflowCreationMessageErrors = {
      * * `[ExecutionNotFound][40400000004]`
      * * `[IMResourceNotFound][40400004001]`
      * * `[IMTargetUnavailable][40400004002]`
+     * * `[KnowledgeNotFound][40400009501]`
      * * `[MCPConnectorNotFound][40400000009]`
      * * `[MemoryNotFound][40400000010]`
      * * `[PluginNotFound][40400006501]`
@@ -21871,6 +32541,8 @@ export type SendWorkflowCreationMessageErrors = {
      * * `[IMConnectionInUse][40900004004]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
      * * `[MCPConnectorNameConflict][40900000010]`
      * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
@@ -21893,6 +32565,14 @@ export type SendWorkflowCreationMessageErrors = {
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeEmbeddingNotConfigured][42200009503]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
      * * `[AutomaticTaskRateLimited][42900001001]`
@@ -21929,6 +32609,7 @@ export type SendWorkflowCreationMessageErrors = {
      * * `[DatabaseError][50000000002]`
      * * `[IMCredentialError][50000004001]`
      * * `[InternalServerError][50000000001]`
+     * * `[KnowledgeStorageError][50000009501]`
      * * `[MCPConnectorCredentialError][50000000022]`
      * * `[ManagedWorkspaceError][50000000033]`
      * * `[MemoryContextTokenGenerationFailed][50000000020]`
@@ -21972,6 +32653,10 @@ export type SendWorkflowCreationMessageErrors = {
      * * `[AIAccountModelsUnavailable][50200000003]`
      * * `[IMPlatformUnavailable][50200004001]`
      * * `[IMProtocolInvalid][50200004002]`
+     * * `[KnowledgeEmbeddingResponseInvalid][50200009602]`
+     * * `[KnowledgeEmbeddingUnavailable][50200009601]`
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
      * * `[MCPConnectorProtocolInvalid][50200000002]`
      * * `[MemoryEmbeddingUnavailable][50200000001]`
      * * `[PluginAuthorizationFailed][50200006501]`
@@ -21986,6 +32671,12 @@ export type SendWorkflowCreationMessageErrors = {
      *
      */
     503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
 };
 
 export type SendWorkflowCreationMessageError = SendWorkflowCreationMessageErrors[keyof SendWorkflowCreationMessageErrors];
@@ -22723,6 +33414,7 @@ export type GetWorkflowInstanceErrors = {
      * * `[ChatMessageCursorInvalid][40000000012]`
      * * `[IMConfigurationInvalid][40000004001]`
      * * `[IMFileInvalid][40000004002]`
+     * * `[KnowledgeInvalid][40000009501]`
      * * `[MemoryEmbeddingConflict][40000000009]`
      * * `[MemoryEmbeddingNotConfigured][40000000007]`
      * * `[MemoryProjectNotBound][40000000008]`
@@ -22755,6 +33447,7 @@ export type GetWorkflowInstanceErrors = {
      * * `[AgentContextUnauthorized][40100009001]`
      * * `[AutomaticTaskTokenInvalid][40100001001]`
      * * `[IMLoginRequired][40100004001]`
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
      * * `[MemoryContextUnauthorized][40100000002]`
      * * `[Unauthorized][40100000001]`
      *
@@ -22766,6 +33459,7 @@ export type GetWorkflowInstanceErrors = {
      * * `[IMChatNotAuthorized][40300004001]`
      * * `[IMTargetNotAuthorized][40300004003]`
      * * `[IMWorkflowDeliveryNotAllowed][40300004002]`
+     * * `[KnowledgeForbidden][40300009501]`
      * * `[PluginForbidden][40300006501]`
      *
      */
@@ -22786,6 +33480,7 @@ export type GetWorkflowInstanceErrors = {
      * * `[ExecutionNotFound][40400000004]`
      * * `[IMResourceNotFound][40400004001]`
      * * `[IMTargetUnavailable][40400004002]`
+     * * `[KnowledgeNotFound][40400009501]`
      * * `[MCPConnectorNotFound][40400000009]`
      * * `[MemoryNotFound][40400000010]`
      * * `[PluginNotFound][40400006501]`
@@ -22848,6 +33543,8 @@ export type GetWorkflowInstanceErrors = {
      * * `[IMConnectionInUse][40900004004]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
      * * `[MCPConnectorNameConflict][40900000010]`
      * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
@@ -22870,6 +33567,14 @@ export type GetWorkflowInstanceErrors = {
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeEmbeddingNotConfigured][42200009503]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
      * * `[AutomaticTaskRateLimited][42900001001]`
@@ -22906,6 +33611,7 @@ export type GetWorkflowInstanceErrors = {
      * * `[DatabaseError][50000000002]`
      * * `[IMCredentialError][50000004001]`
      * * `[InternalServerError][50000000001]`
+     * * `[KnowledgeStorageError][50000009501]`
      * * `[MCPConnectorCredentialError][50000000022]`
      * * `[ManagedWorkspaceError][50000000033]`
      * * `[MemoryContextTokenGenerationFailed][50000000020]`
@@ -22949,6 +33655,10 @@ export type GetWorkflowInstanceErrors = {
      * * `[AIAccountModelsUnavailable][50200000003]`
      * * `[IMPlatformUnavailable][50200004001]`
      * * `[IMProtocolInvalid][50200004002]`
+     * * `[KnowledgeEmbeddingResponseInvalid][50200009602]`
+     * * `[KnowledgeEmbeddingUnavailable][50200009601]`
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
      * * `[MCPConnectorProtocolInvalid][50200000002]`
      * * `[MemoryEmbeddingUnavailable][50200000001]`
      * * `[PluginAuthorizationFailed][50200006501]`
@@ -22963,6 +33673,12 @@ export type GetWorkflowInstanceErrors = {
      *
      */
     503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
 };
 
 export type GetWorkflowInstanceError = GetWorkflowInstanceErrors[keyof GetWorkflowInstanceErrors];
@@ -23420,6 +34136,12 @@ export type SaveWorkflowTriggersErrors = {
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
      * * `[AutomaticTaskServiceInvalid][50000001001]`

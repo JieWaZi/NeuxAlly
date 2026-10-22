@@ -15,6 +15,7 @@ export const globalEventTopics = [
   "account-login",
   "plugins",
   "resources",
+  "knowledge",
 ] as const;
 export type GlobalEventTopic = (typeof globalEventTopics)[number];
 export type GlobalEventState =
@@ -105,6 +106,10 @@ function validGlobalEventResource(
     );
   if (!resource.id) return false;
   switch (topic) {
+    case "knowledge":
+      return (
+        resource.kind === "knowledge_library" && Boolean(resource.parentId)
+      );
     case "resources":
       return (
         ["skill", "connector", "waker"].includes(resource.kind) &&
