@@ -113,6 +113,8 @@ func (v StatusError) Key() string {
 		return "PluginContentLimitExceeded"
 	case AgentInputInvalid:
 		return "AgentInputInvalid"
+	case KnowledgeInvalid:
+		return "KnowledgeInvalid"
 	case Unauthorized:
 		return "Unauthorized"
 	case MemoryContextUnauthorized:
@@ -123,6 +125,8 @@ func (v StatusError) Key() string {
 		return "IMLoginRequired"
 	case AgentContextUnauthorized:
 		return "AgentContextUnauthorized"
+	case KnowledgeRemoteUnauthorized:
+		return "KnowledgeRemoteUnauthorized"
 	case IMChatNotAuthorized:
 		return "IMChatNotAuthorized"
 	case IMWorkflowDeliveryNotAllowed:
@@ -133,6 +137,8 @@ func (v StatusError) Key() string {
 		return "PluginForbidden"
 	case AgentOperationForbidden:
 		return "AgentOperationForbidden"
+	case KnowledgeForbidden:
+		return "KnowledgeForbidden"
 	case WakerNotFound:
 		return "WakerNotFound"
 	case RolePresetNotFound:
@@ -183,6 +189,8 @@ func (v StatusError) Key() string {
 		return "PluginNotFound"
 	case AgentReceiptNotFound:
 		return "AgentReceiptNotFound"
+	case KnowledgeNotFound:
+		return "KnowledgeNotFound"
 	case OperationCanceled:
 		return "OperationCanceled"
 	case OperationTimeout:
@@ -303,6 +311,16 @@ func (v StatusError) Key() string {
 		return "AgentCommandOutcomeUnknown"
 	case AgentCommandRequestConflict:
 		return "AgentCommandRequestConflict"
+	case KnowledgeConflict:
+		return "KnowledgeConflict"
+	case KnowledgeCancelled:
+		return "KnowledgeCancelled"
+	case KnowledgeCandidateInvalid:
+		return "KnowledgeCandidateInvalid"
+	case KnowledgeUnsupported:
+		return "KnowledgeUnsupported"
+	case KnowledgeEmbeddingNotConfigured:
+		return "KnowledgeEmbeddingNotConfigured"
 	case AutomaticTaskRateLimited:
 		return "AutomaticTaskRateLimited"
 	case InternalServerError:
@@ -429,6 +447,8 @@ func (v StatusError) Key() string {
 		return "PluginStorageError"
 	case AgentContextStorageError:
 		return "AgentContextStorageError"
+	case KnowledgeStorageError:
+		return "KnowledgeStorageError"
 	case MemoryEmbeddingUnavailable:
 		return "MemoryEmbeddingUnavailable"
 	case MCPConnectorProtocolInvalid:
@@ -443,12 +463,22 @@ func (v StatusError) Key() string {
 		return "IMProtocolInvalid"
 	case PluginAuthorizationFailed:
 		return "PluginAuthorizationFailed"
+	case KnowledgeRemoteUnreachable:
+		return "KnowledgeRemoteUnreachable"
+	case KnowledgeRemoteIncompatible:
+		return "KnowledgeRemoteIncompatible"
+	case KnowledgeEmbeddingUnavailable:
+		return "KnowledgeEmbeddingUnavailable"
+	case KnowledgeEmbeddingResponseInvalid:
+		return "KnowledgeEmbeddingResponseInvalid"
 	case DatabaseBusy:
 		return "DatabaseBusy"
 	case IMServiceUnavailable:
 		return "IMServiceUnavailable"
 	case AgentConnectionUnavailable:
 		return "AgentConnectionUnavailable"
+	case KnowledgeRemoteOutcomeUnknown:
+		return "KnowledgeRemoteOutcomeUnknown"
 	}
 	return "UNKNOWN"
 }
@@ -516,16 +546,19 @@ func GetStatusErrorMap() map[string]map[StatusError]string {
 			PluginContentInvalid:                 "plugin content or package path is invalid",
 			PluginContentLimitExceeded:           "plugin content exceeds import limits",
 			AgentInputInvalid:                    "command input does not satisfy the operation contract",
+			KnowledgeInvalid:                     "invalid knowledge request",
 			Unauthorized:                         "invalid local access token",
 			MemoryContextUnauthorized:            "memory invocation context is invalid or expired",
 			AutomaticTaskTokenInvalid:            "automatic task token is invalid or revoked",
 			IMLoginRequired:                      "im sign-in is required",
 			AgentContextUnauthorized:             "capability execution context is invalid or expired",
+			KnowledgeRemoteUnauthorized:          "remote knowledge authentication failed",
 			IMChatNotAuthorized:                  "im chat is not authorized",
 			IMWorkflowDeliveryNotAllowed:         "workflow delivery is disabled for this chat; enable it in the chat configuration",
 			IMTargetNotAuthorized:                "chat is not authorized or authorization was revoked; authorize it in the chat configuration",
 			PluginForbidden:                      "plugin is outside the current partner scope",
 			AgentOperationForbidden:              "operation is not authorized for the current execution",
+			KnowledgeForbidden:                   "knowledge resource or operation is outside the execution scope",
 			WakerNotFound:                        "waker not found: {{.WakerID}}",
 			RolePresetNotFound:                   "role preset not found: {{.RolePresetID}}",
 			ProfileDocumentNotFound:              "profile document not found",
@@ -551,6 +584,7 @@ func GetStatusErrorMap() map[string]map[StatusError]string {
 			IMTargetUnavailable:                  "delivery target no longer exists; optimize the workflow and select an approved chat",
 			PluginNotFound:                       "plugin or version was not found",
 			AgentReceiptNotFound:                 "command acceptance receipt was not found in the current scope",
+			KnowledgeNotFound:                    "knowledge resource not found",
 			OperationCanceled:                    "operation canceled",
 			OperationTimeout:                     "operation timed out",
 			DatabaseOperationCancelled:           "database operation was cancelled",
@@ -611,6 +645,11 @@ func GetStatusErrorMap() map[string]map[StatusError]string {
 			PluginBusy:                           "shared account is in use by work or authorization; try again after it exits",
 			AgentCommandOutcomeUnknown:           "command outcome is uncertain; inspect the original request receipt",
 			AgentCommandRequestConflict:          "command request identifier was already used with different content",
+			KnowledgeConflict:                    "knowledge version or request content has changed",
+			KnowledgeCancelled:                   "knowledge operation was cancelled or its attempt is stale",
+			KnowledgeCandidateInvalid:            "knowledge execution or candidate is not eligible for publication",
+			KnowledgeUnsupported:                 "knowledge provider or runtime does not support this operation",
+			KnowledgeEmbeddingNotConfigured:      "configure this library's embedding service first",
 			AutomaticTaskRateLimited:             "automatic task request rate exceeds the per-minute limit",
 			InternalServerError:                  "core internal error",
 			DatabaseError:                        "database operation failed",
@@ -674,6 +713,7 @@ func GetStatusErrorMap() map[string]map[StatusError]string {
 			IMCredentialError:                    "failed to read or save im credentials",
 			PluginStorageError:                   "plugin files could not be safely prepared or read",
 			AgentContextStorageError:             "capability context file could not be safely prepared or read",
+			KnowledgeStorageError:                "knowledge storage failed",
 			MemoryEmbeddingUnavailable:           "embedding service is unavailable",
 			MCPConnectorProtocolInvalid:          "mcp connector returned an invalid protocol response",
 			AIAccountModelsUnavailable:           "model catalog service is unavailable",
@@ -681,9 +721,14 @@ func GetStatusErrorMap() map[string]map[StatusError]string {
 			IMPlatformUnavailable:                "im platform is unavailable",
 			IMProtocolInvalid:                    "im platform returned an invalid protocol response",
 			PluginAuthorizationFailed:            "plugin authentication did not complete or external authorization expired",
+			KnowledgeRemoteUnreachable:           "remote knowledge service is unreachable",
+			KnowledgeRemoteIncompatible:          "remote knowledge service protocol is incompatible",
+			KnowledgeEmbeddingUnavailable:        "knowledge embedding service unavailable",
+			KnowledgeEmbeddingResponseInvalid:    "invalid knowledge embedding response",
 			DatabaseBusy:                         "processing other data; please try again later",
 			IMServiceUnavailable:                 "im integration service is unavailable",
 			AgentConnectionUnavailable:           "capability connection is unavailable or its protocol does not match",
+			KnowledgeRemoteOutcomeUnknown:        "remote operation outcome is unknown; inspect the original request receipt",
 		},
 		"zh": {
 			BadRequest:                           "请求参数不合法",
@@ -723,16 +768,19 @@ func GetStatusErrorMap() map[string]map[StatusError]string {
 			PluginContentInvalid:                 "插件内容或路径不合法",
 			PluginContentLimitExceeded:           "插件内容超过导入限制",
 			AgentInputInvalid:                    "软件能力命令参数不符合契约",
+			KnowledgeInvalid:                     "知识请求参数不合法",
 			Unauthorized:                         "本地访问令牌无效",
 			MemoryContextUnauthorized:            "记忆调用上下文无效或已过期",
 			AutomaticTaskTokenInvalid:            "自动任务密钥无效或已经失效",
 			IMLoginRequired:                      "IM 登录已失效，请重新登录",
 			AgentContextUnauthorized:             "软件能力执行身份无效或已过期",
+			KnowledgeRemoteUnauthorized:          "远端知识服务认证失败，请检查连接凭据",
 			IMChatNotAuthorized:                  "此 IM 聊天尚未获准接入",
 			IMWorkflowDeliveryNotAllowed:         "此聊天未允许工作流发送，请在聊天配置中开启工作流发送",
 			IMTargetNotAuthorized:                "此聊天尚未授权或授权已撤销，请在聊天配置中授权",
 			PluginForbidden:                      "此插件不属于当前伙伴可用范围",
 			AgentOperationForbidden:              "当前执行未获准使用此软件能力",
+			KnowledgeForbidden:                   "当前执行无权访问此知识资源或操作",
 			WakerNotFound:                        "伙伴不存在：{{.WakerID}}",
 			RolePresetNotFound:                   "角色预设不存在：{{.RolePresetID}}",
 			ProfileDocumentNotFound:              "档案文档不存在",
@@ -758,6 +806,7 @@ func GetStatusErrorMap() map[string]map[StatusError]string {
 			IMTargetUnavailable:                  "发送目标已不存在，请优化工作流并重新选择获准聊天",
 			PluginNotFound:                       "插件或版本不存在",
 			AgentReceiptNotFound:                 "当前范围内尚无该命令的接纳回执",
+			KnowledgeNotFound:                    "知识资源不存在",
 			OperationCanceled:                    "操作已取消",
 			OperationTimeout:                     "操作等待超时",
 			DatabaseOperationCancelled:           "数据库操作已取消",
@@ -818,6 +867,11 @@ func GetStatusErrorMap() map[string]map[StatusError]string {
 			PluginBusy:                           "认证进程或工作仍在使用共享账号，请稍后重试",
 			AgentCommandOutcomeUnknown:           "软件能力命令提交结果尚不确定，请查询原请求回执",
 			AgentCommandRequestConflict:          "同一命令请求标识不能用于不同内容",
+			KnowledgeConflict:                    "知识版本或请求内容已变化，请刷新后重试",
+			KnowledgeCancelled:                   "当前知识操作已取消或阶段已失效",
+			KnowledgeCandidateInvalid:            "知识执行或候选未满足发布条件",
+			KnowledgeUnsupported:                 "当前知识服务或智能体不支持此操作",
+			KnowledgeEmbeddingNotConfigured:      "请先配置此知识库的独立嵌入服务",
 			AutomaticTaskRateLimited:             "自动任务触发频率超过每分钟上限，请稍后重试",
 			InternalServerError:                  "本地服务内部错误",
 			DatabaseError:                        "数据库操作失败",
@@ -881,6 +935,7 @@ func GetStatusErrorMap() map[string]map[StatusError]string {
 			IMCredentialError:                    "无法读取或保存 IM 凭据",
 			PluginStorageError:                   "插件文件无法安全准备或读取",
 			AgentContextStorageError:             "软件能力连接文件无法安全准备或读取",
+			KnowledgeStorageError:                "知识存储访问失败",
 			MemoryEmbeddingUnavailable:           "Embedding 服务当前不可用",
 			MCPConnectorProtocolInvalid:          "MCP 连接器返回了不合法的协议响应",
 			AIAccountModelsUnavailable:           "模型目录服务暂时不可用",
@@ -888,9 +943,14 @@ func GetStatusErrorMap() map[string]map[StatusError]string {
 			IMPlatformUnavailable:                "IM 平台暂时不可用",
 			IMProtocolInvalid:                    "IM 平台响应不符合当前协议",
 			PluginAuthorizationFailed:            "插件认证未完成或外部授权失效",
+			KnowledgeRemoteUnreachable:           "远端知识服务连接失败",
+			KnowledgeRemoteIncompatible:          "远端知识服务响应不符合支持的协议",
+			KnowledgeEmbeddingUnavailable:        "知识库嵌入服务暂时不可用",
+			KnowledgeEmbeddingResponseInvalid:    "知识库嵌入服务返回无效向量",
 			DatabaseBusy:                         "正在处理其他数据，请稍后重试",
 			IMServiceUnavailable:                 "IM 集成服务当前不可用",
 			AgentConnectionUnavailable:           "软件能力连接不可用或协议不匹配",
+			KnowledgeRemoteOutcomeUnknown:        "远端操作结果待确认，请使用原请求查询回执",
 		},
 	}
 }

@@ -1,0 +1,134 @@
+package knowledge
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"github.com/JieWaZi/NeuxAlly/server/constants/status_error"
+	"github.com/JieWaZi/NeuxAlly/server/internal/agentcapability"
+	"github.com/JieWaZi/neux-knowledge/core"
+)
+
+// ReadBindings 对每个读、搜索和来源操作重复校验冻结范围及当前关系。
+func ReadBindings(engine *core.Engine, scope Scope, current func(context.Context, string) ([]ResourceRef, error)) []agentcapability.Binding {
+	return ProviderReadBindings(LocalReadProvider{Engine: engine}, scope, current)
+}
+
+// ProviderReadBindings 在完整资源引用上共用同一冻结与当前授权校验。
+func ProviderReadBindings(provider ReadProvider, scope Scope, current func(context.Context, string) ([]ResourceRef, error)) []agentcapability.Binding {
+	authorize := func(ctx context.Context, r agentcapability.Request, op string) (ResourceRef, error) {
+		id, _ := r.Params["libraryId"].(string)
+		backend, _ := r.Params["backend"].(string)
+		connection, _ := r.Params["connectionId"].(string)
+		if backend == "" {
+			backend = "local"
+		}
+		if connection == "" && backend == "local" {
+			connection = "local"
+		}
+		ref := ResourceRef{Backend: backend, ConnectionID: connection, KnowledgeBaseID: id}
+		if err := scope.Authorize(ctx, ref, op, current); err != nil {
+			return ResourceRef{}, err
+		}
+		return ref, nil
+	}
+	return []agentcapability.Binding{
+		{Operation: "knowledge.libraries.list", Call: func(ctx context.Context, _ agentcapability.Request) (agentcapability.Result, error) {
+			items := []map[string]any{}
+			now, err := current(ctx, scope.ProjectID)
+			if err != nil {
+				return agentcapability.Result{}, err
+			}
+			cachedCurrent := func(context.Context, string) ([]ResourceRef, error) { return now, nil }
+			for _, ref := range scope.Resources {
+				if err := scope.Authorize(ctx, ref, "read", cachedCurrent); err != nil {
+					if errors.Is(err, status_error.KnowledgeForbidden) {
+						continue
+					}
+					return agentcapability.Result{}, err
+				}
+				lib, err := provider.Library(ctx, ref)
+				if err != nil {
+					return agentcapability.Result{}, err
+				}
+				items = append(items, map[string]any{"ref": ref, "name": lib.Name, "kind": lib.Kind, "wikiLanguage": lib.WikiLanguage})
+			}
+			return agentcapability.Result{Data: map[string]any{"items": items, "total": len(items)}}, nil
+		}},
+		{Operation: "knowledge.pages.search", Call: func(ctx context.Context, r agentcapability.Request) (agentcapability.Result, error) {
+			id, err := authorize(ctx, r, "search")
+			if err != nil {
+				return agentcapability.Result{}, err
+			}
+			q, _ := r.Params["query"].(string)
+			offset := number(r.Params, "offset")
+			if offset < 0 {
+				return agentcapability.Result{}, status_error.KnowledgeInvalid
+			}
+			rows, total, err := provider.Pages(ctx, id, core.PageQuery{LibraryID: id.KnowledgeBaseID, Query: q, Status: "published", Offset: offset, Limit: 50})
+			if err != nil {
+				return agentcapability.Result{}, err
+			}
+			items := []map[string]any{}
+			for _, p := range rows {
+				items = append(items, map[string]any{"id": p.ID, "title": p.Title, "slug": p.Slug, "pageType": p.PageType, "summary": p.Summary, "version": p.Version})
+			}
+			data := map[string]any{"ref": id, "items": items, "total": total}
+			// 页码仅用于 Wiki 列表；原件检索提供首屏有界的五条完整上下文。
+			if search, ok := provider.(DocumentReadProvider); ok && offset == 0 && q != "" {
+				chunks, mode, e := search.SearchChunks(ctx, id, q)
+				if e != nil {
+					return agentcapability.Result{}, e
+				}
+				if mode != "" {
+					data["chunks"] = chunks
+					data["retrievalMode"] = mode
+				}
+			}
+			return agentcapability.Result{Data: data}, nil
+		}},
+		{Operation: "knowledge.pages.get", Call: func(ctx context.Context, r agentcapability.Request) (agentcapability.Result, error) {
+			id, err := authorize(ctx, r, "read")
+			if err != nil {
+				return agentcapability.Result{}, err
+			}
+			pid, _ := r.Params["pageId"].(string)
+			p, err := provider.Page(ctx, id, pid, stringParam(r.Params, "slug"))
+			if err != nil {
+				return agentcapability.Result{}, err
+			}
+			if len(p.Content) > 64<<10 {
+				return agentcapability.Result{}, status_error.KnowledgeUnsupported
+			}
+			return agentcapability.Result{Data: map[string]any{"ref": id, "page": p}}, nil
+		}},
+		{Operation: "knowledge.sources.get", Call: func(ctx context.Context, r agentcapability.Request) (agentcapability.Result, error) {
+			id, err := authorize(ctx, r, "source")
+			if err != nil {
+				return agentcapability.Result{}, err
+			}
+			sid, _ := r.Params["sourceVersionId"].(string)
+			p, err := provider.Source(ctx, id, sid)
+			if err != nil {
+				return agentcapability.Result{}, err
+			}
+			return agentcapability.Result{Data: map[string]any{"ref": id, "source": p}}, nil
+		}},
+	}
+}
+
+func stringParam(params map[string]any, key string) string { v, _ := params[key].(string); return v }
+
+// number 读取只读查询的有界数值参数；未知值由后续查询校验处理。
+func number(values map[string]any, key string) int {
+	switch value := values[key].(type) {
+	case float64:
+		return int(value)
+	case int:
+		return value
+	case json.Number:
+		parsed, _ := value.Int64()
+		return int(parsed)
+	}
+	return 0
+}
