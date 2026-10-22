@@ -22,6 +22,7 @@ server/**/*.log
 
 .agents
 .scratch/
+.superpowers/
 
 desktop/dist-electron/
 desktop/release/
