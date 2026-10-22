@@ -45,7 +45,7 @@ type MentionItem = {
   id: string;
   label: string;
   description?: string;
-  referenceType: "file" | "skill" | "connector" | "code" | "member";
+  referenceType: "file" | "skill" | "connector" | "plugin" | "code" | "member";
 };
 const fileReferenceLimit = 20;
 
@@ -63,6 +63,10 @@ type ChatComposerInputProps = {
   className?: string;
   skills?: ChatSkillOption[];
   connectors?: ChatConnectorOption[];
+  plugins?: ChatSkillOption[];
+  onPluginSelectionChange?: (pluginIds: string[]) => void;
+  selectedPluginIds?: string[];
+  pluginsError?: boolean;
   fileRoots?: string[];
   fileScopePath?: string;
   fileScopeChatId?: string;
@@ -336,6 +340,10 @@ export function ChatComposerInput({
   className,
   skills = [],
   connectors = [],
+  plugins = [],
+  selectedPluginIds = [],
+  onPluginSelectionChange,
+  pluginsError = false,
   fileRoots = [],
   fileScopePath,
   fileScopeChatId,
@@ -369,6 +377,7 @@ export function ChatComposerInput({
     onAttachmentsChange,
     onOpenFile,
     onSkillSelectionChange,
+    onPluginSelectionChange,
     onConnectorSelectionChange,
     onMemberMentionChange,
     onValueChange,
@@ -378,6 +387,9 @@ export function ChatComposerInput({
   const selectedSkillIdsRef = useRef(selectedSkillIds);
   const selectedConnectorIdsRef = useRef(selectedConnectorIds);
   const skillsRef = useRef(skills);
+  const pluginsRef = useRef(plugins);
+  const selectedPluginIdsRef = useRef(selectedPluginIds);
+  const pluginsErrorRef = useRef(pluginsError);
   const connectorsRef = useRef(connectors);
   const fileRootsRef = useRef(fileRoots);
   const fileScopePathRef = useRef(fileScopePath);
@@ -412,6 +424,7 @@ export function ChatComposerInput({
       onAttachmentsChange,
       onOpenFile,
       onSkillSelectionChange,
+      onPluginSelectionChange,
       onConnectorSelectionChange,
       onMemberMentionChange,
       onValueChange,
@@ -421,6 +434,9 @@ export function ChatComposerInput({
     selectedSkillIdsRef.current = selectedSkillIds;
     selectedConnectorIdsRef.current = selectedConnectorIds;
     skillsRef.current = skills;
+    pluginsRef.current = plugins;
+    selectedPluginIdsRef.current = selectedPluginIds;
+    pluginsErrorRef.current = pluginsError;
     connectorsRef.current = connectors;
     fileRootsRef.current = fileRoots;
     fileScopePathRef.current = fileScopePath;
@@ -431,6 +447,9 @@ export function ChatComposerInput({
     disabledRef.current = disabled;
   }, [
     aui,
+    plugins,
+    selectedPluginIds,
+    pluginsError,
     connectors,
     connectorsError,
     disabled,
@@ -441,6 +460,7 @@ export function ChatComposerInput({
     onAttachmentAdd,
     onAttachmentsRemove,
     onAttachmentsChange,
+    onPluginSelectionChange,
     onConnectorSelectionChange,
     onMemberMentionChange,
     onOpenFile,
@@ -539,6 +559,14 @@ export function ChatComposerInput({
       ]);
     }
   }, []);
+  const selectPlugin = useCallback((item: MentionItem) => {
+    if (!selectedPluginIdsRef.current.includes(item.id)) {
+      callbacksRef.current.onPluginSelectionChange?.([
+        ...selectedPluginIdsRef.current,
+        item.id,
+      ]);
+    }
+  }, []);
 
   const hasMemberSuggestions = members.length > 0;
   const fileSuggestion = useMemo(
@@ -615,7 +643,13 @@ export function ChatComposerInput({
         char: "/",
         allowedPrefixes: [" "],
         items: ({ query }) =>
-          skillsRef.current
+          [
+            ...pluginsRef.current.map((plugin) => ({
+              ...plugin,
+              plugin: true,
+            })),
+            ...skillsRef.current.map((skill) => ({ ...skill, plugin: false })),
+          ]
             .filter((skill) =>
               [skill.id, skill.name, skill.description].some((value) =>
                 value.toLowerCase().includes(query.toLowerCase()),
@@ -623,9 +657,13 @@ export function ChatComposerInput({
             )
             .map((skill) => ({
               id: skill.id,
-              label: skill.name,
+              label: skill.plugin
+                ? `${t("plugin:plugins")} · ${skill.name}`
+                : skill.name,
               description: skill.description,
-              referenceType: "skill" as const,
+              referenceType: skill.plugin
+                ? ("plugin" as const)
+                : ("skill" as const),
             })),
         command: ({ editor, range, props }) => {
           editor
@@ -636,20 +674,21 @@ export function ChatComposerInput({
               attrs: {
                 id: props.id,
                 label: props.label,
-                referenceType: "skill",
+                referenceType: props.referenceType,
                 mentionSuggestionChar: "/",
               },
             })
             .run();
-          selectSkill(props);
+          if (props.referenceType === "plugin") selectPlugin(props);
+          else selectSkill(props);
         },
         // The suggestion renderer outlives React renders, so read the latest query state from the ref.
         // eslint-disable-next-line react-hooks/refs
-        render: renderSuggestion(t("skills"), () =>
+        render: renderSuggestion(t("plugin:title"), () =>
           skillsErrorRef.current ? t("skillsLoadError") : t("noMatchingSkills"),
         ),
       }) as SuggestionOptions<MentionItem>,
-    [selectSkill, t],
+    [selectSkill, selectPlugin, t],
   );
   const connectorSuggestion = useMemo(
     () =>
@@ -748,6 +787,8 @@ export function ChatComposerInput({
             "data-chat-composer-reference-type": node.attrs.referenceType,
             "data-chat-composer-skill":
               node.attrs.referenceType === "skill" ? node.attrs.id : undefined,
+            "data-chat-composer-plugin":
+              node.attrs.referenceType === "plugin" ? node.attrs.id : undefined,
             "data-chat-composer-connector":
               node.attrs.referenceType === "connector"
                 ? node.attrs.id
@@ -825,6 +866,7 @@ export function ChatComposerInput({
       const text = extractText(nextEditor);
       const codeReferences: ChatCodeReference[] = [];
       const skillIDs = new Set<string>();
+      const pluginIDs = new Set<string>();
       const connectorIDs = new Set<string>();
       let memberID = "";
       nextEditor.state.doc.descendants((node) => {
@@ -841,6 +883,9 @@ export function ChatComposerInput({
             break;
           case "skill":
             if (referenceID) skillIDs.add(referenceID);
+            break;
+          case "plugin":
+            if (referenceID) pluginIDs.add(referenceID);
             break;
           case "connector":
             if (referenceID) connectorIDs.add(referenceID);
@@ -864,6 +909,7 @@ export function ChatComposerInput({
       callbacksRef.current.aui.composer.setText(
         text || (codeReferences.length ? t("codeReferenceOnlyMessage") : ""),
       );
+      callbacksRef.current.onPluginSelectionChange?.(Array.from(pluginIDs));
       callbacksRef.current.onSkillSelectionChange?.(Array.from(skillIDs));
       callbacksRef.current.onConnectorSelectionChange?.(
         Array.from(connectorIDs),

@@ -50,7 +50,7 @@ export function RolePresetCard({
         onClick={onSelect}
         onKeyDown={selectFromKeyboard}
         className={cn(
-          "hover:bg-muted focus-visible:ring-ring grid min-h-20 cursor-pointer grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 transition-colors outline-none focus-visible:ring-2",
+          "hover:bg-muted focus-visible:ring-status-success-content grid min-h-20 cursor-pointer grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 transition-colors outline-none focus-visible:ring-2",
         )}
       >
         <Avatar

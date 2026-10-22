@@ -24,6 +24,11 @@ export function toSkillSummary(
     source,
     enabled: item.enabled ?? false,
     affectedWakerCount: item.affectedWakerCount ?? 1,
+    installedPartners: (item.installedPartners ?? []).flatMap((partner) =>
+      partner.id
+        ? [{ id: partner.id, name: partner.name ?? "", avatar: partner.avatar }]
+        : [],
+    ),
     updatedAt: new Date(skill.updatedAt ?? 0).toISOString(),
   };
 }

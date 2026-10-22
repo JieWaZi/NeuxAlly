@@ -6,6 +6,9 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/authorization"
+	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/commandbridge"
+	"github.com/JieWaZi/NeuxAlly/server/services/plugininstallation"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -21,6 +24,10 @@ import (
 	"github.com/JieWaZi/NeuxAlly/server/internal/logx"
 	"github.com/JieWaZi/NeuxAlly/server/internal/memory"
 	"github.com/JieWaZi/NeuxAlly/server/internal/notification/events"
+	"github.com/JieWaZi/NeuxAlly/server/internal/plugins"
+	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/catalog"
+	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/feishu"
+	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/github"
 	"github.com/JieWaZi/NeuxAlly/server/internal/runtimes"
 	managedskills "github.com/JieWaZi/NeuxAlly/server/internal/skills"
 	builtinskills "github.com/JieWaZi/NeuxAlly/server/internal/skills/builtin"
@@ -104,6 +111,10 @@ var (
 	ChannelThreadControllerManager controllers.ChannelThreadController
 	// ChannelTaskControllerManager 提供全局团队任务板和投递队列接口。
 	ChannelTaskControllerManager controllers.ChannelTaskController
+	// PluginAuthorizations 是各提供者唯一的共享身份、授权等待与工作占用装配。
+	PluginAuthorizations map[string]*authorization.Authorizer
+	// PluginControllerManager 保存插件资源、版本、共享配置和伙伴安装。
+	PluginControllerManager controllers.PluginController
 	// SkillControllerManager 提供全局技能包、版本和伙伴关系持久化接口。
 	SkillControllerManager controllers.SkillController
 	// MCPConnectorControllerManager 提供共享连接器和伙伴关系持久化接口。
@@ -136,6 +147,8 @@ type Configuration struct {
 	WorkflowPythonExecutable string `yaml:"workflowPythonExecutable"`
 	// DataDirectory 保存数据库、技能、独立账号数据及程序配置。
 	DataDirectory string `yaml:"-"`
+	// PluginResourcesDirectory 是构建交付的本地插件与固定程序目录。
+	PluginResourcesDirectory string `yaml:"-"`
 	// ManagedFilesDirectory 保存 Chat、Team、工作流和 IM 的受管文件，默认位于用户主目录。
 	ManagedFilesDirectory string `yaml:"-"`
 }
@@ -213,6 +226,16 @@ func Prepare(configuration *Configuration) error {
 			configuration.DataDirectory = temporaryDataDirectory
 		}
 	}
+	if configuration.PluginResourcesDirectory == "" {
+		configuration.PluginResourcesDirectory = strings.TrimSpace(os.Getenv("ALLY_PLUGIN_RESOURCES_DIR"))
+	}
+	if configuration.PluginResourcesDirectory == "" {
+		executable, err := os.Executable()
+		if err != nil {
+			return mapCoreError("resolve_plugin_resources", status_error.CoreDataDirectoryError, err)
+		}
+		configuration.PluginResourcesDirectory = filepath.Join(filepath.Dir(executable), "..", "plugins")
+	}
 	managedDirectory := strings.TrimSpace(os.Getenv("ALLY_MANAGED_FILES_DIR"))
 	if managedDirectory == "" {
 		home, err := os.UserHomeDir()
@@ -254,6 +277,13 @@ func Load(ctx context.Context, configuration *Configuration, handlerFactory sche
 		func() error { return loadRuntime(ctx) },
 		func() error { return loadChat(ctx, configuration, handlerFactory) },
 		func() error { return loadNotifications(ctx) },
+		func() error {
+			hub := EventHub
+			closePluginCatalog = catalog.Start(ctx, PluginCatalogSource(), filepath.Join(configuration.DataDirectory, "plugins", "catalog"), func() {
+				_ = events.Emit(hub, constants.PluginEventTopic, "plugins.changed", events.Resource{Kind: "global"}, nil)
+			})
+			return nil
+		},
 	)
 }
 
@@ -301,6 +331,41 @@ func loadDB(ctx context.Context, configuration *Configuration) error {
 	ChannelControllerManager = controllers.NewChannelController(DB)
 	ChannelThreadControllerManager = controllers.NewChannelThreadController(DB)
 	ChannelTaskControllerManager = controllers.NewChannelTaskController(DB)
+	PluginControllerManager = controllers.NewPluginController(DB, func() {
+		if PluginContents != nil {
+			if err := PluginContents.Collect(); err != nil {
+				logx.Warnf("collect plugin content after commit failed: %v", err)
+			}
+		}
+	})
+	PluginContents = plugins.NewContentStore(configuration.DataDirectory, func() ([]string, error) { return PluginControllerManager.ContentReferences(context.Background()) })
+	providerPath := func(provider, version, binary string) string {
+		if runtime.GOOS == "windows" {
+			binary += ".exe"
+		}
+		return filepath.Join(configuration.PluginResourcesDirectory, "providers", provider, version, runtime.GOOS+"-"+runtime.GOARCH, binary)
+	}
+	changed := func(provider string) func(authorization.Session) {
+		return func(authorization.Session) {
+			if EventHub != nil {
+				_ = events.Emit(EventHub, constants.PluginEventTopic, "plugins.changed", events.Resource{Kind: "global"}, map[string]string{"provider": provider})
+			}
+		}
+	}
+	PluginAuthorizations = map[string]*authorization.Authorizer{
+		constants.PluginProviderFeishu: feishu.New(feishu.Config{Binary: providerPath(constants.PluginProviderFeishu, constants.FeishuCLIVersion, "lark-cli"), ProfileDirectory: filepath.Join(configuration.DataDirectory, "plugins", "providers", constants.PluginProviderFeishu), Changed: changed(constants.PluginProviderFeishu)}),
+		constants.PluginProviderGitHub: github.New(github.Config{Binary: providerPath(constants.PluginProviderGitHub, constants.GitHubCLIVersion, "gh"), ProfileDirectory: filepath.Join(configuration.DataDirectory, "plugins", "providers", constants.PluginProviderGitHub), Changed: changed(constants.PluginProviderGitHub)}),
+	}
+	for _, auth := range PluginAuthorizations {
+		auth.Open(ctx)
+	}
+	PluginBridgeEnvironment = os.Environ()
+	PluginBridges = commandbridge.NewRegistry(ctx, func(id string) {
+		if EventHub != nil {
+			_ = events.Emit(EventHub, constants.PluginEventTopic, "plugins.changed", events.Resource{Kind: "plugin", ID: id}, nil)
+		}
+	})
+
 	SkillControllerManager = controllers.NewSkillController(DB)
 	MCPConnectorControllerManager = controllers.NewMCPConnectorController(DB)
 	RuntimeEnvironmentControllerManager = controllers.NewRuntimeEnvironmentController(DB)
@@ -444,7 +509,8 @@ func loadChat(ctx context.Context, configuration *Configuration, handlerFactory 
 		AgentEndpoint: "http://127.0.0.1:" + strconv.Itoa(configuration.Server.Port) + constants.AgentCLIPath,
 		AgentBinary:   agentBinaryPath(),
 		AgentBindings: func(chat models.Chat, executionID string, roots []string) []agentcapability.Binding {
-			bindings := MemoryService.AgentBindings(memory.Context{RunID: executionID, ChatID: chat.ID, PartnerID: chat.WakerID, ProjectID: chat.ProjectID})
+			bindings := []agentcapability.Binding{}
+			bindings = append(bindings, MemoryService.AgentBindings(memory.Context{RunID: executionID, ChatID: chat.ID, PartnerID: chat.WakerID, ProjectID: chat.ProjectID})...)
 			if IMService != nil {
 				bindings = append(bindings, IMService.AgentBindings(chat, executionID, roots, EventHub)...)
 			}
@@ -458,6 +524,8 @@ func loadChat(ctx context.Context, configuration *Configuration, handlerFactory 
 		Profiles:            ProfileDocumentControllerManager,
 		Projects:            ProjectControllerManager,
 		Skills:              SkillControllerManager,
+		PluginInstallations: plugininstallation.New(plugininstallation.Config{Contents: PluginContents, DataDirectory: configuration.DataDirectory, Authorizers: PluginAuthorizations, Bridges: PluginBridges, BridgeEnvironment: PluginBridgeEnvironment}),
+		PluginContents:      PluginContents, Plugins: PluginControllerManager, PluginAuthorizers: PluginAuthorizations, PluginLauncher: coreExecutablePath(),
 		Connectors:          MCPConnectorControllerManager,
 		RuntimeEnvironments: RuntimeEnvironmentControllerManager,
 		SkillDataDirectory:  configuration.DataDirectory,
@@ -547,6 +615,10 @@ func loadChat(ctx context.Context, configuration *Configuration, handlerFactory 
 // Close 按依赖逆序停止后台流程并关闭数据库连接。
 func Close() error {
 	var result error
+	if closePluginCatalog != nil {
+		closePluginCatalog()
+		closePluginCatalog = nil
+	}
 	if AgentCapabilities != nil {
 		AgentCapabilities.Close()
 		AgentCapabilities = nil
@@ -579,6 +651,14 @@ func Close() error {
 	if ExecutionService != nil {
 		ExecutionService.Close()
 		ExecutionService = nil
+	}
+	for _, auth := range PluginAuthorizations {
+		auth.Close()
+	}
+	PluginAuthorizations = nil
+	if PluginBridges != nil {
+		PluginBridges.Close()
+		PluginBridges = nil
 	}
 	if ChatService != nil {
 		ChatService.Close()
@@ -670,4 +750,33 @@ func agentBinaryPath() string {
 		filename += ".exe"
 	}
 	return filepath.Join(filepath.Dir(executable), filename)
+}
+
+// coreExecutablePath 只使用当前受管 Core 的真实可执行文件。
+func coreExecutablePath() string {
+	value, err := os.Executable()
+	if err != nil {
+		return ""
+	}
+	return value
+}
+
+// PluginBridges 管理声明驱动的唯一插件身份。
+var PluginBridges *commandbridge.Registry
+
+// PluginBridgeEnvironment 只包含固定受信程序资产。
+var PluginBridgeEnvironment []string
+
+// PluginContents 保存当前 Core 的短期内容使用计数。
+var PluginContents *plugins.ContentStore
+
+// closePluginCatalog 取消并等待启动时的目录更新，先于事件通道关闭。
+var closePluginCatalog func()
+
+// PluginCatalogSource 返回HTTP分发入口；显式本地目录用于镜像与测试。
+func PluginCatalogSource() string {
+	if value := strings.TrimSpace(os.Getenv("ALLY_PLUGIN_CATALOG_URL")); value != "" {
+		return value
+	}
+	return constants.PluginCatalogHTTPSource
 }

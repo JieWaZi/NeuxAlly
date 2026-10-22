@@ -1,6 +1,6 @@
 ---
 name: ally
-description: Use NeuxAlly-provided capabilities through allycli for message and file delivery, workflow authoring or execution, team coordination, memory, and structured user questions. Apply when a task needs a platform operation advertised by allycli; ordinary file editing or shell work alone does not require this skill.
+description: Use NeuxAlly-provided capabilities through allycli for message and file delivery, workflow authoring or execution, team coordination, memory, plugins, and structured user questions. Apply when a task needs a platform operation advertised by allycli; ordinary file editing or shell work alone does not require this skill.
 ---
 
 # NeuxAlly
@@ -55,3 +55,7 @@ Use real file references for requested artifacts. Submit the actual candidate
 or report through the advertised result operation; a final chat message is
 not a submission receipt. Tell the user what was actually saved, accepted,
 completed, or delivered, preserving failures and uncertainty.
+
+## Plugins
+
+For plugin requests in chat, use the current agent's native plugin and authentication mechanisms within the user's request. Native installation belongs to that agent's shared environment; describe its actual result without claiming a NeuxAlly system installation. NeuxAlly's maintained plugins are installed and authorized from the plugin library interface.

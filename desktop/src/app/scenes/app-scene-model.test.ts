@@ -12,6 +12,7 @@ import {
 } from "./app-route-scene-model";
 
 const labels: RouteSceneLabels = {
+  resources: "资源库",
   chat: "会话",
   detail: "详情",
   newChat: "新会话",

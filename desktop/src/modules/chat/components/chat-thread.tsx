@@ -1,3 +1,4 @@
+import { ChatMessagePluginReferences } from "./chat-plugin-reference";
 import type { ChatResultSource } from "@/shared/api/notification-presentation";
 import { ChatWorkResultReader } from "@/shared/api/work-result-reading";
 import { ChatMessageContribution } from "./chat-contributions";
@@ -186,6 +187,10 @@ type ChatThreadProps = {
   renderComposerContextStrip?: () => ReactNode;
   composerSkills?: ChatSkillOption[];
   composerSkillsError?: boolean;
+  composerPlugins?: ChatSkillOption[];
+  composerPluginsError?: boolean;
+  selectedPluginIds?: string[];
+  onPluginSelectionChange?: (ids: string[]) => void;
   composerConnectors?: ChatConnectorOption[];
   composerConnectorsError?: boolean;
   composerFileRoots?: string[];
@@ -193,6 +198,7 @@ type ChatThreadProps = {
   composerMembers?: ChatMemberMentionOption[];
   availableSkillIds?: ReadonlySet<string>;
   availableConnectorIds?: ReadonlySet<string>;
+  availablePluginIds?: ReadonlySet<string>;
   selectedSkillIds?: string[];
   selectedConnectorIds?: string[];
   onSkillSelectionChange?: (skillIds: string[]) => void;
@@ -1124,6 +1130,7 @@ function UserMessage({
   text,
   availableSkillIds,
   availableConnectorIds,
+  availablePluginIds,
   wakerId = "",
   onOpenCodeReference,
   onOpenFile,
@@ -1131,6 +1138,7 @@ function UserMessage({
   text: string;
   availableSkillIds?: ReadonlySet<string>;
   availableConnectorIds?: ReadonlySet<string>;
+  availablePluginIds?: ReadonlySet<string>;
   wakerId?: string;
   onOpenCodeReference?: (reference: ChatCodeReference) => void;
   onOpenFile?: (file: ChatFileOpenRequest) => void;
@@ -1168,6 +1176,9 @@ function UserMessage({
         return [{ id: connector.id, name: connector.name }];
       })
     : [];
+  const rawPlugins = useAuiState(
+    (state) => state.message.metadata.custom.plugins,
+  );
   const rawCodeReferences = useAuiState(
     (state) => state.message.metadata.custom.codeReferences,
   );
@@ -1179,6 +1190,11 @@ function UserMessage({
       <div className="ml-auto grid max-w-[78%] min-w-0 justify-items-end gap-2">
         <div className="bg-surface-tertiary text-foreground type-chat max-w-full min-w-0 overflow-hidden rounded-xl px-4 py-3">
           <div className="flex flex-wrap items-start gap-x-1.5 gap-y-1">
+            <ChatMessagePluginReferences
+              plugins={rawPlugins}
+              wakerId={wakerId}
+              availablePluginIds={availablePluginIds}
+            />
             <ChatMessageSkillReferences
               skills={skills}
               wakerId={wakerId}
@@ -1431,6 +1447,7 @@ const ChatMessage = memo(function ChatMessage({
   avatar,
   availableSkillIds,
   availableConnectorIds,
+  availablePluginIds,
   wakerId,
   onOpenCodeReference,
   onOpenFile,
@@ -1443,6 +1460,7 @@ const ChatMessage = memo(function ChatMessage({
   avatar?: string;
   availableSkillIds?: ReadonlySet<string>;
   availableConnectorIds?: ReadonlySet<string>;
+  availablePluginIds?: ReadonlySet<string>;
   wakerId?: string;
   onOpenCodeReference?: (reference: ChatCodeReference) => void;
   onOpenFile?: (file: ChatFileOpenRequest) => void;
@@ -1467,6 +1485,7 @@ const ChatMessage = memo(function ChatMessage({
         text={text}
         availableSkillIds={availableSkillIds}
         availableConnectorIds={availableConnectorIds}
+        availablePluginIds={availablePluginIds}
         wakerId={wakerId}
         onOpenCodeReference={onOpenCodeReference}
         onOpenFile={onOpenFile}
@@ -1582,6 +1601,10 @@ const Composer = memo(function Composer({
   renderContextStrip,
   skills,
   skillsError,
+  plugins,
+  pluginsError,
+  selectedPluginIds,
+  onPluginSelectionChange,
   connectors,
   connectorsError,
   fileRoots,
@@ -1624,6 +1647,10 @@ const Composer = memo(function Composer({
   renderContextStrip?: () => ReactNode;
   skills: ChatSkillOption[];
   skillsError: boolean;
+  plugins: ChatSkillOption[];
+  pluginsError: boolean;
+  selectedPluginIds: string[];
+  onPluginSelectionChange: (ids: string[]) => void;
   connectors: ChatConnectorOption[];
   connectorsError: boolean;
   fileRoots: string[];
@@ -1823,6 +1850,10 @@ const Composer = memo(function Composer({
                   ariaLabel={t("messageInput")}
                   skills={skills}
                   skillsError={skillsError}
+                  plugins={plugins}
+                  pluginsError={pluginsError}
+                  selectedPluginIds={selectedPluginIds}
+                  onPluginSelectionChange={onPluginSelectionChange}
                   connectors={connectors}
                   connectorsError={connectorsError}
                   fileRoots={fileRoots}
@@ -1988,6 +2019,10 @@ export function ChatThread({
   renderComposerContextStrip,
   composerSkills = emptyList,
   composerSkillsError = false,
+  composerPlugins = emptyList,
+  composerPluginsError = false,
+  selectedPluginIds = emptyList,
+  onPluginSelectionChange = ignoreChange,
   composerConnectors = emptyList,
   composerConnectorsError = false,
   composerFileRoots = emptyList,
@@ -1995,6 +2030,7 @@ export function ChatThread({
   composerMembers = emptyList,
   availableSkillIds,
   availableConnectorIds,
+  availablePluginIds,
   selectedSkillIds = emptyList,
   selectedConnectorIds = emptyList,
   onSkillSelectionChange = ignoreChange,
@@ -2256,6 +2292,7 @@ export function ChatThread({
                                 avatar={wakerAvatar}
                                 availableSkillIds={availableSkillIds}
                                 availableConnectorIds={availableConnectorIds}
+                                availablePluginIds={availablePluginIds}
                                 wakerId={wakerId}
                                 messageAuthors={messageAuthors}
                                 showUsageMetrics={showUsageMetrics}
@@ -2323,6 +2360,10 @@ export function ChatThread({
                       renderContextStrip={renderComposerContextStrip}
                       skills={composerSkills}
                       skillsError={composerSkillsError}
+                      plugins={composerPlugins}
+                      pluginsError={composerPluginsError}
+                      selectedPluginIds={selectedPluginIds}
+                      onPluginSelectionChange={onPluginSelectionChange}
                       connectors={composerConnectors}
                       connectorsError={composerConnectorsError}
                       fileRoots={composerFileRoots}

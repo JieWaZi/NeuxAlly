@@ -4,6 +4,7 @@ package eventlog
 import (
 	"encoding/json"
 	"github.com/JieWaZi/NeuxAlly/server/constants/status_error"
+	"github.com/JieWaZi/NeuxAlly/server/internal/plugins"
 
 	"github.com/JieWaZi/NeuxAlly/server/constants"
 )
@@ -166,6 +167,8 @@ type MessageCreatedData struct {
 	Attachments []AttachmentReference `json:"attachments,omitempty"`
 	// Skills 是本轮用户明确选择的技能快照。
 	Skills []MessageSkillReference `json:"skills,omitempty"`
+	// Plugins 是本轮用户明确选择的插件快照。
+	Plugins []plugins.Snapshot `json:"plugins,omitempty"`
 	// Connectors 是本轮用户明确选择的 MCP 连接器快照。
 	Connectors []MessageConnectorReference `json:"connectors,omitempty"`
 	// CodeReferences 是本轮用户选择的有序整文件或代码片段引用。
@@ -192,6 +195,10 @@ type ExecutionCreatedData struct {
 	Reasoning string `json:"reasoning"`
 	// PermissionLevel 是本次发送冻结的跨 Runtime 产品权限等级。
 	PermissionLevel constants.PermissionLevel `json:"permissionLevel"`
+	// PluginResources 是接纳时冻结的插件身份、版本与配置修订。
+	PluginResources []plugins.Snapshot `json:"pluginResources,omitempty"`
+	// NativePluginScope 是接纳时冻结的外部原生插件摘要，供分叉续聊核验能力边界。
+	NativePluginScope string `json:"nativePluginScope,omitempty"`
 	// WorkspaceReadOnly 表示本次 Runtime 只能读取工作区且不能申请文件修改。
 	WorkspaceReadOnly bool `json:"workspaceReadOnly,omitempty"`
 }

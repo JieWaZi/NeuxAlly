@@ -9,30 +9,36 @@ import "@/shared/i18n";
 import { AutomaticTaskListPage } from "./automatic-task-list-page";
 import { AutomaticTaskDetailPage } from "./automatic-task-detail-page";
 
-const { toggle, runError, taskKind } = vi.hoisted(() => ({
+const { toggle, runError, taskKind, listQueries } = vi.hoisted(() => ({
   toggle: vi.fn(),
+  listQueries: vi.fn(),
   runError: { code: "" },
   taskKind: { value: "workflow" },
 }));
 vi.mock("@/shared/api/generated/sdk.gen", async (original) => ({
   ...(await original<typeof SDK>()),
-  listGlobalAutomaticTasks: async () => ({
-    data: {
-      resources: [
-        {
-          id: "task-1",
-          wakerId: "waker-1",
-          executorName: "私人助理",
-          name: "每日归档",
-          trigger: "api",
-          enabled: false,
-          revision: 3,
-        },
-      ],
-      total: 1,
-      counts: { total: 1, enabled: 0, scheduled: 0, api: 1 },
-    },
-  }),
+  listGlobalAutomaticTasks: async (
+    options: Parameters<typeof SDK.listGlobalAutomaticTasks>[0],
+  ) => {
+    listQueries(options?.query);
+    return {
+      data: {
+        resources: [
+          {
+            id: "task-1",
+            wakerId: "waker-1",
+            executorName: "私人助理",
+            name: "每日归档",
+            trigger: "api",
+            enabled: false,
+            revision: 3,
+          },
+        ],
+        totalSize: 1,
+        counts: { total: 1, enabled: 0, scheduled: 0, api: 1 },
+      },
+    };
+  },
   getAutomaticTaskApi: async () => ({
     data: { ip: "127.0.0.1", port: 8431, available: true },
   }),
@@ -111,6 +117,7 @@ vi.mock("@/shared/api/generated/sdk.gen", async (original) => ({
 
 beforeEach(() => {
   toggle.mockReset().mockResolvedValue({ data: {} });
+  listQueries.mockReset();
   runError.code = "";
   taskKind.value = "workflow";
 });
@@ -206,7 +213,7 @@ it("工作流运行已缺失时不显示失效入口", async () => {
   ).not.toBeInTheDocument();
 });
 
-function renderList() {
+function renderList(initialEntry = "/automatic-tasks") {
   function CreateForPartner() {
     const navigate = useNavigate();
     return (
@@ -230,7 +237,7 @@ function renderList() {
         new QueryClient({ defaultOptions: { queries: { retry: false } } })
       }
     >
-      <MemoryRouter initialEntries={["/automatic-tasks"]}>
+      <MemoryRouter initialEntries={[initialEntry]}>
         <CreateForPartner />
         <Routes>
           <Route path="/automatic-tasks" element={<AutomaticTaskListPage />} />
@@ -315,3 +322,88 @@ vi.mock("@/shared/api/global-events", () => ({
   registerCoreConnectionRecovery: () => () => {},
   subscribeGlobalEvents: () => () => {},
 }));
+
+it("统计卡片与字段同步，组合筛选并重置页码，保留搜索和执行者", async () => {
+  const user = userEvent.setup();
+  renderList("/automatic-tasks?executorKind=team&search=归档&page=3");
+  const overview = screen.getByRole("region", { name: "运行概览" });
+  const card = (name: string) => within(overview).getByRole("button", { name });
+  await screen.findByRole("row", { name: /每日归档/ });
+  expect(card("任务总数")).toHaveAttribute("aria-pressed", "true");
+  await user.click(card("已启用"));
+  await waitFor(() =>
+    expect(listQueries).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        enabled: true,
+        executorKind: "team",
+        query: "归档",
+        pageNum: 1,
+      }),
+    ),
+  );
+  expect(card("已启用")).toHaveAttribute("aria-pressed", "true");
+  expect(card("任务总数")).toHaveAttribute("aria-pressed", "false");
+  expect(screen.getByRole("combobox", { name: "启停状态" })).toHaveTextContent(
+    "已启用",
+  );
+
+  await user.click(card("定时任务"));
+  await waitFor(() =>
+    expect(listQueries).toHaveBeenLastCalledWith(
+      expect.objectContaining({ enabled: true, trigger: "schedule" }),
+    ),
+  );
+  expect(card("定时任务")).toHaveAttribute("aria-pressed", "true");
+  await user.click(card("API"));
+  await waitFor(() =>
+    expect(listQueries).toHaveBeenLastCalledWith(
+      expect.objectContaining({ enabled: true, trigger: "api" }),
+    ),
+  );
+  expect(card("定时任务")).toHaveAttribute("aria-pressed", "false");
+  expect(screen.getByRole("combobox", { name: "触发方式" })).toHaveTextContent(
+    "API",
+  );
+  await user.click(card("API"));
+  expect(card("API")).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByRole("combobox", { name: "触发方式" })).toHaveTextContent(
+    "API",
+  );
+  expect(card("已启用")).toHaveAttribute("aria-pressed", "true");
+
+  await user.click(card("定时任务"));
+  await user.click(card("任务总数"));
+  await waitFor(() => {
+    expect(listQueries.mock.lastCall?.[0].enabled).toBeUndefined();
+    expect(listQueries.mock.lastCall?.[0].trigger).toBeUndefined();
+  });
+  expect(listQueries.mock.lastCall?.[0]).toMatchObject({
+    executorKind: "team",
+    query: "归档",
+    pageNum: 1,
+  });
+  expect(card("任务总数")).toHaveAttribute("aria-pressed", "true");
+});
+
+it("统计卡片从 URL 恢复筛选，键盘再次激活已选卡片保持状态和触发方式", async () => {
+  const user = userEvent.setup();
+  renderList("/automatic-tasks?trigger=api&status=enabled");
+  const overview = screen.getByRole("region", { name: "运行概览" });
+  const enabledCard = within(overview).getByRole("button", { name: "已启用" });
+  const apiCard = within(overview).getByRole("button", { name: "API" });
+  await screen.findByRole("row", { name: /每日归档/ });
+  expect(enabledCard).toHaveAttribute("aria-pressed", "true");
+  expect(apiCard).toHaveAttribute("aria-pressed", "true");
+  enabledCard.focus();
+  await user.keyboard("{Enter}");
+  await waitFor(() =>
+    expect(listQueries.mock.lastCall?.[0].enabled).toBe(true),
+  );
+  expect(enabledCard).toHaveAttribute("aria-pressed", "true");
+  expect(apiCard).toHaveAttribute("aria-pressed", "true");
+  expect(listQueries.mock.lastCall?.[0].trigger).toBe("api");
+  apiCard.focus();
+  await user.keyboard(" ");
+  expect(apiCard).toHaveAttribute("aria-pressed", "true");
+  expect(listQueries.mock.lastCall?.[0].trigger).toBe("api");
+});

@@ -82,6 +82,7 @@ type PartnerNavigationLayoutProps = {
   onOpenPartnerDetail: (partnerId: string) => void;
   onOpenAutomaticTasks: () => void;
   onOpenWorkflows?: () => void;
+  onOpenResources?: () => void;
   onOpenSettings: () => void;
   onPreferencesChange: Dispatch<SetStateAction<PartnerNavigationPreferences>>;
   onSceneNavigationVisibleChange: (visible: boolean) => void;
@@ -203,6 +204,7 @@ function PartnerNavigationLayoutContent({
   onOpenPartnerDetail,
   onOpenAutomaticTasks,
   onOpenWorkflows,
+  onOpenResources,
   onOpenSettings,
   onPreferencesChange,
   onSceneNavigationVisibleChange,
@@ -396,6 +398,7 @@ function PartnerNavigationLayoutContent({
               onOpenIM={() => navigate("/im")}
               onOpenAutomaticTasks={onOpenAutomaticTasks}
               onOpenWorkflows={onOpenWorkflows}
+              onOpenResources={onOpenResources}
               onReorder={updateOrder}
               onSelectPartner={onSelectPartner}
               onSelectTeam={onSelectTeam}

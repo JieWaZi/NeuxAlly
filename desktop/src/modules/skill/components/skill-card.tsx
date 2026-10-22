@@ -1,7 +1,14 @@
-import { Card, CardFooter } from "@/shared/ui/card";
+import { DropdownMenuItem } from "@/shared/ui/dropdown-menu";
+import {
+  ResourceManagementCard,
+  ResourcePartnerUsage,
+  ResourceMoreAction,
+} from "@/shared/ui/resource-management-card";
+import { Plus } from "lucide-react";
+import { Card, CardBody, CardFooter } from "@/shared/ui/card";
 import { GitBranch, Package, Trash2, Upload } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 import { SkillIcon } from "./skill-icon";
 import type { SkillSummary } from "../model/types";
@@ -10,6 +17,8 @@ import { Checkbox } from "@/shared/ui/checkbox";
 import { Switch } from "@/shared/ui/switch";
 
 type Props = {
+  compact?: boolean;
+  onInstall?: () => void;
   disabled?: boolean;
   onDelete?: () => void;
   skill: SkillSummary;
@@ -26,7 +35,9 @@ const sourceIcons = {
 } as const;
 
 export function SkillCard({
+  compact = false,
   disabled,
+  onInstall,
   onDelete,
   onEnabledChange,
   onSelectedChange,
@@ -34,9 +45,77 @@ export function SkillCard({
   skill,
   wakerId,
 }: Props) {
+  const location = useLocation();
   const { t } = useTranslation("skill");
   const SourceIcon = sourceIcons[skill.source];
 
+  const resourceTo = wakerId
+    ? `/wakers/${wakerId}/skills/${skill.id}`
+    : `/resources/skills/${skill.id}`;
+  if (compact)
+    return (
+      <ResourceManagementCard
+        title={skill.name}
+        description={skill.description}
+        source={t("plugin:fromSource", { name: t(`source.${skill.source}`) })}
+        icon={<SkillIcon />}
+        to={resourceTo}
+        label={t("card.view", { name: skill.name })}
+        selected={selected}
+        selection={
+          onSelectedChange && (
+            <Checkbox
+              size="sm"
+              checked={selected}
+              aria-label={t("card.select", { name: skill.name })}
+              onCheckedChange={(checked) => onSelectedChange(checked === true)}
+            />
+          )
+        }
+        control={
+          wakerId ? (
+            <Switch
+              hitArea="comfortable"
+              checked={skill.enabled}
+              disabled={disabled}
+              aria-label={t(skill.enabled ? "card.disable" : "card.enable", {
+                name: skill.name,
+              })}
+              onClick={() => onEnabledChange(!skill.enabled)}
+            />
+          ) : undefined
+        }
+        usage={
+          <ResourcePartnerUsage
+            count={skill.affectedWakerCount}
+            partners={skill.installedPartners}
+          />
+        }
+        actions={
+          <ResourceMoreAction
+            to={resourceTo}
+            name={skill.name}
+            viewLabel={t("plugin:manage")}
+          >
+            {!wakerId && onInstall && (
+              <DropdownMenuItem onSelect={onInstall}>
+                <Plus />
+                {t("plugin:install")}
+              </DropdownMenuItem>
+            )}
+            {onDelete && (
+              <DropdownMenuItem
+                className="text-destructive data-[highlighted]:text-destructive"
+                onSelect={onDelete}
+              >
+                <Trash2 />
+                {t("plugin:uninstallAction")}
+              </DropdownMenuItem>
+            )}
+          </ResourceMoreAction>
+        }
+      />
+    );
   return (
     <Card
       asChild
@@ -44,9 +123,14 @@ export function SkillCard({
       data-state={selected ? "selected" : undefined}
     >
       <article>
-        <div className="hover:bg-surface-subtle relative transition-colors">
+        <CardBody className="relative">
           <Link
-            to={`/wakers/${wakerId}/skills/${skill.id}`}
+            state={{ resourceBack: location.pathname + location.search }}
+            to={
+              wakerId
+                ? `/wakers/${wakerId}/skills/${skill.id}`
+                : `/resources/skills/${skill.id}`
+            }
             className="focus-visible:ring-ring absolute inset-0 z-10 rounded-t-xl outline-none focus-visible:ring-2 focus-visible:ring-inset"
             aria-label={t("card.view", { name: skill.name })}
             title={[skill.name, skill.description].filter(Boolean).join("\n")}
@@ -78,7 +162,7 @@ export function SkillCard({
               />
             ) : null}
           </div>
-        </div>
+        </CardBody>
 
         <CardFooter>
           <div className="text-muted-foreground type-caption flex min-w-0 items-center gap-3">
@@ -104,15 +188,21 @@ export function SkillCard({
                 <Trash2 />
               </Button>
             ) : null}
-            <Switch
-              hitArea="comfortable"
-              checked={skill.enabled}
-              disabled={disabled}
-              aria-label={t(skill.enabled ? "card.disable" : "card.enable", {
-                name: skill.name,
-              })}
-              onClick={() => onEnabledChange(!skill.enabled)}
-            />
+            {wakerId ? (
+              <Switch
+                hitArea="comfortable"
+                checked={skill.enabled}
+                disabled={disabled}
+                aria-label={t(skill.enabled ? "card.disable" : "card.enable", {
+                  name: skill.name,
+                })}
+                onClick={() => onEnabledChange(!skill.enabled)}
+              />
+            ) : onInstall ? (
+              <Button size="sm" variant="secondary" onClick={onInstall}>
+                {t("plugin:install")}
+              </Button>
+            ) : null}
           </div>
         </CardFooter>
       </article>

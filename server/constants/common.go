@@ -39,6 +39,9 @@ const ChatForkDirectoryName = "forks"
 // WorkflowFileMaximumBytes 限制单次上传或下载的文件字节数。
 const WorkflowFileMaximumBytes int64 = 100 << 20
 
+// SkillPartnerPreviewLimit 是独立技能卡片最多返回的安装伙伴预览数。
+const SkillPartnerPreviewLimit = 4
+
 const (
 	// WorkflowInstanceBudget 标识整次工作流累计节点实例数的预算错误。
 	WorkflowInstanceBudget = "instances"
@@ -226,6 +229,8 @@ const (
 	MCPConnectorMinimumTimeoutMS = int64(100)
 	// MCPConnectorMaximumTimeoutMS 是 MCP 连接器允许的最大请求超时毫秒数。
 	MCPConnectorMaximumTimeoutMS = int64(300_000)
+	// PluginConnectorDiagnosticCacheLimit 是当前 Core 最多保留的插件连接诊断数量。
+	PluginConnectorDiagnosticCacheLimit = 256
 	// MCPConnectorMaximumToolCount 是单个连接器允许公开的最大工具数。
 	MCPConnectorMaximumToolCount = 200
 	// MCPConnectorMaximumSummaryLength 是连接器测试摘要允许的最大字符数。
@@ -569,4 +574,80 @@ const (
 	WorkflowQueryWorkflows = "workflows"
 	// WorkflowQueryResultSchema 查询当前节点要求的结果格式。
 	WorkflowQueryResultSchema = "result_schema"
+)
+
+const (
+	// PluginManifestSchema 是本地支持的通用插件清单版本。
+	PluginManifestSchema = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
+	// PluginMCPSchema 是本地支持的插件 MCP 配置版本。
+	PluginMCPSchema = "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json"
+	// PluginFormatPortable 表示通用插件包。
+	PluginFormatPortable = "agent-plugins"
+	// PluginFormatClaude 表示仅导入可支持组件的 Claude 插件包。
+	PluginFormatClaude = "claude"
+	// PluginFormatCodex 表示仅导入可支持组件的 Codex 兼容插件包。
+	PluginFormatCodex = "codex"
+	// PluginExtensionNamespace 是客户端扩展空间。
+	PluginExtensionNamespace = "com.ally"
+)
+
+const (
+	// PluginProviderFeishu 表示固定飞书官方 CLI 适配。
+	PluginProviderFeishu = "feishu"
+	// PluginEventTopic 是插件资源唯一状态事件主题。
+	PluginEventTopic = "plugins"
+	// PluginProviderGitHub 表示固定 GitHub 官方 CLI 与远程 MCP 适配。
+	PluginProviderGitHub = "github"
+	// GitHubCLIVersion 是固定 GitHub 官方程序版本。
+	GitHubCLIVersion = "2.102.0"
+	// GitHubCLIBuildVersion 标识包含应用钥匙串隔离补丁的固定构建。
+	GitHubCLIBuildVersion = "2.102.0-neuxally.1"
+	// GitHubMCPURL 是允许共享身份交付的精确官方服务地址。
+	GitHubMCPURL = "https://api.githubcopilot.com/mcp/"
+	// GitHubMCPToolsets 限定首版官方工具范围。
+	GitHubMCPToolsets = "context,repos,issues,pull_requests,users"
+	// FeishuCLIVersion 是首批固定飞书程序版本。
+	FeishuCLIVersion = "1.0.98"
+)
+
+// PluginStdioMode 是 Core 内部的原生 MCP 工作目录子进程模式。
+const PluginStdioMode = "plugin-stdio"
+
+const (
+	// PluginLocaleEnglish 是插件英文展示与默认文档语言。
+	PluginLocaleEnglish = "en"
+	// PluginLocaleChinese 是插件简体中文展示与文档语言。
+	PluginLocaleChinese = "zh-CN"
+	// PluginCatalogHTTPSource 是默认公开软件目录。
+	PluginCatalogHTTPSource = "https://github.com/JieWaZi/NeuxAlly-Plugins/releases/latest/download/catalog.json"
+	// PluginAuthCommandStrategy 是包内授权桥接策略。
+	PluginAuthCommandStrategy = "plugin-command"
+	// PluginAuthProtocol 是逐行JSON-RPC授权扩展版本。
+	PluginAuthProtocol = "neuxally-auth/1"
+	// PluginAuthEnvironmentPrefix 隔离原生插件桥接秘密的进程环境键。
+	PluginAuthEnvironmentPrefix = "ALLY_PLUGIN_AUTH_"
+	// AIAccountCodexAPIKeyEnvironment 仅在执行进程中传递所选 Codex API 账号凭据。
+	AIAccountCodexAPIKeyEnvironment = "ALLY_CODEX_MODEL_API_KEY"
+	// PluginNativeMarketplace 是应用私有Codex原生索引身份。
+	PluginNativeMarketplace = "neuxally-managed"
+	// PluginDeliveryNative 是完整原生包交付。
+	PluginDeliveryNative = "native"
+	// PluginDeliveryProjection 是Skill/MCP投射交付。
+	PluginDeliveryProjection = "skill-mcp"
+	// PluginLoadStagePrepared 表示固定产物已准备，尚不代表模型调用成功。
+	PluginLoadStagePrepared = "prepared"
+	// PluginAuthStartMethod 发起桥接授权。
+	PluginAuthStartMethod = "auth/start"
+	// PluginAuthStatusMethod 核验实际身份。
+	PluginAuthStatusMethod = "auth/status"
+	// PluginAuthCancelMethod 停止上游等待。
+	PluginAuthCancelMethod = "auth/cancel"
+	// PluginAuthResolveMethod 解析获准组件秘密。
+	PluginAuthResolveMethod = "auth/resolve"
+	// PluginAuthLogoutMethod 清理插件私有身份。
+	PluginAuthLogoutMethod = "auth/logout"
+	// PluginAuthChallengeNotification 交付当前临时挑战。
+	PluginAuthChallengeNotification = "auth/challenge"
+	// PluginAuthStateNotification 交付协议实际阶段。
+	PluginAuthStateNotification = "auth/state"
 )

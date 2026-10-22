@@ -596,6 +596,7 @@ func normalizeTaskInput(input *execution.WorkInput) (*execution.WorkInput, error
 	}
 	cloned.Attachments = append([]execution.AttachmentInput(nil), cloned.Attachments...)
 	cloned.CodeReferences = append([]execution.CodeReferenceInput(nil), cloned.CodeReferences...)
+	cloned.PluginIDs = append([]string(nil), cloned.PluginIDs...)
 	cloned.SkillIDs = append([]string(nil), cloned.SkillIDs...)
 	cloned.ConnectorIDs = append([]string(nil), cloned.ConnectorIDs...)
 	return &cloned, nil
@@ -673,6 +674,7 @@ func nextFollowUpBatch(followUps []models.ChannelTaskFollowUp) []models.ChannelT
 func appendWorkInputReferences(target *execution.WorkInput, source execution.WorkInput) {
 	target.Attachments = append(target.Attachments, source.Attachments...)
 	target.CodeReferences = append(target.CodeReferences, source.CodeReferences...)
+	target.PluginIDs = append(target.PluginIDs, source.PluginIDs...)
 	target.SkillIDs = append(target.SkillIDs, source.SkillIDs...)
 	target.ConnectorIDs = append(target.ConnectorIDs, source.ConnectorIDs...)
 }

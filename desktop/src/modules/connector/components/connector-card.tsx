@@ -1,7 +1,14 @@
-import { Card, CardFooter } from "@/shared/ui/card";
+import { DropdownMenuItem } from "@/shared/ui/dropdown-menu";
+import {
+  ResourceManagementCard,
+  ResourcePartnerUsage,
+  ResourceMoreAction,
+} from "@/shared/ui/resource-management-card";
+import { Plus } from "lucide-react";
+import { Card, CardBody, CardFooter } from "@/shared/ui/card";
 import { Cable, Trash2, Wrench } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 import type { ConnectorSummary } from "../model/types";
 import { runtimeDisplayName } from "@/shared/lib/runtime-display-name";
@@ -12,6 +19,8 @@ import { Checkbox } from "@/shared/ui/checkbox";
 import { Switch } from "@/shared/ui/switch";
 
 type Props = {
+  compact?: boolean;
+  onInstall?: () => void;
   connector: ConnectorSummary;
   selected?: boolean;
   onSelectedChange?: (selected: boolean) => void;
@@ -22,14 +31,17 @@ type Props = {
 };
 
 export function ConnectorCard({
+  compact = false,
   connector,
   selected = false,
   onSelectedChange,
   disabled,
+  onInstall,
   onDelete,
   onEnabledChange,
   wakerId,
 }: Props) {
+  const location = useLocation();
   const { t } = useTranslation("connector");
   const visibleCompatibility = connector.compatibility.slice(0, 5);
   const hiddenCompatibilityCount = Math.max(
@@ -37,6 +49,71 @@ export function ConnectorCard({
     0,
   );
 
+  const resourceTo = wakerId
+    ? `/wakers/${wakerId}/connectors/${connector.id}`
+    : `/resources/connectors/${connector.id}`;
+  if (compact)
+    return (
+      <ResourceManagementCard
+        title={connector.name}
+        description={connector.description}
+        source={t(
+          `plugin:${connector.scope === "built_in" ? "builtInSource" : "independentResources"}`,
+        )}
+        icon={
+          <span className="bg-muted text-muted-foreground grid size-10 shrink-0 place-items-center rounded-md">
+            <Cable className="size-icon-lg" />
+          </span>
+        }
+        to={resourceTo}
+        label={t("card.view", { name: connector.name })}
+        selected={selected}
+        selection={
+          onSelectedChange && (
+            <Checkbox
+              size="sm"
+              checked={selected}
+              aria-label={t("card.select", { name: connector.name })}
+              onCheckedChange={(checked) => onSelectedChange(checked === true)}
+            />
+          )
+        }
+        control={
+          wakerId && connector.activationPolicy !== "workflow_context" ? (
+            <Switch
+              hitArea="comfortable"
+              checked={connector.enabled}
+              disabled={disabled}
+              aria-label={t(
+                connector.enabled ? "card.disable" : "card.enable",
+                { name: connector.name },
+              )}
+              onClick={() => onEnabledChange(!connector.enabled)}
+            />
+          ) : undefined
+        }
+        usage={<ResourcePartnerUsage count={connector.affectedWakerCount} />}
+        actions={
+          <ResourceMoreAction to={resourceTo} name={connector.name}>
+            {!wakerId && onInstall && (
+              <DropdownMenuItem onSelect={onInstall}>
+                <Plus />
+                {t("plugin:install")}
+              </DropdownMenuItem>
+            )}
+            {onDelete && (
+              <DropdownMenuItem
+                className="text-destructive data-[highlighted]:text-destructive"
+                onSelect={onDelete}
+              >
+                <Trash2 />
+                {t("card.delete", { name: connector.name })}
+              </DropdownMenuItem>
+            )}
+          </ResourceMoreAction>
+        }
+      />
+    );
   return (
     <Card
       asChild
@@ -44,9 +121,14 @@ export function ConnectorCard({
       data-state={selected ? "selected" : undefined}
     >
       <article>
-        <div className="hover:bg-surface-subtle h-connector-card-content relative shrink-0 overflow-hidden transition-colors">
+        <CardBody className="h-connector-card-content relative shrink-0 overflow-hidden">
           <Link
-            to={`/wakers/${wakerId}/connectors/${connector.id}`}
+            state={{ resourceBack: location.pathname + location.search }}
+            to={
+              wakerId
+                ? `/wakers/${wakerId}/connectors/${connector.id}`
+                : `/resources/connectors/${connector.id}`
+            }
             className="focus-visible:ring-ring absolute inset-0 z-10 rounded-t-xl outline-none focus-visible:ring-2 focus-visible:ring-inset"
             aria-label={t("card.view", { name: connector.name })}
             title={[connector.name, connector.description]
@@ -97,7 +179,7 @@ export function ConnectorCard({
               />
             ) : null}
           </div>
-        </div>
+        </CardBody>
 
         <CardFooter className="h-row-navigation shrink-0">
           <div className="flex min-w-0 items-center gap-2">
@@ -145,7 +227,7 @@ export function ConnectorCard({
               <span className="text-muted-foreground type-caption">
                 {t("systemManaged")}
               </span>
-            ) : (
+            ) : wakerId ? (
               <Switch
                 hitArea="comfortable"
                 checked={connector.enabled}
@@ -158,7 +240,11 @@ export function ConnectorCard({
                 )}
                 onClick={() => onEnabledChange(!connector.enabled)}
               />
-            )}
+            ) : onInstall ? (
+              <Button size="sm" variant="secondary" onClick={onInstall}>
+                {t("plugin:install")}
+              </Button>
+            ) : null}
           </div>
         </CardFooter>
       </article>

@@ -18,7 +18,7 @@ vi.mock("./skill-version-diff-view", () => {
   });
 });
 
-it("关闭时不加载差异库，打开后保留弹窗操作并只在差异区显示 Spinner", async () => {
+it("关闭时不加载差异库，打开后保留弹窗操作并只在差异区显示 Skeleton", async () => {
   const user = userEvent.setup();
   const onOpenChange = vi.fn();
   const onApply = vi.fn();
@@ -59,6 +59,12 @@ it("关闭时不加载差异库，打开后保留弹窗操作并只在差异区�
   ).toBeVisible();
   expect(screen.getByText("SKILL.md")).toBeVisible();
   expect(screen.getByRole("status")).toHaveAttribute("aria-busy", "true");
+  expect(
+    screen.getByRole("status").querySelector(".animate-pulse"),
+  ).not.toBeNull();
+  expect(
+    screen.getByRole("status").querySelector(".agent-grid-spinner"),
+  ).toBeNull();
   await user.click(screen.getByRole("button", { name: "common:cancel" }));
   expect(onOpenChange).toHaveBeenCalledWith(false);
 

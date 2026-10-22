@@ -4,6 +4,7 @@ package execution
 import (
 	"context"
 	"encoding/json"
+	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/authorization"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -14,12 +15,14 @@ import (
 	eventlog "github.com/JieWaZi/NeuxAlly/server/internal/chat/eventlog"
 	"github.com/JieWaZi/NeuxAlly/server/internal/chatstorage"
 	"github.com/JieWaZi/NeuxAlly/server/internal/notification/events"
+	"github.com/JieWaZi/NeuxAlly/server/internal/plugins"
 	"github.com/JieWaZi/NeuxAlly/server/internal/projectsource"
 	"github.com/JieWaZi/NeuxAlly/server/internal/runtimes"
 	"github.com/JieWaZi/NeuxAlly/server/repositories/controllers"
 	"github.com/JieWaZi/NeuxAlly/server/repositories/models"
 	"github.com/JieWaZi/NeuxAlly/server/services/aiaccount"
 	chatservice "github.com/JieWaZi/NeuxAlly/server/services/chat"
+	"github.com/JieWaZi/NeuxAlly/server/services/plugininstallation"
 )
 
 // Service 是当前 Chat API 与未来 Channel、Schedule、IM 共用的执行接口。
@@ -116,6 +119,16 @@ type service struct {
 	skillController controllers.SkillController
 	// connectorController 读取伙伴当前启用并已解密的连接器。
 	connectorController controllers.MCPConnectorController
+	// pluginInstallations 复用声明驱动身份与安装预检。
+	pluginInstallations *plugininstallation.Service
+	// pluginContents 保留进行中执行使用的内容目录。
+	pluginContents *plugins.ContentStore
+	// pluginController 读取插件安装的原子资源快照。
+	pluginController controllers.PluginController
+	// pluginAuthorizers 保护各提供者共享身份的使用期间。
+	pluginAuthorizers map[string]*authorization.Authorizer
+	// pluginLauncher 是受管 Core 可执行文件的绝对位置。
+	pluginLauncher string
 	// runtimeEnvironments 读取已经启用且探测可用的 Runtime 条目。
 	runtimeEnvironments runtimeEnvironmentReader
 	// skillDataDirectory 是技能版本文件的根目录。
@@ -166,6 +179,16 @@ type Config struct {
 	Skills controllers.SkillController
 	// Connectors 读取伙伴当前启用并已解密的连接器。
 	Connectors controllers.MCPConnectorController
+	// PluginInstallations 提供共享声明驱动身份。
+	PluginInstallations *plugininstallation.Service
+	// PluginContents 保护受管内容使用与延迟回收。
+	PluginContents *plugins.ContentStore
+	// Plugins 读取插件资源和安装。
+	Plugins controllers.PluginController
+	// PluginAuthorizers 提供各官方账号的共享租约。
+	PluginAuthorizers map[string]*authorization.Authorizer
+	// PluginLauncher 提供保持 MCP 工作目录的 Core 程序。
+	PluginLauncher string
 	// RuntimeEnvironments 读取执行准备使用的 Runtime 探测快照。
 	RuntimeEnvironments runtimeEnvironmentReader
 	// SkillDataDirectory 是 NeuxAlly 受管技能版本所在的应用数据目录。
@@ -247,14 +270,17 @@ func New(config Config) (Core, error) {
 		profileController:    config.Profiles,
 		projectController:    config.Projects,
 		skillController:      config.Skills,
-		connectorController:  config.Connectors,
-		runtimeEnvironments:  config.RuntimeEnvironments,
-		skillDataDirectory:   strings.TrimSpace(config.SkillDataDirectory),
-		storage:              storage,
-		executions:           newExecutionRegistry(),
-		createRequests:       newCreateRequestRegistry(),
-		approvals:            newApprovalCoordinator(config.Journal),
-		elicitations:         newElicitationCoordinator(config.Journal, config.Events),
+		pluginContents:       config.PluginContents,
+		pluginInstallations:  config.PluginInstallations,
+		pluginController:     config.Plugins, pluginAuthorizers: config.PluginAuthorizers, pluginLauncher: config.PluginLauncher,
+		connectorController: config.Connectors,
+		runtimeEnvironments: config.RuntimeEnvironments,
+		skillDataDirectory:  strings.TrimSpace(config.SkillDataDirectory),
+		storage:             storage,
+		executions:          newExecutionRegistry(),
+		createRequests:      newCreateRequestRegistry(),
+		approvals:           newApprovalCoordinator(config.Journal),
+		elicitations:        newElicitationCoordinator(config.Journal, config.Events),
 	}, nil
 }
 

@@ -45,6 +45,9 @@ export function ConnectorDeleteDialog({
     try {
       await deleteConnector.mutateAsync({
         path: { connectorId, wakerId },
+        query: wakerId
+          ? undefined
+          : { confirmed: true, expectedAffectedCount: affectedWakerCount },
       });
       await invalidateVisibleConnectorQueries(queryClient);
       onOpenChange(false);

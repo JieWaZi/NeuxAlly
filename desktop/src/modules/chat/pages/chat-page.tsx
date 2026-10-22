@@ -1,3 +1,4 @@
+import { useInstalledPluginReferences } from "@/modules/plugin";
 import { useExecutionSelection } from "@/shared/hooks/use-execution-selection";
 import type { ExecutionSelection } from "@/shared/hooks/use-execution-selection";
 import { useChatFork } from "../components/chat-fork";
@@ -166,6 +167,9 @@ export function ChatPageContent({
   const [selectedSkillIDsByWaker, setSelectedSkillIDsByWaker] = useState<
     Record<string, string[]>
   >({});
+  const [selectedPluginIDsByWaker, setSelectedPluginIDsByWaker] = useState<
+    Record<string, string[]>
+  >({});
   const [selectedConnectorIDsByWaker, setSelectedConnectorIDsByWaker] =
     useState<Record<string, string[]>>({});
   const [composerRestoreRevision, setComposerRestoreRevision] = useState(0);
@@ -222,6 +226,7 @@ export function ChatPageContent({
   );
   const resetComposerScope = useCallback(() => {
     setSelectedSkillIDsByWaker({});
+    setSelectedPluginIDsByWaker({});
     setSelectedConnectorIDsByWaker({});
   }, []);
   const {
@@ -288,6 +293,21 @@ export function ChatPageContent({
     }),
     enabled: Boolean(selectedWakerID),
   });
+  const pluginsQuery = useInstalledPluginReferences(selectedWakerID);
+  const enabledPlugins = pluginsQuery.plugins;
+  // 已选插件失效时保留明确意图，由 Core 拒绝；候选刷新不能静默降级发送。
+  const selectedPluginIDs =
+    selectedPluginIDsByWaker[selectedWakerID ?? ""] ?? [];
+  const selectedPlugins = enabledPlugins.filter((plugin) =>
+    selectedPluginIDs.includes(plugin.id),
+  );
+  const setSelectedPluginIDs = (ids: string[]) => {
+    if (selectedWakerID)
+      setSelectedPluginIDsByWaker((current) => ({
+        ...current,
+        [selectedWakerID]: ids,
+      }));
+  };
   const skillsQuery = useQuery({
     ...listWakerSkillsOptions({
       path: { wakerId: selectedWakerID ?? "pending" },
@@ -690,6 +710,8 @@ export function ChatPageContent({
       permissionLevel: selectedPermissionLevel,
       skillIds: selectedSkillIDs,
       selectedSkills,
+      pluginIds: selectedPluginIDs,
+      selectedPlugins,
       connectorIds: selectedConnectorIDs,
       selectedConnectors,
       codeReferences: selectedCodeReferences,
@@ -706,6 +728,15 @@ export function ChatPageContent({
           new Set([
             ...(current[selectedWakerID] ?? []),
             ...(selection.skillIds ?? []),
+          ]),
+        ),
+      }));
+      setSelectedPluginIDsByWaker((current) => ({
+        ...current,
+        [selectedWakerID]: Array.from(
+          new Set([
+            ...(current[selectedWakerID] ?? []),
+            ...(selection.pluginIds ?? []),
           ]),
         ),
       }));
@@ -731,6 +762,7 @@ export function ChatPageContent({
         permissionLevel: selection?.permissionLevel ?? "auto",
         attachments: attachmentPaths.map((sourcePath) => ({ sourcePath })),
         skillIds: selection?.skillIds ?? [],
+        pluginIds: selection?.pluginIds ?? [],
         connectorIds: selection?.connectorIds ?? [],
         ...(selection?.workflowIds?.length
           ? { workflowIds: selection.workflowIds }
@@ -1150,11 +1182,18 @@ export function ChatPageContent({
       renderComposerContextStrip,
       composerSkills: enabledSkills,
       composerSkillsError: skillsQuery.isError,
+      composerPlugins: enabledPlugins,
+      composerPluginsError: pluginsQuery.isError,
+      selectedPluginIds: selectedPluginIDs,
+      onPluginSelectionChange: setSelectedPluginIDs,
       composerConnectors: enabledConnectors,
       composerConnectorsError: connectorsQuery.isError,
       composerFileRoots: fileRoots,
       composerFileScopePath: projectFilesScopePath(activeChatId) || undefined,
       availableSkillIds: availableSkillIDs,
+      availablePluginIds: pluginsQuery.data
+        ? new Set(enabledPlugins.map((plugin) => plugin.id))
+        : undefined,
       availableConnectorIds: availableConnectorIDs,
       selectedSkillIds: selectedSkillIDs,
       selectedConnectorIds: selectedConnectorIDs,

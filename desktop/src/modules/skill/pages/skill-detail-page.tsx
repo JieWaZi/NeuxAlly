@@ -1,3 +1,5 @@
+import { useRouteSceneActive } from "@/shared/workspace/app-scene-workspace";
+import { useQueryEvents } from "@/shared/api/use-query-events";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   localApiErrorMessage,
@@ -7,13 +9,13 @@ import {
 import { Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 
 import { WakerDetailLayout } from "@/modules/waker";
-import { Button } from "@/shared/ui/button";
 import { PageHeader } from "@/shared/ui/page-header";
 import { PageAction, ResourcePageSurface } from "@/shared/ui/resource-page";
 import { SegmentedControl } from "@/shared/ui/segmented-control";
+import { QueryState } from "@/shared/ui/query-state";
 import { Skeleton } from "@/shared/ui/skeleton";
 import { Switch } from "@/shared/ui/switch";
 import { useTheme } from "@/shared/theme";
@@ -52,6 +54,13 @@ export function SkillDetailPage() {
   const { t } = useTranslation("skill");
   const { skillId = "", wakerId = "" } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const active = useRouteSceneActive();
+  const back =
+    (location.state as { resourceBack?: string } | null)?.resourceBack ??
+    (wakerId
+      ? `/wakers/${wakerId}/resources?category=skills`
+      : "/resources?category=skills");
   const queryClient = useQueryClient();
   const { resolvedTheme } = useTheme();
   const [tab, setTab] = useState<DetailTab>("explanation");
@@ -64,13 +73,20 @@ export function SkillDetailPage() {
   );
   const detailQuery = useQuery({
     ...detailOptions,
-    enabled: Boolean(wakerId && skillId),
+    enabled: active && Boolean(skillId),
   });
+  const versionsOptions = listSkillVersionsOptions(
+    withLocalErrorSurface({ path: { wakerId, skillId } }),
+  );
   const versionsQuery = useQuery({
-    ...listSkillVersionsOptions(
-      withLocalErrorSurface({ path: { wakerId, skillId } }),
-    ),
-    enabled: Boolean(wakerId && skillId),
+    ...versionsOptions,
+    enabled: active && Boolean(skillId),
+  });
+  useQueryEvents({
+    topic: "resources",
+    resource: { kind: "global" },
+    queryKeys: [detailOptions.queryKey, versionsOptions.queryKey],
+    active,
   });
   const skill = detailQuery.data?.skill;
   const currentVersion = detailQuery.data?.currentVersion;
@@ -85,7 +101,7 @@ export function SkillDetailPage() {
         },
       }),
     ),
-    enabled: Boolean(wakerId && skillId && currentVersionId),
+    enabled: Boolean(skillId && currentVersionId),
   });
   const diffVersionQuery = useQuery({
     ...getSkillVersionOptions(
@@ -140,72 +156,27 @@ export function SkillDetailPage() {
     : null;
   const backAction = {
     label: t("detail.backToList"),
-    onClick: () => navigate(`/wakers/${wakerId}/skills`),
+    onClick: () => navigate(back),
   };
-
-  if (detailQuery.isPending) {
-    return (
-      <WakerDetailLayout active="skills">
-        <ResourcePageSurface>
-          <PageHeader
-            layout="detail"
-            title={t("title")}
-            backAction={backAction}
-          />
-          <div className="mt-6 grid gap-4">
-            <Skeleton className="h-16 w-full" />
-            <Skeleton className="h-40 w-full" />
-            <Skeleton className="h-80 w-full" />
-          </div>
-        </ResourcePageSurface>
-      </WakerDetailLayout>
-    );
-  }
-  if (detailQuery.isError || !skill) {
-    return (
-      <WakerDetailLayout active="skills">
-        <ResourcePageSurface>
-          <PageHeader
-            layout="detail"
-            title={t("title")}
-            backAction={backAction}
-          />
-          <div className="mt-6 grid place-items-center p-6 text-center">
-            <div>
-              <p className="type-label font-medium">{t("detail.notFound")}</p>
-              <Button
-                size="sm"
-                variant="secondary"
-                className="mt-3"
-                onClick={() => void detailQuery.refetch()}
-              >
-                {t("common:retry")}
-              </Button>
-            </div>
-          </div>
-        </ResourcePageSurface>
-      </WakerDetailLayout>
-    );
-  }
 
   const currentVersionNumber = currentVersion?.version ?? "";
   const sourceLabel =
-    skill.source === "git"
+    skill?.source === "git"
       ? t("source.publicGit")
-      : skill.source === "zip"
+      : skill?.source === "zip"
         ? t("source.zipImport")
         : t("source.allyBuiltIn");
   const scopeLabel =
-    skill.builtIn || skill.source === "builtin"
+    skill?.builtIn || skill?.source === "builtin"
       ? t("scope.built_in")
-      : skill.scope === "public"
+      : skill?.scope === "public"
         ? t("scope.public")
         : t("scope.private");
   const instructions = currentVersionQuery.data?.content ?? "";
   const metadataName = currentVersion?.name ?? "";
   const metadataDescription =
-    currentVersion?.description ?? skill.description ?? "";
-  const builtIn = Boolean(skill.builtIn || skill.source === "builtin");
+    currentVersion?.description ?? skill?.description ?? "";
+  const builtIn = Boolean(skill?.builtIn || skill?.source === "builtin");
   const saveVersion = (
     body: Parameters<typeof createVersion.mutate>[0]["body"],
     onSuccess?: () => void,
@@ -219,92 +190,113 @@ export function SkillDetailPage() {
           layout="detail"
           backAction={backAction}
           visual={<SkillIcon />}
-          title={skill.name ?? ""}
+          title={skill?.name ?? t("title")}
           actions={
-            <div className="grid max-w-full justify-items-end gap-2">
-              <div className="flex max-w-full flex-wrap items-center gap-2">
-                <SkillDisplayNameEditor
-                  name={skill.name ?? ""}
-                  pending={updateSkill.isPending}
-                  error={updateSkill.error}
-                  onSave={(name, onSuccess) =>
-                    updateSkill.mutate(
-                      { path: { wakerId, skillId }, body: { name } },
-                      { onSuccess },
-                    )
-                  }
-                />
-
-                {skill.source === "git" ? (
-                  <SkillGitPullDialog
-                    currentVersion={currentVersionNumber}
-                    error={pullUpdate.isError}
-                    pending={pullUpdate.isPending}
-                    onPull={(version, notes, onSuccess) =>
-                      pullUpdate.mutate(
-                        {
-                          path: { wakerId, skillId },
-                          body: { version, notes },
-                        },
+            skill && (
+              <div className="grid max-w-full justify-items-end gap-2">
+                <div className="flex max-w-full flex-wrap items-center gap-2">
+                  {wakerId && (
+                    <>
+                      <Switch
+                        hitArea="comfortable"
+                        checked={detailQuery.data?.enabled ?? false}
+                        disabled={toggleSkill.isPending}
+                        aria-label={t(
+                          detailQuery.data?.enabled
+                            ? "detail.disable"
+                            : "detail.enable",
+                          { name: skill?.name },
+                        )}
+                        onClick={() =>
+                          toggleSkill.mutate({
+                            path: { wakerId, skillId },
+                            body: {
+                              enabled: !(detailQuery.data?.enabled ?? false),
+                            },
+                          })
+                        }
+                      />
+                      <span className="text-content-secondary type-body">
+                        {detailQuery.data?.enabled
+                          ? t("enabled")
+                          : t("disabled")}
+                      </span>
+                    </>
+                  )}
+                  <SkillDisplayNameEditor
+                    name={skill?.name ?? ""}
+                    pending={updateSkill.isPending}
+                    error={updateSkill.error}
+                    onSave={(name, onSuccess) =>
+                      updateSkill.mutate(
+                        { path: { wakerId, skillId }, body: { name } },
                         { onSuccess },
                       )
                     }
                   />
+                  {!builtIn ? (
+                    <PageAction
+                      intent="delete"
+                      label={t("detail.uninstall")}
+                      onClick={() => setDeleteOpen(true)}
+                    >
+                      <Trash2 />
+                    </PageAction>
+                  ) : null}
+                  {skill?.source === "git" ? (
+                    <SkillGitPullDialog
+                      currentVersion={currentVersionNumber}
+                      error={pullUpdate.isError}
+                      pending={pullUpdate.isPending}
+                      onPull={(version, notes, onSuccess) =>
+                        pullUpdate.mutate(
+                          {
+                            path: { wakerId, skillId },
+                            body: { version, notes },
+                          },
+                          { onSuccess },
+                        )
+                      }
+                    />
+                  ) : null}
+                </div>
+                {toggleSkill.isError ? (
+                  <p role="alert" className="text-destructive type-caption">
+                    {localApiErrorMessage(toggleSkill.error, t("toggleFailed"))}
+                  </p>
                 ) : null}
-                {!builtIn ? (
-                  <PageAction
-                    intent="delete"
-                    label={t("detail.uninstall")}
-                    onClick={() => setDeleteOpen(true)}
-                  >
-                    <Trash2 />
-                  </PageAction>
-                ) : null}
-                <Switch
-                  hitArea="comfortable"
-                  checked={detailQuery.data?.enabled ?? false}
-                  disabled={toggleSkill.isPending}
-                  aria-label={t(
-                    detailQuery.data?.enabled
-                      ? "detail.disable"
-                      : "detail.enable",
-                    { name: skill.name },
-                  )}
-                  onClick={() =>
-                    toggleSkill.mutate({
-                      path: { wakerId, skillId },
-                      body: { enabled: !(detailQuery.data?.enabled ?? false) },
-                    })
-                  }
-                />
-                <span className="text-content-secondary type-body">
-                  {detailQuery.data?.enabled ? t("enabled") : t("disabled")}
-                </span>
               </div>
-              {toggleSkill.isError ? (
-                <p role="alert" className="text-destructive type-caption">
-                  {localApiErrorMessage(toggleSkill.error, t("toggleFailed"))}
-                </p>
-              ) : null}
-            </div>
+            )
           }
         >
-          <div className="mt-2 flex items-center gap-2">
-            <span className="bg-muted text-muted-foreground type-caption shrink-0 rounded-full px-2 py-1">
-              v{currentVersionNumber}
-            </span>
-            <span className="bg-muted text-muted-foreground type-caption shrink-0 rounded-full px-2 py-1">
-              {scopeLabel}
-            </span>
-          </div>
+          {skill && (
+            <div className="mt-2 flex items-center gap-2">
+              <span className="bg-muted text-muted-foreground type-caption shrink-0 rounded-full px-2 py-1">
+                v{currentVersionNumber}
+              </span>
+              <span className="bg-muted text-muted-foreground type-caption shrink-0 rounded-full px-2 py-1">
+                {scopeLabel}
+              </span>
+            </div>
+          )}
         </PageHeader>
 
         <main className="min-w-0">
-          <SkillMetadataCard
-            name={metadataName}
-            description={metadataDescription}
-            source={sourceLabel}
-          />
+          {skill && detailQuery.isError && (
+            <QueryState
+              error={detailQuery.error}
+              onRetry={() => void detailQuery.refetch()}
+            />
+          )}
+          {skill ? (
+            <SkillMetadataCard
+              name={metadataName}
+              description={metadataDescription}
+              source={sourceLabel}
+            />
+          ) : detailQuery.isPending ? (
+            <Skeleton className="mt-6 h-40 w-full" />
+          ) : null}
           <section className="mt-8">
             <SegmentedControl
               value={tab}
@@ -325,39 +317,74 @@ export function SkillDetailPage() {
                 },
               ]}
             />
-            <div className="mt-4">
-              <div hidden={tab !== "explanation"}>
-                <SkillInstructionsPanel content={instructions} />
-              </div>
-              <div hidden={tab !== "resources"}>
-                {currentVersionQuery.data ? (
-                  <SkillResourceBrowser
-                    key={`${skillId}:${currentVersionId}`}
-                    resources={resources}
-                    instructions={instructions}
-                    wakerId={wakerId}
-                    skillId={skillId}
-                    versionId={currentVersionId}
-                    currentVersion={currentVersionNumber}
-                    pending={createVersion.isPending}
-                    error={createVersion.isError}
-                    onSave={saveVersion}
-                  />
-                ) : (
-                  <Skeleton className="h-96 w-full" />
-                )}
-              </div>
-              <div hidden={tab !== "version"}>
-                <SkillVersionHistory
-                  currentVersionId={currentVersionId}
-                  currentVersion={currentVersionNumber}
-                  onVersionClick={(version) =>
-                    version.id && setDiffVersionId(version.id)
-                  }
-                  versions={versionsQuery.data ?? []}
+            {!skill ? (
+              <div className="mt-4">
+                <QueryState
+                  loadingLayout="detail"
+                  pending={detailQuery.isPending}
+                  error={detailQuery.error}
+                  emptyLabel={t("detail.notFound")}
+                  onRetry={() => void detailQuery.refetch()}
                 />
               </div>
-            </div>
+            ) : (
+              <div className="mt-4">
+                <div hidden={tab !== "explanation"}>
+                  {!currentVersionQuery.data ? (
+                    <QueryState
+                      loadingLayout="content"
+                      pending={currentVersionQuery.isPending}
+                      error={currentVersionQuery.error}
+                      onRetry={() => void currentVersionQuery.refetch()}
+                    />
+                  ) : (
+                    <SkillInstructionsPanel content={instructions} />
+                  )}
+                </div>
+                <div hidden={tab !== "resources"}>
+                  {currentVersionQuery.data ? (
+                    <SkillResourceBrowser
+                      key={`${skillId}:${currentVersionId}`}
+                      resources={resources}
+                      instructions={instructions}
+                      wakerId={wakerId}
+                      skillId={skillId}
+                      versionId={currentVersionId}
+                      currentVersion={currentVersionNumber}
+                      pending={createVersion.isPending}
+                      error={createVersion.isError}
+                      onSave={saveVersion}
+                    />
+                  ) : (
+                    <QueryState
+                      loadingLayout="content"
+                      pending={currentVersionQuery.isPending}
+                      error={currentVersionQuery.error}
+                      onRetry={() => void currentVersionQuery.refetch()}
+                    />
+                  )}
+                </div>
+                <div hidden={tab !== "version"}>
+                  {!versionsQuery.data ? (
+                    <QueryState
+                      loadingLayout="content"
+                      pending={versionsQuery.isPending}
+                      error={versionsQuery.error}
+                      onRetry={() => void versionsQuery.refetch()}
+                    />
+                  ) : (
+                    <SkillVersionHistory
+                      currentVersionId={currentVersionId}
+                      currentVersion={currentVersionNumber}
+                      onVersionClick={(version) =>
+                        version.id && setDiffVersionId(version.id)
+                      }
+                      versions={versionsQuery.data ?? []}
+                    />
+                  )}
+                </div>
+              </div>
+            )}
           </section>
         </main>
       </ResourcePageSurface>
@@ -400,13 +427,13 @@ export function SkillDetailPage() {
             {
               affectedWakerCount: detailQuery.data?.affectedWakerCount ?? 1,
               id: skillId,
-              name: skill.name ?? "",
-              scope: skill.scope === "public" ? "public" : "private",
+              name: skill?.name ?? "",
+              scope: skill?.scope === "public" ? "public" : "private",
             },
           ]}
           wakerId={wakerId}
           onOpenChange={setDeleteOpen}
-          onDeleted={() => navigate(`/wakers/${wakerId}/skills`)}
+          onDeleted={() => navigate(back)}
         />
       ) : null}
     </WakerDetailLayout>

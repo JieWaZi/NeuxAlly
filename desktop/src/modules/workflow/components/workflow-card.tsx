@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import type { GithubComJieWaZiNeuxAllyServerRepositoriesModelsWorkflowDefinition } from "@/shared/api/generated/types.gen";
 import { Button } from "@/shared/ui/button";
-import { Card, CardFooter } from "@/shared/ui/card";
+import { Card, CardBody, CardFooter } from "@/shared/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,24 +32,26 @@ export function WorkflowCard({
     <>
       <Card asChild variant="resource">
         <article>
-          <Link
-            to={`/workflows/${id}`}
-            className="hover:bg-surface-subtle focus-visible:ring-ring duration-quick grid min-h-32 min-w-0 grid-cols-[40px_minmax(0,1fr)] items-start gap-4 p-5 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-inset motion-reduce:transition-none"
-          >
-            <Workflow
-              className="text-muted-foreground size-icon-lg"
-              aria-hidden="true"
-              strokeWidth={1.5}
-            />
-            <div className="min-w-0">
-              <h2 className="type-label font-medium">{title}</h2>
-              {definition.description ? (
-                <p className="text-muted-foreground type-body mt-2 line-clamp-3">
-                  {definition.description}
-                </p>
-              ) : null}
-            </div>
-          </Link>
+          <CardBody asChild>
+            <Link
+              to={`/workflows/${id}`}
+              className="focus-visible:ring-ring duration-quick grid min-h-32 min-w-0 grid-cols-[40px_minmax(0,1fr)] items-start gap-4 p-5 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-inset motion-reduce:transition-none"
+            >
+              <Workflow
+                className="text-muted-foreground size-icon-lg"
+                aria-hidden="true"
+                strokeWidth={1.5}
+              />
+              <div className="min-w-0">
+                <h2 className="type-label font-medium">{title}</h2>
+                {definition.description ? (
+                  <p className="text-muted-foreground type-body mt-2 line-clamp-3">
+                    {definition.description}
+                  </p>
+                ) : null}
+              </div>
+            </Link>
+          </CardBody>
           <CardFooter className="grid grid-cols-[minmax(0,1fr)_44px] gap-0 px-0">
             <div className="text-muted-foreground type-caption flex min-w-0 items-center px-5">
               <span>

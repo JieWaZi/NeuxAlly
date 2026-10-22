@@ -13,6 +13,7 @@ import (
 	memoryapi "github.com/JieWaZi/NeuxAlly/server/apis/memory"
 	"github.com/JieWaZi/NeuxAlly/server/apis/middleware"
 	"github.com/JieWaZi/NeuxAlly/server/apis/notifications"
+	"github.com/JieWaZi/NeuxAlly/server/apis/plugins"
 	"github.com/JieWaZi/NeuxAlly/server/apis/projects"
 	"github.com/JieWaZi/NeuxAlly/server/apis/role_presets"
 	"github.com/JieWaZi/NeuxAlly/server/apis/runtime_options"
@@ -45,7 +46,11 @@ func init() {
 	desktopRouter.Register(runtime_options.Router)
 	desktopRouter.Register(ai_accounts.Router)
 	desktopRouter.Register(skills.Router)
+	desktopRouter.Register(skills.LibraryRouter)
 	desktopRouter.Register(mcp.Router)
+	desktopRouter.Register(mcp.LibraryRouter)
+	desktopRouter.Register(plugins.Router)
+	desktopRouter.Register(plugins.WakerRouter)
 	desktopRouter.Register(imapi.Router)
 	desktopRouter.Register(workflows.Router)
 	desktopRouter.Register(work_board.Router)

@@ -504,6 +504,9 @@ export function useChatRuntime(options: ChatRuntimeOptions): ChatRuntimeResult {
           role: "user",
           content: text,
           attachments: optimisticAttachmentsOf(message),
+          plugins: snapshot.selection.selectedPlugins?.map((plugin) => ({
+            ...plugin,
+          })),
           skills: (snapshot.selection.selectedSkills ?? []).map((skill) => ({
             ...skill,
           })),
@@ -741,6 +744,12 @@ export function useChatRuntime(options: ChatRuntimeOptions): ChatRuntimeResult {
           : undefined,
         selectedSkills: options.selection.selectedSkills?.map((skill) => ({
           ...skill,
+        })),
+        pluginIds: options.selection.pluginIds
+          ? [...options.selection.pluginIds]
+          : undefined,
+        selectedPlugins: options.selection.selectedPlugins?.map((plugin) => ({
+          ...plugin,
         })),
         connectorIds: options.selection.connectorIds
           ? [...options.selection.connectorIds]

@@ -1,7 +1,6 @@
 package skills
 
 import (
-	"os"
 	"path/filepath"
 
 	"github.com/JieWaZi/NeuxAlly/server/constants"
@@ -60,8 +59,15 @@ func (s *ScanWakerSkillImport) Path() string { return "/:wakerId/skills/import/s
 
 // Output 暂存来源并返回候选，不创建任何技能权威事实。
 func (s *ScanWakerSkillImport) Output(ctx *gin.Context) (interface{}, error) {
-	if _, err := global.WakerControllerManager.Get(ctx, s.WakerID); err != nil {
-		return nil, ginx.WithStack(err)
+	return scanSkillImport(ctx, s)
+}
+
+// scanSkillImport 复用相同资源用例，空伙伴范围表示全局库。
+func scanSkillImport(ctx *gin.Context, s *ScanWakerSkillImport) (SkillImportBatch, error) {
+	if s.WakerID != "" {
+		if _, err := global.WakerControllerManager.Get(ctx, s.WakerID); err != nil {
+			return SkillImportBatch{}, ginx.WithStack(err)
+		}
 	}
 	batch, err := internalSkills.StageImport(
 		ctx,
@@ -73,17 +79,9 @@ func (s *ScanWakerSkillImport) Output(ctx *gin.Context) (interface{}, error) {
 	)
 	if err != nil {
 		logx.Errorf("scan skill source failed: kind=%s waker_id=%s error=%v", s.Body.Kind, s.WakerID, err)
-		return nil, ginx.WithStack(err)
+		return SkillImportBatch{}, ginx.WithStack(err)
 	}
-	visible, err := global.SkillControllerManager.ListVisible(ctx, s.WakerID, "")
-	if err != nil {
-		_ = os.RemoveAll(batch.Root)
-		return nil, ginx.WithStack(err)
-	}
-	installed := make(map[string]string, len(visible))
-	for _, item := range visible {
-		installed[item.SkillPackage.Name] = item.SkillPackage.ID
-	}
+	installed := map[string]string{}
 	candidates := make([]SkillImportCandidate, 0, len(batch.Packages))
 	for _, candidate := range batch.Packages {
 		installedSkillID := installed[candidate.Name]

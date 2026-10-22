@@ -30,7 +30,12 @@ export function toConnectorSummary(
   const connector = view.connector;
   if (!connector?.id || !connector.name) return null;
   const transport = connectorTransportOf(connector.transport);
-  const scope = connector.scope === "built_in" ? "built_in" : "public";
+  const scope =
+    connector.scope === "built_in"
+      ? "built_in"
+      : connector.scope === "private"
+        ? "private"
+        : "public";
   const testStatus =
     connector.testStatus === "succeeded" || connector.testStatus === "failed"
       ? connector.testStatus

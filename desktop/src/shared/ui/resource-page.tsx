@@ -25,7 +25,10 @@ export function PageActionLabel({
   );
 }
 
-/** 页面操作按语义决定文案，通用维护操作只显示图标，业务动作保留短文案。 */
+/**
+ * 页面操作按语义决定样式与文案：维护类（edit / delete）仅图标，带文案的业务动作用 primary / secondary。
+ * 详情页 PageHeader 操作区从左到右：状态（开关与说明）→ 维护 → 主 CTA（intent="primary"）在最右。
+ */
 export function PageAction({
   asChild = false,
   hitArea = "default",
@@ -44,11 +47,15 @@ export function PageAction({
   const variant =
     intent === "delete" || intent === "revoke"
       ? "danger-quiet"
-      : intent === "primary"
-        ? "primary"
-        : intent || label
-          ? "secondary"
-          : props.variant;
+      : intent === "edit"
+        ? "ghost"
+        : intent === "primary"
+          ? "primary"
+          : intent === "secondary"
+            ? "secondary"
+            : label
+              ? "secondary"
+              : props.variant;
   const action = (
     <Button
       {...props}
@@ -101,11 +108,21 @@ export function ResourcePageHeader({
 export function ResourcePageToolbar({
   children,
   filters,
+  appearance = "default",
 }: {
   children: ReactNode;
   filters?: ReactNode;
+  appearance?: "default" | "navigation";
 }) {
-  return <Toolbar leading={children} trailing={filters} />;
+  return (
+    <Toolbar
+      className={appearance === "navigation" ? "pb-0" : undefined}
+      leading={children}
+      trailing={filters}
+      leadingClassName="max-w-full min-w-0"
+      trailingClassName="basis-full @[36rem]/resource-page:basis-0"
+    />
+  );
 }
 
 export function ResourcePageSearchField(

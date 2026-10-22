@@ -44,7 +44,7 @@ describe("ConnectorCard", () => {
     expect(footer).toBeInTheDocument();
     expect(screen.getByText("STDIO")).toBeVisible();
     expect(screen.getByText("STDIO").parentElement).toBe(
-      screen.getByText("公开").parentElement,
+      screen.getByText("全局").parentElement,
     );
     expect(footer).toHaveClass("h-row-navigation", "shrink-0");
     expect(

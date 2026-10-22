@@ -17,6 +17,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
+  Package,
   ArrowLeftRight,
   ChevronUp,
   CircleAlert,
@@ -82,6 +83,7 @@ type EntityNavigationProps = {
   onOpenIM?: () => void;
   onOpenAutomaticTasks?: () => void;
   onOpenWorkflows?: () => void;
+  onOpenResources?: () => void;
   collapsed: boolean;
   entityStatus?: "error" | "loading" | "ready";
   floating?: boolean;
@@ -390,6 +392,7 @@ export function EntityNavigation({
   onOpenIM,
   onOpenAutomaticTasks,
   onOpenWorkflows,
+  onOpenResources,
   collapsed,
   entityStatus = "ready",
   floating = false,
@@ -866,6 +869,34 @@ export function EntityNavigation({
                 collapsed ? "mt-auto grid justify-items-center gap-1" : "mt-2",
               )}
             >
+              {onOpenResources ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    {collapsed ? (
+                      <Button
+                        size="icon"
+                        variant="choice"
+                        aria-label={t("plugin:title")}
+                        onClick={onOpenResources}
+                      >
+                        <Package />
+                      </Button>
+                    ) : (
+                      <NavigationItem
+                        density="navigation"
+                        icon={<Package strokeWidth={1.5} />}
+                        label={t("plugin:title")}
+                        onClick={onOpenResources}
+                      />
+                    )}
+                  </TooltipTrigger>
+                  {collapsed ? (
+                    <TooltipContent side="right">
+                      {t("plugin:title")}
+                    </TooltipContent>
+                  ) : null}
+                </Tooltip>
+              ) : null}
               {onOpenAutomaticTasks ? (
                 <Tooltip>
                   <TooltipTrigger asChild>

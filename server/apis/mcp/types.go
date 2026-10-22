@@ -53,6 +53,8 @@ type SecretDefinition struct {
 
 // 连接器资源
 type ConnectorResource struct {
+	// 所属伙伴
+	OwnerWakerID string `json:"ownerWakerId,omitempty"`
 	// 标识
 	ID string `json:"id"`
 	// 名称

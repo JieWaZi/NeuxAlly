@@ -76,3 +76,11 @@ func TestWorkflowSDKTopicsAreDiscoveredAndCheckedByKind(t *testing.T) {
 		t.Fatal("preparation accepted missing primitives or an unknown feature")
 	}
 }
+
+func TestSystemPluginOperationsCannotBeDiscoveredOrGranted(t *testing.T) {
+	for _, id := range []string{"plugins.catalog.search", "plugins.catalog.get", "plugins.installations.install", "plugins.installations.get"} {
+		if _, ok := Find(id); ok {
+			t.Errorf("removed system plugin operation remains discoverable: %s", id)
+		}
+	}
+}

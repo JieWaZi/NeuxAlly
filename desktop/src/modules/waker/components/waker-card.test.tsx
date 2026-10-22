@@ -65,7 +65,13 @@ describe("WakerCard", () => {
     );
 
     const hoverRegion = container.querySelector("article > div");
-    expect(hoverRegion).toHaveClass("hover:bg-surface-subtle");
+    expect(hoverRegion).toHaveAttribute("data-slot", "card-body");
+    expect(hoverRegion).toHaveClass(
+      "group-hover/resource-card:bg-surface-subtle",
+    );
+    expect(container.querySelector("article")).toHaveClass(
+      "group/resource-card",
+    );
     expect(hoverRegion?.querySelector(".size-avatar-lg")).not.toBeNull();
     expect(
       screen.getByRole("link", { name: "查看 伙伴 的详情" }),

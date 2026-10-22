@@ -308,14 +308,8 @@ describe("WakerSkillsPage", () => {
     );
 
     expect(
-      screen.getByRole("switch", { name: "全部候选的安装范围" }),
-    ).toHaveAttribute("aria-checked", "false");
-    await user.click(
-      screen.getByRole("switch", { name: "前端审查 的安装范围" }),
-    );
-    expect(
-      screen.getByRole("switch", { name: "前端审查 的安装范围" }),
-    ).toHaveAttribute("aria-checked", "true");
+      screen.queryByRole("switch", { name: "全部候选的安装范围" }),
+    ).not.toBeInTheDocument();
     await user.click(
       screen.getByRole("checkbox", { name: "选择候选 后端审查" }),
     );
@@ -330,7 +324,6 @@ describe("WakerSkillsPage", () => {
           candidates: [
             {
               id: "frontend-review",
-              scope: "public",
               version: "1.0.0",
               description: "检查前端改动",
             },

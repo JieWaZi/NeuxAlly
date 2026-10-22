@@ -5,7 +5,12 @@ import { useTranslation } from "react-i18next";
 import { Button } from "./button";
 import { Dialog, DialogContent, DialogFooter } from "./dialog";
 
-export type ResourceDeleteTarget = { id: string; name: string };
+export type ResourceDeleteTarget = {
+  id: string;
+  name: string;
+  icon?: ReactNode;
+  description?: string;
+};
 
 export function ResourceBatchDeleteDialog({
   items,
@@ -20,7 +25,7 @@ export function ResourceBatchDeleteDialog({
 }: {
   items: ResourceDeleteTarget[];
   title: string;
-  description: string;
+  description?: string;
   warning: string;
   onDelete: (id: string) => Promise<unknown>;
   onDeleted: (ids: string[]) => Promise<void>;
@@ -73,12 +78,23 @@ export function ResourceBatchDeleteDialog({
             <p>{warning}</p>
           </div>
           <ul
-            className="type-body mt-3 grid gap-1"
+            className="type-body mt-3 grid gap-2"
             aria-label={t("resourceSelection.targets")}
           >
             {remaining.map((item) => (
-              <li key={item.id} className="break-words">
-                {item.name}
+              <li
+                key={item.id}
+                className="bg-card flex min-w-0 items-center gap-3 rounded-lg p-3"
+              >
+                {item.icon}
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium break-words">{item.name}</p>
+                  {item.description && (
+                    <p className="type-caption text-content-secondary mt-1 break-words">
+                      {item.description}
+                    </p>
+                  )}
+                </div>
               </li>
             ))}
           </ul>

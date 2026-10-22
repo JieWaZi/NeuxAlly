@@ -204,6 +204,7 @@ func (m *service) Start(
 			CodeReferences: append([]CodeReferenceInput(nil), intent.Input.CodeReferences...),
 			SkillIDs:       append([]string(nil), intent.Input.SkillIDs...),
 			ConnectorIDs:   append([]string(nil), intent.Input.ConnectorIDs...),
+			PluginIDs:      append([]string(nil), intent.Input.PluginIDs...),
 		},
 		runtime: runtimeSelection{
 			ConfigurationResolved: intent.Options.ConfigurationResolved,

@@ -322,6 +322,7 @@ export function toThreadMessage(
           : {}),
         ...(message.runMetrics ? { runMetrics: message.runMetrics } : {}),
         ...(fileChanges.length ? { fileChanges } : {}),
+        ...(message.plugins?.length ? { plugins: message.plugins } : {}),
         ...(message.skills?.length ? { skills: message.skills } : {}),
         ...(message.connectors?.length
           ? { connectors: message.connectors }

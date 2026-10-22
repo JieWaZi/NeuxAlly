@@ -31,3 +31,7 @@ prototypes
 desktop/.scratch/
 server/.scratch/
 generated_images/
+
+# 固定插件源生成的本地分发产物
+desktop/resources/plugins/
+server/plugins/

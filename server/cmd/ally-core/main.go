@@ -12,9 +12,11 @@ import (
 	"github.com/JieWaZi/NeuxAlly/server/apis"
 	"github.com/JieWaZi/NeuxAlly/server/apis/automatic_tasks"
 	apiMiddleware "github.com/JieWaZi/NeuxAlly/server/apis/middleware"
+	"github.com/JieWaZi/NeuxAlly/server/constants"
 	"github.com/JieWaZi/NeuxAlly/server/global"
 	"github.com/JieWaZi/NeuxAlly/server/internal/logx"
 	"github.com/JieWaZi/NeuxAlly/server/internal/parentwatch"
+	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/stdio"
 	workflowfunction "github.com/JieWaZi/NeuxAlly/server/internal/workflow/function"
 	"github.com/shrewx/ginx"
 	"github.com/spf13/cobra"
@@ -23,6 +25,10 @@ import (
 //go:generate toolx gen openapi
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == constants.PluginStdioMode {
+		streams := &cobra.Command{}
+		os.Exit(stdio.Main(os.Args[2:], streams.InOrStdin(), streams.OutOrStdout(), streams.ErrOrStderr()))
+	}
 	if workflowfunction.IsChildMode() {
 		os.Exit(workflowfunction.RunChild(os.Stdin))
 	}
