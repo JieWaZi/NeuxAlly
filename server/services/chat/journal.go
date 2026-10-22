@@ -11,6 +11,7 @@ import (
 	eventlog "github.com/JieWaZi/NeuxAlly/server/internal/chat/eventlog"
 	eventstream "github.com/JieWaZi/NeuxAlly/server/internal/chat/eventstream"
 	"github.com/JieWaZi/NeuxAlly/server/internal/chat/messageview"
+	"github.com/JieWaZi/NeuxAlly/server/internal/logx"
 	"github.com/JieWaZi/NeuxAlly/server/internal/notification/events"
 	"github.com/JieWaZi/NeuxAlly/server/repositories/models"
 )
@@ -437,11 +438,10 @@ func (m *service) CommitTerminal(
 		return TerminalCommit{}, err
 	}
 	notificationContext, publishNotifications := events.HoldCommitEvents(context.Background())
-	m.queryIndexes.indexExecutionFinished(
-		notificationContext,
-		fact.Execution,
-		records[len(records)-1],
-	)
+	// 命令和 Runtime 消息可以并发追加，逐事件 CAS 可能落后；从耐久尾部补齐全部字段。
+	if err := m.catchUpLiveProjection(notificationContext, fact.Execution.ChatID); err != nil {
+		logx.Errorf("index ended execution: chat_id=%s error=%v", fact.Execution.ChatID, err)
+	}
 	return TerminalCommit{records: records, publishNotifications: publishNotifications}, nil
 }
 
