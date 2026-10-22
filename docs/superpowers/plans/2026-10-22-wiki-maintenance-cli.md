@@ -18,7 +18,7 @@
 
 ## Task 1：核心维护操作
 
-- [x] 在 `third_party/neux-knowledge` 迁入 Agent 页面写入、精确替换、重命名和删除规则，复用版本、链接与事务。
+- [x] 在独立 `neux-knowledge` 模块迁入 Agent 页面写入、精确替换、重命名和删除规则，复用版本、链接与事务。
 - [x] 公开 `WriteAgentPage`、`ReplacePageText`、`RenamePage`、`DeletePage`，业务参数使用公开 core 类型。
 - [x] 测试先验证缺失行为，再实现；覆盖 CAS、幂等、关联链接、来源证据、保护内容、Agent 版本来源与跨库页面访问。
 - [x] 核心 HTTP 与 custom remote 提供相同实际操作，未支持的官方能力准确拒绝；登记上游来源。

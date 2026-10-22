@@ -18,7 +18,7 @@
     "build:desktop": "node scripts/package-desktop.mjs",
     "build": "pnpm pi:bridge:generate && pnpm --dir desktop build && pnpm --dir desktop electron:build && pnpm build:server",
     "test": "pnpm --dir desktop test && cd server && go test ./...",
-    "check": "pnpm docs:check && pnpm knowledge:check && node --test scripts/go-ldflags.test.mjs scripts/stamp-release-version.test.mjs scripts/check-desktop-entry-budget.test.mjs scripts/package-windows-artifact.test.mjs scripts/smoke-desktop.test.mjs && pnpm companion:check && pnpm pi:bridge:check && pnpm plugins:check && pnpm skills:check && pnpm workflow:sdk:check && pnpm workflow:presentation:check && pnpm api:check && pnpm --dir desktop check && cd server && go vet ./... && go test ./...",
+    "check": "pnpm docs:check && node --test scripts/go-ldflags.test.mjs scripts/stamp-release-version.test.mjs scripts/check-desktop-entry-budget.test.mjs scripts/package-windows-artifact.test.mjs scripts/smoke-desktop.test.mjs && pnpm companion:check && pnpm pi:bridge:check && pnpm plugins:check && pnpm skills:check && pnpm workflow:sdk:check && pnpm workflow:presentation:check && pnpm api:check && pnpm --dir desktop check && cd server && go vet ./... && go test ./...",
     "smoke:desktop": "node scripts/smoke-desktop.mjs",
     "companion:generate": "node scripts/build-companion.mjs",
     "companion:check": "node scripts/build-companion.mjs --check",
@@ -30,9 +30,7 @@
     "workflow:presentation:check": "node scripts/workflow-presentation.mjs --check",
     "docs:check": "node scripts/check-docs.mjs",
     "plugins:prepare": "node scripts/plugin-resources.mjs",
-    "plugins:check": "node --test scripts/plugin-resources.test.mjs && node scripts/plugin-resources.mjs --check",
-    "knowledge:sync": "node scripts/sync-knowledge-core.mjs",
-    "knowledge:check": "node --test scripts/sync-knowledge-core.test.mjs && node scripts/sync-knowledge-core.mjs --check"
+    "plugins:check": "node --test scripts/plugin-resources.test.mjs && node scripts/plugin-resources.mjs --check"
   },
   "license": "MIT",
   "repository": {

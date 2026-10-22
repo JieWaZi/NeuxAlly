@@ -5,7 +5,7 @@ go 1.25.8
 require (
 	github.com/BurntSushi/toml v1.5.0
 	github.com/JieWaZi/acp-go v0.0.0-20261015060857-ff51cfbfe5fb
-	github.com/JieWaZi/neux-knowledge v0.0.0
+	github.com/JieWaZi/neux-knowledge v0.1.0
 	github.com/coder/acp-go-sdk v0.13.5
 	github.com/dop251/goja v0.0.0-20261002135814-104bc28c3abd
 	github.com/gin-gonic/gin v1.12.0
@@ -160,5 +160,3 @@ require (
 	modernc.org/sqlite v1.23.1 // indirect
 	olympos.io/encoding/edn v0.0.0-20201019073823-d3554ca0b0a3 // indirect
 )
-
-replace github.com/JieWaZi/neux-knowledge => ../third_party/neux-knowledge

@@ -56,8 +56,8 @@
 
 ### Task 4: 复核与交付
 
-**Files:** docs/architecture/knowledge-cn.md、docs/discussions/knowledge-base-acceptance-cn.md。
+**Files:** docs/architecture/knowledge-cn.md。
 
 - [x] 审计全部操作无直接生成 SDK 调用、无远端本地回退。
 - [x] 更新现有架构与验收边界。
-- [x] 运行 NODE_OPTIONS=--no-experimental-webstorage pnpm check 与 api:check；独立代码审查并修复问题。整条命令及五 worker 锁冲突复跑的准确结果见[验收记录](../../discussions/knowledge-base-acceptance-cn.md#统一操作适配验收)。
+- [x] 运行 NODE_OPTIONS=--no-experimental-webstorage pnpm check 与 api:check；独立代码审查并修复问题。接口与边界见[知识库架构](../../architecture/knowledge-cn.md)。

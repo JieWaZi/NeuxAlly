@@ -210,6 +210,14 @@
       {
         "from": "../THIRD_PARTY_NOTICES.md",
         "to": "licenses/THIRD_PARTY_NOTICES.md"
+      },
+      {
+        "from": "resources/licenses/neux-knowledge",
+        "to": "licenses/neux-knowledge",
+        "filter": [
+          "LICENSE",
+          "THIRD_PARTY_NOTICES.md"
+        ]
       }
     ],
     "asarUnpack": [

@@ -35,7 +35,7 @@ NeuxAlly 对外提供 WeKnora 兼容的知识 API。统一知识客户端对两�
 | 操作结果 | 按对应上游接口区分响应包装、接纳、执行中和完成，不能把所有响应强行包装成一种成功实体 |
 | 能力差异 | 按协议版本、操作支持、实际授权和配置条件表达；不按产品名称判断 |
 
-兼容基线沿用[WeKnora 代码比对](../../discussions/knowledge-weknora-code-comparison-cn.md)固定的 WeKnora 提交；HTTP 参考见[协议核对记录](../../discussions/weknora-local-8080-reference.md)。实施前逐操作核对该基线与目标实例差异，不能把同名接口当作语义已经兼容。
+官方远端支持边界见独立核心的 [WeKnora HTTP 适配说明](https://github.com/JieWaZi/neux-knowledge/blob/v0.1.0/remote/README.md)。实施前逐操作核对该基线与目标实例差异，不能把同名接口当作语义已经兼容。
 
 ### 2.2 兼容范围与现有差距
 

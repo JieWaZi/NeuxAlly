@@ -138,18 +138,13 @@ Claude 使用已支持的原生参数关闭工具；Codex仍保留原生权限/�
 
 ## 独立核心交付
 
-核心在独立仓库开发，NeuxAlly 固定快照位于 `third_party/neux-knowledge`。只通过生成器更新：
+核心在独立 [neux-knowledge 仓库](https://github.com/JieWaZi/neux-knowledge) 开发，模块路径为 `github.com/JieWaZi/neux-knowledge`。NeuxAlly 通过 `server/go.mod` 和 `server/go.sum` 固定已发布版本，由 Go 下载和校验模块，不在宿主仓库保存核心源码副本或维护同步脚本。
 
-```sh
-node scripts/sync-knowledge-core.mjs /path/to/neux-knowledge
-node scripts/sync-knowledge-core.mjs --check
-```
+本地联合开发可在宿主根目录执行 `go work init ./server`，再执行 `go work edit -replace=github.com/JieWaZi/neux-knowledge=/path/to/neux-knowledge`，通过未提交的 `go.work` 使用本地核心。发布与干净检出使用模块版本；提交前使用 `GOWORK=off` 验证，避免本地 workspace 掩盖未发布版本或依赖缺失。
 
-生成器记录逐文件与整体摘要，快照不手工修改。Go 相对模块替换允许干净检出引用固定源码，构建不依赖个人目录。
+WeKnora 是实际代码基础。核心 README 明确说明精简、微调与 Wiki 复用范围，原始版权与许可集中维护在核心 `THIRD_PARTY_NOTICES.md`。宿主仅在 [第三方说明](../../THIRD_PARTY_NOTICES.md) 声明直接依赖，构建时从所引用的模块版本复制完整许可，随桌面安装包交付。宿主保留 SQLite 存储、授权和 CLI 执行适配，不替换上游算法与提示词语义。
 
-WeKnora 是实际代码基础。固定提交、原文件摘要、迁入路径与必要适配保存在核心 `upstream` 清单；第三方版权和许可见 [第三方说明](../../THIRD_PARTY_NOTICES.md)。宿主保留 SQLite 存储、授权和 CLI 执行适配，不替换上游算法与提示词语义。
-
-实现入口为 `server/services/knowledge`、`server/internal/knowledge` 和 `server/apis/knowledge`；普通聊天的知识能力指引在 `skills/ally/references/knowledge.md`。需求范围见 [知识库规格](../discussions/knowledge-base-specs-cn.md)，实际检查结果与尚未验证的边界见 [验收记录](../discussions/knowledge-base-acceptance-cn.md)。
+实现入口为 `server/services/knowledge`、`server/internal/knowledge` 和 `server/apis/knowledge`；普通聊天的知识能力指引在 `skills/ally/references/knowledge.md`。
 
 ## 验证边界
 

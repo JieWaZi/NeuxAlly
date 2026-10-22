@@ -8,6 +8,8 @@ github.com/BurntSushi/toml v1.5.0/go.mod h1:ukJfTF/6rtPPRCnwkur4qwRxa8vTRFBF0uk2
 github.com/DataDog/datadog-go v3.2.0+incompatible/go.mod h1:LButxg5PwREeZtORoXG3tL4fMGNddJ+vMq1mwgfaqoQ=
 github.com/JieWaZi/acp-go v0.0.0-20261015060857-ff51cfbfe5fb h1:clS7zRCEsyQpbyXeqWLY0gw6jm64R8xDfObyUceeJ6g=
 github.com/JieWaZi/acp-go v0.0.0-20261015060857-ff51cfbfe5fb/go.mod h1:ruv6egIXsm/0OTC1TT07qG02RMYy6HHVj8O/0D+o+sU=
+github.com/JieWaZi/neux-knowledge v0.1.0 h1:unc/RqbX1b9AORTGKDBxefifqCbdmCumRcWHnH/bdNs=
+github.com/JieWaZi/neux-knowledge v0.1.0/go.mod h1:7M/FIxnDrmiClAZEzou26KOlYCiQ3/e+HwNHc00JD0g=
 github.com/Masterminds/semver/v3 v3.5.0 h1:kQceYJfbupGfZOKZQg0kou0DgAKhzDg2NZPAwZ/2OOE=
 github.com/Masterminds/semver/v3 v3.5.0/go.mod h1:4V+yj/TJE1HU9XfppCwVMZq3I84lprf4nC11bSS5beM=
 github.com/Microsoft/go-winio v0.5.2/go.mod h1:WpS1mjBmmwHBEWmogvA2mj8546UReBk4v8QkMxJ6pZY=

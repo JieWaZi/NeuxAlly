@@ -16,6 +16,12 @@ const (
 	// @errZH 知识请求参数不合法
 	// @errEN invalid knowledge request
 	KnowledgeInvalid StatusError = http.StatusBadRequest*1e8 + 9501
+	// @errZH 目录下还有子目录，请先删除子目录
+	// @errEN folder contains subfolders; delete them first
+	KnowledgeFolderHasChildren StatusError = http.StatusConflict*1e8 + 9503
+	// @errZH 目录下还有页面，请先移出页面
+	// @errEN folder contains pages; move them out first
+	KnowledgeFolderHasPages StatusError = http.StatusConflict*1e8 + 9504
 	// @errZH 知识资源不存在
 	// @errEN knowledge resource not found
 	KnowledgeNotFound StatusError = http.StatusNotFound*1e8 + 9501

@@ -315,6 +315,10 @@ func (v StatusError) Key() string {
 		return "KnowledgeConflict"
 	case KnowledgeCancelled:
 		return "KnowledgeCancelled"
+	case KnowledgeFolderHasChildren:
+		return "KnowledgeFolderHasChildren"
+	case KnowledgeFolderHasPages:
+		return "KnowledgeFolderHasPages"
 	case KnowledgeCandidateInvalid:
 		return "KnowledgeCandidateInvalid"
 	case KnowledgeUnsupported:
@@ -647,6 +651,8 @@ func GetStatusErrorMap() map[string]map[StatusError]string {
 			AgentCommandRequestConflict:          "command request identifier was already used with different content",
 			KnowledgeConflict:                    "knowledge version or request content has changed",
 			KnowledgeCancelled:                   "knowledge operation was cancelled or its attempt is stale",
+			KnowledgeFolderHasChildren:           "folder contains subfolders; delete them first",
+			KnowledgeFolderHasPages:              "folder contains pages; move them out first",
 			KnowledgeCandidateInvalid:            "knowledge execution or candidate is not eligible for publication",
 			KnowledgeUnsupported:                 "knowledge provider or runtime does not support this operation",
 			KnowledgeEmbeddingNotConfigured:      "configure this library's embedding service first",
@@ -869,6 +875,8 @@ func GetStatusErrorMap() map[string]map[StatusError]string {
 			AgentCommandRequestConflict:          "同一命令请求标识不能用于不同内容",
 			KnowledgeConflict:                    "知识版本或请求内容已变化，请刷新后重试",
 			KnowledgeCancelled:                   "当前知识操作已取消或阶段已失效",
+			KnowledgeFolderHasChildren:           "目录下还有子目录，请先删除子目录",
+			KnowledgeFolderHasPages:              "目录下还有页面，请先移出页面",
 			KnowledgeCandidateInvalid:            "知识执行或候选未满足发布条件",
 			KnowledgeUnsupported:                 "当前知识服务或智能体不支持此操作",
 			KnowledgeEmbeddingNotConfigured:      "请先配置此知识库的独立嵌入服务",

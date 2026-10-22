@@ -10880,31 +10880,31 @@ export type GithubComJieWaZiNeuxAllyServerServicesWorkflowStartRunCommand = {
  */
 export type GithubComJieWaZiNeuxKnowledgeCorePreviewChunkResult = {
     /**
-     * 分块正文
+     * Chunk content.
      */
     content?: string;
     /**
-     * 上下文标题
+     * Context header.
      */
     context_header?: string;
     /**
-     * 结束字符位置
+     * Ending character position.
      */
     end?: number;
     /**
-     * 分块序号
+     * Chunk sequence number.
      */
     seq?: number;
     /**
-     * 字符数量
+     * Character count.
      */
     size_chars?: number;
     /**
-     * 估算令牌数量
+     * Estimated token count.
      */
     size_tokens_approx?: number;
     /**
-     * 起始字符位置
+     * Starting character position.
      */
     start?: number;
 };
@@ -10917,39 +10917,39 @@ export type GithubComJieWaZiNeuxKnowledgeCorePreviewChunkResult = {
  */
 export type GithubComJieWaZiNeuxKnowledgeCorePreviewChunkingPayload = {
     /**
-     * 子块大小
+     * Child chunk size.
      */
     child_chunk_size?: number;
     /**
-     * 分块重叠
+     * Chunk overlap.
      */
     chunk_overlap?: number;
     /**
-     * 分块大小
+     * Chunk size.
      */
     chunk_size?: number;
     /**
-     * 启用父子分块
+     * Whether parent-child chunking is enabled.
      */
     enable_parent_child?: boolean;
     /**
-     * 语言提示
+     * Language hints.
      */
     languages?: Array<string>;
     /**
-     * 父块大小
+     * Parent chunk size.
      */
     parent_chunk_size?: number;
     /**
-     * 分隔符
+     * Separators.
      */
     separators?: Array<string>;
     /**
-     * 分块策略
+     * Chunking strategy.
      */
     strategy?: string;
     /**
-     * 令牌上限
+     * Token limit.
      */
     token_limit?: number;
 };
@@ -10962,7 +10962,7 @@ export type GithubComJieWaZiNeuxKnowledgeCorePreviewChunkingPayload = {
 export type GithubComJieWaZiNeuxKnowledgeCorePreviewChunkingRequest = {
     chunking_config?: GithubComJieWaZiNeuxKnowledgeCorePreviewChunkingPayload & unknown;
     /**
-     * 样例文本
+     * Sample text.
      */
     text?: string;
 };
@@ -10975,43 +10975,43 @@ export type GithubComJieWaZiNeuxKnowledgeCorePreviewChunkingRequest = {
  */
 export type GithubComJieWaZiNeuxKnowledgeCorePreviewChunkingStats = {
     /**
-     * 平均字符数量
+     * Mean character count.
      */
     avg_chars?: number;
     /**
-     * 全部分块数量
+     * Total chunk count.
      */
     count?: number;
     /**
-     * 最大字符数量
+     * Maximum character count.
      */
     max_chars?: number;
     /**
-     * 最小字符数量
+     * Minimum character count.
      */
     min_chars?: number;
     /**
-     * 字符数量标准差
+     * Standard deviation of character counts.
      */
     stddev_chars?: number;
     /**
      * TruncatedTo, when set, is the original chunk count before the
      * response was truncated to previewMaxChunks for transport.
-     * 截断前分块总数
+     * Total chunk count before truncation.
      */
     truncated_to?: number;
 };
 
 /**
- * SourcePurgeList 是不含原文和内部文件键的权威清理清单窗口。
+ * SourcePurgeList is an authoritative cleanup manifest window without source text or internal file keys.
  */
 export type GithubComJieWaZiNeuxKnowledgeCoreSourcePurgeList = {
     /**
-     * 清理进度窗口。
+     * Cleanup progress window.
      */
     items?: Array<GithubComJieWaZiNeuxKnowledgeInternalDomainSourcePurgeStatus>;
     /**
-     * 同库记录总数。
+     * Total record count in the library.
      */
     total?: number;
 };
@@ -11023,34 +11023,34 @@ export type GithubComJieWaZiNeuxKnowledgeInternalDomainChunkingConfig = {
     /**
      * ChildChunkSize is the size of child chunks used for embedding (default: 384).
      * Only used when EnableParentChild is true.
-     * ChildChunkSize 子块的目标字符数，默认三百八十四。
+     * ChildChunkSize is the target child chunk character count, defaulting to 384.
      */
     child_chunk_size?: number;
     /**
      * Chunk overlap in characters.
-     * ChunkOverlap 相邻块的重叠字符数，上游归一化将零值视为默认。
+     * ChunkOverlap is the character overlap between adjacent chunks; upstream normalization treats zero as the default.
      */
     chunk_overlap?: number;
     /**
      * Chunk size in characters. Empty on create uses the server default.
-     * ChunkSize 普通块的目标字符数，零值采用上游默认。
+     * ChunkSize is the target character count for ordinary chunks; zero uses the upstream default.
      */
     chunk_size?: number;
     /**
      * EnableParentChild splits into large parent chunks and small child chunks.
      * Search matches a child and returns its parent.
-     * EnableParentChild 是否拆为提供上下文的父块和用于检索的子块。
+     * EnableParentChild splits context-providing parent chunks from retrieval child chunks.
      */
     enable_parent_child?: boolean;
     /**
      * Languages hints the splitter, for example de or zh. Empty detects the language from the document.
-     * Languages 用于多语言边界识别的语言提示。
+     * Languages supplies language hints for multilingual boundary detection.
      */
     languages?: Array<string>;
     /**
      * ParentChunkSize is the size of parent chunks (default: 4096).
      * Only used when EnableParentChild is true.
-     * ParentChunkSize 父块的目标字符数，默认四千零九十六。
+     * ParentChunkSize is the target parent chunk character count, defaulting to 4096.
      */
     parent_chunk_size?: number;
     /**
@@ -11059,257 +11059,257 @@ export type GithubComJieWaZiNeuxKnowledgeInternalDomainChunkingConfig = {
      * types that only a specific engine can parse: ppt/pptx fall back to
      * markitdown). A linked anydoc binding is preferred for every type it
      * converts.
-     * ParserEngineRules 按文件类型选择解析器的完整规则；当前核心尚不支持非空规则。
+     * ParserEngineRules contains complete file-type parser selection rules; this core does not yet support nonempty rules.
      */
     parser_engine_rules?: Array<GithubComJieWaZiNeuxKnowledgeInternalDomainParserEngineRule>;
     /**
      * Separators, in the order they are tried.
-     * Separators 按优先顺序尝试的文本分隔符。
+     * Separators contains text delimiters tried in priority order.
      */
     separators?: Array<string>;
     /**
      * Strategy selects how documents are split: auto, heading, heuristic,
      * recursive or legacy. Empty keeps the server default.
-     * Strategy 自适应、标题、启发式或递归分块策略。
+     * Strategy selects adaptive, heading, heuristic, or recursive chunking.
      */
     strategy?: string;
     /**
      * TableMetadataInstructions is extra guidance for CSV and Excel summaries. The output format stays fixed.
-     * TableMetadataInstructions 表格摘要的额外指导；当前核心尚未接入非空指导。
+     * TableMetadataInstructions supplies extra table-summary guidance; this core does not yet support nonempty guidance.
      */
     table_metadata_instructions?: string;
     /**
      * TokenLimit caps chunk size in approximate tokens. 0 uses ChunkSize as a character count.
-     * TokenLimit 近似 token 上限，零值使用字符数预算。
+     * TokenLimit is an approximate token limit; zero uses the character budget.
      */
     token_limit?: number;
 };
 
 /**
- * CodeRef 固定软件实现证据的仓库与提交。
+ * CodeRef pins the repository and commit for software implementation evidence.
  */
 export type GithubComJieWaZiNeuxKnowledgeInternalDomainCodeRef = {
     /**
-     * 实际读取的提交。
+     * Commit actually read.
      */
     commit?: string;
     /**
-     * 结束行。
+     * Ending line.
      */
     endLine?: number;
     /**
-     * 仓库内相对路径。
+     * Repository-relative path.
      */
     path?: string;
     /**
-     * 已授权代码仓库身份。
+     * Authorized code repository identifier.
      */
     repository?: string;
     /**
-     * 起始行。
+     * Starting line.
      */
     startLine?: number;
     /**
-     * 已确认符号。
+     * Confirmed symbol.
      */
     symbol?: string;
     /**
-     * 实际核验时间，Unix 毫秒。
+     * Actual verification time in Unix milliseconds.
      */
     verifiedAt?: number;
 };
 
 /**
- * EmbeddingChunkIndex 保存上游分块的原文、父子关系及实际向量索引状态。
+ * EmbeddingChunkIndex stores upstream chunk text, parent-child relationships, and actual vector indexing state.
  */
 export type GithubComJieWaZiNeuxKnowledgeInternalDomainEmbeddingChunkIndex = {
     /**
-     * Reader 块身份。
+     * Reader chunk identifier.
      */
     chunkId?: string;
     /**
-     * parent 或 child，父块不单独嵌入。
+     * parent or child; parent chunks are not embedded separately.
      */
     chunkType?: string;
     /**
-     * 真实分块正文，不用页面摘要代替。
+     * Actual chunk content, rather than a page summary.
      */
     content?: string;
     /**
-     * 上游分块的标题路径上下文。
+     * Heading path context of the upstream chunk.
      */
     contextHeader?: string;
     /**
-     * 登记时间，Unix 毫秒。
+     * Registration time in Unix milliseconds.
      */
     createdAt?: number;
     /**
-     * 最近处理说明。
+     * Most recent processing note.
      */
     diagnostic?: string;
     /**
-     * 已验证向量维度。
+     * Validated vector dimensions.
      */
     dimensions?: number;
     /**
-     * 期望嵌入模型标识。
+     * Expected embedding model identifier.
      */
     embeddingModelId?: string;
     /**
-     * 上游确认的原文 rune 结束偏移。
+     * Upstream-confirmed ending rune offset in the original text.
      */
     end?: number;
     /**
-     * 稳定索引行标识。
+     * Stable index row identifier.
      */
     id?: string;
     /**
-     * 所属库。
+     * Owning library.
      */
     libraryId?: string;
     locator?: GithubComJieWaZiNeuxKnowledgeInternalDomainSourceLocator & unknown;
     /**
-     * 子块的父块持久身份。
+     * Persistent parent chunk identifier for a child chunk.
      */
     parentId?: string;
     /**
-     * 上游同级块顺序。
+     * Upstream order among sibling chunks.
      */
     sequence?: number;
     /**
-     * 不可变来源版本。
+     * Immutable source version.
      */
     sourceVersionId?: string;
     /**
-     * 上游确认的原文 rune 起始偏移。
+     * Upstream-confirmed starting rune offset in the original text.
      */
     start?: number;
     /**
-     * pending、indexed 或 failed。
+     * pending, indexed, or failed.
      */
     state?: string;
     /**
-     * 更新时间，Unix 毫秒。
+     * Update time in Unix milliseconds.
      */
     updatedAt?: number;
 };
 
 /**
- * ExportPageMetadata 由同一事务内的页面、库和主题派生，供 frontmatter 和清单共用。
+ * ExportPageMetadata is derived from pages, the library, and themes in one transaction for both frontmatter and the manifest.
  */
 export type GithubComJieWaZiNeuxKnowledgeInternalDomainExportPageMetadata = {
     /**
-     * 已保存的软件实现证据。
+     * Saved software implementation evidence.
      */
     code?: Array<GithubComJieWaZiNeuxKnowledgeInternalDomainCodeRef>;
     /**
-     * 所属库身份。
+     * Owning library identifier.
      */
     libraryId?: string;
     /**
-     * 库配置版本。
+     * Library configuration version.
      */
     libraryVersion?: number;
     /**
-     * 页面稳定身份。
+     * Stable page identifier.
      */
     pageId?: string;
     /**
-     * 页面知识类型。
+     * Page knowledge type.
      */
     pageType?: string;
     /**
-     * 已发布正文版本。
+     * Published content version.
      */
     pageVersion?: number;
     /**
-     * 权限策略版本。
+     * Permission policy version.
      */
     policyVersion?: number;
     /**
-     * 页面地址，仅用于显示和关系映射。
+     * Page address, for display and relationship mapping only.
      */
     slug?: string;
     /**
-     * 页面在当前主题中的排序。
+     * Page order within its current theme.
      */
     sortOrder?: number;
     sourcePurgeReview?: GithubComJieWaZiNeuxKnowledgeInternalDomainSourcePurgeReview & unknown;
     /**
-     * 来源身份和定位，无原文。
+     * Source identifiers and locations, without original text.
      */
     sources?: Array<GithubComJieWaZiNeuxKnowledgeInternalDomainExportSourceRef>;
     /**
-     * 导航结构版本。
+     * Navigation structure version.
      */
     structureVersion?: number;
     /**
-     * 当前主主题身份。
+     * Current primary theme identifier.
      */
     themeId?: string;
     /**
-     * 从真实主题父链派生的名称链。
+     * Name chain derived from actual theme ancestry.
      */
     themePath?: Array<string>;
     /**
-     * 已发布标题。
+     * Published title.
      */
     title?: string;
     /**
-     * 已发布正文语言。
+     * Published content language.
      */
     wikiLanguage?: string;
 };
 
 /**
- * ExportSourceRef 只导出来源身份与定位，不包含原件或原文摘录。
+ * ExportSourceRef exports only source identifiers and locations, without originals or text excerpts.
  */
 export type GithubComJieWaZiNeuxKnowledgeInternalDomainExportSourceRef = {
     /**
-     * 页面保存的论断类型。
+     * Claim kind saved on the page.
      */
     claimKind?: string;
     /**
-     * 快照中的来源文件显示名称，不能作为输出路径。
+     * Source file display name in the snapshot; it cannot serve as an output path.
      */
     filename?: string;
     locator?: GithubComJieWaZiNeuxKnowledgeInternalDomainSourceLocator & unknown;
     /**
-     * 页面原证据保存的来源字节摘要。
+     * Source byte digest retained in the page's original evidence.
      */
     sha256?: string;
     /**
-     * 页面原证据绑定的稳定来源身份。
+     * Stable source identifier bound by the page's original evidence.
      */
     sourceId?: string;
     /**
-     * 页面原证据绑定的不可变版本。
+     * Immutable version bound by the page's original evidence.
      */
     sourceVersionId?: string;
     /**
-     * 快照中仍存在的来源代次。
+     * Source generation still present in the snapshot.
      */
     version?: number;
 };
 
 /**
- * IndexingStrategy 控制知识库启用的索引与整理管线；各开关彼此独立。
+ * IndexingStrategy controls the library's indexing and organization pipelines; each switch is independent.
  */
 export type GithubComJieWaZiNeuxKnowledgeInternalDomainIndexingStrategy = {
     /**
-     * GraphEnabled 是否启用知识图谱抽取。
+     * GraphEnabled enables knowledge graph extraction.
      */
     graphEnabled?: boolean;
     /**
-     * KeywordEnabled 是否启用关键词检索。
+     * KeywordEnabled enables keyword retrieval.
      */
     keywordEnabled?: boolean;
     /**
-     * VectorEnabled 是否启用语义向量索引与检索。
+     * VectorEnabled enables semantic vector indexing and retrieval.
      */
     vectorEnabled?: boolean;
     /**
-     * WikiEnabled 是否启用文档 Wiki 整理。
+     * WikiEnabled enables document Wiki organization.
      */
     wikiEnabled?: boolean;
 };
@@ -11324,173 +11324,173 @@ export type GithubComJieWaZiNeuxKnowledgeInternalDomainIndexingStrategy = {
 export type GithubComJieWaZiNeuxKnowledgeInternalDomainKnowledgeProfile = {
     /**
      * DocType is a coarse label such as "user manual", "meeting notes" or "contract".
-     * DocType 文档的实际类型标签。
+     * DocType is the document's actual type label.
      */
     doc_type?: string;
     /**
      * Gist is a one-line statement of what the document is about.
-     * Gist 文档的一行主题概述。
+     * Gist is a one-line overview of the document's subject.
      */
     gist?: string;
     /**
      * Topics lists 3-5 short topic keywords.
-     * Topics 用于查找文档的有界主题词。
+     * Topics contains bounded topic keywords used to find the document.
      */
     topics?: Array<string>;
     /**
      * TypicalQuestion is one natural-language question this document answers.
-     * TypicalQuestion 该文档可回答的一个完整问题。
+     * TypicalQuestion is one complete question the document can answer.
      */
     typical_question?: string;
 };
 
 /**
- * LibraryDeletionStatus 对外只公开清理计数与边界，不公开对象键。
+ * LibraryDeletionStatus exposes cleanup counts and limits without object keys.
  */
 export type GithubComJieWaZiNeuxKnowledgeInternalDomainLibraryDeletionStatus = {
     /**
-     * 本地固定为0，远端按实际阻塞诊断返回。
+     * Always 0 locally; remote implementations return actual blocking diagnostics.
      */
     blockedBlobCount?: number;
     /**
-     * 已移除或确认不存在的对象数。
+     * Number of objects removed or confirmed absent.
      */
     deletedBlobCount?: number;
     /**
-     * 已删除库身份。
+     * Deleted library identifier.
      */
     libraryId?: string;
     /**
-     * 尚未处理的对象数。
+     * Number of objects not yet processed.
      */
     pendingBlobCount?: number;
     /**
-     * 删除时策略代次。
+     * Policy generation at deletion.
      */
     policyVersion?: number;
     /**
-     * 其他来源仍引用的保留对象数。
+     * Number of retained objects still referenced by other sources.
      */
     retainedSharedBlobCount?: number;
     /**
-     * 本地pending或completed；公开协议保留远端blocked。
+     * Locally pending or completed; the public protocol reserves blocked for remote use.
      */
     state?: string;
     /**
-     * 清理状态版本。
+     * Cleanup state version.
      */
     version?: number;
 };
 
 /**
- * LintIssue 是只读核查发现；不携带隐式修复权限。
+ * LintIssue is a read-only review finding and grants no implicit repair authority.
  */
 export type GithubComJieWaZiNeuxKnowledgeInternalDomainLintIssue = {
     /**
-     * 基于实际快照的中文问题说明。
+     * Chinese issue description based on the actual snapshot.
      */
     description?: string;
     /**
-     * 被核查页面的稳定身份。
+     * Stable identifier of the reviewed page.
      */
     pageId?: string;
     /**
-     * 被核查页面的可读地址。
+     * Readable address of the reviewed page.
      */
     pageSlug?: string;
     /**
-     * 本次快照内的页面版本。
+     * Page version in this snapshot.
      */
     pageVersion?: number;
     /**
-     * warning 或 error，仅用于人工核查。
+     * warning or error, for manual review only.
      */
     severity?: string;
     /**
-     * 问题目标的页面地址或来源版本身份。
+     * Page address or source version identifier targeted by the issue.
      */
     targetId?: string;
     /**
-     * orphan_page、broken_link、empty_content 或 stale_ref。
+     * orphan_page, broken_link, empty_content, or stale_ref.
      */
     type?: string;
 };
 
 /**
- * LintReport 固定一次一致读取的库版本与全部发现，不持久化第二份问题事实。
+ * LintReport pins the library version and all findings from one consistent read without persisting a second source of issue facts.
  */
 export type GithubComJieWaZiNeuxKnowledgeInternalDomainLintReport = {
     /**
-     * 按页面及规则稳定排序的问题。
+     * Issues sorted deterministically by page and rule.
      */
     issues?: Array<GithubComJieWaZiNeuxKnowledgeInternalDomainLintIssue>;
     /**
-     * 核查的知识库。
+     * Knowledge library under review.
      */
     libraryId?: string;
     /**
-     * 库配置版本。
+     * Library configuration version.
      */
     libraryVersion?: number;
     /**
-     * 实际核查的非归档页面数量。
+     * Number of nonarchived pages actually reviewed.
      */
     pageCount?: number;
     /**
-     * 本次读取的权限策略版本。
+     * Permission policy version for this read.
      */
     policyVersion?: number;
     /**
-     * 导航结构版本。
+     * Navigation structure version.
      */
     structureVersion?: number;
 };
 
 /**
- * MarkdownExport 是一个 SQLite 一致快照的导出清单与 Markdown 文件集合。
+ * MarkdownExport contains an export manifest and Markdown files from one consistent SQLite snapshot.
  */
 export type GithubComJieWaZiNeuxKnowledgeInternalDomainMarkdownExport = {
     /**
-     * 按稳定页面身份排序的已发布文件。
+     * Published files sorted by stable page identifier.
      */
     files?: Array<GithubComJieWaZiNeuxKnowledgeInternalDomainMarkdownFile>;
     /**
-     * 当前导出格式版本，固定为 1。
+     * Current export format version, fixed at 1.
      */
     formatVersion?: number;
     /**
-     * 本次唯一来源知识库。
+     * The single source knowledge library for this export.
      */
     libraryId?: string;
     /**
-     * 一致快照中的库配置版本。
+     * Library configuration version in the consistent snapshot.
      */
     libraryVersion?: number;
     /**
-     * 一致快照中的权限策略版本。
+     * Permission policy version in the consistent snapshot.
      */
     policyVersion?: number;
     /**
-     * 一致快照中的导航版本。
+     * Navigation version in the consistent snapshot.
      */
     structureVersion?: number;
 };
 
 /**
- * MarkdownFile 是可移交的导出副本；修改它不会回写 SQLite。
+ * MarkdownFile is a transferable export copy; editing it does not write back to SQLite.
  */
 export type GithubComJieWaZiNeuxKnowledgeInternalDomainMarkdownFile = {
     /**
-     * JSON 形式的 YAML frontmatter 加原始知识正文。
+     * YAML frontmatter plus original knowledge content, represented as JSON.
      */
     markdown?: string;
     metadata?: GithubComJieWaZiNeuxKnowledgeInternalDomainExportPageMetadata & unknown;
     /**
-     * 基于页面身份摘要的安全文件名。
+     * Safe filename based on a digest of the page identifier.
      */
     path?: string;
     /**
-     * 完整 Markdown 文件字节摘要。
+     * Byte digest of the complete Markdown file.
      */
     sha256?: string;
 };
@@ -11500,233 +11500,233 @@ export type GithubComJieWaZiNeuxKnowledgeInternalDomainMarkdownFile = {
  */
 export type GithubComJieWaZiNeuxKnowledgeInternalDomainParserEngineRule = {
     /**
-     * Engine 所选解析引擎标识。
+     * Engine identifies the selected parser engine.
      */
     engine?: string;
     /**
-     * FileTypes 匹配的文件扩展名集合。
+     * FileTypes contains matching file extensions.
      */
     file_types?: Array<string>;
     /**
      * XLSXFirstRowAsHeader restores row-1 column context for flat XLSX tables.
      * nil preserves the parser default; an explicit false disables the mode.
-     * XLSXFirstRowAsHeader 是否把表格首行用作列名，省略保留解析器默认。
+     * XLSXFirstRowAsHeader uses the first spreadsheet row as column names; omission preserves the parser default.
      */
     xlsx_first_row_as_header?: boolean;
 };
 
 /**
- * PurgePageImpact 固定引用页面版本及正文保留策略。
+ * PurgePageImpact pins the referenced page version and content retention policy.
  */
 export type GithubComJieWaZiNeuxKnowledgeInternalDomainPurgePageImpact = {
     /**
-     * 当前被影响页面。
+     * Currently affected page.
      */
     pageId?: string;
     /**
-     * 人工或多来源知识保留当前正文，否则归档并清空正文。
+     * Retain current content for manual or multi-source knowledge; otherwise archive and clear it.
      */
     preserveBody?: boolean;
     /**
-     * 预览读取的页面版本。
+     * Page version read by the preview.
      */
     version?: number;
 };
 
 /**
- * PurgeVersion 只返回不可用身份与并发代次，不返回文件名或原文。
+ * PurgeVersion returns unavailable identifiers and concurrency generations without filenames or original text.
  */
 export type GithubComJieWaZiNeuxKnowledgeInternalDomainPurgeVersion = {
     /**
-     * 来源处理及归档状态代次。
+     * Generation of source processing and archive state.
      */
     rowVersion?: number;
     /**
-     * 来源原件代次。
+     * Generation of the source original.
      */
     version?: number;
     /**
-     * 待清理的不可变来源版本。
+     * Immutable source version to purge.
      */
     versionId?: string;
 };
 
 /**
- * SourceLocator 只表达 Reader 实际确认的位置；unknown 不推造页码。
+ * SourceLocator expresses only locations actually confirmed by the Reader; unknown does not invent page numbers.
  */
 export type GithubComJieWaZiNeuxKnowledgeInternalDomainSourceLocator = {
     /**
-     * 原文结束行。
+     * Ending line in the original text.
      */
     endLine?: number;
     /**
-     * page、line、section、range 或 unknown。
+     * page, line, section, range, or unknown.
      */
     kind?: string;
     /**
-     * 实际页码，未知为 0。
+     * Actual page number; 0 if unknown.
      */
     page?: number;
     /**
-     * 实际章节定位。
+     * Actual section location.
      */
     section?: string;
     /**
-     * 原文起始行，未知为 0。
+     * Starting line in the original text; 0 if unknown.
      */
     startLine?: number;
 };
 
 /**
- * SourcePurgePreview 是无原文的影响预览；Digest 绑定实际库内记录及策略快照。
+ * SourcePurgePreview previews impact without original text; Digest binds actual library records and the policy snapshot.
  */
 export type GithubComJieWaZiNeuxKnowledgeInternalDomainSourcePurgePreview = {
     /**
-     * 不同原件对象数量。
+     * Number of distinct original objects.
      */
     blobCount?: number;
     /**
-     * 同库活任务或仍在执行阶段所属任务。
+     * Active jobs in the same library, or jobs owning stages that are still executing.
      */
     blockingJobIds?: Array<string>;
     /**
-     * 已知保留与物理擦除边界。
+     * Known retention and physical erasure limits.
      */
     boundaries?: Array<string>;
     /**
-     * 影响快照的 SHA-256，不包含可读原文。
+     * SHA-256 of the impact snapshot, without readable original text.
      */
     digest?: string;
     /**
-     * 被清理的同库问题记录数。
+     * Number of issue records in the same library to clear.
      */
     issueCount?: number;
     /**
-     * 内部诊断被清理的同库任务数。
+     * Number of jobs in the same library whose internal diagnostics will be cleared.
      */
     jobCount?: number;
     /**
-     * 目标库身份。
+     * Target library identifier.
      */
     libraryId?: string;
     /**
-     * 库配置版本。
+     * Library configuration version.
      */
     libraryVersion?: number;
     /**
-     * 实际受影响页面及保留正文策略。
+     * Actual affected pages and their content retention policies.
      */
     pages?: Array<GithubComJieWaZiNeuxKnowledgeInternalDomainPurgePageImpact>;
     /**
-     * 已登记但尚未完成的来源导入数。
+     * Number of registered source imports not yet completed.
      */
     pendingImportCount?: number;
     /**
-     * 当前授权代次。
+     * Current authorization generation.
      */
     policyVersion?: number;
     /**
-     * 本地固定verified；远端按真实归属诊断返回。
+     * Always verified locally; remote implementations return actual ownership diagnostics.
      */
     rawOwnership?: string;
     /**
-     * 将清空潜在原文的历史修订数。
+     * Number of historical revisions whose potential original text will be cleared.
      */
     revisionCount?: number;
     /**
-     * 其他来源仍使用的对象数量。
+     * Number of objects still used by other sources.
      */
     sharedBlobCount?: number;
     /**
-     * 删除全部版本的稳定来源身份。
+     * Stable source identifier whose versions will all be deleted.
      */
     sourceId?: string;
     /**
-     * 输入和诊断被清理的同库阶段数。
+     * Number of stages in the same library whose input and diagnostics will be cleared.
      */
     stageCount?: number;
     /**
-     * 目录结构版本。
+     * Directory structure version.
      */
     structureVersion?: number;
     /**
-     * 全部待清理来源版本。
+     * All source versions to purge.
      */
     versions?: Array<GithubComJieWaZiNeuxKnowledgeInternalDomainPurgeVersion>;
 };
 
 /**
- * SourcePurgeReview 是页面清理标记的安全投影，不包含自由元数据或原文。
+ * SourcePurgeReview is a safe projection of page purge markers without arbitrary metadata or original text.
  */
 export type GithubComJieWaZiNeuxKnowledgeInternalDomainSourcePurgeReview = {
     /**
-     * 保留的当前知识仍需人工核查。
+     * Retained current knowledge still requires manual review.
      */
     needsReview?: boolean;
     /**
-     * 对应持久清理清单身份。
+     * Corresponding persistent cleanup manifest identifiers.
      */
     purgeIds?: Array<string>;
     /**
-     * 已不可用的稳定来源身份。
+     * Stable source identifiers that are now unavailable.
      */
     unavailableSourceIds?: Array<string>;
     /**
-     * 已不可用的来源版本身份。
+     * Source version identifiers that are now unavailable.
      */
     unavailableVersionIds?: Array<string>;
 };
 
 /**
- * SourcePurgeStatus 只返回可验证清理事实，不声称介质物理擦除。
+ * SourcePurgeStatus returns only verifiable cleanup facts and does not claim physical media erasure.
  */
 export type GithubComJieWaZiNeuxKnowledgeInternalDomainSourcePurgeStatus = {
     /**
-     * 本地固定为0，远端按实际阻塞诊断返回。
+     * Always 0 locally; remote implementations return actual blocking diagnostics.
      */
     blockedBlobCount?: number;
     /**
-     * 人工正文、备份和物理介质等保留边界。
+     * Retention limits for manual content, backups, physical media, and similar resources.
      */
     boundaries?: Array<string>;
     /**
-     * 已删除或已不存在的非共享原件数。
+     * Number of nonshared originals deleted or already absent.
      */
     deletedBlobCount?: number;
     /**
-     * 清理身份。
+     * Purge identifier.
      */
     id?: string;
     /**
-     * 原所属库。
+     * Original owning library.
      */
     libraryId?: string;
     /**
-     * 已更新的知识页面身份。
+     * Updated knowledge page identifiers.
      */
     pageIds?: Array<string>;
     /**
-     * 尚需实际处理的原件数。
+     * Number of originals still requiring actual processing.
      */
     pendingBlobCount?: number;
     /**
-     * 因其他来源使用而保留的原件数。
+     * Number of originals retained because other sources use them.
      */
     retainedSharedBlobCount?: number;
     /**
-     * 已撤销来源身份。
+     * Revoked source identifier.
      */
     sourceId?: string;
     /**
-     * 本地pending或completed；公开协议保留远端blocked。
+     * Locally pending or completed; the public protocol reserves blocked for remote use.
      */
     state?: string;
     /**
-     * 清理进度版本。
+     * Cleanup progress version.
      */
     version?: number;
     /**
-     * 不可用来源版本。
+     * Unavailable source versions.
      */
     versions?: Array<GithubComJieWaZiNeuxKnowledgeInternalDomainPurgeVersion>;
 };
@@ -11740,13 +11740,13 @@ export type GithubComJieWaZiNeuxKnowledgeInternalDomainSourcePurgeStatus = {
 export type GithubComJieWaZiNeuxKnowledgeInternalDomainWikiConfig = {
     /**
      * ContentInstructions sets tone and emphasis for generated Wiki prose. Citations stay fixed.
-     * ContentInstructions 正文风格和重点补充指令。
+     * ContentInstructions supplies extra instructions for content style and emphasis.
      */
     content_instructions?: string;
     extraction_granularity?: GithubComJieWaZiNeuxKnowledgeInternalDomainWikiExtractionGranularity & unknown;
     /**
      * ExtractionInstructions tells page extraction which concepts to keep. The output format stays fixed.
-     * ExtractionInstructions 候选知识提取重点指令。
+     * ExtractionInstructions supplies instructions for candidate knowledge extraction priorities.
      */
     extraction_instructions?: string;
     /**
@@ -11764,7 +11764,7 @@ export type GithubComJieWaZiNeuxKnowledgeInternalDomainWikiConfig = {
      * default (5). Larger batches amortize per-batch setup and let more docs
      * share the batch-internal Map/Reduce fan-out; smaller batches spread a
      * KB's backlog across more concurrent batches (finer scheduling grain).
-     * IngestBatchSize 每批接纳来源的数量。
+     * IngestBatchSize is the number of sources accepted per batch.
      */
     ingest_batch_size?: number;
     /**
@@ -11773,7 +11773,7 @@ export type GithubComJieWaZiNeuxKnowledgeInternalDomainWikiConfig = {
      * 0 falls back to 10. Bound by the LLM provider's concurrency limit and
      * the worker's outbound HTTP pool. Remember it multiplies with the number
      * of concurrent batches (IngestMaxInflight).
-     * IngestMapParallel 单批来源提取阶段的并发上限。
+     * IngestMapParallel limits concurrency in the source extraction stage of one batch.
      */
     ingest_map_parallel?: number;
     /**
@@ -11784,7 +11784,7 @@ export type GithubComJieWaZiNeuxKnowledgeInternalDomainWikiConfig = {
      * monopolize the whole pool during a bulk import and starve other KBs;
      * this knob trades a single KB's peak throughput for cross-KB fairness.
      * Set it >= the wiki pool size to effectively disable the cap.
-     * IngestMaxInflight 库内并行整理批次数上限。
+     * IngestMaxInflight limits concurrent organization batches within the library.
      */
     ingest_max_inflight?: number;
     /**
@@ -11792,17 +11792,17 @@ export type GithubComJieWaZiNeuxKnowledgeInternalDomainWikiConfig = {
      * (per-slug page write) WITHIN one batch. 0 falls back to 10. Bound by the
      * same LLM concurrency / HTTP pool considerations as the Map phase, plus
      * DB connection pool size. Same multiplier caveat as IngestMapParallel.
-     * IngestReduceParallel 单批按页归并阶段的并发上限。
+     * IngestReduceParallel limits concurrency in the per-page merge stage of one batch.
      */
     ingest_reduce_parallel?: number;
     /**
      * MaxPagesPerIngest limits pages created or updated per ingest. 0 means no limit.
-     * MaxPagesPerIngest 单次整理允许创建或修改的页面上限。
+     * MaxPagesPerIngest limits pages created or modified by one organization run.
      */
     max_pages_per_ingest?: number;
     /**
      * SynthesisModelID is the model that writes Wiki pages. Empty uses summary_model_id.
-     * SynthesisModelID 上游生成模型配置标识，独立核心不构造供应商。
+     * SynthesisModelID is the upstream generation model configuration identifier; the standalone core does not construct providers.
      */
     synthesis_model_id?: string;
 };
@@ -11817,59 +11817,59 @@ export type GithubComJieWaZiNeuxKnowledgeInternalDomainWikiConfig = {
 export type GithubComJieWaZiNeuxKnowledgeInternalDomainWikiExtractionGranularity = 'exhaustive' | 'focused' | 'standard';
 
 /**
- * GraphEdge 为定向知识关系。
+ * GraphEdge is a directed knowledge relationship.
  */
 export type GithubComJieWaZiNeuxKnowledgeRemoteGraphEdge = {
     /**
-     * Source 为起点句柄。
+     * Source is the origin handle.
      */
     source?: string;
     /**
-     * Target 为终点句柄。
+     * Target is the destination handle.
      */
     target?: string;
 };
 
 /**
- * GraphMeta 保留部分返回事实。
+ * GraphMeta preserves partial-response facts.
  */
 export type GithubComJieWaZiNeuxKnowledgeRemoteGraphMeta = {
     /**
-     * Mode 为服务端实际模式。
+     * Mode is the server's actual mode.
      */
     mode?: string;
     /**
-     * Returned 为本次节点数。
+     * Returned is the node count in this response.
      */
     returned?: number;
     /**
-     * Total 为总节点数。
+     * Total is the total node count.
      */
     total?: number;
     /**
-     * Truncated 表示未覆盖全图。
+     * Truncated indicates incomplete graph coverage.
      */
     truncated?: boolean;
 };
 
 /**
- * GraphNode 为官方关系节点。
+ * GraphNode is an official relationship node.
  */
 export type GithubComJieWaZiNeuxKnowledgeRemoteGraphNode = {
     /**
-     * LinkCount 为总关联数量。
+     * LinkCount is the total relationship count.
      */
     link_count?: number;
     /**
-     * PageType 为类型。
+     * PageType is the type.
      */
     page_type?: string;
     /**
-     * Slug 为原始页面句柄。
+     * Slug is the original page handle.
      */
     slug?: string;
     /**
-     * Title 为标题。
+     * Title is the title.
      */
     title?: string;
 };
@@ -12054,6 +12054,8 @@ export type ReadErrors = {
      * * `[IMDeliveryRetryUnsafe][40900004003]`
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      * * `[MCPConnectorNameConflict][40900000010]`
      * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
@@ -12352,6 +12354,8 @@ export type CommandErrors = {
      * * `[IMDeliveryRetryUnsafe][40900004003]`
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      * * `[MCPConnectorNameConflict][40900000010]`
      * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
@@ -12831,6 +12835,8 @@ export type StartAiAccountLoginErrors = {
      * * `[IMDeliveryRetryUnsafe][40900004003]`
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      * * `[MCPConnectorNameConflict][40900000010]`
      * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
@@ -13138,6 +13144,8 @@ export type CancelAiAccountLoginErrors = {
      * * `[IMDeliveryRetryUnsafe][40900004003]`
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      * * `[MCPConnectorNameConflict][40900000010]`
      * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
@@ -13643,6 +13651,8 @@ export type ListGlobalAutomaticTasksErrors = {
      * * `[IMDeliveryRetryUnsafe][40900004003]`
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      * * `[MCPConnectorNameConflict][40900000010]`
      * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
@@ -14031,6 +14041,8 @@ export type GetGlobalAutomaticTaskErrors = {
      * * `[IMDeliveryRetryUnsafe][40900004003]`
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      * * `[MCPConnectorNameConflict][40900000010]`
      * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
@@ -14334,6 +14346,8 @@ export type UpdateWorkflowAutomaticTaskErrors = {
      * * `[IMDeliveryRetryUnsafe][40900004003]`
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      * * `[MCPConnectorNameConflict][40900000010]`
      * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
@@ -16182,6 +16196,8 @@ export type StreamEventsErrors = {
      * * `[IMDeliveryRetryUnsafe][40900004003]`
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      * * `[MCPConnectorNameConflict][40900000010]`
      * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
@@ -16805,6 +16821,8 @@ export type ChatLibrariesErrors = {
      * >
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -16896,6 +16914,8 @@ export type GetRemoteChatOperationErrors = {
      * >
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -16983,6 +17003,8 @@ export type OrganizeRemoteChatErrors = {
      * >
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -17112,6 +17134,8 @@ export type PreviewChunkingErrors = {
      * >
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -17243,6 +17267,8 @@ export type ListAvailableLibrariesErrors = {
      * >
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -20852,6 +20878,8 @@ export type TestLibraryEmbeddingErrors = {
      * >
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -20932,6 +20960,8 @@ export type ListLibrariesErrors = {
      * >
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -20994,6 +21024,8 @@ export type CreateLibraryErrors = {
      * >
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -21062,6 +21094,8 @@ export type DeleteLibraryErrors = {
      * >
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -21129,6 +21163,8 @@ export type GetLibraryErrors = {
      * >
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -21196,6 +21232,8 @@ export type UpdateLibraryErrors = {
      * >
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -21284,6 +21322,8 @@ export type ListLibraryActivityErrors = {
      * >
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -21351,6 +21391,8 @@ export type AuditLibraryErrors = {
      * >
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -21418,6 +21460,8 @@ export type GetLibraryDeletionErrors = {
      * >
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -21485,6 +21529,8 @@ export type RecoverLibraryDeletionErrors = {
      * >
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -21552,6 +21598,8 @@ export type GetLibraryEmbeddingProfileErrors = {
      * >
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -21619,6 +21667,8 @@ export type UpdateLibraryEmbeddingProfileErrors = {
      * >
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -21686,6 +21736,8 @@ export type GetLibraryExecutionDefaultsErrors = {
      * >
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -21753,6 +21805,8 @@ export type UpdateLibraryExecutionDefaultsErrors = {
      * >
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -21830,6 +21884,8 @@ export type ListJobsErrors = {
      * >
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -21901,6 +21957,8 @@ export type GetJobErrors = {
      * >
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -21973,6 +22031,8 @@ export type ResumeJobErrors = {
      * >
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -22045,6 +22105,8 @@ export type RetryJobErrors = {
      * >
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -22122,6 +22184,8 @@ export type SendMaintenanceMessageErrors = {
      * >
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -22209,6 +22273,8 @@ export type ExportLibraryMarkdownErrors = {
      * >
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -22277,6 +22343,8 @@ export type OrganizeErrors = {
      * >
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -22349,6 +22417,8 @@ export type GetPageBySlugErrors = {
      * >
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -22438,6 +22508,8 @@ export type ListPagesErrors = {
      * >
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -22505,6 +22577,8 @@ export type CreatePageErrors = {
      * >
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -22576,6 +22650,8 @@ export type GetPageErrors = {
      * >
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -22647,6 +22723,8 @@ export type WritePageErrors = {
      * >
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -22718,6 +22796,8 @@ export type RestorePageErrors = {
      * >
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -22799,6 +22879,8 @@ export type ListRevisionsErrors = {
      * >
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -22875,6 +22957,8 @@ export type ListSourcePurgesErrors = {
      * >
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -22942,6 +23026,8 @@ export type ConfirmSourcePurgeErrors = {
      * >
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -23014,6 +23100,8 @@ export type PreviewSourcePurgeErrors = {
      * >
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -23085,6 +23173,8 @@ export type GetSourcePurgeErrors = {
      * >
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -23156,6 +23246,8 @@ export type RecoverSourcePurgeErrors = {
      * >
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -23244,6 +23336,8 @@ export type ListSourcesErrors = {
      * >
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -23311,6 +23405,8 @@ export type ImportSourceErrors = {
      * >
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -23382,6 +23478,8 @@ export type GetSourceErrors = {
      * >
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -23453,6 +23551,8 @@ export type ArchiveSourceErrors = {
      * >
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -23524,6 +23624,8 @@ export type GetSourceChunksErrors = {
      * >
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -23595,6 +23697,8 @@ export type GetRawErrors = {
      * >
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -23662,6 +23766,8 @@ export type ListThemesErrors = {
      * >
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -23729,6 +23835,8 @@ export type CreateThemeErrors = {
      * >
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -23800,6 +23908,8 @@ export type WriteThemeErrors = {
      * >
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -23880,6 +23990,8 @@ export type GetWikiIndexErrors = {
      * >
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -24702,6 +24814,8 @@ export type ListPluginsErrors = {
      * * `[IMDeliveryRetryUnsafe][40900004003]`
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      * * `[MCPConnectorNameConflict][40900000010]`
      * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
@@ -25049,6 +25163,8 @@ export type PrepareCatalogPluginErrors = {
      * * `[IMDeliveryRetryUnsafe][40900004003]`
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      * * `[MCPConnectorNameConflict][40900000010]`
      * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
@@ -25347,6 +25463,8 @@ export type PreparePluginErrors = {
      * * `[IMDeliveryRetryUnsafe][40900004003]`
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      * * `[MCPConnectorNameConflict][40900000010]`
      * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
@@ -25739,6 +25857,8 @@ export type GetPluginErrors = {
      * * `[IMDeliveryRetryUnsafe][40900004003]`
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      * * `[MCPConnectorNameConflict][40900000010]`
      * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
@@ -26447,6 +26567,8 @@ export type InstallPluginErrors = {
      * * `[IMDeliveryRetryUnsafe][40900004003]`
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      * * `[MCPConnectorNameConflict][40900000010]`
      * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
@@ -27611,6 +27733,8 @@ export type SetAutomaticTaskApiErrors = {
      * * `[IMDeliveryRetryUnsafe][40900004003]`
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      * * `[MCPConnectorNameConflict][40900000010]`
      * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
@@ -28144,6 +28268,8 @@ export type ListAutomaticTasksErrors = {
      * * `[IMDeliveryRetryUnsafe][40900004003]`
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      * * `[MCPConnectorNameConflict][40900000010]`
      * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
@@ -28513,6 +28639,8 @@ export type ListAutomaticTaskAttentionErrors = {
      * * `[IMDeliveryRetryUnsafe][40900004003]`
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      * * `[MCPConnectorNameConflict][40900000010]`
      * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
@@ -28849,6 +28977,8 @@ export type DeleteAutomaticTaskErrors = {
      * * `[IMDeliveryRetryUnsafe][40900004003]`
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      * * `[MCPConnectorNameConflict][40900000010]`
      * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
@@ -29156,6 +29286,8 @@ export type GetAutomaticTaskErrors = {
      * * `[IMDeliveryRetryUnsafe][40900004003]`
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      * * `[MCPConnectorNameConflict][40900000010]`
      * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
@@ -29612,6 +29744,8 @@ export type ListAutomaticRunsErrors = {
      * * `[IMDeliveryRetryUnsafe][40900004003]`
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      * * `[MCPConnectorNameConflict][40900000010]`
      * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
@@ -29919,6 +30053,8 @@ export type TriggerAutomaticTaskErrors = {
      * * `[IMDeliveryRetryUnsafe][40900004003]`
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      * * `[MCPConnectorNameConflict][40900000010]`
      * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
@@ -30727,6 +30863,8 @@ export type ListWakerPluginsErrors = {
      * * `[IMDeliveryRetryUnsafe][40900004003]`
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      * * `[MCPConnectorNameConflict][40900000010]`
      * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
@@ -32232,6 +32370,8 @@ export type DeleteWorkflowErrors = {
      * * `[IMDeliveryRetryUnsafe][40900004003]`
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      * * `[MCPConnectorNameConflict][40900000010]`
      * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
@@ -32678,6 +32818,8 @@ export type SendWorkflowCreationMessageErrors = {
      * * `[IMDeliveryRetryUnsafe][40900004003]`
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      * * `[MCPConnectorNameConflict][40900000010]`
      * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`
@@ -33680,6 +33822,8 @@ export type GetWorkflowInstanceErrors = {
      * * `[IMDeliveryRetryUnsafe][40900004003]`
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
      * * `[MCPConnectorNameConflict][40900000010]`
      * * `[MCPConnectorTrustRequired][40900000013]`
      * * `[PluginBusy][40900006505]`

@@ -32,6 +32,15 @@ func MapError(err error) error {
 	if errors.As(err, &e) {
 		switch e.Code {
 		case core.ErrInvalid:
+			// SDK 暂以操作和原因区分非空目录，首次转换时保留可操作的业务提示。
+			if e.Operation == "theme.delete" {
+				switch e.Detail {
+				case "theme has children":
+					return status_error.KnowledgeFolderHasChildren
+				case "theme contains pages":
+					return status_error.KnowledgeFolderHasPages
+				}
+			}
 			return status_error.KnowledgeInvalid
 		case core.ErrNotFound:
 			return status_error.KnowledgeNotFound
