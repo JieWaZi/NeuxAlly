@@ -43,3 +43,5 @@ flowchart LR
 修改前阅读根目录 AGENTS.md，具体数据边界见 [工作区与存储](workspace-and-storage-cn.md)。
 
 插件资源、伙伴安装、共享授权与版本快照见 [插件资源](plugin-resources-cn.md)。
+
+知识库的独立核心、SQLite 权威、原件与本地／远端执行边界见 [知识库](knowledge-cn.md)。
