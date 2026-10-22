@@ -106,17 +106,25 @@ afterEach(() => {
 });
 afterAll(() => server.close());
 
-function selection(value: ExecutionSelection, defaults = false) {
+function selection(
+  value: ExecutionSelection,
+  defaults = false,
+  requiredCapability?: string,
+) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
-  return renderHook(({ value }) => useExecutionSelection({ value, defaults }), {
-    wrapper,
-    initialProps: { value },
-  });
+  return renderHook(
+    ({ value }) =>
+      useExecutionSelection({ value, defaults, requiredCapability }),
+    {
+      wrapper,
+      initialProps: { value },
+    },
+  );
 }
 
 describe("统一执行配置选择", () => {
@@ -243,4 +251,61 @@ describe("统一执行配置选择", () => {
       permissionLevel: "default",
     });
   });
+});
+
+it("知识模型过滤未验证能力且普通聊天保留原目录", async () => {
+  server.use(
+    http.get(`${origin}/api/v1/runtimes`, () =>
+      HttpResponse.json({
+        resources: [
+          {
+            id: "cached",
+            capabilities: { isolated_text_generation: false },
+            enabled: true,
+            state: "ready",
+            isDefault: true,
+            defaultModel: "known",
+            models: [{ id: "known", permissionLevels: ["default"] }],
+            defaultPermissionLevel: "default",
+          },
+          {
+            id: "isolated",
+            enabled: true,
+            state: "ready",
+            capabilities: { isolated_text_generation: true },
+            defaultModel: "known",
+            models: [{ id: "known", permissionLevels: ["default"] }],
+            defaultPermissionLevel: "default",
+          },
+        ],
+      }),
+    ),
+  );
+  const ordinary = selection({ accountId: "system" });
+  await waitFor(() => expect(ordinary.result.current.valid).toBe(true));
+  expect(ordinary.result.current.runtimes.map((item) => item.id)).toEqual([
+    "cached",
+    "isolated",
+  ]);
+  const knowledge = selection(
+    { accountId: "system" },
+    false,
+    "isolated_text_generation",
+  );
+  await waitFor(() => expect(knowledge.result.current.valid).toBe(true));
+  expect(knowledge.result.current.runtimes.map((item) => item.id)).toEqual([
+    "isolated",
+  ]);
+  expect(knowledge.result.current.selection.runtimeId).toBe("isolated");
+});
+
+it("旧探测缓存允许进入但明确返回待真实验证的状态", async () => {
+  const knowledge = selection(
+    { runtimeId: "codex", accountId: "system" },
+    false,
+    "isolated_text_generation",
+  );
+  await waitFor(() => expect(knowledge.result.current.loading).toBe(false));
+  expect(knowledge.result.current.valid).toBe(true);
+  expect(knowledge.result.current.capabilityUnverified).toBe(true);
 });

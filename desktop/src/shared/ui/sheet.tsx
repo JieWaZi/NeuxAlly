@@ -9,6 +9,7 @@ export const Sheet = DialogPrimitive.Root;
 
 type SheetContentProps = ComponentProps<typeof DialogPrimitive.Content> & {
   title: string;
+  size?: "default" | "wide";
   description?: string;
   children: ReactNode;
 };
@@ -18,6 +19,7 @@ export function SheetContent({
   className,
   description,
   title,
+  size = "default",
   ...props
 }: SheetContentProps) {
   return (
@@ -29,7 +31,8 @@ export function SheetContent({
       <DialogPrimitive.Content
         data-motion="view"
         className={cn(
-          "border-border-default bg-surface-raised shadow-menu fixed inset-y-0 right-0 z-50 flex w-full max-w-[400px] flex-col border-l outline-none",
+          "border-border-default bg-surface-raised shadow-menu fixed inset-y-0 right-0 z-50 flex w-full flex-col border-l outline-none",
+          size === "wide" ? "max-w-3xl" : "max-w-[400px]",
           className,
         )}
         {...props}

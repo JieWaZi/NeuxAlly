@@ -26,6 +26,7 @@ export const WorkspaceFileViewer = lazy(() =>
 );
 export { WorkspaceDetailSplit } from "./components/workspace-detail-split";
 
+export { FloatingChat } from "./components/floating-chat";
 export { ChatPane } from "./components/chat-pane";
 export { ChatQueueProvider } from "./runtime/chat-queue-store";
 export { WorkbenchProvider } from "./workbench/workbench-store";

@@ -183,6 +183,7 @@ type ChatThreadProps = {
   isHistoryLoading?: boolean;
   historyError?: { message: string; onRetry: () => void; error?: unknown };
   composerSettings?: ReactNode;
+  composerActions?: ReactNode;
   composerEffects?: ReactNode;
   renderComposerContextStrip?: () => ReactNode;
   composerSkills?: ChatSkillOption[];
@@ -1597,6 +1598,7 @@ const Composer = memo(function Composer({
   disabled = false,
   activityStatus,
   settings,
+  actions,
   effects,
   renderContextStrip,
   skills,
@@ -1643,6 +1645,7 @@ const Composer = memo(function Composer({
   disabled?: boolean;
   activityStatus?: ReactNode;
   settings?: ReactNode;
+  actions?: ReactNode;
   effects?: ReactNode;
   renderContextStrip?: () => ReactNode;
   skills: ChatSkillOption[];
@@ -1716,7 +1719,7 @@ const Composer = memo(function Composer({
     isWorkRunning,
   });
   const prepareComposerSend = () => {
-    if (!aui.composer.getState().canSend) return false;
+    if (disabled || !aui.composer.getState().canSend) return false;
     setSubmissionState((current) => ({ ...current, pending: true }));
     return true;
   };
@@ -1906,6 +1909,7 @@ const Composer = memo(function Composer({
                     disabled={isWorkStopping || disabled}
                     onAttachmentsChange={refreshComposer}
                   />
+                  {actions}
                   <ComposerContextUsage
                     metrics={contextMetrics}
                     visible={showUsageMetrics}
@@ -1944,6 +1948,7 @@ const Composer = memo(function Composer({
                       <ComposerSendButton
                         aria-label={t("send")}
                         title={t("send")}
+                        disabled={disabled || !composerCanSend}
                         data-chat-primary-action="send"
                         onClickCapture={prepareComposerSend}
                       />
@@ -1955,7 +1960,9 @@ const Composer = memo(function Composer({
                         aria-label={t("addToQueue")}
                         title={t("addToQueue")}
                         data-chat-primary-action="send"
-                        disabled={isWorkStopping}
+                        disabled={
+                          isWorkStopping || disabled || !composerCanSend
+                        }
                         onClickCapture={prepareComposerSend}
                       />
                     </ComposerPrimitive.Send>
@@ -2015,6 +2022,7 @@ export function ChatThread({
   isHistoryLoading = false,
   historyError,
   composerSettings,
+  composerActions,
   composerEffects,
   renderComposerContextStrip,
   composerSkills = emptyList,
@@ -2356,6 +2364,7 @@ export function ChatThread({
                       disabled={composerDisabled}
                       activityStatus={activityStatus}
                       settings={composerSettings}
+                      actions={composerActions}
                       effects={composerEffects}
                       renderContextStrip={renderComposerContextStrip}
                       skills={composerSkills}

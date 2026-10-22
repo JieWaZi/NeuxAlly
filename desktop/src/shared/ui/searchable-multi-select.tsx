@@ -14,6 +14,8 @@ export type SearchableMultiSelectOption = {
 };
 
 type SearchableMultiSelectProps = {
+  id?: string;
+  "aria-describedby"?: string;
   options: readonly SearchableMultiSelectOption[];
   value: readonly string[];
   onValueChange: (value: string[]) => void;
@@ -22,10 +24,14 @@ type SearchableMultiSelectProps = {
   emptyLabel: string;
   clearSearchLabel: string;
   clearSelectionLabel?: string;
+  createLabel?: string;
   size?: FieldControlTriggerProps["size"];
+  disabled?: boolean;
 };
 
 export function SearchableMultiSelect({
+  id: triggerId,
+  "aria-describedby": describedBy,
   options,
   value,
   onValueChange,
@@ -34,7 +40,9 @@ export function SearchableMultiSelect({
   emptyLabel,
   clearSearchLabel,
   clearSelectionLabel,
+  createLabel,
   size = "sm",
+  disabled = false,
 }: SearchableMultiSelectProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -60,6 +68,9 @@ export function SearchableMultiSelect({
       >
         <PopoverTrigger asChild>
           <FieldControlTrigger
+            id={triggerId}
+            aria-describedby={describedBy}
+            disabled={disabled}
             size={size}
             className="w-full min-w-0"
             aria-label={triggerLabel}
@@ -89,11 +100,28 @@ export function SearchableMultiSelect({
                 variant="ghost"
                 className="shrink-0"
                 onClick={() => onValueChange([])}
+                disabled={disabled}
               >
                 {clearSelectionLabel}
               </Button>
             ) : null}
           </div>
+          {createLabel &&
+            query &&
+            !options.some((option) => option.value === query) && (
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                disabled={disabled}
+                onClick={() => {
+                  onValueChange([...value, query]);
+                  setQuery("");
+                }}
+              >
+                {createLabel}
+              </Button>
+            )}
           <div
             className="mt-2 max-h-56 min-h-0 overflow-y-auto overscroll-contain"
             role="group"
@@ -107,6 +135,7 @@ export function SearchableMultiSelect({
                   className="hover:bg-action-quiet-hover min-h-row-compact flex items-center gap-2 rounded-sm px-2"
                 >
                   <Checkbox
+                    disabled={disabled}
                     id={`${id}-${index}`}
                     size="sm"
                     checked={selected.has(option.value)}

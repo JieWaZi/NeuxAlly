@@ -27,6 +27,10 @@ import { NotificationNavigationProvider } from "@/modules/notification";
 import { notificationHref } from "@/app/notifications/notification-navigation";
 import type { NotificationItem } from "@/modules/notification";
 import type { GlobalEventObserver } from "@/shared/api/global-events";
+// 业务集成测试保留真实头像外壳与名称；形象绘制及异步资源生命周期由 companion 专属测试验证。
+vi.mock("@/shared/companion/companion-avatar", () => ({
+  CompanionAvatar: () => null,
+}));
 const eventObservers = vi.hoisted(() => new Set<GlobalEventObserver>());
 vi.mock("@/shared/api/global-events", () => ({
   registerCoreConnectionRecovery: () => () => {},

@@ -82,6 +82,27 @@ function dragFloatingPanel(panel: HTMLElement) {
 }
 
 describe("FloatingChat", () => {
+  it("新的整理请求展开同一浮窗，收起后仍保留未发送内容", async () => {
+    const user = userEvent.setup();
+    const view = (request: number) => (
+      <FloatingChat
+        fullView
+        scopeKey="knowledge:research"
+        openRequest={request}
+        snapshot={idle}
+        title="知识库维护"
+      >
+        <input aria-label="维护草稿" defaultValue="保留这段要求" />
+      </FloatingChat>
+    );
+    const { rerender } = render(view(1), { wrapper: Wrapper });
+    const input = screen.getByRole("textbox", { name: "维护草稿" });
+    await user.click(screen.getByRole("button", { name: "收起对话窗口" }));
+    expect(screen.queryByRole("region", { name: "悬浮对话" })).toBeNull();
+    rerender(view(2));
+    expect(screen.getByRole("textbox", { name: "维护草稿" })).toBe(input);
+    expect(input).toHaveValue("保留这段要求");
+  });
   it("拖动后缩小窗口会重新约束位置，收起期间缩小再打开也保持可见", async () => {
     const user = userEvent.setup();
     const geometry = mockFloatingViewport();

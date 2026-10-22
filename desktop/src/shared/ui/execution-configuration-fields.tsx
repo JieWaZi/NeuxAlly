@@ -29,20 +29,24 @@ export function ExecutionConfigurationFields({
   disabled = false,
   runtimeHidden = false,
   permissionHidden = false,
+  reasoningHidden = false,
   name,
   defaults = false,
   required = false,
   leadingField,
+  helpHidden = false,
 }: {
   state: ExecutionSelectionState;
   onChange: (value: ExecutionSelectionState["selection"]) => void;
   disabled?: boolean;
   runtimeHidden?: boolean;
   permissionHidden?: boolean;
+  reasoningHidden?: boolean;
   name?: string;
   defaults?: boolean;
   required?: boolean;
   leadingField?: ReactNode;
+  helpHidden?: boolean;
 }) {
   const { t } = useTranslation("common");
   const id = useId();
@@ -176,17 +180,21 @@ export function ExecutionConfigurationFields({
             }),
           state.nativeModelsQuery.isFetching,
         )}
-        {field(
-          defaults ? "defaultReasoning" : "reasoning",
-          selection.reasoning || "__default",
-          [
-            { id: "__default", name: t("executionSelection.defaultReasoning") },
-            ...reasoningOptions,
-          ],
-          (reasoning) =>
-            change({ reasoning: reasoning === "__default" ? "" : reasoning }),
-          !reasoningOptions.length || state.thinkingQuery.isFetching,
-        )}
+        {!reasoningHidden &&
+          field(
+            defaults ? "defaultReasoning" : "reasoning",
+            selection.reasoning || "__default",
+            [
+              {
+                id: "__default",
+                name: t("executionSelection.defaultReasoning"),
+              },
+              ...reasoningOptions,
+            ],
+            (reasoning) =>
+              change({ reasoning: reasoning === "__default" ? "" : reasoning }),
+            !reasoningOptions.length || state.thinkingQuery.isFetching,
+          )}
         {!permissionHidden &&
           field(
             "permission",
@@ -203,19 +211,22 @@ export function ExecutionConfigurationFields({
               }),
           )}
       </div>
-      {!state.loading &&
+      {!reasoningHidden &&
+      !state.loading &&
       !reasoningOptions.length &&
       runtime?.models?.some((item) => item.reasoningOptions?.length) ? (
         <p className="text-content-secondary type-caption">
           {t("executionSelection.reasoningUnavailable")}
         </p>
       ) : null}
-      <p className="text-content-secondary type-caption">
-        {t("executionSelection.help", {
-          runtime:
-            runtimeDisplayName(runtime) || t("executionSelection.runtime"),
-        })}
-      </p>
+      {!helpHidden && (
+        <p className="text-content-secondary type-caption">
+          {t("executionSelection.help", {
+            runtime:
+              runtimeDisplayName(runtime) || t("executionSelection.runtime"),
+          })}
+        </p>
+      )}
       {state.loading ? (
         <p role="status" className="text-content-secondary type-caption">
           {t("executionSelection.loading")}

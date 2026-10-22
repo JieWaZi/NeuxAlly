@@ -130,6 +130,11 @@
 
   --accent-default: var(--ref-ally-green-light);
   --accent-hover: var(--ref-ally-green-dark);
+  --accent-content: color-mix(
+    in srgb,
+    var(--accent-default) 40%,
+    var(--ref-neutral-1000)
+  );
   --accent-disabled: color-mix(in srgb, var(--accent-default) 30%, transparent);
   --accent-surface-subtle: color-mix(
     in srgb,
@@ -359,6 +364,7 @@
 
   --accent-default: var(--ref-ally-green-dark);
   --accent-hover: var(--ref-ally-green-light);
+  --accent-content: var(--accent-hover);
   --accent-disabled: color-mix(in srgb, var(--accent-default) 30%, transparent);
   --accent-surface-subtle: color-mix(
     in srgb,

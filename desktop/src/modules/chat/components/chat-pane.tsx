@@ -1,3 +1,4 @@
+import type { FloatingChatSnapshot } from "./floating-chat";
 import { useQueryEvents } from "@/shared/api/use-query-events";
 import { useInfiniteQuery, useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
@@ -47,6 +48,7 @@ export function ChatPane({
   onRefresh,
   onConfigurationChange,
   onRunningChange,
+  onSnapshotChange,
 }: {
   scopeKey: string;
   chatId?: string;
@@ -67,6 +69,7 @@ export function ChatPane({
   onRefresh?: () => void;
   onConfigurationChange?: (selection: ChatSendSelection | undefined) => void;
   onRunningChange?: (running: boolean) => void;
+  onSnapshotChange?: (snapshot: FloatingChatSnapshot) => void;
 }) {
   const { t } = useTranslation("chat");
   const active = useRouteSceneActive();
@@ -105,11 +108,20 @@ export function ChatPane({
       }),
     );
   }, [history.data]);
+  const chat = detail.data?.chat;
+  // 已有会话沿用真实执行选择，后台任务的配置不能被全局默认值覆盖。
+  const savedSelection = chat?.lastRuntimeId
+    ? {
+        runtimeId: chat.lastRuntimeId,
+        accountId: chat.lastAccountId || "system",
+        model: chat.lastModel,
+        reasoning: chat.lastReasoning,
+        permissionLevel: chat.lastPermissionLevel,
+      }
+    : defaults;
   const execution = useExecutionSelection({
-    value: detail.data?.chat?.activeExecutionId
-      ? (defaults ?? {})
-      : { ...defaults, ...selection },
-    defaults: true,
+    value: { ...savedSelection, ...selection },
+    defaults: !chat?.lastRuntimeId,
     enabled: active,
   });
   const config = useMemo<ChatSendSelection>(
@@ -165,7 +177,13 @@ export function ChatPane({
     isHistoryReady: !chatId || history.isSuccess,
     isLoading: Boolean(chatId && (detail.isLoading || history.isLoading)),
     isSendDisabled:
-      !active || !config.runtimeId || execution.loading || isHistoryLoading,
+      !showComposer ||
+      !active ||
+      !config.runtimeId ||
+      execution.loading ||
+      !execution.valid ||
+      Boolean(chatId && !detail.isSuccess) ||
+      isHistoryLoading,
     attachmentOnlyText: t("attachmentOnlyMessage"),
     incompleteErrorText: t("executionIncomplete"),
     selection: config,
@@ -186,6 +204,20 @@ export function ChatPane({
   useEffect(() => {
     onRunningChange?.(state.isRunning);
   }, [onRunningChange, state.isRunning]);
+  useEffect(() => {
+    onSnapshotChange?.({
+      isRunning: state.isRunning,
+      pendingApprovalCount: state.pendingApprovals.length,
+      pendingElicitationCount: state.pendingElicitations.length,
+      streamState: state.streamState,
+    });
+  }, [
+    onSnapshotChange,
+    state.isRunning,
+    state.pendingApprovals.length,
+    state.pendingElicitations.length,
+    state.streamState,
+  ]);
   const historyLoading = Boolean(
     isHistoryLoading ||
     (chatId && chatId !== state.boundChatId) ||
@@ -201,11 +233,18 @@ export function ChatPane({
       emptyStatePosition={centered ? "center" : "fill"}
       isHistoryLoading={historyLoading}
       composerSettings={
-        <ExecutionConfigurationControls
-          state={execution}
-          onChange={setSelection}
-          showPermissions={false}
-        />
+        <>
+          <ExecutionConfigurationControls
+            state={execution}
+            onChange={setSelection}
+            showPermissions={false}
+          />
+          {!execution.loading && !execution.error && !execution.valid && (
+            <span role="alert" className="text-destructive type-caption w-full">
+              {t("common:executionSelection.invalid")}
+            </span>
+          )}
+        </>
       }
       renderComposerContextStrip={() => (
         <ChatComposerWorkspaceStrip
@@ -223,6 +262,11 @@ export function ChatPane({
         />
       )}
       composerDraft={draft}
+      composerDisabled={
+        execution.loading ||
+        !execution.valid ||
+        Boolean(chatId && !detail.isSuccess)
+      }
       showComposer={
         showComposer ||
         state.pendingApprovals.length > 0 ||
@@ -240,7 +284,11 @@ export function ChatPane({
         return true;
       }}
       sendFailure={state.sendFailure}
-      errorScopes={[scopeKey, `chat:${chatId ?? "pending"}`]}
+      errorScopes={[
+        scopeKey,
+        chatId || scopeKey,
+        `chat:${chatId ?? "pending"}`,
+      ]}
       onRetryExecution={state.retryExecution}
       contextMetrics={state.contextMetrics}
       hasEarlierMessages={Boolean(history.hasNextPage)}

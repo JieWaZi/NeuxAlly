@@ -5,7 +5,6 @@ import {
 import { useFileReference } from "@/shared/workspace/file-reference-link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  ChevronRight,
   Download,
   FileText,
   Folder,
@@ -39,6 +38,7 @@ import {
 import { useWorkspaceQueryEvents } from "@/shared/api/workspace-events";
 import { cn } from "@/shared/lib/cn";
 import { Button } from "@/shared/ui/button";
+import { FileTreeRow } from "@/shared/ui/file-tree-row";
 import { Dialog, DialogContent, DialogFooter } from "@/shared/ui/dialog";
 import {
   DropdownMenu,
@@ -438,27 +438,23 @@ function WorkspaceTreeEntry({
             );
         }}
       >
-        <button
-          type="button"
+        <FileTreeRow
+          role="button"
+          directory
+          expanded={expanded}
+          depth={depth}
           onClick={() => setExpanded((current) => !current)}
-          className="focus-visible:ring-ring type-body min-h-row-default grid min-w-0 flex-1 grid-cols-[16px_16px_minmax(0,1fr)] items-center gap-1 rounded-sm pr-2 text-left outline-none focus-visible:ring-2"
-          style={{ paddingLeft: `${8 + depth * 16}px` }}
+          icon={
+            <WorkspaceFileTypeIcon
+              isDirectory
+              isOpen={expanded}
+              name={entry.name}
+              size={16}
+            />
+          }
         >
-          <ChevronRight
-            className={cn(
-              "text-muted-foreground size-icon-sm transition-transform",
-              expanded && "rotate-90",
-            )}
-            strokeWidth={1.5}
-          />
-          <WorkspaceFileTypeIcon
-            isDirectory
-            isOpen={expanded}
-            name={entry.name}
-            size={16}
-          />
           <span className="truncate">{entry.name}</span>
-        </button>
+        </FileTreeRow>
         {scopeChatId && isDesktopRuntime() ? (
           <>
             <Button
@@ -718,9 +714,12 @@ function WorkspaceFileButton({
   };
   return (
     <div className="group hover:bg-muted flex min-w-0 items-center rounded-sm">
-      <button
-        type="button"
-        role="treeitem"
+      <FileTreeRow
+        depth={depth}
+        selected={active}
+        icon={
+          <WorkspaceFileTypeIcon isDirectory={false} name={name} size={16} />
+        }
         draggable
         onDragStart={(event) => {
           event.dataTransfer.effectAllowed = "copy";
@@ -732,13 +731,7 @@ function WorkspaceFileButton({
         title={file?.canonicalPath ?? path}
         aria-current={active ? "page" : undefined}
         onClick={() => onOpenFile({ name, path })}
-        className={cn(
-          "focus-visible:ring-ring min-h-row-default grid min-w-0 flex-1 grid-cols-[16px_minmax(0,1fr)] items-center gap-1 rounded-sm pr-2 text-left outline-none focus-visible:ring-2",
-          active && "bg-muted",
-        )}
-        style={{ paddingLeft: `${24 + depth * 16}px` }}
       >
-        <WorkspaceFileTypeIcon isDirectory={false} name={name} size={16} />
         <span className="min-w-0">
           <span className="type-body block truncate">{name}</span>
           {secondary && secondary !== name ? (
@@ -747,7 +740,7 @@ function WorkspaceFileButton({
             </span>
           ) : null}
         </span>
-      </button>
+      </FileTreeRow>
       {scopeChatId && isDesktopRuntime() ? (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
