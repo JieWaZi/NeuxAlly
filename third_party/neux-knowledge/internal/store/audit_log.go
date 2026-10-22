@@ -1,0 +1,291 @@
+// 来源：Tencent/WeKnora 8776a2d 的 audit_log repository List 与 kb_activity。
+// SQLite 适配将事件和业务回执置于同一事务，不迁入全局、多租户及周期清理系统。
+package store
+
+import (
+	"context"
+	"encoding/json"
+	"strings"
+	"time"
+
+	types "github.com/JieWaZi/neux-knowledge/internal/domain"
+	"gorm.io/gorm"
+)
+
+const (
+	auditScopeKnowledgeBase    = "knowledge_base"
+	auditLogListLimitMax       = 100
+	kbActivitySampleTitleLimit = 5
+)
+
+// ListLibraryActivity 迁移上游单表游标查询；库身份由入口固定，不能被过滤条件覆盖。
+func (s *Store) ListLibraryActivity(ctx context.Context, libraryID string, q *types.ActivityQuery) (entries []*types.AuditLog, err error) {
+	entries = []*types.AuditLog{}
+	err = s.transaction(ctx, func(tx *gorm.DB) error {
+		if _, e := getLibrary(tx, libraryID, false); e != nil {
+			return e
+		}
+		limit := 50
+		if q != nil && q.Limit > 0 {
+			limit = q.Limit
+		}
+		if limit > auditLogListLimitMax {
+			limit = auditLogListLimitMax
+		}
+		tx = tx.Where("scope_type = ?", auditScopeKnowledgeBase).Where("scope_id = ?", libraryID)
+		if q != nil {
+			if q.AfterID > 0 {
+				tx = tx.Where("id < ?", q.AfterID)
+			}
+			if q.Action != "" {
+				tx = tx.Where("action = ?", q.Action)
+			}
+			if q.Outcome != "" {
+				tx = tx.Where("outcome = ?", q.Outcome)
+			}
+			if q.ActorUserID != "" {
+				tx = tx.Where("actor_user_id = ?", q.ActorUserID)
+			}
+		}
+		return tx.Order("id DESC").Limit(limit).Find(&entries).Error
+	})
+	return
+}
+
+// kbActivityAppendSampleTitles 保留上游去重、裁剪与首标题镜像规则。
+func kbActivityAppendSampleTitles(details map[string]any, titles ...string) {
+	if details == nil {
+		return
+	}
+	samples := make([]string, 0, kbActivitySampleTitleLimit)
+	seen := make(map[string]struct{}, kbActivitySampleTitleLimit)
+	appendSample := func(title string) {
+		title = strings.TrimSpace(title)
+		if title == "" {
+			return
+		}
+		if _, ok := seen[title]; ok {
+			return
+		}
+		if len(samples) >= kbActivitySampleTitleLimit {
+			return
+		}
+		seen[title] = struct{}{}
+		samples = append(samples, title)
+	}
+	if existing, ok := details["title"].(string); ok {
+		appendSample(existing)
+	}
+	for _, title := range titles {
+		appendSample(title)
+	}
+	if len(samples) == 0 {
+		return
+	}
+	details["title"] = samples[0]
+	if len(samples) > 1 {
+		details["titles"] = samples
+	}
+}
+
+// sanitizeActivityDetails 仅保留本地公开活动需要的有界元数据。
+// 固定上游没有独立脱敏器；此白名单是宿主适配，不能接受任意业务配置或诊断对象。
+func sanitizeActivityDetails(details map[string]any) types.JSON {
+	safe := map[string]any{}
+	for key, value := range details {
+		switch key {
+		case "title", "task_id", "trigger", "processing_status", "via":
+			if text, ok := value.(string); ok {
+				runes := []rune(text)
+				if len(runes) > 200 {
+					runes = runes[:200]
+				}
+				safe[key] = string(runes)
+			}
+		case "count", "total", "failed", "skipped", "attempt":
+			if n, ok := value.(int); ok && n >= 0 {
+				safe[key] = n
+			}
+		case "changed_fields", "titles":
+			if values, ok := value.([]string); ok {
+				out := []string{}
+				for _, v := range values {
+					if len(out) == 20 {
+						break
+					}
+					runes := []rune(v)
+					if len(runes) > 200 {
+						runes = runes[:200]
+					}
+					out = append(out, string(runes))
+				}
+				safe[key] = out
+			}
+		}
+	}
+	raw, _ := json.Marshal(safe)
+	return types.JSON(raw)
+}
+
+// recordKBActivity 在调用者业务事务中登记实际事实；错误会回滚同次业务写入。
+func recordKBActivity(tx *gorm.DB, requestID, operation, libraryID string, actor types.ActivityActor, action types.AuditAction, targetType, targetID string, outcome types.AuditOutcome, details map[string]any) error {
+	if outcome == "" {
+		outcome = types.AuditOutcomeSuccess
+	}
+	copied := map[string]any{}
+	for key, value := range details {
+		copied[key] = value
+	}
+	if actor.Trigger == "" {
+		if actor.UserID != "" {
+			actor.Trigger = "user"
+		} else {
+			actor.Trigger = "system"
+		}
+	}
+	copied["trigger"] = actor.Trigger
+	if _, ok := copied["task_id"]; ok {
+		if _, exists := copied["processing_status"]; !exists {
+			switch outcome {
+			case types.AuditOutcomeAccepted:
+				copied["processing_status"] = "pending"
+			case types.AuditOutcomeSuccess:
+				copied["processing_status"] = "completed"
+			case types.AuditOutcomePartial:
+				copied["processing_status"] = "partial"
+			case types.AuditOutcomeFailed, types.AuditOutcomeDenied:
+				copied["processing_status"] = "failed"
+			case types.AuditOutcomeCanceled:
+				copied["processing_status"] = "canceled"
+			}
+		}
+	}
+	if actor.UserID == "" {
+		actor.Role = ""
+	}
+	return tx.Create(&types.AuditLog{RequestID: requestID, Operation: operation, ActorUserID: actor.UserID, ActorRole: actor.Role, Action: action, ScopeType: auditScopeKnowledgeBase, ScopeID: libraryID, TargetType: targetType, TargetID: targetID, Outcome: outcome, Details: sanitizeActivityDetails(copied), CreatedAt: time.Now()}).Error
+}
+
+// appendMutationActivity 只把当前事务实际提交的领域变更登记为活动。
+// 它处于 mutate 的新请求分支，回执重放不会再次执行；不读取正文或原始配置。
+func appendMutationActivity(ctx context.Context, tx *gorm.DB, r *types.Receipt, input any) error {
+	actor := types.ActivityActorFromContext(ctx)
+	details := map[string]any{}
+	action := types.AuditAction("")
+	targetType, targetID := "knowledge_base", r.ResourceID
+	outcome := types.AuditOutcomeSuccess
+	switch r.Operation {
+	case "library.create":
+		action = types.AuditActionKBCreated
+		if in, ok := input.(types.CreateLibraryInput); ok {
+			kbActivityAppendSampleTitles(details, in.Name)
+		}
+	case "library.update":
+		// UpdateLibrary 持有同事务旧值并登记真实字段差异，此处不重复登记。
+		return nil
+	case "source.import":
+		action = types.AuditActionKnowledgeCreated
+		targetType = "knowledge"
+		if in, ok := input.(types.ImportSourceInput); ok {
+			kbActivityAppendSampleTitles(details, in.Filename)
+			if in.SourceID != "" {
+				action = types.AuditActionKnowledgeUpdated
+			}
+		}
+	case "job.accept", "job.retry", "job.fail", "job.cancel", "stage.outcome", "publication.publish":
+		if r.JobID == "" || r.State == "no-op" {
+			return nil
+		}
+		j, err := getJob(tx, r.JobID)
+		if err != nil {
+			return err
+		}
+		targetType, targetID = "knowledge_task", j.ID
+		details["task_id"] = j.ID
+		details["attempt"] = j.Attempt
+		details["total"] = len(j.SourceVersionIDs)
+		actor = j.ActivityActor
+		action = types.AuditActionKnowledgeReparseStarted
+		switch r.Operation {
+		case "job.accept", "job.retry":
+			if r.State != "accepted" {
+				return nil
+			}
+			outcome = types.AuditOutcomeAccepted
+			if r.Operation == "job.retry" {
+				actor = types.ActivityActorFromContext(ctx)
+				if err := tx.Model(&types.Job{}).Where("id = ?", j.ID).Select("activity_actor").Updates(&types.Job{ActivityActor: actor}).Error; err != nil {
+					return err
+				}
+			}
+		case "job.cancel":
+			if in, ok := input.(types.JobActionInput); ok && r.Version == in.ExpectedVersion {
+				return nil
+			}
+			actor = types.ActivityActorFromContext(ctx)
+			action = types.AuditActionKnowledgeParseCanceled
+			outcome = types.AuditOutcomeAccepted
+			if j.State == "cancelled" {
+				outcome = types.AuditOutcomeCanceled
+			}
+		case "stage.outcome":
+			if j.State != "cancelled" {
+				return nil
+			}
+			action = types.AuditActionKnowledgeParseCanceled
+			outcome = types.AuditOutcomeCanceled
+		case "publication.publish":
+			if len(r.PageIDs) > 0 {
+				wikiDetails := map[string]any{"count": len(r.PageIDs), "task_id": j.ID, "attempt": j.Attempt}
+				if err := recordKBActivity(tx, r.RequestID, r.Operation, r.LibraryID, actor, types.AuditActionWikiContentChanged, "wiki", r.LibraryID, types.AuditOutcomeSuccess, wikiDetails); err != nil {
+					return err
+				}
+			}
+			if j.State == "processing" {
+				return nil
+			}
+			fallthrough
+		case "job.fail":
+			switch j.State {
+			case "completed":
+				outcome = types.AuditOutcomeSuccess
+			case "partial_failed":
+				outcome = types.AuditOutcomePartial
+			case "failed":
+				outcome = types.AuditOutcomeFailed
+			default:
+				return nil
+			}
+		}
+	default:
+		return nil
+	}
+	if r.LibraryID == "" || action == "" {
+		return nil
+	}
+	return recordKBActivity(tx, r.RequestID, r.Operation, r.LibraryID, actor, action, targetType, targetID, outcome, details)
+}
+
+// RecordLibraryExecutionDefaultsActivity 为宿主已提交的执行默认设置补齐唯一活动。
+// 只接受固定操作，不改变核心库版本，不开放任意活动正文或配置写入。
+func (s *Store) RecordLibraryExecutionDefaultsActivity(ctx context.Context, libraryID, requestID string) error {
+	if strings.TrimSpace(requestID) == "" {
+		return fail(types.ErrInvalid, "library.execution_defaults", "requestId is required")
+	}
+	return s.transaction(ctx, func(tx *gorm.DB) error {
+		if _, err := getLibrary(tx, libraryID, false); err != nil {
+			return err
+		}
+		var prior []types.AuditLog
+		if err := tx.Where("request_id = ? AND operation = ? AND action = ? AND outcome = ?", requestID, "library.execution_defaults", types.AuditActionKBUpdated, types.AuditOutcomeSuccess).Limit(1).Find(&prior).Error; err != nil {
+			return err
+		}
+		if len(prior) > 0 {
+			if prior[0].ScopeID != libraryID {
+				return fail(types.ErrIdempotencyConflict, "library.execution_defaults", "requestId has different library")
+			}
+			return nil
+		}
+		return recordKBActivity(tx, requestID, "library.execution_defaults", libraryID, types.ActivityActorFromContext(ctx), types.AuditActionKBUpdated, "knowledge_base", libraryID, types.AuditOutcomeSuccess, map[string]any{"changed_fields": []string{"execution_defaults"}})
+	})
+}

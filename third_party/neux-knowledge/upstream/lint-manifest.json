@@ -1,0 +1,36 @@
+{
+  "repository": "https://github.com/Tencent/WeKnora",
+  "commit": "8776a2d92d11ad3e76865d51cf3192e37e2a9976",
+  "license": "upstream/WeKnora.LICENSE",
+  "files": [
+    {
+      "upstreamPath": "internal/application/service/wiki_lint.go",
+      "sha256": "341eadf5643420d72977a30f127337d29ef9f3a4a6838570978c24b0cffe327b",
+      "targetPath": "internal/store/audit_export.go",
+      "extracted": [
+        "RunLint first-pass orphan_page",
+        "RunLint first-pass broken_link",
+        "RunLint first-pass empty_content",
+        "RunLint first-pass stale_ref"
+      ],
+      "adaptation": "迁移首轮四项只读判定；SQLite单事务主键游标读取，关系从正文安全区段派生，来源核对唯一Evidence及当前head；50字符阈值改Unicode计数；无missing-cross-ref/健康评分/AutoFix。该文件内Markdown导出为本地新增实现。",
+      "targetSha256": "d3ba626e85fbc5b3a7b8559a92b2197ca9e060306f10819cb1aad30ba6cff62d"
+    },
+    {
+      "upstreamPath": "internal/application/service/wiki_lint.go",
+      "sha256": "341eadf5643420d72977a30f127337d29ef9f3a4a6838570978c24b0cffe327b",
+      "targetPath": "internal/domain/audit_export.go",
+      "extracted": [
+        "WikiLintIssue",
+        "WikiLintReport"
+      ],
+      "adaptation": "问题与报告模型按本地页面ID/版本及一致快照定制；无AutoFixable字段和评分；同文件的导出输入及元数据模型为本地新增实现。",
+      "targetSha256": "78cb9870c73df9ede6332d0a6fd315fd9fb8275c9b98554f03300b2f0e3c73ab"
+    }
+  ],
+  "localExtensions": [
+    "core/audit_export.go",
+    "cmd/neux-knowledge/audit_export.go",
+    "docs/audit-export-cn.md"
+  ]
+}

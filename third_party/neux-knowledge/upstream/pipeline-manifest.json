@@ -1,0 +1,355 @@
+{
+  "upstream": "https://github.com/Tencent/WeKnora",
+  "commit": "8776a2d92d11ad3e76865d51cf3192e37e2a9976",
+  "pipelineVersion": "weknora-lite-8776-direct-v1",
+  "files": [
+    {
+      "upstreamPath": "internal/application/service/wiki_ingest_batch.go",
+      "sha256": "91401c4fefae926c0b3b7dae87277099e5c71886de97a01ac638d881fe520432",
+      "targetPath": "internal/pipeline/upstream_map.go",
+      "functions": [
+        "mapOneDocument"
+      ],
+      "adaptation": "保留原Map主体：32768正文、Pass0失败回退完整extract、summary/cite并发、cite后reclaim、按稳定SourceID读取旧页面/旧summary并产生retract+addition/retractStale；Reader、稳定文档与不可变版本映射、诊断替代原knowledge/chunk/tracing服务。extractUpstream为同文件与wiki_ingest_cite.go两种原提取器的直接文本端口适配。",
+      "targetSHA256": "4fcc261f4d24f2cd92956c069f94d0f300cc73db35036daabc26d35f935e9e2d"
+    },
+    {
+      "upstreamPath": "internal/application/service/wiki_ingest_batch.go",
+      "sha256": "91401c4fefae926c0b3b7dae87277099e5c71886de97a01ac638d881fe520432",
+      "targetPath": "internal/pipeline/upstream_reduce.go",
+      "functions": [
+        "reduceSlugUpdates",
+        "mergeChunkRefs"
+      ],
+      "adaptation": "保留原Reduce主体：summary覆盖、来源回撤、剩余来源摘要、引用正文优先/Details回退、稳定文档标题、同次页改写、ref句柄、length失败保留旧页、目录只填空位、additionFailed与写失败/rowGuard分流；s.wikiService改独立SQLite可信发布适配，Evidence按稳定SourceID撤回旧版本并绑定实际新引用。",
+      "targetSHA256": "06e4956d1fb01f95eff8b3ee5264cff66bac68002657160ec771b177d2a99aa9"
+    },
+    {
+      "upstreamPath": "internal/application/service/wiki_ingest.go",
+      "sha256": "bc4f5c9cf5d5bd4c8759f831baff8d9ff1e1d094d7e08a9de4a18cf051b653b3",
+      "targetPath": "internal/pipeline/deduplicate.go",
+      "functions": [
+        "writeDedupCandidateGroup",
+        "xmlEscape",
+        "deduplicateExtractedBatch"
+      ],
+      "adaptation": "保留原逐项有界候选探测、exact目标优先、相似候选分组XML、merges对象解析及非法目标过滤、失败沿stable identity回退主体；只替换ModelService/WikiService为直接模型和独立仓储端口。",
+      "targetSHA256": "81929c90f4966f75ba507571a03d193d1016df29cbb6258bbbdb401de4fe6914"
+    },
+    {
+      "upstreamPath": "internal/application/service/wiki_ingest_dedup.go",
+      "sha256": "b578b31581eb9ef7a1dd20964c8e9b7f07ab880981e12c7df8c4875f971763d2",
+      "targetPath": "internal/pipeline/dedup.go",
+      "functions": [
+        "dedupMergeRejectReason",
+        "normalizeWikiIdentityTitle",
+        "exactIdentityTarget",
+        "preferWikiIdentityDisplayName",
+        "mergeExtractedIdentity",
+        "appendUniqueString"
+      ],
+      "adaptation": "保留原目标校验、精确身份和候选合并纯算法；仅包路径、领域类型与中文注释适配。不保留固定版本生产链已不用的全库Jaccard候选筛选。",
+      "targetSHA256": "61cb506aa8ef99b7061557aafd4b24940ee9b4ee27704eadb9a178fbe4e20cf3"
+    },
+    {
+      "upstreamPath": "internal/application/service/wiki_ingest_dedup.go",
+      "sha256": "b578b31581eb9ef7a1dd20964c8e9b7f07ab880981e12c7df8c4875f971763d2",
+      "targetPath": "internal/pipeline/identity_claims.go",
+      "functions": [
+        "claimWikiIdentitySlug",
+        "stabilizeExtractedIdentities",
+        "identityPageCacheKey",
+        "otherWikiPageType",
+        "loadCachedIdentityPages",
+        "storeCachedIdentityPages",
+        "bindExactIdentityPages",
+        "attachExactIdentityPages",
+        "collectExactIdentityTargets",
+        "reclaimExtractedIdentities",
+        "remapSlugUpdatesByIdentity"
+      ],
+      "adaptation": "迁入原方法主体。仅保留Lite的batch-local sync.Map身份保留，移除Redis分支；exact已有页可覆盖暂存claim，语义merge仅LoadOrStore；共享本批精确查询缓存；cite后归一与整批remap不改summary/retract。",
+      "targetSHA256": "213ece447a14f5435e770c66d98020718b194eba92e56af1670701198db333c8"
+    },
+    {
+      "upstreamPath": "internal/application/service/wiki_ingest_cite.go",
+      "sha256": "d4c2a58862f2117a7a9eb220a8953f6aabcce4b03a688961b0001f88606f09df",
+      "targetPath": "internal/pipeline/cite.go",
+      "functions": [
+        "splitChunksIntoCitationBatches",
+        "renderCandidateSlugsXML",
+        "renderChunksXML",
+        "collectCitedChunkContent",
+        "mergeCitationsIntoItems"
+      ],
+      "adaptation": "保留原12000rune分批、短句柄、文本XML及引用合并主体，Chunk替换为独立阅读块。classifyUpstream调用端口、4路局部失败和句柄解析在lite.go，未引入文件提交封套。",
+      "targetSHA256": "bdb5771531a047e4344805d5fe780fb93df894566ae7b7ab7f7663c1d16d41d3"
+    },
+    {
+      "upstreamPath": "internal/application/service/wiki_ingest_taxonomy.go",
+      "sha256": "7ecac0e0889ba75c23b8f30a30db97b0a56677844bf01d43cae4e787f6162e70",
+      "targetPath": "internal/pipeline/taxonomy.go",
+      "functions": [
+        "collectTaxonomyItems",
+        "parseTaxonomyAssignments"
+      ],
+      "adaptation": "保留原知识项提取与JSON分类结果解析主体，使用上游原assignments合同。",
+      "targetSHA256": "c6c03d189ae158fa5811fe4527a96143a52d21225c6766fc5b5275fa7a86c172"
+    },
+    {
+      "upstreamPath": "internal/application/service/wiki_ingest_taxonomy.go",
+      "sha256": "7ecac0e0889ba75c23b8f30a30db97b0a56677844bf01d43cae4e787f6162e70",
+      "targetPath": "internal/pipeline/taxonomy_vectors.go",
+      "functions": [
+        "selectRelevantFolders",
+        "selectFoldersByVectors",
+        "cosineSimilarity",
+        "capFolders"
+      ],
+      "adaptation": "保留原目录预筛与向量排序主体：<=60全量、一级锚定、深层每项Top3、150上限、缺模型/故障回退。模型构造改冻结Embed端口，分批默认5条；不引入供应商或ants池。",
+      "targetSHA256": "3eb186ac6b110a3cd9e49688cb0c984de92d7ee8997c7decf4d9cc683393cb3b"
+    },
+    {
+      "upstreamPath": "internal/application/service/wiki_ingest.go",
+      "sha256": "bc4f5c9cf5d5bd4c8759f831baff8d9ff1e1d094d7e08a9de4a18cf051b653b3",
+      "targetPath": "internal/pipeline/taxonomy_tree.go",
+      "functions": [
+        "insertWikiTaxonomyPath",
+        "appendWikiTaxonomyNode",
+        "formatExistingTaxonomyForPrompt",
+        "cleanLLMJSON",
+        "sanitizeJSONString"
+      ],
+      "adaptation": "原目录树渲染和JSON清洗纯算法，包名与领域类型适配。",
+      "targetSHA256": "f4de7a42dae1a67bfc606f8806b3138fcfbf5825d246bf01f1dc69a031b7e63f"
+    },
+    {
+      "upstreamPath": "internal/application/service/wiki_ingest.go",
+      "sha256": "bc4f5c9cf5d5bd4c8759f831baff8d9ff1e1d094d7e08a9de4a18cf051b653b3",
+      "targetPath": "internal/pipeline/image_urls.go",
+      "functions": [
+        "maskTemplateDataImageURLs",
+        "maskImageURLs",
+        "maskImageURLsWithState",
+        "collectMaskableImageURLs",
+        "unmaskImageURLs",
+        "replaceImagePlaceholderTokensOutsideMarkdown",
+        "replaceImagePlaceholderTokens"
+      ],
+      "adaptation": "原图片URL冻结/还原完整纯函数，防止模型重写对象地址；仅包名适配。",
+      "targetSHA256": "bb6a41d4066406b0ca9ca9fdfba06f007ccee73183f48115c10484ea7409643d"
+    },
+    {
+      "upstreamPath": "internal/application/service/wiki_ingest.go",
+      "sha256": "bc4f5c9cf5d5bd4c8759f831baff8d9ff1e1d094d7e08a9de4a18cf051b653b3",
+      "targetPath": "internal/pipeline/model_retry.go",
+      "functions": [
+        "isTransientLLMError"
+      ],
+      "adaptation": "迁入原瞬态错误分类与限流标志。直接模型调用在model.go保留3次/2s/4s，取消不重试；不引入provider Chat、tenant singleflight或prefix warmup。",
+      "targetSHA256": "2e849cb0b331b702cb1673076064002cdd98c3d070a4d6eae8a0c9c64dbe1d0b"
+    },
+    {
+      "upstreamPath": "internal/application/service/wiki_ingest.go",
+      "sha256": "bc4f5c9cf5d5bd4c8759f831baff8d9ff1e1d094d7e08a9de4a18cf051b653b3",
+      "targetPath": "internal/pipeline/dead_links.go",
+      "functions": [
+        "stripDeadWikiLinks"
+      ],
+      "adaptation": "原坏链先安全模糊修复再退化纯文本的主体；每页候选限制为其已有有效outlinks。",
+      "targetSHA256": "9e5281f27be0979220a44a429bee06884936a46a9be40e1c96c29d25f98cc9c2"
+    },
+    {
+      "upstreamPath": "internal/application/service/slug_fuzzy.go",
+      "sha256": "506c911062542b16050a657600b839e668eb6e228f5dad2533f9f21e1cabd846",
+      "targetPath": "internal/pipeline/slug_fuzzy.go",
+      "functions": [
+        "normalizeSlugForCompare",
+        "slugCharBigrams",
+        "resolveDeadSlug"
+      ],
+      "adaptation": "原大小写/连字符归一、标题反查、bigram Jaccard>=0.8安全回退主体；Jaccard使用本包同公式纯函数。",
+      "targetSHA256": "0db8b8de96963be85f60beafe526ef660fd3565dc994053f43bdb4a48422f19e"
+    },
+    {
+      "upstreamPath": "internal/searchutil/chunkmerge.go",
+      "sha256": "883f46c2aec0f76ad6d23517c5af1f77f6ad44db697443251c9a06593b148fe4",
+      "targetPath": "internal/pipeline/chunk_merge.go",
+      "functions": [
+        "JoinChunkContent",
+        "ContainsChunkContent",
+        "minInt",
+        "maxInt",
+        "indexRunes",
+        "runeSlicesEqual",
+        "AppendWithOverlap",
+        "AppendWithExactOverlap",
+        "MergeTextChunks"
+      ],
+      "adaptation": "完整原纯算法与注释，types.Chunk替换本地Chunk；Reader和持久分块统一为原文rune StartAt/EndAt。补准确中文导出说明。",
+      "targetSHA256": "a824f3306a2a5dce995651973b1c518f43a31953d63dcc215c843338ec498766"
+    },
+    {
+      "upstreamPath": "internal/application/service/wiki_ingest.go",
+      "sha256": "bc4f5c9cf5d5bd4c8759f831baff8d9ff1e1d094d7e08a9de4a18cf051b653b3",
+      "targetPath": "internal/pipeline/upstream_preview.go",
+      "functions": [
+        "previewText",
+        "previewStringSlice",
+        "previewExtractedItems",
+        "topCitedSlugs",
+        "previewNewSlugs"
+      ],
+      "adaptation": "原有界诊断投影纯函数，保留实际Map统计；不迁外部tracing。",
+      "targetSHA256": "0e926006b22aeea0a6a9ec92daf42405637258de0ca2f893bbe7a6b124ff69e4"
+    },
+    {
+      "upstreamPath": "internal/application/service/wiki_ingest.go",
+      "sha256": "bc4f5c9cf5d5bd4c8759f831baff8d9ff1e1d094d7e08a9de4a18cf051b653b3",
+      "targetPath": "internal/pipeline/read_guard.go",
+      "functions": [
+        "stripImageMarkup",
+        "extractRealText",
+        "hasSufficientTextContent",
+        "realTextRuneCount"
+      ],
+      "adaptation": "原图片占位不能代替实际正文的门槛算法。",
+      "targetSHA256": "b0dd15f51f1c5dc5cdb83c9f06ee8eff3fa3e0e749697959dd95181852b9bac6"
+    },
+    {
+      "upstreamPath": "internal/application/service/wiki_ingest.go",
+      "sha256": "bc4f5c9cf5d5bd4c8759f831baff8d9ff1e1d094d7e08a9de4a18cf051b653b3",
+      "targetPath": "internal/pipeline/finalize.go",
+      "functions": [
+        "splitSummaryLine"
+      ],
+      "adaptation": "SUMMARY首行函数原样迁入。rebuildIndex与finalizeLinks由原rebuildIndexPage/cleanDeadLinks/injectCrossLinks适配：持久变更、首版200摘要/增量简介、失败回退、affected范围、已有outlinks+freshRefs；显式Run末尾一次收尾替代Asynq 20s debounce。 索引元数据与正文一级标题固定为 Wiki Index，模型继续更新概述。",
+      "targetSHA256": "72606a5972719f2703ba50403604fe79da2677a04e9831b50a3ab7b2e3c46ee1"
+    },
+    {
+      "upstreamPath": "internal/application/service/knowledge_process.go",
+      "sha256": "9d06479fc0478a74017516bda6db81c99a2274e2ebac5287b07df00279e44105",
+      "targetPath": "internal/pipeline/document_summary_parser.go",
+      "functions": [
+        "normalizeSummaryReplyContent",
+        "summaryReplyIsJSONShaped",
+        "parseDocumentSummaryOutput"
+      ],
+      "adaptation": "普通文档档案JSON/纯文本兼容解析主体，JSON形状损坏绝不存成摘要。",
+      "targetSHA256": "896abdc2ac9997abd29e6505d03d479315953aee43a6b133b7b45def544b9988"
+    },
+    {
+      "upstreamPath": "internal/common/tools.go",
+      "sha256": "fb49ea615aa815ce593af5b60d1058960e60f267df12116c6b39021d8f5b598e",
+      "targetPath": "internal/pipeline/document_summary_json.go",
+      "functions": [
+        "ParseLLMJsonResponse",
+        "ExtractBalancedJSON"
+      ],
+      "adaptation": "原JSON解析辅助，包路径适配。",
+      "targetSHA256": "89b2a4797968cda7f69aedea9631c4d4d1c2586c1355380049b88e4b89f3d3d8"
+    },
+    {
+      "upstreamPath": "internal/application/service/knowledge_process.go",
+      "sha256": "9d06479fc0478a74017516bda6db81c99a2274e2ebac5287b07df00279e44105",
+      "targetPath": "internal/pipeline/document_summary_input.go",
+      "functions": [
+        "checkSufficientSummaryContent",
+        "sampleLongContent"
+      ],
+      "adaptation": "原8192rune头中尾采样与实际文本门槛，标准日志替换上游logger。",
+      "targetSHA256": "8c7a78c5496a57a23c0e76ad18eb8222ec73656d543ed8b5330993e5f4f2f94a"
+    },
+    {
+      "upstreamPath": "internal/types/prompt_instructions.go",
+      "sha256": "03b210f5e322b67049bdfd02a61a55b23c5468e154103d77c3dfc6c5ea288989",
+      "targetPath": "internal/wiki/prompt_instructions.go",
+      "functions": [
+        "AppendCustomPromptInstructions"
+      ],
+      "adaptation": "原业务指令作用域追加合同，保留系统格式和事实规则优先。只迁纯函数，不迁知识服务配置。",
+      "targetSHA256": "61604e1dbb17c2c4802eb42e91297b15f2c4f9800d48af520f9c9b1f2ba92d30"
+    },
+    {
+      "upstreamPath": "internal/application/service/wiki_ingest_cite_test.go",
+      "sha256": "c74c149780667e880b3eea9ecd1c97674934b2f933236df8cf3e3ca61ecebd94",
+      "targetPath": "internal/pipeline/cite_upstream_test.go",
+      "functions": [],
+      "adaptation": "保留已迁纯引用算法场景，类型适配。",
+      "targetSHA256": "1f7f1a86a8861e3386bb3fbf8363b6298e66e1f3a3390ffdc47335cf1142532f"
+    },
+    {
+      "upstreamPath": "internal/application/service/wiki_ingest_dedup_test.go",
+      "sha256": "462963ae27e27fc78e92761314efcb01112ab01ed7b18897a6605141d610b39f",
+      "targetPath": "internal/pipeline/dedup_upstream_test.go",
+      "functions": [],
+      "adaptation": "保留当前生产使用的目标校验与精确身份纯测试，移除不在固定服务生产链使用的Jaccard旧候选筛选测试。",
+      "targetSHA256": "a6ddb1bdb2ad16b5ae3d31cf1f9fd31a7f94de97318ecb2ddcc7235d8a276fae"
+    },
+    {
+      "upstreamPath": "internal/application/service/wiki_ingest_taxonomy_test.go",
+      "sha256": "7ddcceeb89fb4fcb92113d173e35ee95c489b5a881cc25289626ba99a3edc33c",
+      "targetPath": "internal/pipeline/taxonomy_upstream_test.go",
+      "functions": [],
+      "adaptation": "保留已迁目录项和assignments解析的原测试。",
+      "targetSHA256": "50ad2a853129878520e5df03ff90048fea079fc16b8699ad608d97f4568dff28"
+    },
+    {
+      "upstreamPath": "internal/application/service/slug_fuzzy_test.go",
+      "sha256": "3514f686f2332e15c071b4f3f4d6cfa7e9a4d78fedbbc5a639438f6a5d098f83",
+      "targetPath": "internal/pipeline/slug_fuzzy_upstream_test.go",
+      "functions": [],
+      "adaptation": "原文件全部纯函数测试，包名适配。",
+      "targetSHA256": "80527ac284d0a59550b8767fbd43577c9efc3f04a752510e726926f122d6a7e3"
+    },
+    {
+      "upstreamPath": "internal/searchutil/chunkmerge_test.go",
+      "sha256": "8b5e42c4e88fee11d1d45a1d6faec36d411ca9cd00fa6018d059fed4dad1258f",
+      "targetPath": "internal/pipeline/chunk_merge_upstream_test.go",
+      "functions": [],
+      "adaptation": "原文件全部纯函数测试，types.Chunk换本地Chunk。",
+      "targetSHA256": "40a4fa50b6be9baa92511db5d42236d0742383b3438be532c291d6a023dc0658"
+    }
+  ],
+  "localAdapters": [
+    {
+      "targetPath": "internal/pipeline/lite.go",
+      "scope": "显式Job接纳范围、系统库锁轮候、持久文档待办、原batch5/map10/reduce10/cite4调度、Reader/真实索引、来源局部故障与一次finalize；不创建Chat/Execution。"
+    },
+    {
+      "targetPath": "internal/pipeline/model.go",
+      "scope": "独立Messages->原文、Wiki32768/普通摘要1024、Thinking=false、Temperature0.3、3次瞬态重试与页改写最多3次续写、原生用量/错误诊断；不跨调用复用坏JSON。"
+    },
+    {
+      "targetPath": "internal/pipeline/page_reduce.go",
+      "scope": "上游60项目录分批、400池/150输入、前馈目录复用及串行目录行建立的独立仓储适配。"
+    },
+    {
+      "targetPath": "internal/store/lite.go",
+      "scope": "可信页面/来源事务、纯知识Stage、持久finalize增量、维护写不增正文version。"
+    },
+    {
+      "targetPath": "internal/store/store.go",
+      "scope": "仅空库建立当前结构版本1；已有数据库核完整表、列与必要索引，不执行历史迁移、补列或旧任务识别。"
+    },
+    {
+      "targetPath": "internal/domain/wiki_finalize.go",
+      "scope": "同事务保存实际slug与文档变化的显式任务finalize增量。"
+    }
+  ],
+  "differences": [
+    "上游服务依赖Knowledge/Wiki/Model服务、Asynq、Redis、tenant和tracing，不能直接挂入独立模块；迁入知识算法主体，外部模型、仓储、调度与诊断边界按文件分别登记。",
+    "同库显式Run持久处理全部待办后收尾一次，替代上游触发器/20秒debounce；不迁Redis标准模式并发或跨KB调度。",
+    "当前产品Wiki开启走Wiki摘要，Wiki关闭走普通文档Profile；不新增SummaryEnabled或声称完整post_process调度等价。",
+    "核心模型端口保留原模板与显式角色；宿主Codex以原system替换原生基础指令、原user直接发送，仅user调用用已诊断中性shim；assistant续写及其他Runtime仍文本序列化。Codex原生权限/工具元数据、Thinking/温度/token限制见Diagnostics，不等同完整Chat API。CLI不提供tenant供应商缓存，未复制singleflight/prefix warmup。",
+    "独立SQLite相似候选使用已迁关键词/别名分支，不是PostgreSQL pg_trgm；原精确身份规范化/缓存/跨类型回退保留。",
+    "上游vector或keyword均要求Embedding；本地仅vector需要，keyword为SQLite关键词分支。Wiki-only两边均不强制Embedding。Graph实体关系抽取未接入，不能用Wiki链接代称图谱抽取。",
+    "本地不可变来源版本、Evidence、CAS、人工保护、raw Reader/索引和取消是必要存储与授权适配；旧版本由稳定SourceID串联。",
+    "完整解析引擎、图像OCR增强、实体图谱及供应商集成不在核心运行依赖。"
+  ],
+  "verification": [
+    "internal/pipeline/lite_contract_test.go: 原文发布、Pass0 fallback、局部reduce失败、SourceID换版retract、6来源批次、Instruction隔离、cite局部失败、length续写、持久失败预算、库锁轮候。",
+    "core/lite_rag_test.go: 真实索引与普通Profile角色/预算/截断、阅读期内部取消后Retry。",
+    "internal/store/schema_test.go: 当前结构新建/重开保留原件，不完整结构被拒绝且不自动修复。"
+  ]
+}

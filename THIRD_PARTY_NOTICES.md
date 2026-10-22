@@ -329,3 +329,47 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
+
+## ledongthuc/pdf 文本阅读校验
+
+NeuxAlly 的文本 PDF 覆盖核对使用 `github.com/ledongthuc/pdf`，固定版本 `v0.0.0-20260907135840-6c8c28e0e8a0`（提交 `6c8c28e0e8a0`）。来源：[项目仓库](https://github.com/ledongthuc/pdf/tree/6c8c28e0e8a0)，基于 rsc/pdf，BSD-3-Clause。仅读取文本层，不包含 OCR。以下保留原始许可：
+
+```text
+Copyright (c) 2009 The Go Authors. All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+   * Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
+   * Redistributions in binary form must reproduce the above
+copyright notice, this list of conditions and the following disclaimer
+in the documentation and/or other materials provided with the
+distribution.
+   * Neither the name of Google Inc. nor the names of its
+contributors may be used to endorse or promote products derived from
+this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+```
+
+## 独立知识核心与 WeKnora 迁移
+
+`third_party/neux-knowledge/` 是独立 `github.com/JieWaZi/neux-knowledge` 的生成源码快照，由 `scripts/sync-knowledge-core.mjs` 和逐文件 SHA-256 清单固定。该核心迁入 Tencent/WeKnora 固定提交 `8776a2d92d11ad3e76865d51cf3192e37e2a9976` 的实际 Wiki 仓储、模型、Map/Cite/Dedup/Taxonomy/Reduce 与链接处理，并适配 SQLite、原件版本及原子发布。迁移来源和修改边界见 [核心来源说明](third_party/neux-knowledge/THIRD_PARTY_NOTICES.md) 和 `upstream/` 清单；完整许可随快照保留。迁入分块等新增范围仍以同一固定提交与来源清单核对，不混用其他版本。
+
+前端分块设置沿用同一固定提交的 `frontend/src/views/knowledge/settings/KBChunkingSettings.vue`，Vue/TDesign 控件适配为宿主共享表单、滑块与选择器。索引目录的 Markdown 拼接迁自 `frontend/src/views/knowledge/wiki/WikiBrowser.vue` 的 `appendIndexDirectoryLines`，适配为宿主共享 Markdown 渲染与页面链接导航。版权仍属于原权利人，适用同一上游许可。后端分块诊断迁移范围与必要适配登记于核心来源清单。
+
+前端图谱的 `desktop/src/modules/knowledge/knowledge-graph-layout.ts` 与对应测试直接迁自同一固定提交的 `frontend/src/views/knowledge/wiki/wikiGraphLayout.ts`、`wikiGraphLayout.test.ts`。适配包括格式、显式索引引用校验、Vitest 测试入口、移除诊断计时及按交互需求增大节点半径，保留上游布局算法和测试断言。布局原文件 SHA-256 为 `85e3eafe5c75894c76df5c44b42364ab92482877a26bcf93154291cd87bcb1c9`。
+
+图谱 SVG 呈现与交互的 `desktop/src/modules/knowledge/knowledge-graph-renderer.ts` 迁入本地 WeKnora 提交 `2c0d8384398ca756ee414eef01b71caf91e2caa6` 的 `frontend/src/views/knowledge/wiki/WikiBrowser.vue`（Git blob `5db575db439df4c1622c63f39d3eb71214a7fb79`）。沿用一次创建 SVG 元素、逐帧更新坐标、每六帧刷新标签、轮廓缩放与坐标缓存、批量文本测量、拖动局部更新、悬停延迟及增量展开保留位置和视口的实现机制；概览和邻域采用 500 节点预算，累积展开采用 1500 节点预算。必要适配为 React 外部资源生命周期、Pointer Events、宿主语义色与共享控件、类型和键盘可访问性；节点命中延续宿主最近屏幕距离规则。本地和远端数据继续遵守宿主 Query 与知识库边界。纯布局文件与上述固定提交逐字节一致，宿主保留原有格式、显式索引校验及节点半径适配。版权为 `Copyright (C) 2026 Tencent. All rights reserved.`，适用同一 MIT 许可，完整声明见随包交付的 [WeKnora 许可](third_party/neux-knowledge/upstream/WeKnora.LICENSE)。
