@@ -3,7 +3,6 @@ package knowledge
 import (
 	"github.com/JieWaZi/NeuxAlly/server/global"
 	bridge "github.com/JieWaZi/NeuxAlly/server/internal/knowledge"
-	"github.com/JieWaZi/neux-knowledge/core"
 	"github.com/gin-gonic/gin"
 	"github.com/shrewx/ginx"
 	"time"
@@ -26,7 +25,7 @@ func (o *GetLibrary) Output(ctx *gin.Context) (interface{}, error) {
 		return nil, bridge.MapError(err)
 	}
 	item := libraryDTO(v)
-	_, total, err := global.KnowledgeEngine.ListPages(ctx, core.PageQuery{LibraryID: v.ID, Limit: 1})
+	_, total, err := global.KnowledgeEngine.ListPageDirectory(ctx, v.ID, 0, 1)
 	if err != nil {
 		return nil, bridge.MapError(err)
 	}

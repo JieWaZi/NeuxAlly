@@ -1,5 +1,5 @@
 import { Laptop, Moon, Settings, Sun } from "lucide-react";
-import { useMemo, type ReactNode } from "react";
+import { lazy, Suspense, useMemo, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import { AIAccountsSection } from "../components/ai-accounts-section";
@@ -14,6 +14,12 @@ import { SceneTabStrip } from "@/shared/ui/scene-tab-strip";
 import { SceneChromePortal } from "@/shared/ui/scene-chrome-portal";
 import { NativeOverlayPresence } from "@/shared/ui/native-overlay";
 import { SegmentedControl } from "@/shared/ui/segmented-control";
+
+const APIIntegrationSection = lazy(() =>
+  import("../components/api-integration-section").then((module) => ({
+    default: module.APIIntegrationSection,
+  })),
+);
 
 function GeneralSettings() {
   const { t } = useTranslation("appSettings");
@@ -72,6 +78,23 @@ function SettingsSectionContent({
   onSelectSection?: (section: SettingsSection) => void;
   section: SettingsSection;
 }) {
+  const { t } = useTranslation("appSettings");
+  if (section === "integration-api")
+    return (
+      <Suspense
+        fallback={
+          <SettingsContentShell title={t("sections.integrationAPI")}>
+            <div
+              role="status"
+              aria-busy="true"
+              className="bg-surface-tertiary h-40 rounded-lg"
+            />
+          </SettingsContentShell>
+        }
+      >
+        <APIIntegrationSection />
+      </Suspense>
+    );
   if (section === "general") return <GeneralSettings />;
   if (section === "ai-accounts") return <AIAccountsSection />;
   return (

@@ -43,5 +43,8 @@ func (o *RecoverLibraryDeletion) Output(ctx *gin.Context) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
+	if err := deleteLibraryHostReferences(ctx, o.LibraryID); err != nil {
+		return nil, err
+	}
 	return receiptDTO(r), nil
 }

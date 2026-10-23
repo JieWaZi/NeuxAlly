@@ -35,3 +35,11 @@
 - [工作流语言与编译](architecture/workflow-language-cn.md)
 - [工作流](architecture/workflows-cn.md)
 - [工作区与存储](architecture/workspace-and-storage-cn.md)
+
+## 待实施规格
+
+- [API 集成、远端知识库与自动任务](superpowers/specs/2026-10-21-api-integration-design.md)
+
+## 待实施计划
+
+- [API 集成、远端知识库与自动任务实施计划](superpowers/plans/2026-10-22-api-integration.md)

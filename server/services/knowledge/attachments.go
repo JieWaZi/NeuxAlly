@@ -15,7 +15,7 @@ import (
 )
 
 // importSelectedAttachments 只接受当前真实Execution用户消息中的受管附件序号。
-func (s *Service) importSelectedAttachments(ctx context.Context, chatID, library, request string, indexes []int, validate func(context.Context) error) ([]string, error) {
+func (s *Service) importSelectedAttachments(ctx context.Context, chatID, library, request string, indexes []int, validate func(context.Context) error, guards ...func(context.Context) (func(), error)) ([]string, error) {
 	summary, err := s.config.Chats.GetChatSummary(ctx, chatID)
 	if err != nil {
 		return nil, err
@@ -69,13 +69,23 @@ func (s *Service) importSelectedAttachments(ctx context.Context, chatID, library
 			if err := s.config.References.BeginOperation(ctx, link); err != nil {
 				return nil, err
 			}
-			s.policy.RLock()
+			release := func() {}
+			guarded := len(guards) > 0
+			if guarded {
+				release, err = guards[0](ctx)
+				if err != nil {
+					return nil, err
+				}
+			} else {
+				s.policy.RLock()
+				release = s.policy.RUnlock
+			}
 			if err := validate(ctx); err != nil {
-				s.policy.RUnlock()
+				release()
 				return nil, err
 			}
 			receipt, err := s.config.Engine.ImportSource(ctx, core.ImportSourceInput{RequestID: id, LibraryID: library, Filename: attachment.Name, MIME: attachment.MediaType, Bytes: raw})
-			s.policy.RUnlock()
+			release()
 			if err != nil {
 				return nil, bridge.MapError(err)
 			}

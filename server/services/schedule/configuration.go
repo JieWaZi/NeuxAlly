@@ -184,7 +184,7 @@ func (s *Service) saveConfiguration(ctx context.Context, wakerID, id string, rev
 		task.CreatedAt = task.UpdatedAt
 		err = s.config.Tasks.Create(ctx, task)
 	} else {
-		err = s.config.Tasks.UpdateConfiguration(ctx, task, storedRevision)
+		err = s.WithAuthorizationWrite(ctx, func(ctx context.Context) error { return s.config.Tasks.UpdateConfiguration(ctx, task, storedRevision) })
 	}
 	if err != nil {
 		return SavedTask{}, err

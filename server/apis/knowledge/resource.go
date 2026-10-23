@@ -26,6 +26,12 @@ type ResourceRef struct {
 
 // 知识库详情
 type Library struct {
+	// 远端离线
+	Offline bool `json:"offline,omitempty"`
+	// 远端入口标识
+	MountID string `json:"mountId,omitempty"`
+	// 远端入口版本
+	MountRevision int64 `json:"mountRevision,omitempty"`
 	// Wiki数量
 	PageTotal *int64 `json:"pageTotal,omitempty"`
 	// 统计时间
@@ -66,6 +72,8 @@ type Library struct {
 
 // 原件版本
 type Source struct {
+	// 整理占用
+	OrganizeBlocked bool `json:"organizeBlocked"`
 	// 版本标识
 	ID string `json:"id"`
 	// 来源标识
@@ -282,7 +290,7 @@ func libraryDTO(v *core.Library) Library {
 	return Library{Ref: ResourceRef{Backend: "local", ConnectionID: "local", KnowledgeBaseID: v.ID}, ID: v.ID, Name: v.Name, Kind: v.Kind, WikiLanguage: v.WikiLanguage, Purpose: v.Purpose, WikiConfig: v.WikiConfig, ChunkingConfig: v.ChunkingConfig, IndexingStrategy: v.IndexingStrategy, EmbeddingModelID: v.EmbeddingModelID, Version: v.Version, StructureVersion: v.StructureVersion, PolicyVersion: v.PolicyVersion, Archived: v.Archived, CreatedAt: v.CreatedAt, UpdatedAt: v.UpdatedAt}
 }
 func sourceDTO(v *core.SourceVersion) Source {
-	return Source{ID: v.ID, SourceID: v.SourceID, Version: v.Version, RowVersion: v.RowVersion, Filename: v.Filename, MIME: v.MIME, SHA256: v.SHA256, Size: v.Size, State: v.State, Description: v.Description, Profile: v.Profile, SummaryStatus: v.SummaryStatus, Archived: v.Archived, Coverage: v.Coverage, Diagnostic: v.Diagnostic, CreatedAt: v.CreatedAt}
+	return Source{OrganizeBlocked: v.OrganizeBlocked, ID: v.ID, SourceID: v.SourceID, Version: v.Version, RowVersion: v.RowVersion, Filename: v.Filename, MIME: v.MIME, SHA256: v.SHA256, Size: v.Size, State: v.State, Description: v.Description, Profile: v.Profile, SummaryStatus: v.SummaryStatus, Archived: v.Archived, Coverage: v.Coverage, Diagnostic: v.Diagnostic, CreatedAt: v.CreatedAt}
 }
 func pageDTO(v *core.Page) Page {
 	return Page{SourcePurgeReview: SourcePurgeReviewFromMetadata(v.PageMetadata), Evidence: evidenceDTO(v.Evidence), ID: v.ID, Slug: v.Slug, Title: v.Title, PageType: v.PageType, Status: v.Status, Content: v.Content, Summary: v.Summary, Aliases: v.Aliases, ThemeID: v.FolderID, SortOrder: v.SortOrder, Version: v.Version, SourceRefs: v.SourceRefs, ChunkRefs: v.ChunkRefs, InLinks: v.InLinks, OutLinks: v.OutLinks, CategoryPath: v.CategoryPath, ManualPlacement: v.ManualPlacement, WikiLanguage: v.WikiLanguage, UpdatedAt: v.UpdatedAt.UnixMilli()}

@@ -13,4 +13,10 @@ set -eu
 
 node scripts/normalize-openapi.mjs server/openapi.json
 
+ALLY_PUBLIC_SOURCE=$(mktemp)
+trap 'rm -f "$ALLY_PUBLIC_SOURCE"' EXIT INT TERM
+(cd server && go run ./cmd/integration-contract "$ALLY_PUBLIC_SOURCE")
+node scripts/public-openapi.mjs "$ALLY_PUBLIC_SOURCE" server/integration-openapi.json
+node scripts/normalize-openapi.mjs server/integration-openapi.json
+
 pnpm --dir desktop api:generate

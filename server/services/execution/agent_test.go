@@ -153,7 +153,7 @@ func TestKnowledgeCLIPreparationKeepsOnlyTheFrozenGrant(t *testing.T) {
 	}
 	journal := &agentTestJournal{chat: models.Chat{ID: "chat", WakerID: "waker", ActiveExecutionID: "execution"}}
 	manager := &service{agent: registry, agentEndpoint: endpoint.URL + constants.AgentCLIPath, agentBinary: binary, agentSessions: &agentSessionFiles{slots: map[string]agentSessionSlot{}}, journal: journal, skillDataDirectory: t.TempDir(), elicitations: newElicitationCoordinator(journal)}
-	manager.agentBindings = func(models.Chat, string, []string) []agentcapability.Binding {
+	manager.agentBindings = func(models.Chat, string, []string, string) []agentcapability.Binding {
 		t.Fatal("scoped command discovered ordinary resources")
 		return nil
 	}

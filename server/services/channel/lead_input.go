@@ -120,6 +120,10 @@ func (s *service) drainLeadInputs(
 		}
 		leadExecutionID = identity.ResourceID("lead_execution", thread.ID)
 	}
+	automaticRunID, err := s.automaticWorkSource(ctx, thread)
+	if err != nil {
+		return nil, err
+	}
 	capability, capabilityToken, err := s.mintLeadCapability(ctx, thread, leadExecutionID, true)
 	if err != nil {
 		return nil, err
@@ -140,7 +144,7 @@ func (s *service) drainLeadInputs(
 	)
 	workOptions.AccountID = lead.AccountID
 
-	accepted, err := s.executions.Start(ctx, execution.WorkIntent{
+	accepted, err := s.executions.Start(ctx, execution.WorkIntent{AutomaticRunID: automaticRunID,
 		ExecutionID: leadExecutionID,
 		Chat:        execution.ChatTarget{ChatID: thread.LeadChatID},
 		Input:       workInput,

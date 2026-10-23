@@ -34,6 +34,7 @@ func init() {
 	Router.Register(&UpdateLibrary{})
 	Router.Register(&ListSources{})
 	Router.Register(&ListPages{})
+	Router.Register(&ListPageDirectory{})
 	Router.Register(&GetPageBySlug{})
 	Router.Register(&GetWikiIndex{})
 	Router.Register(&ListRevisions{})

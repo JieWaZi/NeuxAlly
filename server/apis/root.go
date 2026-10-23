@@ -9,9 +9,9 @@ import (
 	"github.com/JieWaZi/NeuxAlly/server/apis/chats"
 	eventapi "github.com/JieWaZi/NeuxAlly/server/apis/events"
 	imapi "github.com/JieWaZi/NeuxAlly/server/apis/im"
+	"github.com/JieWaZi/NeuxAlly/server/apis/integrations"
 	knowledgeapi "github.com/JieWaZi/NeuxAlly/server/apis/knowledge"
 	"github.com/JieWaZi/NeuxAlly/server/apis/knowledge_connections"
-	"github.com/JieWaZi/NeuxAlly/server/apis/knowledge_server"
 	"github.com/JieWaZi/NeuxAlly/server/apis/mcp"
 	memoryapi "github.com/JieWaZi/NeuxAlly/server/apis/memory"
 	"github.com/JieWaZi/NeuxAlly/server/apis/middleware"
@@ -41,7 +41,7 @@ func init() {
 	desktopRouter.Register(memoryapi.Router)
 	desktopRouter.Register(knowledgeapi.Router)
 	desktopRouter.Register(knowledge_connections.Router)
-	desktopRouter.Register(knowledge_server.Router)
+	desktopRouter.Register(integrations.Router)
 	desktopRouter.Register(wakers.Router)
 	desktopRouter.Register(automatic_tasks.Router)
 	desktopRouter.Register(automatic_tasks.GlobalRouter)

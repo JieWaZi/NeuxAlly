@@ -158,8 +158,8 @@ func newTriggerHarness(t *testing.T) *triggerHarness {
 	}
 	port := listener.Addr().(*net.TCPAddr).Port
 	_ = listener.Close()
-	settings, _ := json.Marshal(schedule.APIStatus{IP: "127.0.0.1", Port: port})
-	if err := os.WriteFile(filepath.Join(dataDirectory, "automatic-tasks-api.json"), settings, 0600); err != nil {
+	settings, _ := json.Marshal(map[string]any{"ip": "127.0.0.1", "port": port, "enabled": true})
+	if err := os.WriteFile(filepath.Join(dataDirectory, "integration-api.json"), settings, 0600); err != nil {
 		t.Fatal(err)
 	}
 	h.scheduler = schedule.New(h.taskConfig)

@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"slices"
+	"time"
 
 	"github.com/JieWaZi/NeuxAlly/server/constants/status_error"
 	"github.com/JieWaZi/NeuxAlly/server/internal/agentcapability"
@@ -20,32 +21,33 @@ import (
 
 // wikiCommand 只转换已经通过唯一命令 Schema 校验的维护参数，授权仍由服务端冻结。
 type wikiCommand struct {
-	LibraryID        string   `json:"libraryId"`        // 目标知识库。
-	Backend          string   `json:"backend"`          // 服务协议。
-	ConnectionID     string   `json:"connectionId"`     // 冻结连接。
-	PageID           string   `json:"pageId"`           // 稳定页面身份。
-	ExpectedVersion  int      `json:"expectedVersion"`  // 已读取的页面版本。
-	StructureVersion int64    `json:"structureVersion"` // 已读取的目录版本。
-	Slug             string   `json:"slug"`             // 页面可读地址。
-	Title            string   `json:"title"`            // 页面标题。
-	Summary          string   `json:"summary"`          // 页面简介。
-	Content          string   `json:"content"`          // 完整正文。
-	PageType         string   `json:"pageType"`         // 页面类型。
-	Aliases          []string `json:"aliases"`          // 页面别名。
-	SourceVersionIDs []string `json:"sourceVersionIds"` // 真实来源版本集合。
-	OldText          string   `json:"oldText"`          // 精确匹配的原文。
-	NewText          string   `json:"newText"`          // 替换后的原文。
-	NewSlug          string   `json:"newSlug"`          // 新页面地址。
-	RevisionVersion  int      `json:"revisionVersion"`  // 要恢复的历史版本。
-	ThemeID          string   `json:"themeId"`          // 目录身份。
-	Name             string   `json:"name"`             // 目录名称。
-	ParentID         string   `json:"parentId"`         // 上级目录。
-	Delete           bool     `json:"delete"`           // 明确删除空目录。
-	Filename         string   `json:"filename"`         // 导入文件名。
-	MIME             string   `json:"mime"`             // 原件媒体类型。
-	Bytes            []byte   `json:"bytes"`            // JSON 中明确提供的原件字节。
-	SourceID         string   `json:"sourceId"`         // 替换原件时的稳定来源身份。
-	JobID            string   `json:"jobId"`            // 原整理任务身份。
+	LibraryID         string   `json:"libraryId"`         // 目标知识库。
+	Backend           string   `json:"backend"`           // 服务协议。
+	ConnectionID      string   `json:"connectionId"`      // 冻结连接。
+	PageID            string   `json:"pageId"`            // 稳定页面身份。
+	ExpectedVersion   int      `json:"expectedVersion"`   // 已读取的页面版本。
+	ExpectedUpdatedAt string   `json:"expectedUpdatedAt"` // 整页改写时读取到的 RFC3339 更新时间。
+	StructureVersion  int64    `json:"structureVersion"`  // 已读取的目录版本。
+	Slug              string   `json:"slug"`              // 页面可读地址。
+	Title             string   `json:"title"`             // 页面标题。
+	Summary           string   `json:"summary"`           // 页面简介。
+	Content           string   `json:"content"`           // 完整正文。
+	PageType          string   `json:"pageType"`          // 页面类型。
+	Aliases           []string `json:"aliases"`           // 页面别名。
+	SourceVersionIDs  []string `json:"sourceVersionIds"`  // 真实来源版本集合。
+	OldText           string   `json:"oldText"`           // 精确匹配的原文。
+	NewText           string   `json:"newText"`           // 替换后的原文。
+	NewSlug           string   `json:"newSlug"`           // 新页面地址。
+	RevisionVersion   int      `json:"revisionVersion"`   // 要恢复的历史版本。
+	ThemeID           string   `json:"themeId"`           // 目录身份。
+	Name              string   `json:"name"`              // 目录名称。
+	ParentID          string   `json:"parentId"`          // 上级目录。
+	Delete            bool     `json:"delete"`            // 明确删除空目录。
+	Filename          string   `json:"filename"`          // 导入文件名。
+	MIME              string   `json:"mime"`              // 原件媒体类型。
+	Bytes             []byte   `json:"bytes"`             // JSON 中明确提供的原件字节。
+	SourceID          string   `json:"sourceId"`          // 替换原件时的稳定来源身份。
+	JobID             string   `json:"jobId"`             // 原整理任务身份。
 }
 
 func (in wikiCommand) ref() bridge.ResourceRef {
@@ -356,6 +358,13 @@ func (s *Service) applyWikiCommand(ctx context.Context, op, id string, in wikiCo
 		p, err := getPage()
 		if err != nil {
 			return nil, err
+		}
+		if in.PageID != "" {
+			readTime, e := time.Parse(time.RFC3339Nano, in.ExpectedUpdatedAt)
+			if e != nil {
+				return nil, status_error.KnowledgeInvalid
+			}
+			p.UpdatedAt = readTime
 		}
 		p.Slug = in.Slug
 		p.Title = in.Title

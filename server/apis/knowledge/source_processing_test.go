@@ -92,6 +92,14 @@ func TestSourceProcessingUsesDurableWorkAndKeepsIndividualResults(t *testing.T) 
 		t.Fatal(err)
 	}
 	actual := assertStates("processing", "processed", "failed", "pending")
+	for _, id := range ids[:3] {
+		if !actual[id].OrganizeBlocked {
+			t.Fatalf("active task released source reservation: %+v", actual[id])
+		}
+	}
+	if actual[ids[3]].OrganizeBlocked {
+		t.Fatal("unrelated source was reserved")
+	}
 	if actual[ids[2]].Diagnostic != "model_generation_failed: upstream unavailable" {
 		t.Fatalf("missing hover diagnostic: %+v", actual[ids[2]])
 	}

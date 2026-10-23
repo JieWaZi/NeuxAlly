@@ -9,6 +9,8 @@ import (
 //
 // 历史执行事实只写入 Chat JSONL；该结构不注册为 GORM 表，也不形成 SQLite 历史投影。
 type Execution struct {
+	// AutomaticRunID 是原自动运行的受信来源，不由模型或任务正文提供。
+	AutomaticRunID string `json:"automaticRunId,omitempty"`
 	// SubmissionID 是入口无关的稳定输入身份，写入同一权威执行事实。
 	SubmissionID string `json:"submissionId,omitempty"`
 	// SubmissionHash 是规范化输入和冻结配置的摘要，拒绝同键异内容。

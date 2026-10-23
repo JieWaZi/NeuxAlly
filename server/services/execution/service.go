@@ -97,7 +97,7 @@ type service struct {
 	// agentBinary 是随应用发布的 CLI 真实路径。
 	agentBinary string
 	// agentBindings 提供伙伴当前普通业务能力的领域绑定。
-	agentBindings func(models.Chat, string, []string) []agentcapability.Binding
+	agentBindings func(models.Chat, string, []string, string) []agentcapability.Binding
 	// validateIntent 在任何首发、续发或重试接纳前校验领域持久约束。
 	validateIntent func(context.Context, WorkIntent) error
 	// agentSessions 保存同一原生会话进程独占的连接文件位置。
@@ -159,7 +159,7 @@ type Config struct {
 	// AgentBinary 是应用提供的 CLI 绝对路径。
 	AgentBinary string
 	// AgentBindings 按冻结伙伴和目录范围签发普通能力。
-	AgentBindings func(models.Chat, string, []string) []agentcapability.Binding
+	AgentBindings func(models.Chat, string, []string, string) []agentcapability.Binding
 	// ValidateIntent 校验入口无关的领域接纳约束；为空时不增加额外限制。
 	ValidateIntent func(context.Context, WorkIntent) error
 	// AcquireTeamChatInput 保护团队成员直接输入，普通 Chat 通过不持锁。

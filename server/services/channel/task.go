@@ -333,6 +333,10 @@ func (s *service) dispatchTask(
 	if summary.Chat.ActiveExecutionID != "" {
 		return nil, nil
 	}
+	automaticRunID, err := s.automaticWorkSource(ctx, thread)
+	if err != nil {
+		return nil, err
+	}
 	followUps, err := s.tasks.ListPendingFollowUps(ctx, task.ID)
 	if err != nil {
 		return nil, err
@@ -428,7 +432,7 @@ func (s *service) dispatchTask(
 		toolCapabilities = append(toolCapabilities, capability)
 		capabilityToken = token
 	}
-	accepted, err := s.executions.Start(ctx, execution.WorkIntent{
+	accepted, err := s.executions.Start(ctx, execution.WorkIntent{AutomaticRunID: automaticRunID,
 		ExecutionID: attempt.ExecutionID,
 		Chat:        execution.ChatTarget{ChatID: member.ChatID},
 		Input:       workInput,

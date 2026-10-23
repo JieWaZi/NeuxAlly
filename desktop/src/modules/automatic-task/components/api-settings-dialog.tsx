@@ -1,42 +1,65 @@
+import { i18n } from "@/shared/i18n";
+import {
+  automaticTaskApiZh,
+  automaticTaskApiEn,
+} from "@/shared/i18n/automatic-task-api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useId, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  getAutomaticTaskApiOptions,
-  getAutomaticTaskApiQueryKey,
-  setAutomaticTaskApiMutation,
-} from "@/shared/api/generated/@tanstack/react-query.gen";
-import {
-  localApiErrorMessage,
-  withLocalErrorMutation,
-  withLocalErrorSurface,
-} from "@/shared/api/local-error-surface";
+  integrationServiceOptions,
+  integrationServiceQueryKey,
+  integrationServiceMutation,
+} from "@/shared/api/integration-service";
+import { localApiErrorMessage } from "@/shared/api/local-error-surface";
 import { Button } from "@/shared/ui/button";
-import { Dialog, DialogContent, DialogFooter } from "@/shared/ui/dialog";
+import { DialogFooter } from "@/shared/ui/dialog";
 import { FieldLabel } from "@/shared/ui/field-label";
 import { Input } from "@/shared/ui/input";
 
-function APISettingsForm({ onClose }: { onClose: () => void }) {
+i18n.addResourceBundle(
+  "zh-CN",
+  "automaticTask",
+  automaticTaskApiZh,
+  true,
+  true,
+);
+i18n.addResourceBundle(
+  "en-US",
+  "automaticTask",
+  automaticTaskApiEn,
+  true,
+  true,
+);
+
+export function APISettingsForm({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation("automaticTask");
   const id = useId();
   const client = useQueryClient();
-  const query = useQuery(getAutomaticTaskApiOptions(withLocalErrorSurface({})));
+  const query = useQuery(integrationServiceOptions());
   const [ipDraft, setIPDraft] = useState<string>();
   const [portDraft, setPortDraft] = useState<string>();
   const ip = ipDraft ?? query.data?.ip ?? "";
   const port = portDraft ?? String(query.data?.port || "");
   const save = useMutation({
-    ...withLocalErrorMutation(setAutomaticTaskApiMutation()),
+    ...integrationServiceMutation(),
     onSuccess: async () => {
       await client.invalidateQueries({
-        queryKey: getAutomaticTaskApiQueryKey(),
+        queryKey: integrationServiceQueryKey(),
       });
       onClose();
     },
   });
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    save.mutate({ body: { ip: ip.trim(), port: Number(port) } });
+    save.mutate({
+      body: {
+        ip: ip.trim(),
+        port: Number(port),
+        enabled: query.data?.enabled,
+        publicBaseUrl: query.data?.publicBaseUrl,
+      },
+    });
   };
   const invalid =
     !ip.trim() ||
@@ -126,22 +149,5 @@ function APISettingsForm({ onClose }: { onClose: () => void }) {
         </Button>
       </DialogFooter>
     </form>
-  );
-}
-
-export function AutomaticTaskAPISettingsDialog({
-  open,
-  onOpenChange,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}) {
-  const { t } = useTranslation("automaticTask");
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent title={t("portTitle")} description={t("portHint")}>
-        <APISettingsForm onClose={() => onOpenChange(false)} />
-      </DialogContent>
-    </Dialog>
   );
 }

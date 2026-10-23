@@ -6,6 +6,9 @@ import "github.com/shrewx/ginx"
 var Router = ginx.NewRouter(ginx.Group("/knowledge/connections"))
 
 func init() {
+	Router.Register(&AddRemoteLibrary{})
+	Router.Register(&RemoveRemoteMount{})
+	Router.Register(&RedetectConnection{})
 	Router.Register(&ListAvailableLibraries{})
 	Router.Register(&GetRemoteLibraryDeletion{})
 	Router.Register(&RecoverRemoteLibraryDeletion{})
@@ -28,6 +31,8 @@ func init() {
 	Router.Register(&GetRemoteJob{})
 	Router.Register(&GetRemoteReceipt{})
 	Router.Register(&ImportRemoteSource{})
+	Router.Register(&UploadRemoteSource{})
+	Router.Register(&GetRemoteUploadStatus{})
 	Router.Register(&ArchiveRemoteSource{})
 	Router.Register(&RestoreRemotePage{})
 	Router.Register(&CreateRemoteLibrary{})
@@ -38,6 +43,7 @@ func init() {
 	Router.Register(&MaintainRemote{})
 	Router.Register(&GetRemoteGraph{})
 	Router.Register(&ListRemotePages{})
+	Router.Register(&ListRemotePageDirectory{})
 	Router.Register(&GetRemotePage{})
 	Router.Register(&WriteRemotePage{})
 	Router.Register(&OrganizeRemote{})

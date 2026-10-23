@@ -2,6 +2,7 @@ package knowledge_connections
 
 import (
 	"github.com/JieWaZi/NeuxAlly/server/constants/status_error"
+	"github.com/JieWaZi/NeuxAlly/server/global"
 	"github.com/gin-gonic/gin"
 	"github.com/shrewx/ginx"
 )
@@ -21,9 +22,22 @@ func (o *GetRemoteReceipt) Path() string {
 	return "/:connectionId/libraries/:libraryId/receipts/:requestId"
 }
 func (o *GetRemoteReceipt) Output(ctx *gin.Context) (interface{}, error) {
-	c, err := client(ctx, o.ConnectionID, o.LibraryID)
+	if global.KnowledgeControllerManager == nil {
+		return nil, status_error.KnowledgeUnsupported
+	}
+	link, err := global.KnowledgeControllerManager.GetOperation(ctx, o.RequestID)
 	if err != nil {
 		return nil, err
+	}
+	if link.ConnectionID != o.ConnectionID || link.KnowledgeBaseID != o.LibraryID {
+		return nil, status_error.KnowledgeNotFound
+	}
+	if link.NativeUpload {
+		return nil, status_error.KnowledgeUnsupported
+	}
+	c, err := recoveryClient(ctx, link)
+	if err != nil {
+		return nil, status_error.KnowledgeRemoteOutcomeUnknown
 	}
 	if c.custom == nil {
 		return nil, status_error.KnowledgeUnsupported

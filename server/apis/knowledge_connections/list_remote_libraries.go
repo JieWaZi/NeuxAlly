@@ -26,6 +26,15 @@ func (o *ListRemoteLibraries) Output(ctx *gin.Context) (interface{}, error) {
 	}
 	offset, limit := remotePagination(knowledge.Pagination{Offset: o.Offset, Limit: o.Limit})
 	items := []knowledge.Library{}
+	if c.connection.Backend == "integration" {
+		rows, e := mountedLibraries(ctx, c)
+		if e != nil {
+			return nil, e
+		}
+		start := min(offset, len(rows))
+		end := min(start+limit, len(rows))
+		return withLibrarySummaries(ctx, c, rows[start:end], int64(len(rows)))
+	}
 	if c.custom != nil {
 		v, e := c.custom.ListLibraries(ctx, offset, limit)
 		if e != nil {

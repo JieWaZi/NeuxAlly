@@ -15,41 +15,51 @@ type ListRemoteThemes struct {
 	ConnectionID string `in:"path" name:"connectionId" validate:"required"`
 	// 知识库标识
 	LibraryID string `in:"path" name:"libraryId" validate:"required"`
+	// 完整目录
+	All bool `in:"query" name:"all"`
 	// 上级标识
 	ParentID string `in:"query" name:"parentId"`
 }
 
 func (o *ListRemoteThemes) Path() string { return "/:connectionId/libraries/:libraryId/themes" }
-func (o *ListRemoteThemes) Output(ctx *gin.Context) (interface{}, error) {
-	c, err := client(ctx, o.ConnectionID, o.LibraryID)
+func (o *ListRemoteThemes) Output(ctx *gin.Context) (result interface{}, err error) {
+	requestCtx := ctx.Request.Context()
+	defer func() {
+		if requestCtx.Err() != nil {
+			result = nil
+			err = status_error.KnowledgeCancelled
+		}
+	}()
+	if requestCtx.Err() != nil {
+		return nil, status_error.KnowledgeCancelled
+	}
+	c, err := client(requestCtx, o.ConnectionID, o.LibraryID)
 	if err != nil {
 		return nil, err
 	}
 	out := RemoteThemeList{ParentID: o.ParentID, Items: []RemoteTheme{}}
 	if c.custom != nil {
-		rows, e := c.custom.ListThemes(ctx)
+		rows, e := c.custom.ListThemes(requestCtx)
 		if e != nil {
 			return nil, remoteError(e)
 		}
 		if !remoteThemesValid(rows) {
 			return nil, status_error.KnowledgeRemoteIncompatible
 		}
+		out.Complete = o.All
+		parents := make(map[string]bool, len(rows))
+		for _, row := range rows {
+			parents[row.ParentID] = true
+		}
 		for _, v := range rows {
-			if v.ParentID != o.ParentID {
+			if !o.All && v.ParentID != o.ParentID {
 				continue
 			}
-			hasChildren := false
-			for _, child := range rows {
-				if child.ParentID == v.ID {
-					hasChildren = true
-					break
-				}
-			}
-			out.Items = append(out.Items, RemoteTheme{Theme: knowledge.Theme{ID: v.ID, ParentID: v.ParentID, Name: v.Name, Path: v.Path, SortOrder: v.SortOrder, Manual: v.Manual, SystemKey: v.SystemKey}, HasChildren: hasChildren})
+			out.Items = append(out.Items, RemoteTheme{Theme: knowledge.Theme{ID: v.ID, ParentID: v.ParentID, Name: v.Name, Path: v.Path, SortOrder: v.SortOrder, Manual: v.Manual, SystemKey: v.SystemKey}, HasChildren: parents[v.ID]})
 		}
 		return out, nil
 	}
-	v, e := c.official.ListFolders(ctx, o.LibraryID, o.ParentID)
+	v, e := c.official.ListFolders(requestCtx, o.LibraryID, o.ParentID)
 	if e != nil {
 		return nil, remoteError(e)
 	}

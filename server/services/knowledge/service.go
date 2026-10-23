@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"github.com/JieWaZi/NeuxAlly/server/constants"
 	"github.com/JieWaZi/NeuxAlly/server/constants/status_error"
 	"github.com/JieWaZi/NeuxAlly/server/internal/agentcapability"
 	bridge "github.com/JieWaZi/NeuxAlly/server/internal/knowledge"
@@ -43,6 +44,12 @@ type Config struct {
 	Chats chat.Service
 	// RemoteGuard 由独立服务器策略从持久身份恢复撤权闸门；缺省拒绝远端作业发布。
 	RemoteGuard func(context.Context, json.RawMessage) (func(), error)
+	// AutomaticRun 只按服务端运行身份读取原冻结配置。
+	AutomaticRun func(context.Context, string) (models.AutomaticRun, error)
+	// InvocationGuard 在每次实际知识提交前复核原任务调用和当前任务范围。
+	InvocationGuard func(context.Context, string) (func(), error)
+	// IntegrationGuard 从统一集成授权源恢复直接调用或自动任务的原授权。
+	IntegrationGuard func(context.Context, json.RawMessage) (func(), error)
 	// Events 复用进程内提交事件。
 	Events *events.Hub
 }
@@ -98,30 +105,69 @@ func (s *Service) Start(ctx context.Context) error {
 		}
 
 	}
-	links, err = s.config.References.ListJobOperations(ctx)
+	return s.recoverJobs(ctx)
+}
+
+// recoverJobs 按核心库分页读取每库唯一队首，完成历史不进入宿主恢复候选。
+func (s *Service) recoverJobs(ctx context.Context) error {
+	for offset := 0; ; offset += constants.KnowledgeLibraryScanBatchSize {
+		libraries, total, err := s.config.Engine.ListLibraries(ctx, offset, constants.KnowledgeLibraryScanBatchSize)
+		if err != nil {
+			return bridge.MapError(err)
+		}
+		for _, library := range libraries {
+			if err := s.recoverLibrary(ctx, library.ID, ""); err != nil {
+				return err
+			}
+		}
+		if int64(offset+len(libraries)) >= total || len(libraries) == 0 {
+			return nil
+		}
+	}
+}
+
+// recoverLibrary 只从核心队首恢复原接纳身份和冻结配置；忽略刚退出但尚未结算的同一任务。
+func (s *Service) recoverLibrary(ctx context.Context, library, previousJob string) error {
+	if ctx.Err() != nil {
+		return nil
+	}
+	job, err := s.config.Engine.GetActiveJob(ctx, library)
+	if err != nil {
+		mapped := bridge.MapError(err)
+		// 并发永久删除使本页库失效时，历史引用不阻断其余库恢复。
+		if errors.Is(mapped, status_error.KnowledgeNotFound) {
+			return nil
+		}
+		return mapped
+	}
+	if job == nil || job.ID == previousJob {
+		return nil
+	}
+	origin, err := s.config.References.GetOperation(ctx, job.RequestID)
+	if errors.Is(err, status_error.KnowledgeNotFound) {
+		// 核心可由其他公开入口接纳任务；没有宿主锚点的队首不属于本服务。
+		return nil
+	}
 	if err != nil {
 		return err
 	}
-	for _, link := range links {
-		job, err := s.config.Engine.GetJob(ctx, link.ResourceID)
+	if origin.Operation != "job.accept" || origin.Backend != "local" || origin.ConnectionID != "local" || origin.KnowledgeBaseID != job.LibraryID || origin.ResourceID != job.ID || origin.ConfigurationID == "" {
+		return status_error.KnowledgeInvalid
+	}
+	session, err := s.config.References.GetTaskConfiguration(ctx, origin.ConfigurationID)
+	if err != nil {
+		return err
+	}
+	if !job.CancelRequested && session.RemoteSubject != "" {
+		_, ready, err := s.remotePublicationGuard(session)
 		if err != nil {
-			mapped := bridge.MapError(err)
-			// 删除后保留的历史锚点不再具有可恢复任务，不能阻断整个 Core 启动。
-			if errors.Is(mapped, status_error.KnowledgeNotFound) {
-				continue
-			}
-			return mapped
+			return err
 		}
-		if job.State == "queued" || job.State == "processing" || job.State == "cancel_requested" {
-			session, err := s.config.References.GetTaskConfiguration(ctx, link.ConfigurationID)
-			if err != nil {
-				return err
-			}
-			if job.CancelRequested || session.RemoteSubject == "" || s.config.RemoteGuard != nil {
-				s.drive(job.ID, session)
-			}
+		if !ready {
+			return nil
 		}
 	}
+	s.drive(job.ID, session)
 	return nil
 }
 
@@ -141,6 +187,10 @@ type OrganizeCommand struct {
 	// Rebuild 显式重建所选原件，省略时保留已处理来源的跳过语义与旧请求摘要。
 	Rebuild bool `json:"rebuild,omitempty"`
 
+	// ExpectedVersion 非零时保持调用者已读库版本直到原子接纳。
+	ExpectedVersion int64 `json:"expectedVersion,omitempty"`
+	// StructureVersion 非零时保持调用者已读目录版本直到原子接纳。
+	StructureVersion int64 `json:"structureVersion,omitempty"`
 	// RequestID 是用户请求或自动机会稳定身份。
 	RequestID string
 	// LibraryID 是明确目标库。
@@ -198,6 +248,9 @@ func (s *Service) Organize(ctx context.Context, in OrganizeCommand) (*core.Recei
 	lib, err := s.config.Engine.GetLibrary(ctx, in.LibraryID)
 	if err != nil {
 		return nil, in.Configuration, bridge.MapError(err)
+	}
+	if (in.ExpectedVersion != 0 && lib.Version != in.ExpectedVersion) || (in.StructureVersion != 0 && lib.StructureVersion != in.StructureVersion) {
+		return nil, in.Configuration, status_error.KnowledgeConflict
 	}
 	// 核心接纳暂未完成也沿用已落盘选择，不能重新解析后来变化的库或 Runtime 默认值。
 	frozenConfiguration := false
@@ -268,22 +321,30 @@ func (s *Service) Organize(ctx context.Context, in OrganizeCommand) (*core.Recei
 	if err != nil {
 		return nil, in.Configuration, err
 	}
-	s.policy.RLock()
-	if err := s.validateLibrary(lib); err != nil {
-		s.policy.RUnlock()
-		return nil, in.Configuration, err
+	if in.Configuration.RemoteSubject != "" {
+		ctx = core.WithActivityActor(ctx, core.ActivityActor{UserID: in.Configuration.RemoteSubject, Trigger: "api"})
+	}
+	release, guardErr := s.publishGuard(in.Configuration)(ctx)
+	if guardErr != nil {
+		return nil, in.Configuration, guardErr
 	}
 
 	configDigest := core.OrganizeConfigDigest(lib, bundle.SHA256)
 	receipt, err := s.config.Engine.AcceptJob(ctx, core.AcceptJobInput{Rebuild: in.Rebuild, RequestID: in.RequestID, LibraryID: in.LibraryID, ExpectedVersion: lib.Version, StructureVersion: lib.StructureVersion, SourceVersionIDs: in.SourceVersionIDs, Permission: snapshot, RulesVersion: bundle.Version, ConfigDigest: configDigest, EmbeddingFingerprint: embeddingFingerprint})
-	s.policy.RUnlock()
+	release()
 	if err != nil {
-		return nil, in.Configuration, bridge.MapError(err)
+		// 同键竞争者可能已接纳，导致本次默认范围投影为无新增；宿主已校验原始输入摘要，只恢复原回执。
+		confirmed, readErr := s.config.Engine.GetReceipt(ctx, in.RequestID)
+		if readErr != nil {
+			return nil, in.Configuration, bridge.MapError(err)
+		}
+		receipt = confirmed
 	}
 	if err := s.config.References.CompleteOperation(ctx, in.RequestID, receipt.LibraryID, receipt.ResourceID, receipt.JobID); err != nil {
 		return nil, in.Configuration, err
 	}
 	if receipt.ResourceID != "" {
+		s.emitTaskChanged(receipt.JobID, receipt.LibraryID)
 		s.drive(receipt.ResourceID, in.Configuration)
 	}
 	return receipt, in.Configuration, nil
@@ -347,6 +408,8 @@ func (s *Service) drive(jobID string, session models.KnowledgeTaskConfiguration)
 			s.mutex.Unlock()
 			if restart {
 				s.drive(jobID, next)
+			} else if err := s.recoverLibrary(s.ctx, job.LibraryID, jobID); err != nil {
+				logx.Errorf("knowledge queue recovery failed: library_id=%s error=%v", job.LibraryID, err)
 			}
 		}()
 		attempt, err := s.attemptContext(job, session)
@@ -540,45 +603,54 @@ func (s *Service) SetRemoteGuard(guard func(context.Context, json.RawMessage) (f
 	if s.ctx == nil {
 		return nil
 	}
-	links, err := s.config.References.ListJobOperations(s.ctx)
-	if err != nil {
-		return err
+	return s.recoverJobs(s.ctx)
+}
+
+// remotePublicationGuard 统一按原授权来源选择闸门，并告知恢复者对应依赖是否已经装配。
+func (s *Service) remotePublicationGuard(session models.KnowledgeTaskConfiguration) (func(context.Context, json.RawMessage) (func(), error), bool, error) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	var origin struct {
+		// Origin 只区分受信恢复机制，不从正文获取授权。
+		Origin string `json:"origin"`
+		// AutomaticRunID 固定原自动运行，不能从请求正文恢复。
+		AutomaticRunID string `json:"automaticRunId"`
 	}
-	for _, link := range links {
-		job, err := s.config.Engine.GetJob(s.ctx, link.ResourceID)
-		if err != nil {
-			mapped := bridge.MapError(err)
-			// 删除库保留操作回执，但已经删除的作业没有可恢复调用。
-			if errors.Is(mapped, status_error.KnowledgeNotFound) {
-				continue
+	if json.Unmarshal(session.RemoteAuthorization, &origin) != nil {
+		return nil, false, status_error.KnowledgeForbidden
+	}
+	guard := s.config.RemoteGuard
+	switch origin.Origin {
+	case "":
+	case "direct_api":
+		guard = s.config.IntegrationGuard
+	case "automatic_task":
+		invocationGuard := s.config.InvocationGuard
+		guard = func(ctx context.Context, _ json.RawMessage) (func(), error) {
+			if invocationGuard == nil || origin.AutomaticRunID == "" {
+				return nil, status_error.KnowledgeForbidden
 			}
-			return mapped
+			return invocationGuard(ctx, origin.AutomaticRunID)
 		}
-		if job.State != "queued" && job.State != "processing" && job.State != "cancel_requested" {
-			continue
-		}
-		configuration, err := s.config.References.GetTaskConfiguration(s.ctx, link.ConfigurationID)
-		if err != nil {
-			return err
-		}
-		if configuration.RemoteSubject != "" {
-			s.drive(job.ID, configuration)
-		}
+		return guard, invocationGuard != nil, nil
+	default:
+		// 未知来源沿实际发布路径明确失败，不能冒用已装配的其他授权。
+		return nil, true, nil
 	}
-	return nil
+	return guard, guard != nil, nil
 }
 
 func (s *Service) publishGuard(session models.KnowledgeTaskConfiguration) func(context.Context) (func(), error) {
 	return func(ctx context.Context) (func(), error) {
 		remoteRelease := func() {}
 		if session.RemoteSubject != "" {
-			s.mutex.Lock()
-			guard := s.config.RemoteGuard
-			s.mutex.Unlock()
+			guard, _, err := s.remotePublicationGuard(session)
+			if err != nil {
+				return nil, err
+			}
 			if guard == nil {
 				return nil, status_error.KnowledgeUnsupported
 			}
-			var err error
 			remoteRelease, err = guard(ctx, session.RemoteAuthorization)
 			if err != nil {
 				return nil, err
@@ -623,6 +695,7 @@ func (s *Service) Retry(ctx context.Context, request, job string, version int64)
 	if err != nil {
 		return nil, bridge.MapError(err)
 	}
+	s.emitTaskChanged(j.ID, j.LibraryID)
 	if err := s.resume(ctx, job, true); err != nil {
 		return nil, err
 	}
@@ -635,4 +708,24 @@ func (s *Service) ResolveModel(ctx context.Context, selected models.LibraryExecu
 		return selected, status_error.KnowledgeUnsupported
 	}
 	return s.config.ResolveModel(ctx, selected)
+}
+
+// SearchSourceChunks 复用原件读取管线，查询模型仍使用目标库的固定嵌入配置。
+func (s *Service) SearchSourceChunks(ctx context.Context, libraryID, query string, limit int) ([]bridge.DocumentReadHit, string, error) {
+	return (bridge.LocalReadProvider{Engine: s.config.Engine, FreezeEmbedder: s.config.FreezeEmbedder, Limit: limit}).SearchChunks(ctx, bridge.LocalRef(libraryID), query)
+}
+
+// ExecutionCondition 只核对目标库的服务端执行配置，不触发生成或接纳作业。
+func (s *Service) ExecutionCondition(ctx context.Context, libraryID string) string {
+	if s == nil || s.config.References == nil || s.config.ResolveModel == nil || s.config.Generator == nil {
+		return "execution_unavailable"
+	}
+	defaults, err := s.config.References.LibraryExecutionDefaults(ctx, libraryID)
+	if err != nil {
+		return "execution_not_configured"
+	}
+	if _, err = s.ResolveModel(ctx, defaults); err != nil {
+		return "execution_not_configured"
+	}
+	return "ready"
 }

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { afterEach, beforeEach, expect, it } from "vitest";
 import "@/shared/i18n";
 import { WorkflowInputFields } from "./workflow-input-fields";
-import { apiExamples } from "./task-token-dialog";
+import { apiExamples } from "./task-api-examples";
 import type { InputBindings } from "../model/workflow-inputs";
 
 beforeEach(() => {
@@ -60,7 +60,7 @@ it("切换 API 来源时保留草稿中的固定值，提交 API 来源不带固
 });
 
 it("工作流调用示例保留 JSON 类型，并对单引号正确编码", () => {
-  const example = apiExamples("task", 8431, "token", "::", true, {
+  const example = apiExamples("task", "http://[::1]:8431/api/v1", true, {
     example: {
       text: "O'Reilly",
       segments: ["一", "二"],

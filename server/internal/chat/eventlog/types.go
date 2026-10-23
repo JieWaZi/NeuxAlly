@@ -177,6 +177,8 @@ type MessageCreatedData struct {
 
 // ExecutionCreatedData 保存一次执行创建时冻结的选择。
 type ExecutionCreatedData struct {
+	// AutomaticRunID 是服务端冻结的自动任务来源，随原执行事实恢复。
+	AutomaticRunID string `json:"automaticRunId,omitempty"`
 	// SubmissionID 是入口无关的稳定输入身份，写入同一权威执行事实。
 	SubmissionID string `json:"submissionId,omitempty"`
 	// SubmissionHash 是规范化输入和冻结配置的摘要，拒绝同键异内容。

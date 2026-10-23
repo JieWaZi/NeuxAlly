@@ -73,7 +73,7 @@ func agentIdentity(value string) string {
 	return hex.EncodeToString(hash[:])
 }
 
-func (m *service) prepareAgent(request *runtimes.RunRequest, chat models.Chat, executionID string, capabilities []ToolCapability, allowedDomains *[]string, facts *agentCommandFacts) (func(), func(), func(runtimes.Result), error) {
+func (m *service) prepareAgent(request *runtimes.RunRequest, chat models.Chat, executionID string, capabilities []ToolCapability, allowedDomains *[]string, facts *agentCommandFacts, automaticRunIDs ...string) (func(), func(), func(runtimes.Result), error) {
 	if m.agent == nil {
 		return nil, nil, nil, nil
 	}
@@ -107,9 +107,27 @@ func (m *service) prepareAgent(request *runtimes.RunRequest, chat models.Chat, e
 			roots = append(roots, actual)
 		}
 	}
+	automaticRunID := ""
+	if len(automaticRunIDs) > 0 {
+		automaticRunID = automaticRunIDs[0]
+	}
 	bindings := []agentcapability.Binding{}
 	if m.agentBindings != nil && (allowedDomains == nil || len(*allowedDomains) > 0) {
-		for _, binding := range m.agentBindings(chat, executionID, roots) {
+		for _, binding := range m.agentBindings(chat, executionID, roots, automaticRunID) {
+			// 自动来源首发已经由业务入口签发同一整理能力；恢复时由默认绑定重建，不能重复登记。
+			duplicate := false
+			if automaticRunID != "" && binding.Operation == "knowledge.jobs.start" {
+				for _, capability := range capabilities {
+					for _, explicit := range capability.Bindings {
+						if explicit.Operation == binding.Operation {
+							duplicate = true
+						}
+					}
+				}
+			}
+			if duplicate {
+				continue
+			}
 			domain, _, _ := strings.Cut(binding.Operation, ".")
 			if allowedDomains == nil || slices.Contains(*allowedDomains, domain) {
 				bindings = append(bindings, binding)

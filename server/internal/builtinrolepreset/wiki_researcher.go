@@ -12,8 +12,7 @@ const (
 	WikiResearcherWakerID = "854de954b7bd4e2cb9582fd0930dcd6d"
 )
 
-// 研究方法参考 WeKnora 8776a2d 的 wiki_researcher、progressive_rag_agent
-// 与 grounding_prompt.go；工具和授权统一复用 NeuxAlly 系统 skill。
+// 研究员指令定义证据核对与研究方式，工具和授权统一复用系统 skill。
 const (
 	wikiResearcherIdentity = `## Role
 

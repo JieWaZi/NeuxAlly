@@ -84,9 +84,9 @@ func (d *DeleteWaker) Output(ctx *gin.Context) (interface{}, error) {
 		}
 		offset += len(page)
 	}
-	run := func() error {
+	run := func(policyContext context.Context) error {
 		return global.TransactionControllerManager.Transaction(
-			ctx,
+			policyContext,
 			func(transactionContext context.Context) error {
 				if global.AutomaticTaskControllerManager != nil {
 					if err := global.AutomaticTaskControllerManager.DeleteByWaker(transactionContext, d.WakerID); err != nil {
@@ -126,10 +126,17 @@ func (d *DeleteWaker) Output(ctx *gin.Context) (interface{}, error) {
 			},
 		)
 	}
-	if global.KnowledgeService != nil {
-		err = global.KnowledgeService.WithPolicyWrite(run)
+	change := func(policyContext context.Context) error {
+		if global.KnowledgeService != nil {
+			return global.KnowledgeService.WithPolicyWrite(func() error { return run(policyContext) })
+		}
+		return run(policyContext)
+	}
+	// 发布与聚合删除统一先协调集成授权，再协调知识关系；事务 Context 保留重入身份。
+	if global.IntegrationService != nil {
+		err = global.IntegrationService.WithAuthorizationWrite(ctx, change)
 	} else {
-		err = run()
+		err = change(ctx)
 	}
 	if err != nil {
 		return nil, ginx.WithStack(err)

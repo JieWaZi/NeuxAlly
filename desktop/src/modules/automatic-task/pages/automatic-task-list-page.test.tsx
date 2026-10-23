@@ -33,8 +33,14 @@ vi.mock("@/shared/api/generated/sdk.gen", async (original) => ({
       counts: { total: 1, enabled: 0, scheduled: 0, api: 1 },
     },
   }),
-  getAutomaticTaskApi: async () => ({
-    data: { ip: "127.0.0.1", port: 8431, available: true },
+  getApiService: async () => ({
+    data: {
+      ip: "127.0.0.1",
+      port: 8431,
+      available: true,
+      enabled: true,
+      publicBaseUrl: "http://127.0.0.1:8431/api/v1",
+    },
   }),
   getGlobalAutomaticTask: async () => ({
     data:
@@ -154,18 +160,14 @@ it("工作流详情保留版本和参数，不展示伙伴专用配置或重复�
   expect(screen.getByRole("button", { name: "立即运行" })).toBeDisabled();
 });
 
-it("触发配置中的轮换密钥操作保留确认弹窗", async () => {
-  const user = userEvent.setup();
+it("触发配置提供应用级集成指引和任务 ID，不再创建单任务密钥", async () => {
   renderWorkflowTask();
-  const rotate = await screen.findByRole("button", { name: "重新生成密钥" });
-  await user.click(rotate);
+  expect(await screen.findByText("任务 ID")).toBeVisible();
+  expect(screen.getByText(/发布集成 → API 集成/)).toBeVisible();
   expect(
-    await screen.findByRole("dialog", { name: "重新生成任务密钥" }),
-  ).toBeVisible();
-  await user.click(screen.getByRole("button", { name: "取消" }));
-  await waitFor(() =>
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
-  );
+    screen.queryByRole("button", { name: "重新生成密钥" }),
+  ).not.toBeInTheDocument();
+  expect(screen.queryByText("任务密钥")).not.toBeInTheDocument();
 });
 
 it("定时伙伴任务保留完整工作范围与实际智能体配置", async () => {
@@ -303,7 +305,7 @@ it("主页右上角设置打开 API 地址弹窗", async () => {
   renderList();
   await user.click(screen.getByRole("button", { name: "设置" }));
   expect(
-    await screen.findByRole("dialog", { name: "自动任务 API 设置" }),
+    await screen.findByRole("dialog", { name: "API 服务设置" }),
   ).toBeVisible();
   await waitFor(() =>
     expect(screen.getByLabelText(/IP 地址/)).toHaveValue("127.0.0.1"),

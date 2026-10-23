@@ -5,6 +5,7 @@ import (
 	"github.com/JieWaZi/neux-knowledge/core"
 	"github.com/gin-gonic/gin"
 	"github.com/shrewx/ginx"
+	"time"
 )
 
 // 保存远端页面
@@ -38,6 +39,8 @@ func (o *WriteRemotePage) Output(ctx *gin.Context) (interface{}, error) {
 			}
 			p = *v
 		}
+		// 不用新读取的远端时间替换调用者的并发屏障。
+		p.UpdatedAt = time.UnixMilli(o.Body.Page.UpdatedAt)
 		p.ID = o.PageID
 		p.KnowledgeBaseID = o.LibraryID
 		p.Slug = o.Body.Page.Slug

@@ -23,7 +23,7 @@ func officialLibrary(c *remoteClients, v remote.Library) knowledge.Library {
 	return knowledge.Library{Ref: remoteRef(c, v.ID), ID: v.ID, Name: v.Name, Kind: "official", Purpose: v.Type}
 }
 func customSource(v *core.SourceVersion) knowledge.Source {
-	return knowledge.Source{ID: v.ID, SourceID: v.SourceID, Version: v.Version, RowVersion: v.RowVersion, Filename: v.Filename, MIME: v.MIME, SHA256: v.SHA256, Size: v.Size, State: v.State, Description: v.Description, Profile: v.Profile, SummaryStatus: v.SummaryStatus, Archived: v.Archived, Coverage: v.Coverage, Diagnostic: v.Diagnostic, CreatedAt: v.CreatedAt}
+	return knowledge.Source{OrganizeBlocked: v.OrganizeBlocked, ID: v.ID, SourceID: v.SourceID, Version: v.Version, RowVersion: v.RowVersion, Filename: v.Filename, MIME: v.MIME, SHA256: v.SHA256, Size: v.Size, State: v.State, Description: v.Description, Profile: v.Profile, SummaryStatus: v.SummaryStatus, Archived: v.Archived, Coverage: v.Coverage, Diagnostic: v.Diagnostic, CreatedAt: v.CreatedAt}
 }
 
 func customActivity(v *core.AuditLog) knowledge.LibraryActivity {

@@ -1,6 +1,8 @@
 package models
 
 import (
+	"github.com/JieWaZi/NeuxAlly/server/constants"
+	"github.com/JieWaZi/neux-knowledge/remote"
 	"github.com/shrewx/ginx/pkg/dbhelper"
 )
 
@@ -13,7 +15,7 @@ func init() {
 type KnowledgeConnection struct {
 	// ID 是本机稳定连接身份。
 	ID string `gorm:"primaryKey" json:"id"`
-	// Backend 是 local、weknora 或 custom。
+	// Backend 是存量 weknora/custom 或统一 integration 协议。
 	Backend string `json:"backend"`
 	// Name 是用户可见名称。
 	Name string `json:"name"`
@@ -25,12 +27,20 @@ type KnowledgeConnection struct {
 	AuthMode string `json:"authMode"`
 	// Revision 是连接配置的乐观并发版本。
 	Revision int64 `json:"revision"`
+	// Detection 保存当前连接版本的只读识别证据；凭据或地址变化必须重新检测。
+	Detection remote.Detection `gorm:"serializer:json;type:text" json:"detection"`
 	// Enabled 控制是否允许通过此连接发起请求。
 	Enabled bool `json:"enabled"`
 }
 
 // KnowledgeOperationLink 连接两个独立库的真实回执，不复制任务状态机。
 type KnowledgeOperationLink struct {
+	// TransferState 仅保存客户端发送及响应事实，不表示远端知识处理完成。
+	TransferState constants.RemoteTransferState `gorm:"not null;default:''" json:"-"`
+	// UploadMode 固定发送时已确认的处理模式。
+	UploadMode string `json:"-"`
+	// NativeUpload 表示第三方原生接纳，不伪造自有知识核心回执。
+	NativeUpload bool `gorm:"not null;default:false" json:"-"`
 	// CreatedAt 是本机操作引用首次登记时间，不代表远端任务执行时间。
 	CreatedAt int64 `gorm:"index:idx_knowledge_chat_operation,priority:3" json:"-"`
 	// ConnectionRevision 固定发出远端请求时的连接版本，防止重配后向其他服务器对账。

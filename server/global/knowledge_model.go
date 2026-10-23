@@ -95,6 +95,7 @@ func newKnowledgeModelGenerator(_ context.Context, selection models.LibraryExecu
 				return target, environment.Detection, nil, err
 			}
 			target.AccountID, target.Environment, target.Isolated = prepared.AccountID, prepared.Environment, prepared.Isolated
+			target.RefreshCredentials = prepared.RefreshCredentials
 			if prepared.ConfigHome != "" {
 				target.ConfigHome = prepared.ConfigHome
 			}

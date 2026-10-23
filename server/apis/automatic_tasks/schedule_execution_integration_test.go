@@ -127,7 +127,7 @@ func TestAutomaticEntriesExecuteAndDeleteThroughRealCore(t *testing.T) {
 	channels := controllers.NewChannelController(database.DB)
 	threads := controllers.NewChannelThreadController(database.DB)
 	teamTasks := controllers.NewChannelTaskController(database.DB)
-	teams, err = channelservice.New(channelservice.Config{BeforeUserInput: func(ctx context.Context, threadID string) error {
+	teams, err = channelservice.New(channelservice.Config{AutomaticRun: controllers.NewAutomaticTaskController(database.DB).GetRun, BeforeUserInput: func(ctx context.Context, threadID string) error {
 		if service == nil {
 			return nil
 		}
@@ -152,8 +152,8 @@ func TestAutomaticEntriesExecuteAndDeleteThroughRealCore(t *testing.T) {
 	}
 	port := listener.Addr().(*net.TCPAddr).Port
 	_ = listener.Close()
-	portData, _ := json.Marshal(schedule.APIStatus{IP: "127.0.0.1", Port: port})
-	if err := os.WriteFile(filepath.Join(dataDirectory, "automatic-tasks-api.json"), portData, 0600); err != nil {
+	portData, _ := json.Marshal(map[string]any{"ip": "127.0.0.1", "port": port, "enabled": true})
+	if err := os.WriteFile(filepath.Join(dataDirectory, "integration-api.json"), portData, 0600); err != nil {
 		t.Fatal(err)
 	}
 	if err := service.Start(ctx); err != nil {
@@ -476,10 +476,15 @@ func TestAutomaticEntriesExecuteAndDeleteThroughRealCore(t *testing.T) {
 		// 首次整体结束后不查询自动任务，直接由 Core 接纳手动续聊，仍须冻结原结果。
 		closedAt := finishedAt
 
-		if _, err := core.Start(ctx, execution.WorkIntent{Chat: execution.ChatTarget{ChatID: run.ChatID}, Input: execution.WorkInput{Actor: "user", Content: "手动续聊"}, Options: execution.WorkOptions{RuntimeID: "codex", AccountID: "system", Model: "model", PermissionLevel: constants.PermissionLevelDefault}}); err != nil {
-			t.Fatal(err)
+		continuation, err := teams.SubmitMessage(ctx, channelservice.SubmitMessageInput{Continue: &channelservice.SendMessageInput{ThreadID: run.ThreadID, Input: execution.WorkInput{Content: "手动续聊"}}})
+		if err != nil || continuation.Message == nil || continuation.Message.Execution == nil {
+			t.Fatalf("团队用户续聊未接纳: %+v %v", continuation, err)
 		}
 		receive("手动续聊")
+		userExecution, err := chats.ReadExecution(ctx, run.ChatID, continuation.Message.Execution.ID)
+		if err != nil || userExecution.AutomaticRunID != "" {
+			t.Fatalf("团队普通续聊继承了历史自动来源: %+v %v", userExecution, err)
+		}
 		continued, err := service.Get(ctx, wakerID, saved.TaskID)
 		if err != nil || continued.ActiveRun != nil || continued.LastRun.State != constants.AutomaticRunStateCompleted || continued.LastRun.CompletedAt == nil || *continued.LastRun.CompletedAt < closedAt {
 			t.Fatalf("手动续聊改写自动运行: %+v %v", continued, err)

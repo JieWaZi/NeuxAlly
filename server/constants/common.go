@@ -1,5 +1,8 @@
 package constants
 
+// KnowledgeLibraryScanBatchSize 限制目录搜索与活动任务恢复每批读取的库元数据。
+const KnowledgeLibraryScanBatchSize = 100
+
 // RuntimeUserInputMCPServerName 是运行时受管问答服务的稳定协议名称。
 const RuntimeUserInputMCPServerName = "acp_go_user_input"
 

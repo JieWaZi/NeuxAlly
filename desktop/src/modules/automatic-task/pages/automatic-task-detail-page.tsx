@@ -1,9 +1,10 @@
+import { integrationServiceOptions } from "@/shared/api/integration-service";
 import { FailureNoticeContent } from "@/modules/notification";
 import { useQueryEvents } from "@/shared/api/use-query-events";
 import { listRuntimesOptions } from "@/shared/api/runtime-queries";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { KeyRound, Pencil, Play, Settings2, Trash2 } from "lucide-react";
-import { useState, useRef } from "react";
+import { Pencil, Play, Settings2, Trash2 } from "lucide-react";
+import { lazy, Suspense, useState, useRef } from "react";
 import { evictDeletedChatsFromCache } from "@/modules/chat";
 import { useTranslation } from "react-i18next";
 import {
@@ -40,6 +41,7 @@ import { ReadOnlyField } from "@/shared/ui/read-only-field";
 import { PaginatedTable } from "@/shared/ui/paginated-table";
 import { PageAction, ResourcePageSurface } from "@/shared/ui/resource-page";
 import { Switch } from "@/shared/ui/switch";
+import { Skeleton } from "@/shared/ui/skeleton";
 import { RuntimeCliIcon } from "@/shared/ui/runtime-cli-icon";
 import {
   TableBody,
@@ -51,28 +53,24 @@ import {
 import { useRouteSceneActive } from "@/shared/workspace/app-scene-workspace";
 import {
   deleteAutomaticTaskMutation,
-  getAutomaticTaskApiOptions,
   getGlobalAutomaticTaskOptions,
   listAutomaticRunsOptions,
   refreshAutomaticTasks,
-  rotateAutomaticTaskTokenMutation,
   setAutomaticTaskEnabledMutation,
   triggerAutomaticTaskMutation,
 } from "../api/task-queries";
-import { AutomaticTaskAPISettingsDialog } from "../components/api-settings-dialog";
 import {
   SchemaForm,
   useSchemaFormValidity,
 } from "@/shared/json-schema/schema-form";
 import { schemaRecord } from "../model/workflow-inputs";
-import { WorkflowAPIContract } from "../components/workflow-api-contract";
+
 import { WorkflowInputSummary } from "../components/workflow-input-summary";
-import { TaskFormDialog } from "../components/task-form-dialog";
 import {
-  CopyValue,
-  apiExamples,
-  TaskTokenDialog,
-} from "../components/task-token-dialog";
+  AutomaticTaskAPISettingsDialog,
+  TaskFormDialog,
+} from "../components/task-dialogs";
+import { CopyValue, apiExamples } from "../components/task-api-examples";
 import {
   formatTime,
   RunState,
@@ -84,6 +82,12 @@ import { TeamExecutionSummary } from "../components/team-execution-summary";
 import { automaticRunHref } from "../model/task-navigation";
 import type { TaskView } from "../model/types";
 import type { ListAutomaticRunsResponse } from "@/shared/api/generated/types.gen";
+
+const WorkflowAPIContract = lazy(() =>
+  import("../components/workflow-api-contract").then((module) => ({
+    default: module.WorkflowAPIContract,
+  })),
+);
 
 const executionGridClassName =
   "grid min-w-0 grid-cols-1 gap-x-8 gap-y-4 @[32rem]/task-execution:grid-cols-2 @[54rem]/task-execution:grid-cols-4";
@@ -140,11 +144,10 @@ export function AutomaticTaskDetailPage() {
     ),
     enabled: Boolean(query.data?.projectId),
   });
-  const api = useQuery(getAutomaticTaskApiOptions());
+  const api = useQuery(integrationServiceOptions());
   const [apiSettingsOpen, setAPISettingsOpen] = useState(false);
   const [editing, setEditing] = useState<TaskView>();
-  const [confirm, setConfirm] = useState<"delete" | "rotate">();
-  const [token, setToken] = useState<{ taskId: string; token: string }>();
+  const [confirm, setConfirm] = useState<"delete">();
   const request = useRef<{ signature: string; id: string } | undefined>(
     undefined,
   );
@@ -153,9 +156,6 @@ export function AutomaticTaskDetailPage() {
   const manualValidity = useSchemaFormValidity();
   const remove = useMutation(
     withLocalErrorMutation(deleteAutomaticTaskMutation()),
-  );
-  const rotate = useMutation(
-    withLocalErrorMutation(rotateAutomaticTaskTokenMutation()),
   );
   const toggle = useMutation({
     ...withLocalErrorMutation(setAutomaticTaskEnabledMutation()),
@@ -196,13 +196,6 @@ export function AutomaticTaskDetailPage() {
         navigate("/automatic-tasks");
         // 聚合删除同时改变伙伴统计及已打开的历史；刷新其余仍挂载的服务器事实。
         await client.invalidateQueries();
-      } else {
-        const receipt = await rotate.mutateAsync({
-          path,
-          body: { revision: task.revision || 0 },
-        });
-        if (receipt.token) setToken({ taskId, token: receipt.token });
-        await refreshAutomaticTasks(client, wakerId, taskId);
       }
       setConfirm(undefined);
     } catch {
@@ -233,10 +226,9 @@ export function AutomaticTaskDetailPage() {
     }
   };
   const closeConfirm = () => {
-    if (remove.isPending || rotate.isPending) return;
+    if (remove.isPending) return;
     setConfirm(undefined);
     remove.reset();
-    rotate.reset();
   };
   const backAction = {
     label: t("common:backToList"),
@@ -284,13 +276,11 @@ export function AutomaticTaskDetailPage() {
         ? t("configurationInvalid")
         : undefined;
   const examples =
-    api.data?.port && (!task.workflowId || task.workflowInputContract)
+    api.data?.publicBaseUrl && (!task.workflowId || task.workflowInputContract)
       ? apiExamples(
           taskId,
-          api.data.port,
-          undefined,
-          api.data.ip,
-          Boolean(task?.workflowId),
+          api.data.publicBaseUrl,
+          Boolean(task.workflowId),
           task.workflowInputContract,
         )
       : undefined;
@@ -462,13 +452,6 @@ export function AutomaticTaskDetailPage() {
                     <Settings2 />
                   </PageAction>
                 ) : null}
-                <PageAction
-                  intent="secondary"
-                  label={t("rotate")}
-                  onClick={() => setConfirm("rotate")}
-                >
-                  <KeyRound />
-                </PageAction>
               </>
             ) : undefined
           }
@@ -508,10 +491,22 @@ export function AutomaticTaskDetailPage() {
                         api.data?.available ? "apiAvailable" : "apiUnavailable",
                       )}
                     </p>
+                    <p className="type-body text-content-secondary">
+                      {t("apiIntegrationHint")}
+                    </p>
+                    <CopyValue label={t("taskID")} value={taskId} />
                     {task.workflowInputContract ? (
-                      <WorkflowAPIContract
-                        contract={task.workflowInputContract}
-                      />
+                      <Suspense
+                        fallback={
+                          <div role="status" aria-busy="true">
+                            <Skeleton className="h-32 w-full" />
+                          </div>
+                        }
+                      >
+                        <WorkflowAPIContract
+                          contract={task.workflowInputContract}
+                        />
+                      </Suspense>
                     ) : null}
                     {examples ? (
                       <>
@@ -835,10 +830,7 @@ export function AutomaticTaskDetailPage() {
           if (!open) setEditing(undefined);
         }}
         wakerId={wakerId}
-        onSaved={(receipt) => {
-          setEditing(undefined);
-          if (receipt.token) setToken({ taskId, token: receipt.token });
-        }}
+        onSaved={() => setEditing(undefined)}
       />
       <Dialog
         open={manualOpen}
@@ -883,7 +875,6 @@ export function AutomaticTaskDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <TaskTokenDialog receipt={token} onClose={() => setToken(undefined)} />
       <Dialog
         open={Boolean(confirm)}
         onOpenChange={(open) => {
@@ -892,42 +883,34 @@ export function AutomaticTaskDetailPage() {
       >
         <DialogContent
           size="sm"
-          title={t(confirm === "delete" ? "deleteTitle" : "rotateTitle")}
-          description={t(
-            confirm === "delete" ? "deleteWarning" : "rotateWarning",
-            confirm === "delete"
-              ? {
-                  name: task.name,
-                  runCount: task.deletionRunCount ?? 0,
-                  chatCount: task.deletionChatCount ?? 0,
-                }
-              : { name: task.name },
-          )}
+          title={t("deleteTitle")}
+          description={t("deleteWarning", {
+            name: task.name,
+            runCount: task.deletionRunCount ?? 0,
+            chatCount: task.deletionChatCount ?? 0,
+          })}
         >
           <div className="px-6 pb-4">
-            {remove.error || rotate.error ? (
+            {remove.error ? (
               <p role="alert" className="text-destructive type-body">
-                {localApiErrorMessage(
-                  remove.error || rotate.error,
-                  t("actionFailed"),
-                )}
+                {localApiErrorMessage(remove.error, t("actionFailed"))}
               </p>
             ) : null}
           </div>
           <DialogFooter>
             <Button
               variant="secondary"
-              disabled={remove.isPending || rotate.isPending}
+              disabled={remove.isPending}
               onClick={closeConfirm}
             >
               {t("cancel")}
             </Button>
             <Button
-              variant={confirm === "delete" ? "danger" : "primary"}
-              disabled={remove.isPending || rotate.isPending}
+              variant="danger"
+              disabled={remove.isPending}
               onClick={() => void confirmAction()}
             >
-              {t(confirm === "delete" ? "remove" : "rotate")}
+              {t("remove")}
             </Button>
           </DialogFooter>
         </DialogContent>

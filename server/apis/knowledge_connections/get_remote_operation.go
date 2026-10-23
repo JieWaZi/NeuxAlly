@@ -22,10 +22,6 @@ func (o *GetRemoteOperation) Path() string {
 	return "/:connectionId/libraries/:libraryId/operations/:requestId"
 }
 func (o *GetRemoteOperation) Output(ctx *gin.Context) (interface{}, error) {
-	c, err := client(ctx, o.ConnectionID, o.LibraryID)
-	if err != nil {
-		return nil, err
-	}
 	if global.KnowledgeControllerManager == nil {
 		return nil, status_error.KnowledgeUnsupported
 	}
@@ -33,8 +29,8 @@ func (o *GetRemoteOperation) Output(ctx *gin.Context) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	if v.Backend != c.connection.Backend || v.ConnectionID != c.connection.ID || v.KnowledgeBaseID != o.LibraryID {
+	if v.Backend == "local" || v.ConnectionID != o.ConnectionID || v.KnowledgeBaseID != o.LibraryID {
 		return nil, status_error.KnowledgeNotFound
 	}
-	return RemoteOperation{Ref: remoteRef(c, v.KnowledgeBaseID), RequestID: v.RequestID, Operation: v.Operation, ReceiptConfirmed: v.ReceiptConfirmed, Rejected: v.RemoteErrorCode != 0, ErrorCode: v.RemoteErrorCode, ResourceID: v.ResourceID, JobID: v.JobID}, nil
+	return operationDTO(v), nil
 }

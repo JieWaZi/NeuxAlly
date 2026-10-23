@@ -2,9 +2,9 @@ package controllers
 
 import (
 	"context"
+	"github.com/JieWaZi/NeuxAlly/server/constants"
 	"github.com/JieWaZi/NeuxAlly/server/constants/status_error"
 	"github.com/JieWaZi/NeuxAlly/server/repositories/models"
-	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
@@ -42,31 +42,35 @@ func (c *knowledgeController) DeleteLibraryReferences(ctx context.Context, backe
 	if backend == "" || connection == "" || library == "" {
 		return status_error.KnowledgeInvalid
 	}
-	err := controllerDB(ctx, c.db).Transaction(func(tx *gorm.DB) error {
+	err := c.transactions.Transaction(ctx, func(txctx context.Context) error {
+		tx := controllerDB(txctx, c.db)
 		for _, model := range []any{&models.KnowledgeTaskConfiguration{}, &models.KnowledgeLibrarySummary{}} {
 			if err := tx.Where("backend = ? AND connection_id = ? AND knowledge_base_id = ?", backend, connection, library).Delete(model).Error; err != nil {
-				return err
+				return databaseError("delete_knowledge_library_references", library, err)
 			}
 		}
 		if backend == "local" && connection == "local" {
+			if err := removeIntegrationResourceGrants(txctx, c.db, constants.IntegrationResourceKindKnowledge, []string{library}); err != nil {
+				return err
+			}
 			// 删除库时撤销尚未激活的密钥，幂等摘要和配置回执可继续对账。
 			if err := tx.Model(&models.LibraryEmbeddingMutation{}).Where("library_id = ?", library).Update("ciphertext", "").Error; err != nil {
-				return err
+				return databaseError("delete_knowledge_library_references", library, err)
 			}
 			for _, model := range []any{&models.LibraryEmbeddingProfile{}, &models.LibraryEmbeddingSecret{}} {
 				if err := tx.Where("library_id = ?", library).Delete(model).Error; err != nil {
-					return err
+					return databaseError("delete_knowledge_library_references", library, err)
 				}
 			}
 
 			if err := tx.Where("library_id = ?", library).Delete(&models.LibraryExecutionDefaults{}).Error; err != nil {
-				return err
+				return databaseError("delete_knowledge_library_references", library, err)
 			}
 		}
 		return nil
 	})
 	if err != nil {
-		return databaseError("delete_knowledge_library_references", library, err)
+		return err
 	}
 	publishCommittedChange(ctx, c.db, "work-results", eventsResource("global", ""))
 	return nil

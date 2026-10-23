@@ -450,7 +450,7 @@ func replayChatState(records []eventlog.Record) (chatState, error) {
 			if err := json.Unmarshal(record.Data, &executionData); err != nil {
 				return chatState{}, status_error.ChatLogCorrupted
 			}
-			execution := models.Execution{
+			execution := models.Execution{AutomaticRunID: executionData.AutomaticRunID,
 				ID:                record.ExecutionID,
 				ChatID:            record.ChatID,
 				UserMessageID:     executionData.UserMessageID,

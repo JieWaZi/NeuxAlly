@@ -11,6 +11,10 @@ import (
 
 // remoteClients 仅包含远端HTTP适配器，不能访问本机知识引擎或Runtime。
 type remoteClients struct {
+	// options 保存本次同一快照中的地址与凭据，仅在请求内使用，不输出 JSON。
+	options remote.Options
+	// libraryID 是本次固定的目标库；空值只用于目录管理。
+	libraryID string
 	// connection 为固定连接配置。
 	connection models.KnowledgeConnection
 	// official 为官方协议分支。
@@ -30,9 +34,39 @@ func client(ctx context.Context, connectionID, libraryID string) (*remoteClients
 	if !connection.Enabled {
 		return nil, status_error.KnowledgeForbidden
 	}
-	out := &remoteClients{connection: connection}
+	if connection.Backend == "integration" && libraryID != "" {
+		if global.KnowledgeRemoteMountControllerManager == nil {
+			return nil, status_error.KnowledgeUnsupported
+		}
+		mounts, e := global.KnowledgeRemoteMountControllerManager.List(ctx, connectionID)
+		if e != nil {
+			return nil, e
+		}
+		found := false
+		for _, mount := range mounts {
+			if mount.KnowledgeBaseID == libraryID {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return nil, status_error.KnowledgeNotFound
+		}
+	}
+	return clientSnapshot(connection, token, libraryID)
+}
+func clientSnapshot(connection models.KnowledgeConnection, token, libraryID string) (*remoteClients, error) {
+	connectionID := connection.ID
+	var err error
+	out := &remoteClients{connection: connection, libraryID: libraryID}
 	options := remote.Options{BaseURL: connection.BaseURL, Token: token, AuthMode: connection.AuthMode}
+	out.options = options
 	switch connection.Backend {
+	case "integration":
+		out.official, err = remote.NewWeKnora(options)
+		if err == nil && connection.Detection.ServiceKind == "neuxally" {
+			out.custom, err = remote.NewIntegration(options, remote.ResourceRef{Backend: "integration", ConnectionID: connectionID, KnowledgeBaseID: libraryID})
+		}
 	case "weknora":
 		out.official, err = remote.NewWeKnora(options)
 	case "custom":

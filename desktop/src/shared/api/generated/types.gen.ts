@@ -11,6 +11,13 @@ export type ClientOptions = {
  */
 export type EncodingJsonRawMessage = Array<number>;
 
+/**
+ * H is a shortcut for map[string]any
+ */
+export type GithubComGinGonicGinH = {
+    [key: string]: unknown;
+};
+
 export type GithubComGinGonicGinHandlerFunc = unknown;
 
 /**
@@ -253,6 +260,16 @@ export type GithubComJieWaZiNeuxAllyServerApisAutomaticTasksAttention = {
 };
 
 /**
+ * 已保存的自动任务身份
+ */
+export type GithubComJieWaZiNeuxAllyServerApisAutomaticTasksAutomaticTaskReference = {
+    /**
+     * 任务标识
+     */
+    taskId?: string;
+};
+
+/**
  * 自动运行列表响应
  */
 export type GithubComJieWaZiNeuxAllyServerApisAutomaticTasksListAutomaticRunsResponse = {
@@ -295,16 +312,6 @@ export type GithubComJieWaZiNeuxAllyServerApisAutomaticTasksListAutomaticTasksRe
      * 总数量
      */
     totalSize?: number;
-};
-
-/**
- * 任务密钥轮换请求
- */
-export type GithubComJieWaZiNeuxAllyServerApisAutomaticTasksRotateAutomaticTaskTokenRequest = {
-    /**
-     * 配置版本
-     */
-    revision: number;
 };
 
 /**
@@ -1009,6 +1016,151 @@ export type GithubComJieWaZiNeuxAllyServerApisImVerifyImLoginRequest = {
 };
 
 /**
+ * 密钥签发结果
+ */
+export type GithubComJieWaZiNeuxAllyServerApisIntegrationsApiKeyIssuance = {
+    /**
+     * 签发状态
+     */
+    issuanceState?: string;
+    key?: GithubComJieWaZiNeuxAllyServerRepositoriesModelsIntegrationKey & unknown;
+    /**
+     * 主体标识
+     */
+    keyId?: string;
+    /**
+     * 一次性秘密
+     */
+    secret?: string;
+};
+
+/**
+ * API Key 列表
+ */
+export type GithubComJieWaZiNeuxAllyServerApisIntegrationsApiKeyList = {
+    /**
+     * 当前页码
+     */
+    pageNum?: number;
+    /**
+     * 每页数量
+     */
+    pageSize?: number;
+    /**
+     * 密钥列表
+     */
+    resources?: Array<GithubComJieWaZiNeuxAllyServerRepositoriesModelsIntegrationKey>;
+    /**
+     * 总记录数
+     */
+    totalSize?: number;
+};
+
+/**
+ * 密钥版本请求
+ */
+export type GithubComJieWaZiNeuxAllyServerApisIntegrationsApiKeyRevisionInput = {
+    /**
+     * 预期版本
+     */
+    expectedRevision?: number;
+};
+
+/**
+ * API 服务设置请求
+ */
+export type GithubComJieWaZiNeuxAllyServerApisIntegrationsApiServiceInput = {
+    /**
+     * 启用状态
+     */
+    enabled?: boolean;
+    /**
+     * 监听地址
+     */
+    ip: string;
+    /**
+     * 监听端口
+     */
+    port?: number;
+    /**
+     * 访问地址
+     */
+    publicBaseUrl?: string;
+};
+
+/**
+ * 创建密钥请求
+ */
+export type GithubComJieWaZiNeuxAllyServerApisIntegrationsCreateApiKeyInput = {
+    /**
+     * 失效时间
+     */
+    expiresAt?: number;
+    /**
+     * 资源授权
+     */
+    grants?: Array<GithubComJieWaZiNeuxAllyServerRepositoriesModelsIntegrationGrant>;
+    /**
+     * 集成名称
+     */
+    name: string;
+    /**
+     * 请求标识
+     */
+    requestId: string;
+};
+
+/**
+ * 可发布资源
+ */
+export type GithubComJieWaZiNeuxAllyServerApisIntegrationsPublishableResource = {
+    /**
+     * 资源标识
+     */
+    id?: string;
+    /**
+     * 资源名称
+     */
+    name?: string;
+};
+
+/**
+ * 可发布资源列表
+ */
+export type GithubComJieWaZiNeuxAllyServerApisIntegrationsPublishableResourceList = {
+    /**
+     * 资源列表
+     */
+    resources?: Array<GithubComJieWaZiNeuxAllyServerApisIntegrationsPublishableResource>;
+    /**
+     * 总记录数
+     */
+    totalSize?: number;
+};
+
+/**
+ * 修改密钥请求
+ */
+export type GithubComJieWaZiNeuxAllyServerApisIntegrationsUpdateApiKeyInput = {
+    /**
+     * 预期版本
+     */
+    expectedRevision?: number;
+    /**
+     * 失效时间
+     */
+    expiresAt?: number;
+    /**
+     * 资源授权
+     */
+    grants?: Array<GithubComJieWaZiNeuxAllyServerRepositoriesModelsIntegrationGrant>;
+    /**
+     * 集成名称
+     */
+    name: string;
+};
+
+/**
  * 归档原件请求
  */
 export type GithubComJieWaZiNeuxAllyServerApisKnowledgeArchiveSourceInput = {
@@ -1103,6 +1255,28 @@ export type GithubComJieWaZiNeuxAllyServerApisKnowledgeConfirmSourcePurgeInput =
 };
 
 /**
+ * 远端知识库接入请求
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsAddRemoteLibraryInput = {
+    /**
+     * 集成密钥
+     */
+    apiKey: string;
+    /**
+     * 知识库标识
+     */
+    knowledgeBaseId: string;
+    /**
+     * 请求标识
+     */
+    requestId: string;
+    /**
+     * 远程地址
+     */
+    url: string;
+};
+
+/**
  * 知识连接
  */
 export type GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsConnection = {
@@ -1118,6 +1292,7 @@ export type GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsConnection = {
      * 服务地址
      */
     baseUrl?: string;
+    detection?: GithubComJieWaZiNeuxKnowledgeRemoteDetection & unknown;
     /**
      * 已启用
      */
@@ -1217,15 +1392,37 @@ export type GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsConnectionRece
 };
 
 /**
+ * 远端识别请求
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsRedetectConnectionInput = {
+    /**
+     * 连接版本
+     */
+    expectedRevision?: number;
+    /**
+     * 请求标识
+     */
+    requestId: string;
+};
+
+/**
  * 远端资源能力
  */
 export type GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsRemoteCapabilities = {
+    /**
+     * 连接版本
+     */
+    connectionRevision?: number;
     /**
      * 能力明细
      */
     details?: {
         [key: string]: GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsRemoteCapabilityStatus;
     };
+    /**
+     * 识别依据
+     */
+    evidence?: Array<string>;
     /**
      * 可用操作
      */
@@ -1253,6 +1450,18 @@ export type GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsRemoteCapabili
         [key: string]: string;
     };
     ref?: GithubComJieWaZiNeuxAllyServerApisKnowledgeResourceRef & unknown;
+    /**
+     * 服务标识
+     */
+    serviceKind?: string;
+    /**
+     * 服务版本
+     */
+    serviceVersion?: string;
+    /**
+     * 上传行为
+     */
+    uploadMode?: string;
 };
 
 /**
@@ -1311,7 +1520,7 @@ export type GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsRemoteMaintena
     /**
      * 服务器配置
      */
-    profileId: string;
+    profileId?: string;
     /**
      * 请求标识
      */
@@ -1323,9 +1532,21 @@ export type GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsRemoteMaintena
 };
 
 /**
+ * 远端知识挂载回执
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsRemoteMountReceipt = {
+    connection?: GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsConnection & unknown;
+    mount?: GithubComJieWaZiNeuxAllyServerRepositoriesModelsKnowledgeRemoteMount & unknown;
+};
+
+/**
  * 远端操作引用
  */
 export type GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsRemoteOperation = {
+    /**
+     * 原连接版本
+     */
+    connectionRevision?: number;
     /**
      * 稳定错误码
      */
@@ -1334,6 +1555,10 @@ export type GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsRemoteOperatio
      * 任务标识
      */
     jobId?: string;
+    /**
+     * 原生接纳
+     */
+    nativeUpload?: boolean;
     /**
      * 操作类型
      */
@@ -1355,6 +1580,11 @@ export type GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsRemoteOperatio
      * 资源标识
      */
     resourceId?: string;
+    transferState?: GithubComJieWaZiNeuxAllyServerConstantsRemoteTransferState & unknown;
+    /**
+     * 上传模式
+     */
+    uploadMode?: string;
 };
 
 /**
@@ -1386,7 +1616,7 @@ export type GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsRemoteOrganize
     /**
      * 服务器配置
      */
-    profileId: string;
+    profileId?: string;
     /**
      * 重建原件
      */
@@ -1460,6 +1690,10 @@ export type GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsRemoteTheme = 
  */
 export type GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsRemoteThemeList = {
     /**
+     * 完整目录
+     */
+    complete?: boolean;
+    /**
      * 主题列表
      */
     items?: Array<GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsRemoteTheme>;
@@ -1467,6 +1701,45 @@ export type GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsRemoteThemeLis
      * 上级标识
      */
     parentId?: string;
+};
+
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsRemoteUploadInput = GithubComJieWaZiNeuxAllyServerApisKnowledgeImportSourceInput & {
+    /**
+     * 已观察连接版本
+     */
+    connectionRevision?: number;
+    /**
+     * 已确认上传行为
+     */
+    uploadMode: string;
+};
+
+/**
+ * 原生远端上传结果
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsRemoteUploadResult = {
+    /**
+     * 已接纳
+     */
+    accepted?: boolean;
+    /**
+     * 处理状态
+     */
+    processingState?: string;
+    receipt?: GithubComJieWaZiNeuxAllyServerApisKnowledgeReceipt & unknown;
+    /**
+     * 原请求标识
+     */
+    requestId?: string;
+    /**
+     * 原件身份
+     */
+    sourceId?: string;
+    transferState?: GithubComJieWaZiNeuxAllyServerConstantsRemoteTransferState & unknown;
+    /**
+     * 上传行为
+     */
+    uploadMode?: string;
 };
 
 /**
@@ -1709,9 +1982,21 @@ export type GithubComJieWaZiNeuxAllyServerApisKnowledgeLibrary = {
      */
     kind?: string;
     /**
+     * 远端入口标识
+     */
+    mountId?: string;
+    /**
+     * 远端入口版本
+     */
+    mountRevision?: number;
+    /**
      * 名称
      */
     name?: string;
+    /**
+     * 远端离线
+     */
+    offline?: boolean;
     /**
      * Wiki数量
      */
@@ -2045,6 +2330,62 @@ export type GithubComJieWaZiNeuxAllyServerApisKnowledgePage = {
      * 正文语言
      */
     wikiLanguage?: string;
+};
+
+/**
+ * 页面目录条目
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgePageDirectoryEntry = {
+    /**
+     * 目录路径
+     */
+    categoryPath?: Array<string>;
+    /**
+     * 页面标识
+     */
+    id?: string;
+    /**
+     * 页面类型
+     */
+    pageType?: string;
+    /**
+     * 语义地址
+     */
+    slug?: string;
+    /**
+     * 排序
+     */
+    sortOrder?: number;
+    /**
+     * 页面简介
+     */
+    summary?: string;
+    /**
+     * 主题标识
+     */
+    themeId?: string;
+    /**
+     * 页面标题
+     */
+    title?: string;
+    /**
+     * 当前版本
+     */
+    version?: number;
+};
+
+/**
+ * 页面目录响应
+ */
+export type GithubComJieWaZiNeuxAllyServerApisKnowledgePageDirectoryList = {
+    /**
+     * 目录条目
+     */
+    items?: Array<GithubComJieWaZiNeuxAllyServerApisKnowledgePageDirectoryEntry>;
+    /**
+     * 总数
+     */
+    total?: number;
 };
 
 /**
@@ -2466,16 +2807,6 @@ export type GithubComJieWaZiNeuxAllyServerApisKnowledgeRevisionList = {
 };
 
 /**
- * 权限重载结果
- */
-export type GithubComJieWaZiNeuxAllyServerApisKnowledgeServerReloadResult = {
-    /**
-     * 已生效。
-     */
-    reloaded?: boolean;
-};
-
-/**
  * 原件版本
  */
 export type GithubComJieWaZiNeuxAllyServerApisKnowledgeSource = {
@@ -2508,6 +2839,10 @@ export type GithubComJieWaZiNeuxAllyServerApisKnowledgeSource = {
      * 媒体类型
      */
     mime?: string;
+    /**
+     * 整理占用
+     */
+    organizeBlocked?: boolean;
     profile?: GithubComJieWaZiNeuxKnowledgeInternalDomainKnowledgeProfile & unknown;
     /**
      * 状态版本
@@ -5779,6 +6114,25 @@ export type GithubComJieWaZiNeuxAllyServerConstantsImPlatform = '' | 'feishu' | 
 
 /**
  * >
+ * * `automatic_task.invoke` - IntegrationCapabilityTaskInvoke 允许调用选定自动任务及上传受管输入。
+ * * `automatic_task.results` - IntegrationCapabilityTaskResults 允许读取本主体发起的运行及受管产出。
+ * * `ingest` - IntegrationCapabilityIngest 沿用 WeKnora 的内容上传与编辑能力。
+ * * `organize` - IntegrationCapabilityOrganize 允许受控整理，不开放任意编辑。
+ * * `retrieve` - IntegrationCapabilityRetrieve 沿用 WeKnora 的读取与检索能力。
+ *
+ */
+export type GithubComJieWaZiNeuxAllyServerConstantsIntegrationCapability = 'automatic_task.invoke' | 'automatic_task.results' | 'ingest' | 'organize' | 'retrieve';
+
+/**
+ * >
+ * * `automatic_task` - IntegrationResourceKindAutomaticTask 表示可通过 API 调用的自动任务。
+ * * `knowledge` - IntegrationResourceKindKnowledge 表示本机权威知识库。
+ *
+ */
+export type GithubComJieWaZiNeuxAllyServerConstantsIntegrationResourceKind = 'automatic_task' | 'knowledge';
+
+/**
+ * >
  * * `unknown` - KnowledgeLibraryLocationDefault 缺省时不限制保存位置。
  * * `all` - KnowledgeLibraryLocationAll 包含本地及全部启用的远端连接。
  * * `local` - KnowledgeLibraryLocationLocal 只读取本地知识库。
@@ -5971,6 +6325,17 @@ export type GithubComJieWaZiNeuxAllyServerConstantsPluginAuthorizationState = ''
  *
  */
 export type GithubComJieWaZiNeuxAllyServerConstantsProfileDocumentKind = '' | 'identity' | 'memory' | 'persona' | 'playbook';
+
+/**
+ * >
+ * * `accepted` - RemoteTransferStateAccepted 表示远端真实接纳已验证。
+ * * `failed` - RemoteTransferStateFailed 表示原请求已确认拒绝。
+ * * `not_sent` - RemoteTransferStateNotSent 表示尚未发出实际业务写入。
+ * * `sending` - RemoteTransferStateSending 表示原发送已登记但响应尚未确认。
+ * * `unknown` - RemoteTransferStateUnknown 表示可能已接纳，禁止自动重传。
+ *
+ */
+export type GithubComJieWaZiNeuxAllyServerConstantsRemoteTransferState = 'accepted' | 'failed' | 'not_sent' | 'sending' | 'unknown';
 
 /**
  * >
@@ -6455,6 +6820,39 @@ export type GithubComJieWaZiNeuxAllyServerInternalChatMessageviewToolSafeSummary
      * Path 是位于锁定工作目录内的项目相对路径。
      */
     path?: string;
+};
+
+export type GithubComJieWaZiNeuxAllyServerInternalIntegrationListenerSettings = GithubComJieWaZiNeuxAllyServerInternalIntegrationListenerStatus & {
+    /**
+     * Enabled 表示允许对外接受 API 请求，不控制定时调度。
+     */
+    enabled?: boolean;
+    /**
+     * PublicBaseURL 是可复制的完整 API 地址，通配监听不会自行推导访问主机。
+     */
+    publicBaseUrl?: string;
+};
+
+/**
+ * ListenerStatus 是统一发布服务的实际监听状态。
+ */
+export type GithubComJieWaZiNeuxAllyServerInternalIntegrationListenerStatus = {
+    /**
+     * Available 表示已成功绑定且正在提供服务。
+     */
+    available?: boolean;
+    /**
+     * ErrorCode 是端口冲突等安全错误码。
+     */
+    errorCode?: string;
+    /**
+     * IP 是真实监听的 IP 地址。
+     */
+    ip?: string;
+    /**
+     * Port 是真实监听端口。
+     */
+    port?: number;
 };
 
 /**
@@ -8371,6 +8769,10 @@ export type GithubComJieWaZiNeuxAllyServerRepositoriesModelsExecution = {
      */
     accountId?: string;
     /**
+     * AutomaticRunID 是原自动运行的受信来源，不由模型或任务正文提供。
+     */
+    automaticRunId?: string;
+    /**
      * ChatID 是本次执行所属的 Chat 标识。
      */
     chatId?: string;
@@ -8661,6 +9063,79 @@ export type GithubComJieWaZiNeuxAllyServerRepositoriesModelsImWorkflowDependency
 };
 
 /**
+ * IntegrationGrant 保存同类能力集合与明确资源集合，不维护逐资源权限矩阵。
+ */
+export type GithubComJieWaZiNeuxAllyServerRepositoriesModelsIntegrationGrant = {
+    /**
+     * Capabilities 应用于本组全部资源。
+     */
+    capabilities?: Array<GithubComJieWaZiNeuxAllyServerConstantsIntegrationCapability>;
+    /**
+     * ResourceIDs 是保存时明确展开的资源身份，空集不授予访问。
+     */
+    resourceIds?: Array<string>;
+    resourceKind?: GithubComJieWaZiNeuxAllyServerConstantsIntegrationResourceKind & unknown;
+};
+
+/**
+ * IntegrationKey 是应用颁发的稳定集成主体，修改授权不会更换凭据。
+ */
+export type GithubComJieWaZiNeuxAllyServerRepositoriesModelsIntegrationKey = {
+    /**
+     * CreatedAt 是首次签发的 Unix 毫秒时间。
+     */
+    createdAt?: number;
+    /**
+     * CredentialGeneration 固定签发时的凭据代次，用于核对已接纳知识任务。
+     */
+    credentialGeneration?: number;
+    /**
+     * DisplayPrefix 只供区分密钥，不包含可恢复凭据。
+     */
+    displayPrefix?: string;
+    /**
+     * Enabled 表示当前是否接受该主体认证。
+     */
+    enabled?: boolean;
+    /**
+     * ExpiresAt 是可选的凭据失效时间，单位为 Unix 毫秒。
+     */
+    expiresAt?: number;
+    /**
+     * GrantVersion 在有效授权变化时递增，冻结的知识工作不得扩权。
+     */
+    grantVersion?: number;
+    /**
+     * Grants 是每类最多一组的明确资源与能力。
+     */
+    grants?: Array<GithubComJieWaZiNeuxAllyServerRepositoriesModelsIntegrationGrant>;
+    /**
+     * ID 是密钥的稳定调用主体。
+     */
+    id?: string;
+    /**
+     * LastUsedAt 是节流后的最近成功认证时间。
+     */
+    lastUsedAt?: number;
+    /**
+     * Name 是本机用户为集成填写的名称。
+     */
+    name?: string;
+    /**
+     * Revision 用于管理页的条件修改。
+     */
+    revision?: number;
+    /**
+     * RevokedAt 保留已撤销记录的失效事实，管理页可删除此类记录。
+     */
+    revokedAt?: number;
+    /**
+     * UpdatedAt 是最近管理修改的 Unix 毫秒时间。
+     */
+    updatedAt?: number;
+};
+
+/**
  * KnowledgeMaintenanceAuthorization 记录用户明确允许的精确维护范围。
  */
 export type GithubComJieWaZiNeuxAllyServerRepositoriesModelsKnowledgeMaintenanceAuthorization = {
@@ -8688,6 +9163,28 @@ export type GithubComJieWaZiNeuxAllyServerRepositoriesModelsKnowledgeMaintenance
      * 来源版本
      */
     sourceVersionIds?: Array<string>;
+};
+
+/**
+ * KnowledgeRemoteMount 只保存用户明确指定的远端库入口，不枚举 Key 的全部可见库。
+ */
+export type GithubComJieWaZiNeuxAllyServerRepositoriesModelsKnowledgeRemoteMount = {
+    /**
+     * ConnectionID 固定实际连接与凭据身份。
+     */
+    connectionId?: string;
+    /**
+     * ID 是本机挂载身份，删除后不会被同 ID 远端自动接管。
+     */
+    id?: string;
+    /**
+     * KnowledgeBaseID 是服务器已核对的库身份。
+     */
+    knowledgeBaseId?: string;
+    /**
+     * Revision 是本机入口的条件修改版本。
+     */
+    revision?: number;
 };
 
 /**
@@ -10730,28 +11227,6 @@ export type GithubComJieWaZiNeuxAllyServerServicesNotificationSnapshot = {
     unreadResultCount?: number;
 };
 
-/**
- * APIStatus 是可持久修改的监听地址、端口及当前监听状态。
- */
-export type GithubComJieWaZiNeuxAllyServerServicesScheduleApiStatus = {
-    /**
-     * Available 表示当前已经成功监听配置地址。
-     */
-    available?: boolean;
-    /**
-     * ErrorCode 是端口冲突等失败的稳定原因，不含操作系统细节。
-     */
-    errorCode?: string;
-    /**
-     * IP 是任务 API 监听的 IPv4 或 IPv6 地址。
-     */
-    ip?: string;
-    /**
-     * Port 是任务 API 监听端口。
-     */
-    port?: number;
-};
-
 export type GithubComJieWaZiNeuxAllyServerServicesScheduleRunView = GithubComJieWaZiNeuxAllyServerRepositoriesModelsAutomaticRun & {
     /**
      * CompletedAt 是首次独立执行或团队整体运行结束的 Unix 毫秒时间。
@@ -11124,72 +11599,72 @@ export type GithubComJieWaZiNeuxKnowledgeInternalDomainCodeRef = {
  */
 export type GithubComJieWaZiNeuxKnowledgeInternalDomainEmbeddingChunkIndex = {
     /**
-     * Reader chunk identifier.
+     * 持久分块标识。
      */
     chunkId?: string;
     /**
-     * parent or child; parent chunks are not embedded separately.
+     * 父块或子块；只为子块生成向量。
      */
     chunkType?: string;
     /**
-     * Actual chunk content, rather than a page summary.
+     * 实际分块正文。
      */
     content?: string;
     /**
-     * Heading path context of the upstream chunk.
+     * 分块所属的标题路径。
      */
     contextHeader?: string;
     /**
-     * Registration time in Unix milliseconds.
+     * 登记时间，单位为 Unix 毫秒。
      */
     createdAt?: number;
     /**
-     * Most recent processing note.
+     * 最近一次处理诊断。
      */
     diagnostic?: string;
     /**
-     * Validated vector dimensions.
+     * 已校验的向量维度。
      */
     dimensions?: number;
     /**
-     * Expected embedding model identifier.
+     * 所用嵌入模型标识。
      */
     embeddingModelId?: string;
     /**
-     * Upstream-confirmed ending rune offset in the original text.
+     * 原文中的结束字符偏移。
      */
     end?: number;
     /**
-     * Stable index row identifier.
+     * 稳定索引行标识。
      */
     id?: string;
     /**
-     * Owning library.
+     * 所属知识库标识。
      */
     libraryId?: string;
     locator?: GithubComJieWaZiNeuxKnowledgeInternalDomainSourceLocator & unknown;
     /**
-     * Persistent parent chunk identifier for a child chunk.
+     * 子块对应的持久父块标识。
      */
     parentId?: string;
     /**
-     * Upstream order among sibling chunks.
+     * 同级分块顺序。
      */
     sequence?: number;
     /**
-     * Immutable source version.
+     * 不可变来源版本标识。
      */
     sourceVersionId?: string;
     /**
-     * Upstream-confirmed starting rune offset in the original text.
+     * 原文中的起始字符偏移。
      */
     start?: number;
     /**
-     * pending, indexed, or failed.
+     * 解析、等待向量、已索引或失败状态。
      */
     state?: string;
     /**
-     * Update time in Unix milliseconds.
+     * 更新时间，单位为 Unix 毫秒。
      */
     updatedAt?: number;
 };
@@ -11817,6 +12292,47 @@ export type GithubComJieWaZiNeuxKnowledgeInternalDomainWikiConfig = {
 export type GithubComJieWaZiNeuxKnowledgeInternalDomainWikiExtractionGranularity = 'exhaustive' | 'focused' | 'standard';
 
 /**
+ * Detection 是针对指定库的只读证据，不是可独立编辑的授权源。
+ */
+export type GithubComJieWaZiNeuxKnowledgeRemoteDetection = {
+    /**
+     * AtomicConditionalWrite 只在明确证明时允许页面编辑。
+     */
+    atomicConditionalWrite?: boolean;
+    /**
+     * BaseURL 是保留代理前缀的标准 API 基址。
+     */
+    baseUrl?: string;
+    /**
+     * Evidence 保存不含秘密的识别依据与限制。
+     */
+    evidence?: Array<string>;
+    library?: GithubComJieWaZiNeuxKnowledgeRemoteLibrary & unknown;
+    /**
+     * Operations 保存逐项已观察的能力和权限。
+     */
+    operations?: {
+        [key: string]: GithubComJieWaZiNeuxKnowledgeRemoteOperationStatus;
+    };
+    /**
+     * ReceiptRecovery 表示是否有原请求回执恢复合同。
+     */
+    receiptRecovery?: boolean;
+    /**
+     * ServiceKind 是 neuxally、weknora 或 unknown。
+     */
+    serviceKind?: string;
+    /**
+     * UploadMode 保留 separate、automatic 或 unknown 的服务端语义。
+     */
+    uploadMode?: string;
+    /**
+     * Version 是服务器实际返回的协议或产品版本。
+     */
+    version?: string;
+};
+
+/**
  * GraphEdge is a directed knowledge relationship.
  */
 export type GithubComJieWaZiNeuxKnowledgeRemoteGraphEdge = {
@@ -11874,6 +12390,46 @@ export type GithubComJieWaZiNeuxKnowledgeRemoteGraphNode = {
     title?: string;
 };
 
+/**
+ * Library preserves official library types and permission hints without presenting them as custom general/software types.
+ */
+export type GithubComJieWaZiNeuxKnowledgeRemoteLibrary = {
+    /**
+     * ID is the original remote identity.
+     */
+    id?: string;
+    /**
+     * Permission is an optional sharing-permission hint returned by the server.
+     */
+    my_permission?: string;
+    /**
+     * Name is the remote name.
+     */
+    name?: string;
+    /**
+     * Type is an official type such as wiki.
+     */
+    type?: string;
+};
+
+/**
+ * OperationStatus 分别表达协议支持、当前授权和必要条件。
+ */
+export type GithubComJieWaZiNeuxKnowledgeRemoteOperationStatus = {
+    /**
+     * Condition 为实际配置限制或 ready。
+     */
+    condition?: string;
+    /**
+     * Permission 为 allowed、denied 或 unknown，不从连接成功推导写权限。
+     */
+    permission?: string;
+    /**
+     * Supported 表示已核对的协议能力。
+     */
+    supported?: boolean;
+};
+
 export type GithubComShrewxGinxAttachment = Blob | File;
 
 export type GithubComShrewxGinxCommonResponse = {
@@ -11923,6 +12479,7 @@ export type ReadErrors = {
      * * `[ChatMessageCursorInvalid][40000000012]`
      * * `[IMConfigurationInvalid][40000004001]`
      * * `[IMFileInvalid][40000004002]`
+     * * `[IntegrationInvalid][40000009601]`
      * * `[KnowledgeInvalid][40000009501]`
      * * `[MemoryEmbeddingConflict][40000000009]`
      * * `[MemoryEmbeddingNotConfigured][40000000007]`
@@ -11956,6 +12513,7 @@ export type ReadErrors = {
      * * `[AgentContextUnauthorized][40100009001]`
      * * `[AutomaticTaskTokenInvalid][40100001001]`
      * * `[IMLoginRequired][40100004001]`
+     * * `[IntegrationUnauthorized][40100009601]`
      * * `[KnowledgeRemoteUnauthorized][40100009501]`
      * * `[MemoryContextUnauthorized][40100000002]`
      * * `[Unauthorized][40100000001]`
@@ -11968,6 +12526,7 @@ export type ReadErrors = {
      * * `[IMChatNotAuthorized][40300004001]`
      * * `[IMTargetNotAuthorized][40300004003]`
      * * `[IMWorkflowDeliveryNotAllowed][40300004002]`
+     * * `[IntegrationForbidden][40300009601]`
      * * `[KnowledgeForbidden][40300009501]`
      * * `[PluginForbidden][40300006501]`
      *
@@ -11989,6 +12548,7 @@ export type ReadErrors = {
      * * `[ExecutionNotFound][40400000004]`
      * * `[IMResourceNotFound][40400004001]`
      * * `[IMTargetUnavailable][40400004002]`
+     * * `[IntegrationNotFound][40400009601]`
      * * `[KnowledgeNotFound][40400009501]`
      * * `[MCPConnectorNotFound][40400000009]`
      * * `[MemoryNotFound][40400000010]`
@@ -12052,6 +12612,7 @@ export type ReadErrors = {
      * * `[IMConnectionInUse][40900004004]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
+     * * `[IntegrationConflict][40900009601]`
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
      * * `[KnowledgeFolderHasChildren][40900009503]`
@@ -12121,6 +12682,7 @@ export type ReadErrors = {
      * * `[CoreTokenGenerationFailed][50000000030]`
      * * `[DatabaseError][50000000002]`
      * * `[IMCredentialError][50000004001]`
+     * * `[IntegrationCredentialError][50000009601]`
      * * `[InternalServerError][50000000001]`
      * * `[KnowledgeStorageError][50000009501]`
      * * `[MCPConnectorCredentialError][50000000022]`
@@ -12181,6 +12743,7 @@ export type ReadErrors = {
      * * `[AgentConnectionUnavailable][50300009001]`
      * * `[DatabaseBusy][50300001001]`
      * * `[IMServiceUnavailable][50300004001]`
+     * * `[IntegrationListenerError][50300009601]`
      *
      */
     503: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -12223,6 +12786,7 @@ export type CommandErrors = {
      * * `[ChatMessageCursorInvalid][40000000012]`
      * * `[IMConfigurationInvalid][40000004001]`
      * * `[IMFileInvalid][40000004002]`
+     * * `[IntegrationInvalid][40000009601]`
      * * `[KnowledgeInvalid][40000009501]`
      * * `[MemoryEmbeddingConflict][40000000009]`
      * * `[MemoryEmbeddingNotConfigured][40000000007]`
@@ -12256,6 +12820,7 @@ export type CommandErrors = {
      * * `[AgentContextUnauthorized][40100009001]`
      * * `[AutomaticTaskTokenInvalid][40100001001]`
      * * `[IMLoginRequired][40100004001]`
+     * * `[IntegrationUnauthorized][40100009601]`
      * * `[KnowledgeRemoteUnauthorized][40100009501]`
      * * `[MemoryContextUnauthorized][40100000002]`
      * * `[Unauthorized][40100000001]`
@@ -12268,6 +12833,7 @@ export type CommandErrors = {
      * * `[IMChatNotAuthorized][40300004001]`
      * * `[IMTargetNotAuthorized][40300004003]`
      * * `[IMWorkflowDeliveryNotAllowed][40300004002]`
+     * * `[IntegrationForbidden][40300009601]`
      * * `[KnowledgeForbidden][40300009501]`
      * * `[PluginForbidden][40300006501]`
      *
@@ -12289,6 +12855,7 @@ export type CommandErrors = {
      * * `[ExecutionNotFound][40400000004]`
      * * `[IMResourceNotFound][40400004001]`
      * * `[IMTargetUnavailable][40400004002]`
+     * * `[IntegrationNotFound][40400009601]`
      * * `[KnowledgeNotFound][40400009501]`
      * * `[MCPConnectorNotFound][40400000009]`
      * * `[MemoryNotFound][40400000010]`
@@ -12352,6 +12919,7 @@ export type CommandErrors = {
      * * `[IMConnectionInUse][40900004004]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
+     * * `[IntegrationConflict][40900009601]`
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
      * * `[KnowledgeFolderHasChildren][40900009503]`
@@ -12421,6 +12989,7 @@ export type CommandErrors = {
      * * `[CoreTokenGenerationFailed][50000000030]`
      * * `[DatabaseError][50000000002]`
      * * `[IMCredentialError][50000004001]`
+     * * `[IntegrationCredentialError][50000009601]`
      * * `[InternalServerError][50000000001]`
      * * `[KnowledgeStorageError][50000009501]`
      * * `[MCPConnectorCredentialError][50000000022]`
@@ -12481,6 +13050,7 @@ export type CommandErrors = {
      * * `[AgentConnectionUnavailable][50300009001]`
      * * `[DatabaseBusy][50300001001]`
      * * `[IMServiceUnavailable][50300004001]`
+     * * `[IntegrationListenerError][50300009601]`
      *
      */
     503: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -12704,6 +13274,7 @@ export type StartAiAccountLoginErrors = {
      * * `[ChatMessageCursorInvalid][40000000012]`
      * * `[IMConfigurationInvalid][40000004001]`
      * * `[IMFileInvalid][40000004002]`
+     * * `[IntegrationInvalid][40000009601]`
      * * `[KnowledgeInvalid][40000009501]`
      * * `[MemoryEmbeddingConflict][40000000009]`
      * * `[MemoryEmbeddingNotConfigured][40000000007]`
@@ -12737,6 +13308,7 @@ export type StartAiAccountLoginErrors = {
      * * `[AgentContextUnauthorized][40100009001]`
      * * `[AutomaticTaskTokenInvalid][40100001001]`
      * * `[IMLoginRequired][40100004001]`
+     * * `[IntegrationUnauthorized][40100009601]`
      * * `[KnowledgeRemoteUnauthorized][40100009501]`
      * * `[MemoryContextUnauthorized][40100000002]`
      * * `[Unauthorized][40100000001]`
@@ -12749,6 +13321,7 @@ export type StartAiAccountLoginErrors = {
      * * `[IMChatNotAuthorized][40300004001]`
      * * `[IMTargetNotAuthorized][40300004003]`
      * * `[IMWorkflowDeliveryNotAllowed][40300004002]`
+     * * `[IntegrationForbidden][40300009601]`
      * * `[KnowledgeForbidden][40300009501]`
      * * `[PluginForbidden][40300006501]`
      *
@@ -12770,6 +13343,7 @@ export type StartAiAccountLoginErrors = {
      * * `[ExecutionNotFound][40400000004]`
      * * `[IMResourceNotFound][40400004001]`
      * * `[IMTargetUnavailable][40400004002]`
+     * * `[IntegrationNotFound][40400009601]`
      * * `[KnowledgeNotFound][40400009501]`
      * * `[MCPConnectorNotFound][40400000009]`
      * * `[MemoryNotFound][40400000010]`
@@ -12833,6 +13407,7 @@ export type StartAiAccountLoginErrors = {
      * * `[IMConnectionInUse][40900004004]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
+     * * `[IntegrationConflict][40900009601]`
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
      * * `[KnowledgeFolderHasChildren][40900009503]`
@@ -12902,6 +13477,7 @@ export type StartAiAccountLoginErrors = {
      * * `[CoreTokenGenerationFailed][50000000030]`
      * * `[DatabaseError][50000000002]`
      * * `[IMCredentialError][50000004001]`
+     * * `[IntegrationCredentialError][50000009601]`
      * * `[InternalServerError][50000000001]`
      * * `[KnowledgeStorageError][50000009501]`
      * * `[MCPConnectorCredentialError][50000000022]`
@@ -12962,6 +13538,7 @@ export type StartAiAccountLoginErrors = {
      * * `[AgentConnectionUnavailable][50300009001]`
      * * `[DatabaseBusy][50300001001]`
      * * `[IMServiceUnavailable][50300004001]`
+     * * `[IntegrationListenerError][50300009601]`
      *
      */
     503: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -13013,6 +13590,7 @@ export type CancelAiAccountLoginErrors = {
      * * `[ChatMessageCursorInvalid][40000000012]`
      * * `[IMConfigurationInvalid][40000004001]`
      * * `[IMFileInvalid][40000004002]`
+     * * `[IntegrationInvalid][40000009601]`
      * * `[KnowledgeInvalid][40000009501]`
      * * `[MemoryEmbeddingConflict][40000000009]`
      * * `[MemoryEmbeddingNotConfigured][40000000007]`
@@ -13046,6 +13624,7 @@ export type CancelAiAccountLoginErrors = {
      * * `[AgentContextUnauthorized][40100009001]`
      * * `[AutomaticTaskTokenInvalid][40100001001]`
      * * `[IMLoginRequired][40100004001]`
+     * * `[IntegrationUnauthorized][40100009601]`
      * * `[KnowledgeRemoteUnauthorized][40100009501]`
      * * `[MemoryContextUnauthorized][40100000002]`
      * * `[Unauthorized][40100000001]`
@@ -13058,6 +13637,7 @@ export type CancelAiAccountLoginErrors = {
      * * `[IMChatNotAuthorized][40300004001]`
      * * `[IMTargetNotAuthorized][40300004003]`
      * * `[IMWorkflowDeliveryNotAllowed][40300004002]`
+     * * `[IntegrationForbidden][40300009601]`
      * * `[KnowledgeForbidden][40300009501]`
      * * `[PluginForbidden][40300006501]`
      *
@@ -13079,6 +13659,7 @@ export type CancelAiAccountLoginErrors = {
      * * `[ExecutionNotFound][40400000004]`
      * * `[IMResourceNotFound][40400004001]`
      * * `[IMTargetUnavailable][40400004002]`
+     * * `[IntegrationNotFound][40400009601]`
      * * `[KnowledgeNotFound][40400009501]`
      * * `[MCPConnectorNotFound][40400000009]`
      * * `[MemoryNotFound][40400000010]`
@@ -13142,6 +13723,7 @@ export type CancelAiAccountLoginErrors = {
      * * `[IMConnectionInUse][40900004004]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
+     * * `[IntegrationConflict][40900009601]`
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
      * * `[KnowledgeFolderHasChildren][40900009503]`
@@ -13211,6 +13793,7 @@ export type CancelAiAccountLoginErrors = {
      * * `[CoreTokenGenerationFailed][50000000030]`
      * * `[DatabaseError][50000000002]`
      * * `[IMCredentialError][50000004001]`
+     * * `[IntegrationCredentialError][50000009601]`
      * * `[InternalServerError][50000000001]`
      * * `[KnowledgeStorageError][50000009501]`
      * * `[MCPConnectorCredentialError][50000000022]`
@@ -13271,6 +13854,7 @@ export type CancelAiAccountLoginErrors = {
      * * `[AgentConnectionUnavailable][50300009001]`
      * * `[DatabaseBusy][50300001001]`
      * * `[IMServiceUnavailable][50300004001]`
+     * * `[IntegrationListenerError][50300009601]`
      *
      */
     503: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -13520,6 +14104,7 @@ export type ListGlobalAutomaticTasksErrors = {
      * * `[ChatMessageCursorInvalid][40000000012]`
      * * `[IMConfigurationInvalid][40000004001]`
      * * `[IMFileInvalid][40000004002]`
+     * * `[IntegrationInvalid][40000009601]`
      * * `[KnowledgeInvalid][40000009501]`
      * * `[MemoryEmbeddingConflict][40000000009]`
      * * `[MemoryEmbeddingNotConfigured][40000000007]`
@@ -13553,6 +14138,7 @@ export type ListGlobalAutomaticTasksErrors = {
      * * `[AgentContextUnauthorized][40100009001]`
      * * `[AutomaticTaskTokenInvalid][40100001001]`
      * * `[IMLoginRequired][40100004001]`
+     * * `[IntegrationUnauthorized][40100009601]`
      * * `[KnowledgeRemoteUnauthorized][40100009501]`
      * * `[MemoryContextUnauthorized][40100000002]`
      * * `[Unauthorized][40100000001]`
@@ -13565,6 +14151,7 @@ export type ListGlobalAutomaticTasksErrors = {
      * * `[IMChatNotAuthorized][40300004001]`
      * * `[IMTargetNotAuthorized][40300004003]`
      * * `[IMWorkflowDeliveryNotAllowed][40300004002]`
+     * * `[IntegrationForbidden][40300009601]`
      * * `[KnowledgeForbidden][40300009501]`
      * * `[PluginForbidden][40300006501]`
      *
@@ -13586,6 +14173,7 @@ export type ListGlobalAutomaticTasksErrors = {
      * * `[ExecutionNotFound][40400000004]`
      * * `[IMResourceNotFound][40400004001]`
      * * `[IMTargetUnavailable][40400004002]`
+     * * `[IntegrationNotFound][40400009601]`
      * * `[KnowledgeNotFound][40400009501]`
      * * `[MCPConnectorNotFound][40400000009]`
      * * `[MemoryNotFound][40400000010]`
@@ -13649,6 +14237,7 @@ export type ListGlobalAutomaticTasksErrors = {
      * * `[IMConnectionInUse][40900004004]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
+     * * `[IntegrationConflict][40900009601]`
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
      * * `[KnowledgeFolderHasChildren][40900009503]`
@@ -13718,6 +14307,7 @@ export type ListGlobalAutomaticTasksErrors = {
      * * `[CoreTokenGenerationFailed][50000000030]`
      * * `[DatabaseError][50000000002]`
      * * `[IMCredentialError][50000004001]`
+     * * `[IntegrationCredentialError][50000009601]`
      * * `[InternalServerError][50000000001]`
      * * `[KnowledgeStorageError][50000009501]`
      * * `[MCPConnectorCredentialError][50000000022]`
@@ -13778,6 +14368,7 @@ export type ListGlobalAutomaticTasksErrors = {
      * * `[AgentConnectionUnavailable][50300009001]`
      * * `[DatabaseBusy][50300001001]`
      * * `[IMServiceUnavailable][50300004001]`
+     * * `[IntegrationListenerError][50300009601]`
      *
      */
     503: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -13910,6 +14501,7 @@ export type GetGlobalAutomaticTaskErrors = {
      * * `[ChatMessageCursorInvalid][40000000012]`
      * * `[IMConfigurationInvalid][40000004001]`
      * * `[IMFileInvalid][40000004002]`
+     * * `[IntegrationInvalid][40000009601]`
      * * `[KnowledgeInvalid][40000009501]`
      * * `[MemoryEmbeddingConflict][40000000009]`
      * * `[MemoryEmbeddingNotConfigured][40000000007]`
@@ -13943,6 +14535,7 @@ export type GetGlobalAutomaticTaskErrors = {
      * * `[AgentContextUnauthorized][40100009001]`
      * * `[AutomaticTaskTokenInvalid][40100001001]`
      * * `[IMLoginRequired][40100004001]`
+     * * `[IntegrationUnauthorized][40100009601]`
      * * `[KnowledgeRemoteUnauthorized][40100009501]`
      * * `[MemoryContextUnauthorized][40100000002]`
      * * `[Unauthorized][40100000001]`
@@ -13955,6 +14548,7 @@ export type GetGlobalAutomaticTaskErrors = {
      * * `[IMChatNotAuthorized][40300004001]`
      * * `[IMTargetNotAuthorized][40300004003]`
      * * `[IMWorkflowDeliveryNotAllowed][40300004002]`
+     * * `[IntegrationForbidden][40300009601]`
      * * `[KnowledgeForbidden][40300009501]`
      * * `[PluginForbidden][40300006501]`
      *
@@ -13976,6 +14570,7 @@ export type GetGlobalAutomaticTaskErrors = {
      * * `[ExecutionNotFound][40400000004]`
      * * `[IMResourceNotFound][40400004001]`
      * * `[IMTargetUnavailable][40400004002]`
+     * * `[IntegrationNotFound][40400009601]`
      * * `[KnowledgeNotFound][40400009501]`
      * * `[MCPConnectorNotFound][40400000009]`
      * * `[MemoryNotFound][40400000010]`
@@ -14039,6 +14634,7 @@ export type GetGlobalAutomaticTaskErrors = {
      * * `[IMConnectionInUse][40900004004]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
+     * * `[IntegrationConflict][40900009601]`
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
      * * `[KnowledgeFolderHasChildren][40900009503]`
@@ -14108,6 +14704,7 @@ export type GetGlobalAutomaticTaskErrors = {
      * * `[CoreTokenGenerationFailed][50000000030]`
      * * `[DatabaseError][50000000002]`
      * * `[IMCredentialError][50000004001]`
+     * * `[IntegrationCredentialError][50000009601]`
      * * `[InternalServerError][50000000001]`
      * * `[KnowledgeStorageError][50000009501]`
      * * `[MCPConnectorCredentialError][50000000022]`
@@ -14168,6 +14765,7 @@ export type GetGlobalAutomaticTaskErrors = {
      * * `[AgentConnectionUnavailable][50300009001]`
      * * `[DatabaseBusy][50300001001]`
      * * `[IMServiceUnavailable][50300004001]`
+     * * `[IntegrationListenerError][50300009601]`
      *
      */
     503: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -14215,6 +14813,7 @@ export type UpdateWorkflowAutomaticTaskErrors = {
      * * `[ChatMessageCursorInvalid][40000000012]`
      * * `[IMConfigurationInvalid][40000004001]`
      * * `[IMFileInvalid][40000004002]`
+     * * `[IntegrationInvalid][40000009601]`
      * * `[KnowledgeInvalid][40000009501]`
      * * `[MemoryEmbeddingConflict][40000000009]`
      * * `[MemoryEmbeddingNotConfigured][40000000007]`
@@ -14248,6 +14847,7 @@ export type UpdateWorkflowAutomaticTaskErrors = {
      * * `[AgentContextUnauthorized][40100009001]`
      * * `[AutomaticTaskTokenInvalid][40100001001]`
      * * `[IMLoginRequired][40100004001]`
+     * * `[IntegrationUnauthorized][40100009601]`
      * * `[KnowledgeRemoteUnauthorized][40100009501]`
      * * `[MemoryContextUnauthorized][40100000002]`
      * * `[Unauthorized][40100000001]`
@@ -14260,6 +14860,7 @@ export type UpdateWorkflowAutomaticTaskErrors = {
      * * `[IMChatNotAuthorized][40300004001]`
      * * `[IMTargetNotAuthorized][40300004003]`
      * * `[IMWorkflowDeliveryNotAllowed][40300004002]`
+     * * `[IntegrationForbidden][40300009601]`
      * * `[KnowledgeForbidden][40300009501]`
      * * `[PluginForbidden][40300006501]`
      *
@@ -14281,6 +14882,7 @@ export type UpdateWorkflowAutomaticTaskErrors = {
      * * `[ExecutionNotFound][40400000004]`
      * * `[IMResourceNotFound][40400004001]`
      * * `[IMTargetUnavailable][40400004002]`
+     * * `[IntegrationNotFound][40400009601]`
      * * `[KnowledgeNotFound][40400009501]`
      * * `[MCPConnectorNotFound][40400000009]`
      * * `[MemoryNotFound][40400000010]`
@@ -14344,6 +14946,7 @@ export type UpdateWorkflowAutomaticTaskErrors = {
      * * `[IMConnectionInUse][40900004004]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
+     * * `[IntegrationConflict][40900009601]`
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
      * * `[KnowledgeFolderHasChildren][40900009503]`
@@ -14413,6 +15016,7 @@ export type UpdateWorkflowAutomaticTaskErrors = {
      * * `[CoreTokenGenerationFailed][50000000030]`
      * * `[DatabaseError][50000000002]`
      * * `[IMCredentialError][50000004001]`
+     * * `[IntegrationCredentialError][50000009601]`
      * * `[InternalServerError][50000000001]`
      * * `[KnowledgeStorageError][50000009501]`
      * * `[MCPConnectorCredentialError][50000000022]`
@@ -14473,6 +15077,7 @@ export type UpdateWorkflowAutomaticTaskErrors = {
      * * `[AgentConnectionUnavailable][50300009001]`
      * * `[DatabaseBusy][50300001001]`
      * * `[IMServiceUnavailable][50300004001]`
+     * * `[IntegrationListenerError][50300009601]`
      *
      */
     503: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -15782,7 +16387,25 @@ export type ListLibraryConnectorsData = {
 export type ListLibraryConnectorsErrors = {
     /**
      * >
+     * * `[BadRequest][40000000001]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[OperationCanceled][40800000001]`
+     * * `[OperationTimeout][40800000002]`
+     *
+     */
+    408: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[AIAccountLoginFailed][50000000048]`
+     * * `[AIAccountWorkspaceError][50000000047]`
+     * * `[RuntimeAuthRequired][50000000044]`
+     * * `[RuntimeConfigurationInvalid][50000000040]`
      * * `[RuntimeProtocolIncompatible][50000000012]`
+     * * `[RuntimeUnavailable][50000000006]`
      *
      */
     500: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -15818,13 +16441,25 @@ export type CreateLibraryConnectorErrors = {
     404: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
+     * * `[OperationCanceled][40800000001]`
+     * * `[OperationTimeout][40800000002]`
+     *
+     */
+    408: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
      * * `[MCPConnectorTrustRequired][40900000013]`
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
+     * * `[AIAccountLoginFailed][50000000048]`
+     * * `[AIAccountWorkspaceError][50000000047]`
+     * * `[RuntimeAuthRequired][50000000044]`
+     * * `[RuntimeConfigurationInvalid][50000000040]`
      * * `[RuntimeProtocolIncompatible][50000000012]`
+     * * `[RuntimeUnavailable][50000000006]`
      *
      */
     500: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -15898,13 +16533,31 @@ export type GetLibraryConnectorData = {
 export type GetLibraryConnectorErrors = {
     /**
      * >
+     * * `[BadRequest][40000000001]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
      * * `[MCPConnectorNotFound][40400000009]`
      *
      */
     404: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
+     * * `[OperationCanceled][40800000001]`
+     * * `[OperationTimeout][40800000002]`
+     *
+     */
+    408: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[AIAccountLoginFailed][50000000048]`
+     * * `[AIAccountWorkspaceError][50000000047]`
+     * * `[RuntimeAuthRequired][50000000044]`
+     * * `[RuntimeConfigurationInvalid][50000000040]`
      * * `[RuntimeProtocolIncompatible][50000000012]`
+     * * `[RuntimeUnavailable][50000000006]`
      *
      */
     500: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -15945,6 +16598,13 @@ export type UpdateLibraryConnectorErrors = {
     404: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
+     * * `[OperationCanceled][40800000001]`
+     * * `[OperationTimeout][40800000002]`
+     *
+     */
+    408: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
      * * `[BuiltInMCPConnectorReadOnly][40900000012]`
      * * `[MCPConnectorTrustRequired][40900000013]`
      *
@@ -15952,7 +16612,12 @@ export type UpdateLibraryConnectorErrors = {
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
+     * * `[AIAccountLoginFailed][50000000048]`
+     * * `[AIAccountWorkspaceError][50000000047]`
+     * * `[RuntimeAuthRequired][50000000044]`
+     * * `[RuntimeConfigurationInvalid][50000000040]`
      * * `[RuntimeProtocolIncompatible][50000000012]`
+     * * `[RuntimeUnavailable][50000000006]`
      *
      */
     500: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -16016,10 +16681,23 @@ export type TestLibraryConnectorData = {
 export type TestLibraryConnectorErrors = {
     /**
      * >
+     * * `[BadRequest][40000000001]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
      * * `[MCPConnectorNotFound][40400000009]`
      *
      */
     404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[OperationCanceled][40800000001]`
+     * * `[OperationTimeout][40800000002]`
+     *
+     */
+    408: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
      * * `[MCPConnectorTrustRequired][40900000013]`
@@ -16028,7 +16706,12 @@ export type TestLibraryConnectorErrors = {
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
+     * * `[AIAccountLoginFailed][50000000048]`
+     * * `[AIAccountWorkspaceError][50000000047]`
+     * * `[RuntimeAuthRequired][50000000044]`
+     * * `[RuntimeConfigurationInvalid][50000000040]`
      * * `[RuntimeProtocolIncompatible][50000000012]`
+     * * `[RuntimeUnavailable][50000000006]`
      *
      */
     500: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -16065,6 +16748,7 @@ export type StreamEventsErrors = {
      * * `[ChatMessageCursorInvalid][40000000012]`
      * * `[IMConfigurationInvalid][40000004001]`
      * * `[IMFileInvalid][40000004002]`
+     * * `[IntegrationInvalid][40000009601]`
      * * `[KnowledgeInvalid][40000009501]`
      * * `[MemoryEmbeddingConflict][40000000009]`
      * * `[MemoryEmbeddingNotConfigured][40000000007]`
@@ -16098,6 +16782,7 @@ export type StreamEventsErrors = {
      * * `[AgentContextUnauthorized][40100009001]`
      * * `[AutomaticTaskTokenInvalid][40100001001]`
      * * `[IMLoginRequired][40100004001]`
+     * * `[IntegrationUnauthorized][40100009601]`
      * * `[KnowledgeRemoteUnauthorized][40100009501]`
      * * `[MemoryContextUnauthorized][40100000002]`
      * * `[Unauthorized][40100000001]`
@@ -16110,6 +16795,7 @@ export type StreamEventsErrors = {
      * * `[IMChatNotAuthorized][40300004001]`
      * * `[IMTargetNotAuthorized][40300004003]`
      * * `[IMWorkflowDeliveryNotAllowed][40300004002]`
+     * * `[IntegrationForbidden][40300009601]`
      * * `[KnowledgeForbidden][40300009501]`
      * * `[PluginForbidden][40300006501]`
      *
@@ -16131,6 +16817,7 @@ export type StreamEventsErrors = {
      * * `[ExecutionNotFound][40400000004]`
      * * `[IMResourceNotFound][40400004001]`
      * * `[IMTargetUnavailable][40400004002]`
+     * * `[IntegrationNotFound][40400009601]`
      * * `[KnowledgeNotFound][40400009501]`
      * * `[MCPConnectorNotFound][40400000009]`
      * * `[MemoryNotFound][40400000010]`
@@ -16194,6 +16881,7 @@ export type StreamEventsErrors = {
      * * `[IMConnectionInUse][40900004004]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
+     * * `[IntegrationConflict][40900009601]`
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
      * * `[KnowledgeFolderHasChildren][40900009503]`
@@ -16263,6 +16951,7 @@ export type StreamEventsErrors = {
      * * `[CoreTokenGenerationFailed][50000000030]`
      * * `[DatabaseError][50000000002]`
      * * `[IMCredentialError][50000004001]`
+     * * `[IntegrationCredentialError][50000009601]`
      * * `[InternalServerError][50000000001]`
      * * `[KnowledgeStorageError][50000009501]`
      * * `[MCPConnectorCredentialError][50000000022]`
@@ -16323,6 +17012,7 @@ export type StreamEventsErrors = {
      * * `[AgentConnectionUnavailable][50300009001]`
      * * `[DatabaseBusy][50300001001]`
      * * `[IMServiceUnavailable][50300004001]`
+     * * `[IntegrationListenerError][50300009601]`
      *
      */
     503: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -16776,6 +17466,682 @@ export type GetImStatusResponses = {
 
 export type GetImStatusResponse = GetImStatusResponses[keyof GetImStatusResponses];
 
+export type ListApiKeysData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * 当前页码
+         */
+        pageNum?: number;
+        /**
+         * 每页数量
+         */
+        pageSize?: number;
+    };
+    url: '/api/v1/integrations/keys';
+};
+
+export type ListApiKeysErrors = {
+    /**
+     * >
+     * * `[IntegrationInvalid][40000009601]`
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[AutomaticTaskNotFound][40400000018]`
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseOperationCancelled][40800001001]`
+     *
+     */
+    408: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeStorageError][50000009501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     * * `[IntegrationListenerError][50300009601]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type ListApiKeysError = ListApiKeysErrors[keyof ListApiKeysErrors];
+
+export type ListApiKeysResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisIntegrationsApiKeyList;
+};
+
+export type ListApiKeysResponse = ListApiKeysResponses[keyof ListApiKeysResponses];
+
+export type CreateApiKeyData = {
+    body: GithubComJieWaZiNeuxAllyServerApisIntegrationsCreateApiKeyInput & unknown;
+    path?: never;
+    query?: never;
+    url: '/api/v1/integrations/keys';
+};
+
+export type CreateApiKeyErrors = {
+    /**
+     * >
+     * * `[BadRequest][40000000001]`
+     * * `[IntegrationInvalid][40000009601]`
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseOperationCancelled][40800001001]`
+     *
+     */
+    408: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[IntegrationCredentialError][50000009601]`
+     * * `[InternalServerError][50000000001]`
+     * * `[KnowledgeStorageError][50000009501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     * * `[IntegrationListenerError][50300009601]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type CreateApiKeyError = CreateApiKeyErrors[keyof CreateApiKeyErrors];
+
+export type CreateApiKeyResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisIntegrationsApiKeyIssuance;
+};
+
+export type CreateApiKeyResponse = CreateApiKeyResponses[keyof CreateApiKeyResponses];
+
+export type DeleteApiKeyData = {
+    body: GithubComJieWaZiNeuxAllyServerApisIntegrationsApiKeyRevisionInput & unknown;
+    path: {
+        /**
+         * 密钥标识
+         */
+        keyId: string;
+    };
+    query?: never;
+    url: '/api/v1/integrations/keys/{keyId}';
+};
+
+export type DeleteApiKeyErrors = {
+    /**
+     * >
+     * * `[DatabaseOperationCancelled][40800001001]`
+     *
+     */
+    408: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[IntegrationListenerError][50300009601]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type DeleteApiKeyError = DeleteApiKeyErrors[keyof DeleteApiKeyErrors];
+
+export type DeleteApiKeyResponses = {
+    200: GithubComShrewxGinxCommonResponse;
+};
+
+export type DeleteApiKeyResponse = DeleteApiKeyResponses[keyof DeleteApiKeyResponses];
+
+export type UpdateApiKeyData = {
+    body: GithubComJieWaZiNeuxAllyServerApisIntegrationsUpdateApiKeyInput & unknown;
+    path: {
+        /**
+         * 主体标识
+         */
+        keyId: string;
+    };
+    query?: never;
+    url: '/api/v1/integrations/keys/{keyId}';
+};
+
+export type UpdateApiKeyErrors = {
+    /**
+     * >
+     * * `[IntegrationInvalid][40000009601]`
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseOperationCancelled][40800001001]`
+     *
+     */
+    408: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[IntegrationConflict][40900009601]`
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeStorageError][50000009501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     * * `[IntegrationListenerError][50300009601]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type UpdateApiKeyError = UpdateApiKeyErrors[keyof UpdateApiKeyErrors];
+
+export type UpdateApiKeyResponses = {
+    200: GithubComShrewxGinxCommonResponse;
+};
+
+export type UpdateApiKeyResponse = UpdateApiKeyResponses[keyof UpdateApiKeyResponses];
+
+export type ListPublishableResourcesData = {
+    body?: never;
+    path?: never;
+    query: {
+        kind: GithubComJieWaZiNeuxAllyServerConstantsIntegrationResourceKind & unknown;
+        /**
+         * 当前页码
+         */
+        pageNum?: number;
+        /**
+         * 每页数量
+         */
+        pageSize?: number;
+    };
+    url: '/api/v1/integrations/resources';
+};
+
+export type ListPublishableResourcesErrors = {
+    /**
+     * >
+     * * `[IntegrationInvalid][40000009601]`
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeStorageError][50000009501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type ListPublishableResourcesError = ListPublishableResourcesErrors[keyof ListPublishableResourcesErrors];
+
+export type ListPublishableResourcesResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisIntegrationsPublishableResourceList;
+};
+
+export type ListPublishableResourcesResponse = ListPublishableResourcesResponses[keyof ListPublishableResourcesResponses];
+
+export type GetApiServiceData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/integrations/service';
+};
+
+export type GetApiServiceErrors = {
+    /**
+     * >
+     * * `[IntegrationListenerError][50300009601]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type GetApiServiceError = GetApiServiceErrors[keyof GetApiServiceErrors];
+
+export type GetApiServiceResponses = {
+    200: GithubComJieWaZiNeuxAllyServerInternalIntegrationListenerSettings;
+};
+
+export type GetApiServiceResponse = GetApiServiceResponses[keyof GetApiServiceResponses];
+
+export type UpdateApiServiceData = {
+    body: GithubComJieWaZiNeuxAllyServerApisIntegrationsApiServiceInput & unknown;
+    path?: never;
+    query?: never;
+    url: '/api/v1/integrations/service';
+};
+
+export type UpdateApiServiceErrors = {
+    /**
+     * >
+     * * `[AIAccountConfigurationInvalid][40000000020]`
+     * * `[AgentInputInvalid][40000009001]`
+     * * `[AutomaticScheduleInvalid][40000001001]`
+     * * `[AutomaticTaskInputInvalid][40000001003]`
+     * * `[AutomaticTaskWorkspaceInvalid][40000001002]`
+     * * `[BadRequest][40000000001]`
+     * * `[ChannelLeadInvalid][40000000019]`
+     * * `[ChannelMemberCountInvalid][40000000018]`
+     * * `[ChatEventCursorInvalid][40000000011]`
+     * * `[ChatIDInvalid][40000000010]`
+     * * `[ChatMessageCursorInvalid][40000000012]`
+     * * `[IMConfigurationInvalid][40000004001]`
+     * * `[IMFileInvalid][40000004002]`
+     * * `[IntegrationInvalid][40000009601]`
+     * * `[KnowledgeInvalid][40000009501]`
+     * * `[MemoryEmbeddingConflict][40000000009]`
+     * * `[MemoryEmbeddingNotConfigured][40000000007]`
+     * * `[MemoryProjectNotBound][40000000008]`
+     * * `[MessageAttachmentInvalid][40000000017]`
+     * * `[PluginContentInvalid][40000006502]`
+     * * `[PluginContentLimitExceeded][40000006503]`
+     * * `[PluginManifestInvalid][40000006501]`
+     * * `[ProfileDocumentEncodingInvalid][40000000004]`
+     * * `[ProfileDocumentKindInvalid][40000000002]`
+     * * `[ProfileDocumentTooLarge][40000000003]`
+     * * `[RuntimeNotRegistered][40000002001]`
+     * * `[SkillContentInvalid][40000000013]`
+     * * `[SkillContentLimitExceeded][40000000014]`
+     * * `[SkillImportFailed][40000000006]`
+     * * `[SkillImportIntegrityInvalid][40000000016]`
+     * * `[SkillImportSourceInvalid][40000000015]`
+     * * `[WakerDeleteConfirmationMismatch][40000000005]`
+     * * `[WorkflowBudgetExceeded][40000003005]`
+     * * `[WorkflowCapabilityUnsupported][40000003003]`
+     * * `[WorkflowFileInvalid][40000003006]`
+     * * `[WorkflowIMTargetNotDeclared][40000003007]`
+     * * `[WorkflowResourceInvalid][40000003004]`
+     * * `[WorkflowSchemaInvalid][40000003002]`
+     * * `[WorkflowSourceInvalid][40000003001]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[AgentContextUnauthorized][40100009001]`
+     * * `[AutomaticTaskTokenInvalid][40100001001]`
+     * * `[IMLoginRequired][40100004001]`
+     * * `[IntegrationUnauthorized][40100009601]`
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     * * `[MemoryContextUnauthorized][40100000002]`
+     * * `[Unauthorized][40100000001]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[AgentOperationForbidden][40300009001]`
+     * * `[IMChatNotAuthorized][40300004001]`
+     * * `[IMTargetNotAuthorized][40300004003]`
+     * * `[IMWorkflowDeliveryNotAllowed][40300004002]`
+     * * `[IntegrationForbidden][40300009601]`
+     * * `[KnowledgeForbidden][40300009501]`
+     * * `[PluginForbidden][40300006501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[AIAccountNotFound][40400000017]`
+     * * `[AgentReceiptNotFound][40400009001]`
+     * * `[AutomaticRunNotFound][40400000019]`
+     * * `[AutomaticTaskNotFound][40400000018]`
+     * * `[ChannelMemberNotFound][40400000014]`
+     * * `[ChannelNotFound][40400000012]`
+     * * `[ChannelTaskAttemptNotFound][40400000016]`
+     * * `[ChannelTaskNotFound][40400000015]`
+     * * `[ChannelThreadNotFound][40400000013]`
+     * * `[ChatMessageFileChangeNotFound][40400000011]`
+     * * `[ChatNotFound][40400000005]`
+     * * `[ExecutionNotFound][40400000004]`
+     * * `[IMResourceNotFound][40400004001]`
+     * * `[IMTargetUnavailable][40400004002]`
+     * * `[IntegrationNotFound][40400009601]`
+     * * `[KnowledgeNotFound][40400009501]`
+     * * `[MCPConnectorNotFound][40400000009]`
+     * * `[MemoryNotFound][40400000010]`
+     * * `[PluginNotFound][40400006501]`
+     * * `[ProfileDocumentNotFound][40400000003]`
+     * * `[ProjectNotFound][40400000006]`
+     * * `[RolePresetNotFound][40400000002]`
+     * * `[SkillNotFound][40400000007]`
+     * * `[SkillVersionNotFound][40400000008]`
+     * * `[WakerNotFound][40400000001]`
+     * * `[WorkflowFileNotFound][40400003002]`
+     * * `[WorkflowNotFound][40400003001]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseOperationCancelled][40800001001]`
+     * * `[OperationCanceled][40800000001]`
+     * * `[OperationTimeout][40800000002]`
+     *
+     */
+    408: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[AIAccountBusy][40900000027]`
+     * * `[AIAccountInUse][40900000029]`
+     * * `[AIAccountNameConflict][40900000030]`
+     * * `[AIAccountRevisionConflict][40900000028]`
+     * * `[AgentCommandOutcomeUnknown][40900009001]`
+     * * `[AgentCommandRequestConflict][40900009002]`
+     * * `[ApprovalAlreadyResolved][40900000014]`
+     * * `[AutomaticTaskAdmissionRevoked][40900000037]`
+     * * `[AutomaticTaskBusy][40900000033]`
+     * * `[AutomaticTaskDisabled][40900000034]`
+     * * `[AutomaticTaskInputChanged][40900003005]`
+     * * `[AutomaticTaskRequestConflict][40900000035]`
+     * * `[AutomaticTaskRevisionConflict][40900000036]`
+     * * `[BuiltInMCPConnectorCannotDelete][40900000011]`
+     * * `[BuiltInMCPConnectorReadOnly][40900000012]`
+     * * `[BuiltInSkillCannotUninstall][40900000009]`
+     * * `[ChannelHasActiveWork][40900000017]`
+     * * `[ChannelNameConflict][40900000016]`
+     * * `[ChannelTaskAttemptStale][40900000021]`
+     * * `[ChannelTaskLimitReached][40900000019]`
+     * * `[ChannelTaskRetryLimitReached][40900000020]`
+     * * `[ChannelTaskStateConflict][40900000018]`
+     * * `[ChatForkIndeterminate][40900000026]`
+     * * `[ChatForkUnavailable][40900000025]`
+     * * `[ChatHasActiveExecution][40900000006]`
+     * * `[Conflict][40900000001]`
+     * * `[CreateRequestConflict][40900000023]`
+     * * `[CreateRequestInProgress][40900000022]`
+     * * `[DefaultWakerCannotDelete][40900000024]`
+     * * `[ElicitationAlreadyResolved][40900000015]`
+     * * `[ExecutionRetryInProgress][40900000032]`
+     * * `[ExecutionRetryUnavailable][40900000031]`
+     * * `[IMConfigurationConflict][40900004001]`
+     * * `[IMConnectionDisabled][40900004006]`
+     * * `[IMConnectionHasWorkflowDependencies][40900004005]`
+     * * `[IMConnectionInUse][40900004004]`
+     * * `[IMDeliveryContextUnavailable][40900004002]`
+     * * `[IMDeliveryRetryUnsafe][40900004003]`
+     * * `[IntegrationConflict][40900009601]`
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
+     * * `[MCPConnectorNameConflict][40900000010]`
+     * * `[MCPConnectorTrustRequired][40900000013]`
+     * * `[PluginBusy][40900006505]`
+     * * `[PluginConfigurationConflict][40900006502]`
+     * * `[PluginNotReady][40900006503]`
+     * * `[PluginSkillConflict][40900006504]`
+     * * `[PluginVersionConflict][40900006501]`
+     * * `[ProjectNameConflict][40900000007]`
+     * * `[RolePresetNameConflict][40900000003]`
+     * * `[SkillNameConflict][40900000008]`
+     * * `[SystemRolePresetReadOnly][40900000004]`
+     * * `[WakerHasRunningWork][40900000005]`
+     * * `[WakerNameConflict][40900000002]`
+     * * `[WorkflowAuthoringFinished][40900003007]`
+     * * `[WorkflowAuthoringSuperseded][40900003006]`
+     * * `[WorkflowFenceConflict][40900003004]`
+     * * `[WorkflowRequestConflict][40900003002]`
+     * * `[WorkflowRevisionConflict][40900003001]`
+     * * `[WorkflowStateConflict][40900003003]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeEmbeddingNotConfigured][42200009503]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[AutomaticTaskRateLimited][42900001001]`
+     *
+     */
+    429: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[AIAccountCredentialError][50000000046]`
+     * * `[AIAccountLoginFailed][50000000048]`
+     * * `[AIAccountWorkspaceError][50000000047]`
+     * * `[AgentContextStorageError][50000009001]`
+     * * `[AutomaticTaskAPIUnavailable][50000001003]`
+     * * `[AutomaticTaskServiceInvalid][50000001001]`
+     * * `[AutomaticTaskTokenGenerationFailed][50000001002]`
+     * * `[BuiltinRolePresetDefinitionInvalid][50000002001]`
+     * * `[ChannelToolDescriptorInvalid][50000002002]`
+     * * `[ChatDirectoryOwnershipInvalid][50000000007]`
+     * * `[ChatEventStreamUnavailable][50000000038]`
+     * * `[ChatLogCorrupted][50000000014]`
+     * * `[ChatLogError][50000000004]`
+     * * `[ChatLogIndexCorrupted][50000000015]`
+     * * `[ChatLogRecordInvalid][50000000016]`
+     * * `[ChatServiceNotStarted][50000000003]`
+     * * `[CoreChannelInitializationFailed][50000000042]`
+     * * `[CoreChatInitializationFailed][50000000028]`
+     * * `[CoreConfigurationInvalid][50000000023]`
+     * * `[CoreDataDirectoryError][50000000024]`
+     * * `[CoreDatabaseInitializationFailed][50000000025]`
+     * * `[CoreMemoryInitializationFailed][50000000026]`
+     * * `[CoreRuntimeInitializationFailed][50000000027]`
+     * * `[CoreShutdownFailed][50000000029]`
+     * * `[CoreTokenGenerationFailed][50000000030]`
+     * * `[DatabaseError][50000000002]`
+     * * `[IMCredentialError][50000004001]`
+     * * `[IntegrationCredentialError][50000009601]`
+     * * `[InternalServerError][50000000001]`
+     * * `[KnowledgeStorageError][50000009501]`
+     * * `[MCPConnectorCredentialError][50000000022]`
+     * * `[ManagedWorkspaceError][50000000033]`
+     * * `[MemoryContextTokenGenerationFailed][50000000020]`
+     * * `[MemoryCredentialError][50000000019]`
+     * * `[MemoryEmbeddingRequestFailed][50000000017]`
+     * * `[MemoryEmbeddingResponseInvalid][50000000018]`
+     * * `[MemoryEmbeddingTestFailed][50000000010]`
+     * * `[MemoryMCPEndpointFailed][50000000021]`
+     * * `[MemoryReindexFailed][50000000009]`
+     * * `[MemoryServiceUnavailable][50000000036]`
+     * * `[MessageAttachmentStorageError][50000000032]`
+     * * `[PluginStorageError][50000006501]`
+     * * `[ProfileArchiveGenerationFailed][50000000037]`
+     * * `[ProjectServiceUnavailable][50000000034]`
+     * * `[ProjectSourceUnavailable][50000000005]`
+     * * `[RuntimeAuthRequired][50000000044]`
+     * * `[RuntimeConfigurationInvalid][50000000040]`
+     * * `[RuntimeEnvironmentServiceUnavailable][50000000035]`
+     * * `[RuntimeEventEncodingFailed][50000000039]`
+     * * `[RuntimeExecutionFailed][50000000045]`
+     * * `[RuntimeHandoffInvalid][50000000049]`
+     * * `[RuntimeInactivityTimeout][50000000013]`
+     * * `[RuntimePolicyUnsupported][50000000011]`
+     * * `[RuntimeProtocolIncompatible][50000000012]`
+     * * `[RuntimeSessionNotFound][50000000043]`
+     * * `[RuntimeShutdownFailed][50000000041]`
+     * * `[RuntimeUnavailable][50000000006]`
+     * * `[SkillStorageError][50000000031]`
+     * * `[SkillUnavailable][50000000008]`
+     * * `[WorkflowCancelled][50000003002]`
+     * * `[WorkflowEffectFailed][50000003001]`
+     * * `[WorkflowFileStorageError][50000003005]`
+     * * `[WorkflowStateInvalid][50000003004]`
+     * * `[WorkflowTimeout][50000003003]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[AIAccountModelsResponseInvalid][50200000004]`
+     * * `[AIAccountModelsUnavailable][50200000003]`
+     * * `[IMPlatformUnavailable][50200004001]`
+     * * `[IMProtocolInvalid][50200004002]`
+     * * `[KnowledgeEmbeddingResponseInvalid][50200009602]`
+     * * `[KnowledgeEmbeddingUnavailable][50200009601]`
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     * * `[MCPConnectorProtocolInvalid][50200000002]`
+     * * `[MemoryEmbeddingUnavailable][50200000001]`
+     * * `[PluginAuthorizationFailed][50200006501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[AgentConnectionUnavailable][50300009001]`
+     * * `[DatabaseBusy][50300001001]`
+     * * `[IMServiceUnavailable][50300004001]`
+     * * `[IntegrationListenerError][50300009601]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type UpdateApiServiceError = UpdateApiServiceErrors[keyof UpdateApiServiceErrors];
+
+export type UpdateApiServiceResponses = {
+    200: GithubComShrewxGinxCommonResponse;
+};
+
+export type UpdateApiServiceResponse = UpdateApiServiceResponses[keyof UpdateApiServiceResponses];
+
 export type ChatLibrariesData = {
     body?: never;
     path?: never;
@@ -17207,10 +18573,49 @@ export type CreateConnectionErrors = {
     400: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
      * * `[KnowledgeUnsupported][42200009502]`
      *
      */
     422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
 };
 
 export type CreateConnectionError = CreateConnectionErrors[keyof CreateConnectionErrors];
@@ -17234,6 +18639,10 @@ export type ListAvailableLibrariesData = {
          * 起始位置
          */
         offset?: number;
+        /**
+         * 搜索内容
+         */
+        search?: string;
     };
     url: '/api/v1/knowledge/connections/libraries';
 };
@@ -17281,6 +18690,7 @@ export type ListAvailableLibrariesErrors = {
     422: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
+     * * `[DatabaseError][50000000002]`
      * * `[KnowledgeStorageError][50000009501]`
      *
      */
@@ -17314,6 +18724,116 @@ export type ListAvailableLibrariesResponses = {
 
 export type ListAvailableLibrariesResponse = ListAvailableLibrariesResponses[keyof ListAvailableLibrariesResponses];
 
+export type AddRemoteLibraryData = {
+    body: GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsAddRemoteLibraryInput & unknown;
+    path?: never;
+    query?: never;
+    url: '/api/v1/knowledge/connections/mounts';
+};
+
+export type AddRemoteLibraryErrors = {
+    /**
+     * >
+     * * `[BadRequest][40000000001]`
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[InternalServerError][50000000001]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type AddRemoteLibraryError = AddRemoteLibraryErrors[keyof AddRemoteLibraryErrors];
+
+export type AddRemoteLibraryResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsRemoteMountReceipt;
+};
+
+export type AddRemoteLibraryResponse = AddRemoteLibraryResponses[keyof AddRemoteLibraryResponses];
+
+export type RemoveRemoteMountData = {
+    body?: never;
+    path: {
+        /**
+         * 挂载标识
+         */
+        mountId: string;
+    };
+    query?: {
+        /**
+         * 入口版本
+         */
+        revision?: number;
+    };
+    url: '/api/v1/knowledge/connections/mounts/{mountId}';
+};
+
+export type RemoveRemoteMountErrors = {
+    /**
+     * >
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type RemoveRemoteMountError = RemoveRemoteMountErrors[keyof RemoveRemoteMountErrors];
+
+export type RemoveRemoteMountResponses = {
+    200: GithubComGinGonicGinH;
+};
+
+export type RemoveRemoteMountResponse = RemoveRemoteMountResponses[keyof RemoveRemoteMountResponses];
+
 export type UpdateConnectionData = {
     body: GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsConnectionInput & unknown;
     path: {
@@ -17335,10 +18855,49 @@ export type UpdateConnectionErrors = {
     400: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
      * * `[KnowledgeUnsupported][42200009502]`
      *
      */
     422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
 };
 
 export type UpdateConnectionError = UpdateConnectionErrors[keyof UpdateConnectionErrors];
@@ -17422,6 +18981,80 @@ export type CheckConnectionResponses = {
 };
 
 export type CheckConnectionResponse = CheckConnectionResponses[keyof CheckConnectionResponses];
+
+export type RedetectConnectionData = {
+    body: GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsRedetectConnectionInput & unknown;
+    path: {
+        /**
+         * 连接标识
+         */
+        connectionId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/connections/{connectionId}/detection';
+};
+
+export type RedetectConnectionErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type RedetectConnectionError = RedetectConnectionErrors[keyof RedetectConnectionErrors];
+
+export type RedetectConnectionResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsConnection;
+};
+
+export type RedetectConnectionResponse = RedetectConnectionResponses[keyof RedetectConnectionResponses];
 
 export type ListRemoteLibrariesData = {
     body?: never;
@@ -18681,55 +20314,10 @@ export type ListRemoteOperationsData = {
 export type ListRemoteOperationsErrors = {
     /**
      * >
-     * * `[KnowledgeInvalid][40000009501]`
-     *
-     */
-    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
-    /**
-     * >
-     * * `[KnowledgeRemoteUnauthorized][40100009501]`
-     *
-     */
-    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
-    /**
-     * >
-     * * `[KnowledgeForbidden][40300009501]`
-     *
-     */
-    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
-    /**
-     * >
-     * * `[KnowledgeNotFound][40400009501]`
-     *
-     */
-    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
-    /**
-     * >
-     * * `[KnowledgeCancelled][40900009502]`
-     * * `[KnowledgeConflict][40900009501]`
-     *
-     */
-    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
-    /**
-     * >
-     * * `[KnowledgeCandidateInvalid][42200009501]`
      * * `[KnowledgeUnsupported][42200009502]`
      *
      */
     422: GithubComShrewxGinxPkgStatuserrorStatusErr;
-    /**
-     * >
-     * * `[KnowledgeRemoteIncompatible][50200009502]`
-     * * `[KnowledgeRemoteUnreachable][50200009501]`
-     *
-     */
-    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
-    /**
-     * >
-     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
-     *
-     */
-    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
 };
 
 export type ListRemoteOperationsError = ListRemoteOperationsErrors[keyof ListRemoteOperationsErrors];
@@ -18763,55 +20351,16 @@ export type GetRemoteOperationData = {
 export type GetRemoteOperationErrors = {
     /**
      * >
-     * * `[KnowledgeInvalid][40000009501]`
-     *
-     */
-    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
-    /**
-     * >
-     * * `[KnowledgeRemoteUnauthorized][40100009501]`
-     *
-     */
-    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
-    /**
-     * >
-     * * `[KnowledgeForbidden][40300009501]`
-     *
-     */
-    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
-    /**
-     * >
      * * `[KnowledgeNotFound][40400009501]`
      *
      */
     404: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
-     * * `[KnowledgeCancelled][40900009502]`
-     * * `[KnowledgeConflict][40900009501]`
-     *
-     */
-    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
-    /**
-     * >
-     * * `[KnowledgeCandidateInvalid][42200009501]`
      * * `[KnowledgeUnsupported][42200009502]`
      *
      */
     422: GithubComShrewxGinxPkgStatuserrorStatusErr;
-    /**
-     * >
-     * * `[KnowledgeRemoteIncompatible][50200009502]`
-     * * `[KnowledgeRemoteUnreachable][50200009501]`
-     *
-     */
-    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
-    /**
-     * >
-     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
-     *
-     */
-    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
 };
 
 export type GetRemoteOperationError = GetRemoteOperationErrors[keyof GetRemoteOperationErrors];
@@ -18982,6 +20531,93 @@ export type GetRemotePageBySlugResponses = {
 };
 
 export type GetRemotePageBySlugResponse = GetRemotePageBySlugResponses[keyof GetRemotePageBySlugResponses];
+
+export type ListRemotePageDirectoryData = {
+    body?: never;
+    path: {
+        /**
+         * 连接标识
+         */
+        connectionId: string;
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: {
+        /**
+         * 每批条数
+         */
+        limit?: number;
+        /**
+         * 起始位置
+         */
+        offset?: number;
+    };
+    url: '/api/v1/knowledge/connections/{connectionId}/libraries/{libraryId}/page-directory';
+};
+
+export type ListRemotePageDirectoryErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type ListRemotePageDirectoryError = ListRemotePageDirectoryErrors[keyof ListRemotePageDirectoryErrors];
+
+export type ListRemotePageDirectoryResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgePageDirectoryList;
+};
+
+export type ListRemotePageDirectoryResponse = ListRemotePageDirectoryResponses[keyof ListRemotePageDirectoryResponses];
 
 export type ListRemotePagesData = {
     body?: never;
@@ -20612,6 +22248,10 @@ export type ListRemoteThemesData = {
     };
     query?: {
         /**
+         * 完整目录
+         */
+        all?: boolean;
+        /**
          * 上级标识
          */
         parentId?: string;
@@ -20840,6 +22480,166 @@ export type WriteRemoteThemeResponses = {
 };
 
 export type WriteRemoteThemeResponse = WriteRemoteThemeResponses[keyof WriteRemoteThemeResponses];
+
+export type UploadRemoteSourceData = {
+    body: GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsRemoteUploadInput & unknown;
+    path: {
+        /**
+         * 连接标识
+         */
+        connectionId: string;
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/connections/{connectionId}/libraries/{libraryId}/uploads';
+};
+
+export type UploadRemoteSourceErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type UploadRemoteSourceError = UploadRemoteSourceErrors[keyof UploadRemoteSourceErrors];
+
+export type UploadRemoteSourceResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsRemoteUploadResult;
+};
+
+export type UploadRemoteSourceResponse = UploadRemoteSourceResponses[keyof UploadRemoteSourceResponses];
+
+export type GetRemoteUploadStatusData = {
+    body?: never;
+    path: {
+        /**
+         * 连接标识
+         */
+        connectionId: string;
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+        /**
+         * 原请求标识
+         */
+        requestId: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/connections/{connectionId}/libraries/{libraryId}/uploads/{requestId}';
+};
+
+export type GetRemoteUploadStatusErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteUnauthorized][40100009501]`
+     *
+     */
+    401: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteIncompatible][50200009502]`
+     * * `[KnowledgeRemoteUnreachable][50200009501]`
+     *
+     */
+    502: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeRemoteOutcomeUnknown][50400009501]`
+     *
+     */
+    504: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type GetRemoteUploadStatusError = GetRemoteUploadStatusErrors[keyof GetRemoteUploadStatusErrors];
+
+export type GetRemoteUploadStatusResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeConnectionsRemoteUploadResult;
+};
+
+export type GetRemoteUploadStatusResponse = GetRemoteUploadStatusResponses[keyof GetRemoteUploadStatusResponses];
 
 export type TestLibraryEmbeddingData = {
     body: GithubComJieWaZiNeuxAllyServerApisKnowledgeTestLibraryEmbeddingInput & unknown;
@@ -21090,6 +22890,12 @@ export type DeleteLibraryErrors = {
      *
      */
     404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseOperationCancelled][40800001001]`
+     *
+     */
+    408: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
      * * `[KnowledgeCancelled][40900009502]`
@@ -21525,6 +23331,12 @@ export type RecoverLibraryDeletionErrors = {
      *
      */
     404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseOperationCancelled][40800001001]`
+     *
+     */
+    408: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
      * * `[KnowledgeCancelled][40900009502]`
@@ -22450,6 +24262,84 @@ export type GetPageBySlugResponses = {
 };
 
 export type GetPageBySlugResponse = GetPageBySlugResponses[keyof GetPageBySlugResponses];
+
+export type ListPageDirectoryData = {
+    body?: never;
+    path: {
+        /**
+         * 知识库标识
+         */
+        libraryId: string;
+    };
+    query?: {
+        /**
+         * 每批条数
+         */
+        limit?: number;
+        /**
+         * 起始位置
+         */
+        offset?: number;
+    };
+    url: '/api/v1/knowledge/libraries/{libraryId}/page-directory';
+};
+
+export type ListPageDirectoryErrors = {
+    /**
+     * >
+     * * `[KnowledgeInvalid][40000009501]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeForbidden][40300009501]`
+     *
+     */
+    403: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeNotFound][40400009501]`
+     *
+     */
+    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCancelled][40900009502]`
+     * * `[KnowledgeConflict][40900009501]`
+     * * `[KnowledgeFolderHasChildren][40900009503]`
+     * * `[KnowledgeFolderHasPages][40900009504]`
+     *
+     */
+    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeCandidateInvalid][42200009501]`
+     * * `[KnowledgeUnsupported][42200009502]`
+     *
+     */
+    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[KnowledgeStorageError][50000009501]`
+     *
+     */
+    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[DatabaseBusy][50300001001]`
+     *
+     */
+    503: GithubComShrewxGinxPkgStatuserrorStatusErr;
+};
+
+export type ListPageDirectoryError = ListPageDirectoryErrors[keyof ListPageDirectoryErrors];
+
+export type ListPageDirectoryResponses = {
+    200: GithubComJieWaZiNeuxAllyServerApisKnowledgePageDirectoryList;
+};
+
+export type ListPageDirectoryResponse = ListPageDirectoryResponses[keyof ListPageDirectoryResponses];
 
 export type ListPagesData = {
     body?: never;
@@ -24024,36 +25914,6 @@ export type GetWikiIndexResponses = {
 
 export type GetWikiIndexResponse = GetWikiIndexResponses[keyof GetWikiIndexResponses];
 
-export type ReloadPolicyData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/api/v1/knowledge/server/reload-policy';
-};
-
-export type ReloadPolicyErrors = {
-    /**
-     * >
-     * * `[KnowledgeUnsupported][42200009502]`
-     *
-     */
-    422: GithubComShrewxGinxPkgStatuserrorStatusErr;
-    /**
-     * >
-     * * `[CoreConfigurationInvalid][50000000023]`
-     *
-     */
-    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
-};
-
-export type ReloadPolicyError = ReloadPolicyErrors[keyof ReloadPolicyErrors];
-
-export type ReloadPolicyResponses = {
-    200: GithubComJieWaZiNeuxAllyServerApisKnowledgeServerReloadResult;
-};
-
-export type ReloadPolicyResponse = ReloadPolicyResponses[keyof ReloadPolicyResponses];
-
 export type ReindexMemoryIndexData = {
     body?: never;
     path?: never;
@@ -24683,6 +26543,7 @@ export type ListPluginsErrors = {
      * * `[ChatMessageCursorInvalid][40000000012]`
      * * `[IMConfigurationInvalid][40000004001]`
      * * `[IMFileInvalid][40000004002]`
+     * * `[IntegrationInvalid][40000009601]`
      * * `[KnowledgeInvalid][40000009501]`
      * * `[MemoryEmbeddingConflict][40000000009]`
      * * `[MemoryEmbeddingNotConfigured][40000000007]`
@@ -24716,6 +26577,7 @@ export type ListPluginsErrors = {
      * * `[AgentContextUnauthorized][40100009001]`
      * * `[AutomaticTaskTokenInvalid][40100001001]`
      * * `[IMLoginRequired][40100004001]`
+     * * `[IntegrationUnauthorized][40100009601]`
      * * `[KnowledgeRemoteUnauthorized][40100009501]`
      * * `[MemoryContextUnauthorized][40100000002]`
      * * `[Unauthorized][40100000001]`
@@ -24728,6 +26590,7 @@ export type ListPluginsErrors = {
      * * `[IMChatNotAuthorized][40300004001]`
      * * `[IMTargetNotAuthorized][40300004003]`
      * * `[IMWorkflowDeliveryNotAllowed][40300004002]`
+     * * `[IntegrationForbidden][40300009601]`
      * * `[KnowledgeForbidden][40300009501]`
      * * `[PluginForbidden][40300006501]`
      *
@@ -24749,6 +26612,7 @@ export type ListPluginsErrors = {
      * * `[ExecutionNotFound][40400000004]`
      * * `[IMResourceNotFound][40400004001]`
      * * `[IMTargetUnavailable][40400004002]`
+     * * `[IntegrationNotFound][40400009601]`
      * * `[KnowledgeNotFound][40400009501]`
      * * `[MCPConnectorNotFound][40400000009]`
      * * `[MemoryNotFound][40400000010]`
@@ -24812,6 +26676,7 @@ export type ListPluginsErrors = {
      * * `[IMConnectionInUse][40900004004]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
+     * * `[IntegrationConflict][40900009601]`
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
      * * `[KnowledgeFolderHasChildren][40900009503]`
@@ -24881,6 +26746,7 @@ export type ListPluginsErrors = {
      * * `[CoreTokenGenerationFailed][50000000030]`
      * * `[DatabaseError][50000000002]`
      * * `[IMCredentialError][50000004001]`
+     * * `[IntegrationCredentialError][50000009601]`
      * * `[InternalServerError][50000000001]`
      * * `[KnowledgeStorageError][50000009501]`
      * * `[MCPConnectorCredentialError][50000000022]`
@@ -24941,6 +26807,7 @@ export type ListPluginsErrors = {
      * * `[AgentConnectionUnavailable][50300009001]`
      * * `[DatabaseBusy][50300001001]`
      * * `[IMServiceUnavailable][50300004001]`
+     * * `[IntegrationListenerError][50300009601]`
      *
      */
     503: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -25032,6 +26899,7 @@ export type PrepareCatalogPluginErrors = {
      * * `[ChatMessageCursorInvalid][40000000012]`
      * * `[IMConfigurationInvalid][40000004001]`
      * * `[IMFileInvalid][40000004002]`
+     * * `[IntegrationInvalid][40000009601]`
      * * `[KnowledgeInvalid][40000009501]`
      * * `[MemoryEmbeddingConflict][40000000009]`
      * * `[MemoryEmbeddingNotConfigured][40000000007]`
@@ -25065,6 +26933,7 @@ export type PrepareCatalogPluginErrors = {
      * * `[AgentContextUnauthorized][40100009001]`
      * * `[AutomaticTaskTokenInvalid][40100001001]`
      * * `[IMLoginRequired][40100004001]`
+     * * `[IntegrationUnauthorized][40100009601]`
      * * `[KnowledgeRemoteUnauthorized][40100009501]`
      * * `[MemoryContextUnauthorized][40100000002]`
      * * `[Unauthorized][40100000001]`
@@ -25077,6 +26946,7 @@ export type PrepareCatalogPluginErrors = {
      * * `[IMChatNotAuthorized][40300004001]`
      * * `[IMTargetNotAuthorized][40300004003]`
      * * `[IMWorkflowDeliveryNotAllowed][40300004002]`
+     * * `[IntegrationForbidden][40300009601]`
      * * `[KnowledgeForbidden][40300009501]`
      * * `[PluginForbidden][40300006501]`
      *
@@ -25098,6 +26968,7 @@ export type PrepareCatalogPluginErrors = {
      * * `[ExecutionNotFound][40400000004]`
      * * `[IMResourceNotFound][40400004001]`
      * * `[IMTargetUnavailable][40400004002]`
+     * * `[IntegrationNotFound][40400009601]`
      * * `[KnowledgeNotFound][40400009501]`
      * * `[MCPConnectorNotFound][40400000009]`
      * * `[MemoryNotFound][40400000010]`
@@ -25161,6 +27032,7 @@ export type PrepareCatalogPluginErrors = {
      * * `[IMConnectionInUse][40900004004]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
+     * * `[IntegrationConflict][40900009601]`
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
      * * `[KnowledgeFolderHasChildren][40900009503]`
@@ -25230,6 +27102,7 @@ export type PrepareCatalogPluginErrors = {
      * * `[CoreTokenGenerationFailed][50000000030]`
      * * `[DatabaseError][50000000002]`
      * * `[IMCredentialError][50000004001]`
+     * * `[IntegrationCredentialError][50000009601]`
      * * `[InternalServerError][50000000001]`
      * * `[KnowledgeStorageError][50000009501]`
      * * `[MCPConnectorCredentialError][50000000022]`
@@ -25290,6 +27163,7 @@ export type PrepareCatalogPluginErrors = {
      * * `[AgentConnectionUnavailable][50300009001]`
      * * `[DatabaseBusy][50300001001]`
      * * `[IMServiceUnavailable][50300004001]`
+     * * `[IntegrationListenerError][50300009601]`
      *
      */
     503: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -25332,6 +27206,7 @@ export type PreparePluginErrors = {
      * * `[ChatMessageCursorInvalid][40000000012]`
      * * `[IMConfigurationInvalid][40000004001]`
      * * `[IMFileInvalid][40000004002]`
+     * * `[IntegrationInvalid][40000009601]`
      * * `[KnowledgeInvalid][40000009501]`
      * * `[MemoryEmbeddingConflict][40000000009]`
      * * `[MemoryEmbeddingNotConfigured][40000000007]`
@@ -25365,6 +27240,7 @@ export type PreparePluginErrors = {
      * * `[AgentContextUnauthorized][40100009001]`
      * * `[AutomaticTaskTokenInvalid][40100001001]`
      * * `[IMLoginRequired][40100004001]`
+     * * `[IntegrationUnauthorized][40100009601]`
      * * `[KnowledgeRemoteUnauthorized][40100009501]`
      * * `[MemoryContextUnauthorized][40100000002]`
      * * `[Unauthorized][40100000001]`
@@ -25377,6 +27253,7 @@ export type PreparePluginErrors = {
      * * `[IMChatNotAuthorized][40300004001]`
      * * `[IMTargetNotAuthorized][40300004003]`
      * * `[IMWorkflowDeliveryNotAllowed][40300004002]`
+     * * `[IntegrationForbidden][40300009601]`
      * * `[KnowledgeForbidden][40300009501]`
      * * `[PluginForbidden][40300006501]`
      *
@@ -25398,6 +27275,7 @@ export type PreparePluginErrors = {
      * * `[ExecutionNotFound][40400000004]`
      * * `[IMResourceNotFound][40400004001]`
      * * `[IMTargetUnavailable][40400004002]`
+     * * `[IntegrationNotFound][40400009601]`
      * * `[KnowledgeNotFound][40400009501]`
      * * `[MCPConnectorNotFound][40400000009]`
      * * `[MemoryNotFound][40400000010]`
@@ -25461,6 +27339,7 @@ export type PreparePluginErrors = {
      * * `[IMConnectionInUse][40900004004]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
+     * * `[IntegrationConflict][40900009601]`
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
      * * `[KnowledgeFolderHasChildren][40900009503]`
@@ -25530,6 +27409,7 @@ export type PreparePluginErrors = {
      * * `[CoreTokenGenerationFailed][50000000030]`
      * * `[DatabaseError][50000000002]`
      * * `[IMCredentialError][50000004001]`
+     * * `[IntegrationCredentialError][50000009601]`
      * * `[InternalServerError][50000000001]`
      * * `[KnowledgeStorageError][50000009501]`
      * * `[MCPConnectorCredentialError][50000000022]`
@@ -25590,6 +27470,7 @@ export type PreparePluginErrors = {
      * * `[AgentConnectionUnavailable][50300009001]`
      * * `[DatabaseBusy][50300001001]`
      * * `[IMServiceUnavailable][50300004001]`
+     * * `[IntegrationListenerError][50300009601]`
      *
      */
     503: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -25726,6 +27607,7 @@ export type GetPluginErrors = {
      * * `[ChatMessageCursorInvalid][40000000012]`
      * * `[IMConfigurationInvalid][40000004001]`
      * * `[IMFileInvalid][40000004002]`
+     * * `[IntegrationInvalid][40000009601]`
      * * `[KnowledgeInvalid][40000009501]`
      * * `[MemoryEmbeddingConflict][40000000009]`
      * * `[MemoryEmbeddingNotConfigured][40000000007]`
@@ -25759,6 +27641,7 @@ export type GetPluginErrors = {
      * * `[AgentContextUnauthorized][40100009001]`
      * * `[AutomaticTaskTokenInvalid][40100001001]`
      * * `[IMLoginRequired][40100004001]`
+     * * `[IntegrationUnauthorized][40100009601]`
      * * `[KnowledgeRemoteUnauthorized][40100009501]`
      * * `[MemoryContextUnauthorized][40100000002]`
      * * `[Unauthorized][40100000001]`
@@ -25771,6 +27654,7 @@ export type GetPluginErrors = {
      * * `[IMChatNotAuthorized][40300004001]`
      * * `[IMTargetNotAuthorized][40300004003]`
      * * `[IMWorkflowDeliveryNotAllowed][40300004002]`
+     * * `[IntegrationForbidden][40300009601]`
      * * `[KnowledgeForbidden][40300009501]`
      * * `[PluginForbidden][40300006501]`
      *
@@ -25792,6 +27676,7 @@ export type GetPluginErrors = {
      * * `[ExecutionNotFound][40400000004]`
      * * `[IMResourceNotFound][40400004001]`
      * * `[IMTargetUnavailable][40400004002]`
+     * * `[IntegrationNotFound][40400009601]`
      * * `[KnowledgeNotFound][40400009501]`
      * * `[MCPConnectorNotFound][40400000009]`
      * * `[MemoryNotFound][40400000010]`
@@ -25855,6 +27740,7 @@ export type GetPluginErrors = {
      * * `[IMConnectionInUse][40900004004]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
+     * * `[IntegrationConflict][40900009601]`
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
      * * `[KnowledgeFolderHasChildren][40900009503]`
@@ -25924,6 +27810,7 @@ export type GetPluginErrors = {
      * * `[CoreTokenGenerationFailed][50000000030]`
      * * `[DatabaseError][50000000002]`
      * * `[IMCredentialError][50000004001]`
+     * * `[IntegrationCredentialError][50000009601]`
      * * `[InternalServerError][50000000001]`
      * * `[KnowledgeStorageError][50000009501]`
      * * `[MCPConnectorCredentialError][50000000022]`
@@ -25984,6 +27871,7 @@ export type GetPluginErrors = {
      * * `[AgentConnectionUnavailable][50300009001]`
      * * `[DatabaseBusy][50300001001]`
      * * `[IMServiceUnavailable][50300004001]`
+     * * `[IntegrationListenerError][50300009601]`
      *
      */
     503: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -26436,6 +28324,7 @@ export type InstallPluginErrors = {
      * * `[ChatMessageCursorInvalid][40000000012]`
      * * `[IMConfigurationInvalid][40000004001]`
      * * `[IMFileInvalid][40000004002]`
+     * * `[IntegrationInvalid][40000009601]`
      * * `[KnowledgeInvalid][40000009501]`
      * * `[MemoryEmbeddingConflict][40000000009]`
      * * `[MemoryEmbeddingNotConfigured][40000000007]`
@@ -26469,6 +28358,7 @@ export type InstallPluginErrors = {
      * * `[AgentContextUnauthorized][40100009001]`
      * * `[AutomaticTaskTokenInvalid][40100001001]`
      * * `[IMLoginRequired][40100004001]`
+     * * `[IntegrationUnauthorized][40100009601]`
      * * `[KnowledgeRemoteUnauthorized][40100009501]`
      * * `[MemoryContextUnauthorized][40100000002]`
      * * `[Unauthorized][40100000001]`
@@ -26481,6 +28371,7 @@ export type InstallPluginErrors = {
      * * `[IMChatNotAuthorized][40300004001]`
      * * `[IMTargetNotAuthorized][40300004003]`
      * * `[IMWorkflowDeliveryNotAllowed][40300004002]`
+     * * `[IntegrationForbidden][40300009601]`
      * * `[KnowledgeForbidden][40300009501]`
      * * `[PluginForbidden][40300006501]`
      *
@@ -26502,6 +28393,7 @@ export type InstallPluginErrors = {
      * * `[ExecutionNotFound][40400000004]`
      * * `[IMResourceNotFound][40400004001]`
      * * `[IMTargetUnavailable][40400004002]`
+     * * `[IntegrationNotFound][40400009601]`
      * * `[KnowledgeNotFound][40400009501]`
      * * `[MCPConnectorNotFound][40400000009]`
      * * `[MemoryNotFound][40400000010]`
@@ -26565,6 +28457,7 @@ export type InstallPluginErrors = {
      * * `[IMConnectionInUse][40900004004]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
+     * * `[IntegrationConflict][40900009601]`
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
      * * `[KnowledgeFolderHasChildren][40900009503]`
@@ -26634,6 +28527,7 @@ export type InstallPluginErrors = {
      * * `[CoreTokenGenerationFailed][50000000030]`
      * * `[DatabaseError][50000000002]`
      * * `[IMCredentialError][50000004001]`
+     * * `[IntegrationCredentialError][50000009601]`
      * * `[InternalServerError][50000000001]`
      * * `[KnowledgeStorageError][50000009501]`
      * * `[MCPConnectorCredentialError][50000000022]`
@@ -26694,6 +28588,7 @@ export type InstallPluginErrors = {
      * * `[AgentConnectionUnavailable][50300009001]`
      * * `[DatabaseBusy][50300001001]`
      * * `[IMServiceUnavailable][50300004001]`
+     * * `[IntegrationListenerError][50300009601]`
      *
      */
     503: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -27574,7 +29469,7 @@ export type GetAutomaticTaskApiData = {
 };
 
 export type GetAutomaticTaskApiResponses = {
-    200: GithubComJieWaZiNeuxAllyServerServicesScheduleApiStatus;
+    200: GithubComJieWaZiNeuxAllyServerInternalIntegrationListenerStatus;
 };
 
 export type GetAutomaticTaskApiResponse = GetAutomaticTaskApiResponses[keyof GetAutomaticTaskApiResponses];
@@ -27602,6 +29497,7 @@ export type SetAutomaticTaskApiErrors = {
      * * `[ChatMessageCursorInvalid][40000000012]`
      * * `[IMConfigurationInvalid][40000004001]`
      * * `[IMFileInvalid][40000004002]`
+     * * `[IntegrationInvalid][40000009601]`
      * * `[KnowledgeInvalid][40000009501]`
      * * `[MemoryEmbeddingConflict][40000000009]`
      * * `[MemoryEmbeddingNotConfigured][40000000007]`
@@ -27635,6 +29531,7 @@ export type SetAutomaticTaskApiErrors = {
      * * `[AgentContextUnauthorized][40100009001]`
      * * `[AutomaticTaskTokenInvalid][40100001001]`
      * * `[IMLoginRequired][40100004001]`
+     * * `[IntegrationUnauthorized][40100009601]`
      * * `[KnowledgeRemoteUnauthorized][40100009501]`
      * * `[MemoryContextUnauthorized][40100000002]`
      * * `[Unauthorized][40100000001]`
@@ -27647,6 +29544,7 @@ export type SetAutomaticTaskApiErrors = {
      * * `[IMChatNotAuthorized][40300004001]`
      * * `[IMTargetNotAuthorized][40300004003]`
      * * `[IMWorkflowDeliveryNotAllowed][40300004002]`
+     * * `[IntegrationForbidden][40300009601]`
      * * `[KnowledgeForbidden][40300009501]`
      * * `[PluginForbidden][40300006501]`
      *
@@ -27668,6 +29566,7 @@ export type SetAutomaticTaskApiErrors = {
      * * `[ExecutionNotFound][40400000004]`
      * * `[IMResourceNotFound][40400004001]`
      * * `[IMTargetUnavailable][40400004002]`
+     * * `[IntegrationNotFound][40400009601]`
      * * `[KnowledgeNotFound][40400009501]`
      * * `[MCPConnectorNotFound][40400000009]`
      * * `[MemoryNotFound][40400000010]`
@@ -27731,6 +29630,7 @@ export type SetAutomaticTaskApiErrors = {
      * * `[IMConnectionInUse][40900004004]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
+     * * `[IntegrationConflict][40900009601]`
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
      * * `[KnowledgeFolderHasChildren][40900009503]`
@@ -27800,6 +29700,7 @@ export type SetAutomaticTaskApiErrors = {
      * * `[CoreTokenGenerationFailed][50000000030]`
      * * `[DatabaseError][50000000002]`
      * * `[IMCredentialError][50000004001]`
+     * * `[IntegrationCredentialError][50000009601]`
      * * `[InternalServerError][50000000001]`
      * * `[KnowledgeStorageError][50000009501]`
      * * `[MCPConnectorCredentialError][50000000022]`
@@ -27860,6 +29761,7 @@ export type SetAutomaticTaskApiErrors = {
      * * `[AgentConnectionUnavailable][50300009001]`
      * * `[DatabaseBusy][50300001001]`
      * * `[IMServiceUnavailable][50300004001]`
+     * * `[IntegrationListenerError][50300009601]`
      *
      */
     503: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -28022,6 +29924,12 @@ export type DeleteWakerErrors = {
     400: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
+     * * `[DatabaseOperationCancelled][40800001001]`
+     *
+     */
+    408: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
      * * `[DefaultWakerCannotDelete][40900000024]`
      * * `[WakerHasRunningWork][40900000005]`
      *
@@ -28137,6 +30045,7 @@ export type ListAutomaticTasksErrors = {
      * * `[ChatMessageCursorInvalid][40000000012]`
      * * `[IMConfigurationInvalid][40000004001]`
      * * `[IMFileInvalid][40000004002]`
+     * * `[IntegrationInvalid][40000009601]`
      * * `[KnowledgeInvalid][40000009501]`
      * * `[MemoryEmbeddingConflict][40000000009]`
      * * `[MemoryEmbeddingNotConfigured][40000000007]`
@@ -28170,6 +30079,7 @@ export type ListAutomaticTasksErrors = {
      * * `[AgentContextUnauthorized][40100009001]`
      * * `[AutomaticTaskTokenInvalid][40100001001]`
      * * `[IMLoginRequired][40100004001]`
+     * * `[IntegrationUnauthorized][40100009601]`
      * * `[KnowledgeRemoteUnauthorized][40100009501]`
      * * `[MemoryContextUnauthorized][40100000002]`
      * * `[Unauthorized][40100000001]`
@@ -28182,6 +30092,7 @@ export type ListAutomaticTasksErrors = {
      * * `[IMChatNotAuthorized][40300004001]`
      * * `[IMTargetNotAuthorized][40300004003]`
      * * `[IMWorkflowDeliveryNotAllowed][40300004002]`
+     * * `[IntegrationForbidden][40300009601]`
      * * `[KnowledgeForbidden][40300009501]`
      * * `[PluginForbidden][40300006501]`
      *
@@ -28203,6 +30114,7 @@ export type ListAutomaticTasksErrors = {
      * * `[ExecutionNotFound][40400000004]`
      * * `[IMResourceNotFound][40400004001]`
      * * `[IMTargetUnavailable][40400004002]`
+     * * `[IntegrationNotFound][40400009601]`
      * * `[KnowledgeNotFound][40400009501]`
      * * `[MCPConnectorNotFound][40400000009]`
      * * `[MemoryNotFound][40400000010]`
@@ -28266,6 +30178,7 @@ export type ListAutomaticTasksErrors = {
      * * `[IMConnectionInUse][40900004004]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
+     * * `[IntegrationConflict][40900009601]`
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
      * * `[KnowledgeFolderHasChildren][40900009503]`
@@ -28335,6 +30248,7 @@ export type ListAutomaticTasksErrors = {
      * * `[CoreTokenGenerationFailed][50000000030]`
      * * `[DatabaseError][50000000002]`
      * * `[IMCredentialError][50000004001]`
+     * * `[IntegrationCredentialError][50000009601]`
      * * `[InternalServerError][50000000001]`
      * * `[KnowledgeStorageError][50000009501]`
      * * `[MCPConnectorCredentialError][50000000022]`
@@ -28395,6 +30309,7 @@ export type ListAutomaticTasksErrors = {
      * * `[AgentConnectionUnavailable][50300009001]`
      * * `[DatabaseBusy][50300001001]`
      * * `[IMServiceUnavailable][50300004001]`
+     * * `[IntegrationListenerError][50300009601]`
      *
      */
     503: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -28475,7 +30390,7 @@ export type CreateAutomaticTaskErrors = {
 export type CreateAutomaticTaskError = CreateAutomaticTaskErrors[keyof CreateAutomaticTaskErrors];
 
 export type CreateAutomaticTaskResponses = {
-    200: GithubComJieWaZiNeuxAllyServerServicesScheduleSavedTask;
+    200: GithubComJieWaZiNeuxAllyServerApisAutomaticTasksAutomaticTaskReference;
 };
 
 export type CreateAutomaticTaskResponse = CreateAutomaticTaskResponses[keyof CreateAutomaticTaskResponses];
@@ -28508,6 +30423,7 @@ export type ListAutomaticTaskAttentionErrors = {
      * * `[ChatMessageCursorInvalid][40000000012]`
      * * `[IMConfigurationInvalid][40000004001]`
      * * `[IMFileInvalid][40000004002]`
+     * * `[IntegrationInvalid][40000009601]`
      * * `[KnowledgeInvalid][40000009501]`
      * * `[MemoryEmbeddingConflict][40000000009]`
      * * `[MemoryEmbeddingNotConfigured][40000000007]`
@@ -28541,6 +30457,7 @@ export type ListAutomaticTaskAttentionErrors = {
      * * `[AgentContextUnauthorized][40100009001]`
      * * `[AutomaticTaskTokenInvalid][40100001001]`
      * * `[IMLoginRequired][40100004001]`
+     * * `[IntegrationUnauthorized][40100009601]`
      * * `[KnowledgeRemoteUnauthorized][40100009501]`
      * * `[MemoryContextUnauthorized][40100000002]`
      * * `[Unauthorized][40100000001]`
@@ -28553,6 +30470,7 @@ export type ListAutomaticTaskAttentionErrors = {
      * * `[IMChatNotAuthorized][40300004001]`
      * * `[IMTargetNotAuthorized][40300004003]`
      * * `[IMWorkflowDeliveryNotAllowed][40300004002]`
+     * * `[IntegrationForbidden][40300009601]`
      * * `[KnowledgeForbidden][40300009501]`
      * * `[PluginForbidden][40300006501]`
      *
@@ -28574,6 +30492,7 @@ export type ListAutomaticTaskAttentionErrors = {
      * * `[ExecutionNotFound][40400000004]`
      * * `[IMResourceNotFound][40400004001]`
      * * `[IMTargetUnavailable][40400004002]`
+     * * `[IntegrationNotFound][40400009601]`
      * * `[KnowledgeNotFound][40400009501]`
      * * `[MCPConnectorNotFound][40400000009]`
      * * `[MemoryNotFound][40400000010]`
@@ -28637,6 +30556,7 @@ export type ListAutomaticTaskAttentionErrors = {
      * * `[IMConnectionInUse][40900004004]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
+     * * `[IntegrationConflict][40900009601]`
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
      * * `[KnowledgeFolderHasChildren][40900009503]`
@@ -28706,6 +30626,7 @@ export type ListAutomaticTaskAttentionErrors = {
      * * `[CoreTokenGenerationFailed][50000000030]`
      * * `[DatabaseError][50000000002]`
      * * `[IMCredentialError][50000004001]`
+     * * `[IntegrationCredentialError][50000009601]`
      * * `[InternalServerError][50000000001]`
      * * `[KnowledgeStorageError][50000009501]`
      * * `[MCPConnectorCredentialError][50000000022]`
@@ -28766,6 +30687,7 @@ export type ListAutomaticTaskAttentionErrors = {
      * * `[AgentConnectionUnavailable][50300009001]`
      * * `[DatabaseBusy][50300001001]`
      * * `[IMServiceUnavailable][50300004001]`
+     * * `[IntegrationListenerError][50300009601]`
      *
      */
     503: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -28846,6 +30768,7 @@ export type DeleteAutomaticTaskErrors = {
      * * `[ChatMessageCursorInvalid][40000000012]`
      * * `[IMConfigurationInvalid][40000004001]`
      * * `[IMFileInvalid][40000004002]`
+     * * `[IntegrationInvalid][40000009601]`
      * * `[KnowledgeInvalid][40000009501]`
      * * `[MemoryEmbeddingConflict][40000000009]`
      * * `[MemoryEmbeddingNotConfigured][40000000007]`
@@ -28879,6 +30802,7 @@ export type DeleteAutomaticTaskErrors = {
      * * `[AgentContextUnauthorized][40100009001]`
      * * `[AutomaticTaskTokenInvalid][40100001001]`
      * * `[IMLoginRequired][40100004001]`
+     * * `[IntegrationUnauthorized][40100009601]`
      * * `[KnowledgeRemoteUnauthorized][40100009501]`
      * * `[MemoryContextUnauthorized][40100000002]`
      * * `[Unauthorized][40100000001]`
@@ -28891,6 +30815,7 @@ export type DeleteAutomaticTaskErrors = {
      * * `[IMChatNotAuthorized][40300004001]`
      * * `[IMTargetNotAuthorized][40300004003]`
      * * `[IMWorkflowDeliveryNotAllowed][40300004002]`
+     * * `[IntegrationForbidden][40300009601]`
      * * `[KnowledgeForbidden][40300009501]`
      * * `[PluginForbidden][40300006501]`
      *
@@ -28912,6 +30837,7 @@ export type DeleteAutomaticTaskErrors = {
      * * `[ExecutionNotFound][40400000004]`
      * * `[IMResourceNotFound][40400004001]`
      * * `[IMTargetUnavailable][40400004002]`
+     * * `[IntegrationNotFound][40400009601]`
      * * `[KnowledgeNotFound][40400009501]`
      * * `[MCPConnectorNotFound][40400000009]`
      * * `[MemoryNotFound][40400000010]`
@@ -28975,6 +30901,7 @@ export type DeleteAutomaticTaskErrors = {
      * * `[IMConnectionInUse][40900004004]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
+     * * `[IntegrationConflict][40900009601]`
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
      * * `[KnowledgeFolderHasChildren][40900009503]`
@@ -29044,6 +30971,7 @@ export type DeleteAutomaticTaskErrors = {
      * * `[CoreTokenGenerationFailed][50000000030]`
      * * `[DatabaseError][50000000002]`
      * * `[IMCredentialError][50000004001]`
+     * * `[IntegrationCredentialError][50000009601]`
      * * `[InternalServerError][50000000001]`
      * * `[KnowledgeStorageError][50000009501]`
      * * `[MCPConnectorCredentialError][50000000022]`
@@ -29104,6 +31032,7 @@ export type DeleteAutomaticTaskErrors = {
      * * `[AgentConnectionUnavailable][50300009001]`
      * * `[DatabaseBusy][50300001001]`
      * * `[IMServiceUnavailable][50300004001]`
+     * * `[IntegrationListenerError][50300009601]`
      *
      */
     503: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -29155,6 +31084,7 @@ export type GetAutomaticTaskErrors = {
      * * `[ChatMessageCursorInvalid][40000000012]`
      * * `[IMConfigurationInvalid][40000004001]`
      * * `[IMFileInvalid][40000004002]`
+     * * `[IntegrationInvalid][40000009601]`
      * * `[KnowledgeInvalid][40000009501]`
      * * `[MemoryEmbeddingConflict][40000000009]`
      * * `[MemoryEmbeddingNotConfigured][40000000007]`
@@ -29188,6 +31118,7 @@ export type GetAutomaticTaskErrors = {
      * * `[AgentContextUnauthorized][40100009001]`
      * * `[AutomaticTaskTokenInvalid][40100001001]`
      * * `[IMLoginRequired][40100004001]`
+     * * `[IntegrationUnauthorized][40100009601]`
      * * `[KnowledgeRemoteUnauthorized][40100009501]`
      * * `[MemoryContextUnauthorized][40100000002]`
      * * `[Unauthorized][40100000001]`
@@ -29200,6 +31131,7 @@ export type GetAutomaticTaskErrors = {
      * * `[IMChatNotAuthorized][40300004001]`
      * * `[IMTargetNotAuthorized][40300004003]`
      * * `[IMWorkflowDeliveryNotAllowed][40300004002]`
+     * * `[IntegrationForbidden][40300009601]`
      * * `[KnowledgeForbidden][40300009501]`
      * * `[PluginForbidden][40300006501]`
      *
@@ -29221,6 +31153,7 @@ export type GetAutomaticTaskErrors = {
      * * `[ExecutionNotFound][40400000004]`
      * * `[IMResourceNotFound][40400004001]`
      * * `[IMTargetUnavailable][40400004002]`
+     * * `[IntegrationNotFound][40400009601]`
      * * `[KnowledgeNotFound][40400009501]`
      * * `[MCPConnectorNotFound][40400000009]`
      * * `[MemoryNotFound][40400000010]`
@@ -29284,6 +31217,7 @@ export type GetAutomaticTaskErrors = {
      * * `[IMConnectionInUse][40900004004]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
+     * * `[IntegrationConflict][40900009601]`
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
      * * `[KnowledgeFolderHasChildren][40900009503]`
@@ -29353,6 +31287,7 @@ export type GetAutomaticTaskErrors = {
      * * `[CoreTokenGenerationFailed][50000000030]`
      * * `[DatabaseError][50000000002]`
      * * `[IMCredentialError][50000004001]`
+     * * `[IntegrationCredentialError][50000009601]`
      * * `[InternalServerError][50000000001]`
      * * `[KnowledgeStorageError][50000009501]`
      * * `[MCPConnectorCredentialError][50000000022]`
@@ -29413,6 +31348,7 @@ export type GetAutomaticTaskErrors = {
      * * `[AgentConnectionUnavailable][50300009001]`
      * * `[DatabaseBusy][50300001001]`
      * * `[IMServiceUnavailable][50300004001]`
+     * * `[IntegrationListenerError][50300009601]`
      *
      */
     503: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -29497,7 +31433,7 @@ export type UpdateAutomaticTaskErrors = {
 export type UpdateAutomaticTaskError = UpdateAutomaticTaskErrors[keyof UpdateAutomaticTaskErrors];
 
 export type UpdateAutomaticTaskResponses = {
-    200: GithubComJieWaZiNeuxAllyServerServicesScheduleSavedTask;
+    200: GithubComJieWaZiNeuxAllyServerApisAutomaticTasksAutomaticTaskReference;
 };
 
 export type UpdateAutomaticTaskResponse = UpdateAutomaticTaskResponses[keyof UpdateAutomaticTaskResponses];
@@ -29613,6 +31549,7 @@ export type ListAutomaticRunsErrors = {
      * * `[ChatMessageCursorInvalid][40000000012]`
      * * `[IMConfigurationInvalid][40000004001]`
      * * `[IMFileInvalid][40000004002]`
+     * * `[IntegrationInvalid][40000009601]`
      * * `[KnowledgeInvalid][40000009501]`
      * * `[MemoryEmbeddingConflict][40000000009]`
      * * `[MemoryEmbeddingNotConfigured][40000000007]`
@@ -29646,6 +31583,7 @@ export type ListAutomaticRunsErrors = {
      * * `[AgentContextUnauthorized][40100009001]`
      * * `[AutomaticTaskTokenInvalid][40100001001]`
      * * `[IMLoginRequired][40100004001]`
+     * * `[IntegrationUnauthorized][40100009601]`
      * * `[KnowledgeRemoteUnauthorized][40100009501]`
      * * `[MemoryContextUnauthorized][40100000002]`
      * * `[Unauthorized][40100000001]`
@@ -29658,6 +31596,7 @@ export type ListAutomaticRunsErrors = {
      * * `[IMChatNotAuthorized][40300004001]`
      * * `[IMTargetNotAuthorized][40300004003]`
      * * `[IMWorkflowDeliveryNotAllowed][40300004002]`
+     * * `[IntegrationForbidden][40300009601]`
      * * `[KnowledgeForbidden][40300009501]`
      * * `[PluginForbidden][40300006501]`
      *
@@ -29679,6 +31618,7 @@ export type ListAutomaticRunsErrors = {
      * * `[ExecutionNotFound][40400000004]`
      * * `[IMResourceNotFound][40400004001]`
      * * `[IMTargetUnavailable][40400004002]`
+     * * `[IntegrationNotFound][40400009601]`
      * * `[KnowledgeNotFound][40400009501]`
      * * `[MCPConnectorNotFound][40400000009]`
      * * `[MemoryNotFound][40400000010]`
@@ -29742,6 +31682,7 @@ export type ListAutomaticRunsErrors = {
      * * `[IMConnectionInUse][40900004004]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
+     * * `[IntegrationConflict][40900009601]`
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
      * * `[KnowledgeFolderHasChildren][40900009503]`
@@ -29811,6 +31752,7 @@ export type ListAutomaticRunsErrors = {
      * * `[CoreTokenGenerationFailed][50000000030]`
      * * `[DatabaseError][50000000002]`
      * * `[IMCredentialError][50000004001]`
+     * * `[IntegrationCredentialError][50000009601]`
      * * `[InternalServerError][50000000001]`
      * * `[KnowledgeStorageError][50000009501]`
      * * `[MCPConnectorCredentialError][50000000022]`
@@ -29871,6 +31813,7 @@ export type ListAutomaticRunsErrors = {
      * * `[AgentConnectionUnavailable][50300009001]`
      * * `[DatabaseBusy][50300001001]`
      * * `[IMServiceUnavailable][50300004001]`
+     * * `[IntegrationListenerError][50300009601]`
      *
      */
     503: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -29922,6 +31865,7 @@ export type TriggerAutomaticTaskErrors = {
      * * `[ChatMessageCursorInvalid][40000000012]`
      * * `[IMConfigurationInvalid][40000004001]`
      * * `[IMFileInvalid][40000004002]`
+     * * `[IntegrationInvalid][40000009601]`
      * * `[KnowledgeInvalid][40000009501]`
      * * `[MemoryEmbeddingConflict][40000000009]`
      * * `[MemoryEmbeddingNotConfigured][40000000007]`
@@ -29955,6 +31899,7 @@ export type TriggerAutomaticTaskErrors = {
      * * `[AgentContextUnauthorized][40100009001]`
      * * `[AutomaticTaskTokenInvalid][40100001001]`
      * * `[IMLoginRequired][40100004001]`
+     * * `[IntegrationUnauthorized][40100009601]`
      * * `[KnowledgeRemoteUnauthorized][40100009501]`
      * * `[MemoryContextUnauthorized][40100000002]`
      * * `[Unauthorized][40100000001]`
@@ -29967,6 +31912,7 @@ export type TriggerAutomaticTaskErrors = {
      * * `[IMChatNotAuthorized][40300004001]`
      * * `[IMTargetNotAuthorized][40300004003]`
      * * `[IMWorkflowDeliveryNotAllowed][40300004002]`
+     * * `[IntegrationForbidden][40300009601]`
      * * `[KnowledgeForbidden][40300009501]`
      * * `[PluginForbidden][40300006501]`
      *
@@ -29988,6 +31934,7 @@ export type TriggerAutomaticTaskErrors = {
      * * `[ExecutionNotFound][40400000004]`
      * * `[IMResourceNotFound][40400004001]`
      * * `[IMTargetUnavailable][40400004002]`
+     * * `[IntegrationNotFound][40400009601]`
      * * `[KnowledgeNotFound][40400009501]`
      * * `[MCPConnectorNotFound][40400000009]`
      * * `[MemoryNotFound][40400000010]`
@@ -30051,6 +31998,7 @@ export type TriggerAutomaticTaskErrors = {
      * * `[IMConnectionInUse][40900004004]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
+     * * `[IntegrationConflict][40900009601]`
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
      * * `[KnowledgeFolderHasChildren][40900009503]`
@@ -30120,6 +32068,7 @@ export type TriggerAutomaticTaskErrors = {
      * * `[CoreTokenGenerationFailed][50000000030]`
      * * `[DatabaseError][50000000002]`
      * * `[IMCredentialError][50000004001]`
+     * * `[IntegrationCredentialError][50000009601]`
      * * `[InternalServerError][50000000001]`
      * * `[KnowledgeStorageError][50000009501]`
      * * `[MCPConnectorCredentialError][50000000022]`
@@ -30180,6 +32129,7 @@ export type TriggerAutomaticTaskErrors = {
      * * `[AgentConnectionUnavailable][50300009001]`
      * * `[DatabaseBusy][50300001001]`
      * * `[IMServiceUnavailable][50300004001]`
+     * * `[IntegrationListenerError][50300009601]`
      *
      */
     503: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -30198,51 +32148,6 @@ export type TriggerAutomaticTaskResponses = {
 };
 
 export type TriggerAutomaticTaskResponse = TriggerAutomaticTaskResponses[keyof TriggerAutomaticTaskResponses];
-
-export type RotateAutomaticTaskTokenData = {
-    body: GithubComJieWaZiNeuxAllyServerApisAutomaticTasksRotateAutomaticTaskTokenRequest & unknown;
-    path: {
-        /**
-         * 任务标识
-         */
-        taskId: string;
-        /**
-         * 伙伴标识
-         */
-        wakerId: string;
-    };
-    query?: never;
-    url: '/api/v1/wakers/{wakerId}/automatic-tasks/{taskId}/token';
-};
-
-export type RotateAutomaticTaskTokenErrors = {
-    /**
-     * >
-     * * `[AutomaticTaskNotFound][40400000018]`
-     *
-     */
-    404: GithubComShrewxGinxPkgStatuserrorStatusErr;
-    /**
-     * >
-     * * `[AutomaticTaskRevisionConflict][40900000036]`
-     *
-     */
-    409: GithubComShrewxGinxPkgStatuserrorStatusErr;
-    /**
-     * >
-     * * `[AutomaticTaskTokenGenerationFailed][50000001002]`
-     *
-     */
-    500: GithubComShrewxGinxPkgStatuserrorStatusErr;
-};
-
-export type RotateAutomaticTaskTokenError = RotateAutomaticTaskTokenErrors[keyof RotateAutomaticTaskTokenErrors];
-
-export type RotateAutomaticTaskTokenResponses = {
-    200: GithubComJieWaZiNeuxAllyServerServicesScheduleSavedTask;
-};
-
-export type RotateAutomaticTaskTokenResponse = RotateAutomaticTaskTokenResponses[keyof RotateAutomaticTaskTokenResponses];
 
 export type ListWakerChatsData = {
     body?: never;
@@ -30303,7 +32208,25 @@ export type ListWakerConnectorsData = {
 export type ListWakerConnectorsErrors = {
     /**
      * >
+     * * `[BadRequest][40000000001]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[OperationCanceled][40800000001]`
+     * * `[OperationTimeout][40800000002]`
+     *
+     */
+    408: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[AIAccountLoginFailed][50000000048]`
+     * * `[AIAccountWorkspaceError][50000000047]`
+     * * `[RuntimeAuthRequired][50000000044]`
+     * * `[RuntimeConfigurationInvalid][50000000040]`
      * * `[RuntimeProtocolIncompatible][50000000012]`
+     * * `[RuntimeUnavailable][50000000006]`
      *
      */
     500: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -30344,13 +32267,25 @@ export type CreateWakerConnectorErrors = {
     404: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
+     * * `[OperationCanceled][40800000001]`
+     * * `[OperationTimeout][40800000002]`
+     *
+     */
+    408: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
      * * `[MCPConnectorTrustRequired][40900000013]`
      *
      */
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
+     * * `[AIAccountLoginFailed][50000000048]`
+     * * `[AIAccountWorkspaceError][50000000047]`
+     * * `[RuntimeAuthRequired][50000000044]`
+     * * `[RuntimeConfigurationInvalid][50000000040]`
      * * `[RuntimeProtocolIncompatible][50000000012]`
+     * * `[RuntimeUnavailable][50000000006]`
      *
      */
     500: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -30432,13 +32367,31 @@ export type GetWakerConnectorData = {
 export type GetWakerConnectorErrors = {
     /**
      * >
+     * * `[BadRequest][40000000001]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
      * * `[MCPConnectorNotFound][40400000009]`
      *
      */
     404: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
+     * * `[OperationCanceled][40800000001]`
+     * * `[OperationTimeout][40800000002]`
+     *
+     */
+    408: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[AIAccountLoginFailed][50000000048]`
+     * * `[AIAccountWorkspaceError][50000000047]`
+     * * `[RuntimeAuthRequired][50000000044]`
+     * * `[RuntimeConfigurationInvalid][50000000040]`
      * * `[RuntimeProtocolIncompatible][50000000012]`
+     * * `[RuntimeUnavailable][50000000006]`
      *
      */
     500: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -30483,6 +32436,13 @@ export type UpdateWakerConnectorErrors = {
     404: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
+     * * `[OperationCanceled][40800000001]`
+     * * `[OperationTimeout][40800000002]`
+     *
+     */
+    408: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
      * * `[BuiltInMCPConnectorReadOnly][40900000012]`
      * * `[MCPConnectorTrustRequired][40900000013]`
      *
@@ -30490,7 +32450,12 @@ export type UpdateWakerConnectorErrors = {
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
+     * * `[AIAccountLoginFailed][50000000048]`
+     * * `[AIAccountWorkspaceError][50000000047]`
+     * * `[RuntimeAuthRequired][50000000044]`
+     * * `[RuntimeConfigurationInvalid][50000000040]`
      * * `[RuntimeProtocolIncompatible][50000000012]`
+     * * `[RuntimeUnavailable][50000000006]`
      *
      */
     500: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -30556,10 +32521,23 @@ export type TestWakerConnectorData = {
 export type TestWakerConnectorErrors = {
     /**
      * >
+     * * `[BadRequest][40000000001]`
+     *
+     */
+    400: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
      * * `[MCPConnectorNotFound][40400000009]`
      *
      */
     404: GithubComShrewxGinxPkgStatuserrorStatusErr;
+    /**
+     * >
+     * * `[OperationCanceled][40800000001]`
+     * * `[OperationTimeout][40800000002]`
+     *
+     */
+    408: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
      * * `[MCPConnectorTrustRequired][40900000013]`
@@ -30568,7 +32546,12 @@ export type TestWakerConnectorErrors = {
     409: GithubComShrewxGinxPkgStatuserrorStatusErr;
     /**
      * >
+     * * `[AIAccountLoginFailed][50000000048]`
+     * * `[AIAccountWorkspaceError][50000000047]`
+     * * `[RuntimeAuthRequired][50000000044]`
+     * * `[RuntimeConfigurationInvalid][50000000040]`
      * * `[RuntimeProtocolIncompatible][50000000012]`
+     * * `[RuntimeUnavailable][50000000006]`
      *
      */
     500: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -30732,6 +32715,7 @@ export type ListWakerPluginsErrors = {
      * * `[ChatMessageCursorInvalid][40000000012]`
      * * `[IMConfigurationInvalid][40000004001]`
      * * `[IMFileInvalid][40000004002]`
+     * * `[IntegrationInvalid][40000009601]`
      * * `[KnowledgeInvalid][40000009501]`
      * * `[MemoryEmbeddingConflict][40000000009]`
      * * `[MemoryEmbeddingNotConfigured][40000000007]`
@@ -30765,6 +32749,7 @@ export type ListWakerPluginsErrors = {
      * * `[AgentContextUnauthorized][40100009001]`
      * * `[AutomaticTaskTokenInvalid][40100001001]`
      * * `[IMLoginRequired][40100004001]`
+     * * `[IntegrationUnauthorized][40100009601]`
      * * `[KnowledgeRemoteUnauthorized][40100009501]`
      * * `[MemoryContextUnauthorized][40100000002]`
      * * `[Unauthorized][40100000001]`
@@ -30777,6 +32762,7 @@ export type ListWakerPluginsErrors = {
      * * `[IMChatNotAuthorized][40300004001]`
      * * `[IMTargetNotAuthorized][40300004003]`
      * * `[IMWorkflowDeliveryNotAllowed][40300004002]`
+     * * `[IntegrationForbidden][40300009601]`
      * * `[KnowledgeForbidden][40300009501]`
      * * `[PluginForbidden][40300006501]`
      *
@@ -30798,6 +32784,7 @@ export type ListWakerPluginsErrors = {
      * * `[ExecutionNotFound][40400000004]`
      * * `[IMResourceNotFound][40400004001]`
      * * `[IMTargetUnavailable][40400004002]`
+     * * `[IntegrationNotFound][40400009601]`
      * * `[KnowledgeNotFound][40400009501]`
      * * `[MCPConnectorNotFound][40400000009]`
      * * `[MemoryNotFound][40400000010]`
@@ -30861,6 +32848,7 @@ export type ListWakerPluginsErrors = {
      * * `[IMConnectionInUse][40900004004]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
+     * * `[IntegrationConflict][40900009601]`
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
      * * `[KnowledgeFolderHasChildren][40900009503]`
@@ -30930,6 +32918,7 @@ export type ListWakerPluginsErrors = {
      * * `[CoreTokenGenerationFailed][50000000030]`
      * * `[DatabaseError][50000000002]`
      * * `[IMCredentialError][50000004001]`
+     * * `[IntegrationCredentialError][50000009601]`
      * * `[InternalServerError][50000000001]`
      * * `[KnowledgeStorageError][50000009501]`
      * * `[MCPConnectorCredentialError][50000000022]`
@@ -30990,6 +32979,7 @@ export type ListWakerPluginsErrors = {
      * * `[AgentConnectionUnavailable][50300009001]`
      * * `[DatabaseBusy][50300001001]`
      * * `[IMServiceUnavailable][50300004001]`
+     * * `[IntegrationListenerError][50300009601]`
      *
      */
     503: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -32239,6 +34229,7 @@ export type DeleteWorkflowErrors = {
      * * `[ChatMessageCursorInvalid][40000000012]`
      * * `[IMConfigurationInvalid][40000004001]`
      * * `[IMFileInvalid][40000004002]`
+     * * `[IntegrationInvalid][40000009601]`
      * * `[KnowledgeInvalid][40000009501]`
      * * `[MemoryEmbeddingConflict][40000000009]`
      * * `[MemoryEmbeddingNotConfigured][40000000007]`
@@ -32272,6 +34263,7 @@ export type DeleteWorkflowErrors = {
      * * `[AgentContextUnauthorized][40100009001]`
      * * `[AutomaticTaskTokenInvalid][40100001001]`
      * * `[IMLoginRequired][40100004001]`
+     * * `[IntegrationUnauthorized][40100009601]`
      * * `[KnowledgeRemoteUnauthorized][40100009501]`
      * * `[MemoryContextUnauthorized][40100000002]`
      * * `[Unauthorized][40100000001]`
@@ -32284,6 +34276,7 @@ export type DeleteWorkflowErrors = {
      * * `[IMChatNotAuthorized][40300004001]`
      * * `[IMTargetNotAuthorized][40300004003]`
      * * `[IMWorkflowDeliveryNotAllowed][40300004002]`
+     * * `[IntegrationForbidden][40300009601]`
      * * `[KnowledgeForbidden][40300009501]`
      * * `[PluginForbidden][40300006501]`
      *
@@ -32305,6 +34298,7 @@ export type DeleteWorkflowErrors = {
      * * `[ExecutionNotFound][40400000004]`
      * * `[IMResourceNotFound][40400004001]`
      * * `[IMTargetUnavailable][40400004002]`
+     * * `[IntegrationNotFound][40400009601]`
      * * `[KnowledgeNotFound][40400009501]`
      * * `[MCPConnectorNotFound][40400000009]`
      * * `[MemoryNotFound][40400000010]`
@@ -32368,6 +34362,7 @@ export type DeleteWorkflowErrors = {
      * * `[IMConnectionInUse][40900004004]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
+     * * `[IntegrationConflict][40900009601]`
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
      * * `[KnowledgeFolderHasChildren][40900009503]`
@@ -32437,6 +34432,7 @@ export type DeleteWorkflowErrors = {
      * * `[CoreTokenGenerationFailed][50000000030]`
      * * `[DatabaseError][50000000002]`
      * * `[IMCredentialError][50000004001]`
+     * * `[IntegrationCredentialError][50000009601]`
      * * `[InternalServerError][50000000001]`
      * * `[KnowledgeStorageError][50000009501]`
      * * `[MCPConnectorCredentialError][50000000022]`
@@ -32497,6 +34493,7 @@ export type DeleteWorkflowErrors = {
      * * `[AgentConnectionUnavailable][50300009001]`
      * * `[DatabaseBusy][50300001001]`
      * * `[IMServiceUnavailable][50300004001]`
+     * * `[IntegrationListenerError][50300009601]`
      *
      */
     503: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -32687,6 +34684,7 @@ export type SendWorkflowCreationMessageErrors = {
      * * `[ChatMessageCursorInvalid][40000000012]`
      * * `[IMConfigurationInvalid][40000004001]`
      * * `[IMFileInvalid][40000004002]`
+     * * `[IntegrationInvalid][40000009601]`
      * * `[KnowledgeInvalid][40000009501]`
      * * `[MemoryEmbeddingConflict][40000000009]`
      * * `[MemoryEmbeddingNotConfigured][40000000007]`
@@ -32720,6 +34718,7 @@ export type SendWorkflowCreationMessageErrors = {
      * * `[AgentContextUnauthorized][40100009001]`
      * * `[AutomaticTaskTokenInvalid][40100001001]`
      * * `[IMLoginRequired][40100004001]`
+     * * `[IntegrationUnauthorized][40100009601]`
      * * `[KnowledgeRemoteUnauthorized][40100009501]`
      * * `[MemoryContextUnauthorized][40100000002]`
      * * `[Unauthorized][40100000001]`
@@ -32732,6 +34731,7 @@ export type SendWorkflowCreationMessageErrors = {
      * * `[IMChatNotAuthorized][40300004001]`
      * * `[IMTargetNotAuthorized][40300004003]`
      * * `[IMWorkflowDeliveryNotAllowed][40300004002]`
+     * * `[IntegrationForbidden][40300009601]`
      * * `[KnowledgeForbidden][40300009501]`
      * * `[PluginForbidden][40300006501]`
      *
@@ -32753,6 +34753,7 @@ export type SendWorkflowCreationMessageErrors = {
      * * `[ExecutionNotFound][40400000004]`
      * * `[IMResourceNotFound][40400004001]`
      * * `[IMTargetUnavailable][40400004002]`
+     * * `[IntegrationNotFound][40400009601]`
      * * `[KnowledgeNotFound][40400009501]`
      * * `[MCPConnectorNotFound][40400000009]`
      * * `[MemoryNotFound][40400000010]`
@@ -32816,6 +34817,7 @@ export type SendWorkflowCreationMessageErrors = {
      * * `[IMConnectionInUse][40900004004]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
+     * * `[IntegrationConflict][40900009601]`
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
      * * `[KnowledgeFolderHasChildren][40900009503]`
@@ -32885,6 +34887,7 @@ export type SendWorkflowCreationMessageErrors = {
      * * `[CoreTokenGenerationFailed][50000000030]`
      * * `[DatabaseError][50000000002]`
      * * `[IMCredentialError][50000004001]`
+     * * `[IntegrationCredentialError][50000009601]`
      * * `[InternalServerError][50000000001]`
      * * `[KnowledgeStorageError][50000009501]`
      * * `[MCPConnectorCredentialError][50000000022]`
@@ -32945,6 +34948,7 @@ export type SendWorkflowCreationMessageErrors = {
      * * `[AgentConnectionUnavailable][50300009001]`
      * * `[DatabaseBusy][50300001001]`
      * * `[IMServiceUnavailable][50300004001]`
+     * * `[IntegrationListenerError][50300009601]`
      *
      */
     503: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -33691,6 +35695,7 @@ export type GetWorkflowInstanceErrors = {
      * * `[ChatMessageCursorInvalid][40000000012]`
      * * `[IMConfigurationInvalid][40000004001]`
      * * `[IMFileInvalid][40000004002]`
+     * * `[IntegrationInvalid][40000009601]`
      * * `[KnowledgeInvalid][40000009501]`
      * * `[MemoryEmbeddingConflict][40000000009]`
      * * `[MemoryEmbeddingNotConfigured][40000000007]`
@@ -33724,6 +35729,7 @@ export type GetWorkflowInstanceErrors = {
      * * `[AgentContextUnauthorized][40100009001]`
      * * `[AutomaticTaskTokenInvalid][40100001001]`
      * * `[IMLoginRequired][40100004001]`
+     * * `[IntegrationUnauthorized][40100009601]`
      * * `[KnowledgeRemoteUnauthorized][40100009501]`
      * * `[MemoryContextUnauthorized][40100000002]`
      * * `[Unauthorized][40100000001]`
@@ -33736,6 +35742,7 @@ export type GetWorkflowInstanceErrors = {
      * * `[IMChatNotAuthorized][40300004001]`
      * * `[IMTargetNotAuthorized][40300004003]`
      * * `[IMWorkflowDeliveryNotAllowed][40300004002]`
+     * * `[IntegrationForbidden][40300009601]`
      * * `[KnowledgeForbidden][40300009501]`
      * * `[PluginForbidden][40300006501]`
      *
@@ -33757,6 +35764,7 @@ export type GetWorkflowInstanceErrors = {
      * * `[ExecutionNotFound][40400000004]`
      * * `[IMResourceNotFound][40400004001]`
      * * `[IMTargetUnavailable][40400004002]`
+     * * `[IntegrationNotFound][40400009601]`
      * * `[KnowledgeNotFound][40400009501]`
      * * `[MCPConnectorNotFound][40400000009]`
      * * `[MemoryNotFound][40400000010]`
@@ -33820,6 +35828,7 @@ export type GetWorkflowInstanceErrors = {
      * * `[IMConnectionInUse][40900004004]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
+     * * `[IntegrationConflict][40900009601]`
      * * `[KnowledgeCancelled][40900009502]`
      * * `[KnowledgeConflict][40900009501]`
      * * `[KnowledgeFolderHasChildren][40900009503]`
@@ -33889,6 +35898,7 @@ export type GetWorkflowInstanceErrors = {
      * * `[CoreTokenGenerationFailed][50000000030]`
      * * `[DatabaseError][50000000002]`
      * * `[IMCredentialError][50000004001]`
+     * * `[IntegrationCredentialError][50000009601]`
      * * `[InternalServerError][50000000001]`
      * * `[KnowledgeStorageError][50000009501]`
      * * `[MCPConnectorCredentialError][50000000022]`
@@ -33949,6 +35959,7 @@ export type GetWorkflowInstanceErrors = {
      * * `[AgentConnectionUnavailable][50300009001]`
      * * `[DatabaseBusy][50300001001]`
      * * `[IMServiceUnavailable][50300004001]`
+     * * `[IntegrationListenerError][50300009601]`
      *
      */
     503: GithubComShrewxGinxPkgStatuserrorStatusErr;

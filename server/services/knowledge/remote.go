@@ -60,11 +60,15 @@ func (a *RemoteAdapter) session(ctx context.Context, id string, auth httpapi.Aut
 	if err != nil {
 		return session, err
 	}
-	if auth.Subject == "" || auth.PublishGuard == nil || auth.Recovery.Subject != auth.Subject {
+	if auth.Subject == "" || auth.PublishGuard == nil || (len(auth.RecoveryData) == 0 && auth.Recovery.Subject != auth.Subject) {
 		return session, status_error.KnowledgeForbidden
 	}
 
 	raw, err := json.Marshal(auth.Recovery)
+	if len(auth.RecoveryData) > 0 {
+		raw = append(json.RawMessage(nil), auth.RecoveryData...)
+		err = nil
+	}
 	if err != nil {
 		return session, status_error.KnowledgeForbidden
 	}
@@ -87,7 +91,7 @@ func (a *RemoteAdapter) Organize(ctx context.Context, in httpapi.OrganizeRequest
 	if err != nil {
 		return nil, err
 	}
-	defer release()
+	release()
 	lib, err := a.Service.config.Engine.GetLibrary(ctx, in.LibraryID)
 	if err != nil {
 		return nil, err
@@ -130,6 +134,9 @@ func (a *RemoteAdapter) Maintain(ctx context.Context, in httpapi.MaintenanceRequ
 	if err != nil {
 		return nil, err
 	}
+	if library.Version != in.ExpectedVersion || library.StructureVersion != in.StructureVersion {
+		return nil, status_error.KnowledgeConflict
+	}
 	page, err := a.Service.config.Engine.GetPage(ctx, in.LibraryID, in.PageID)
 	if err != nil {
 		return nil, err
@@ -169,6 +176,7 @@ func (a *RemoteAdapter) Maintain(ctx context.Context, in httpapi.MaintenanceRequ
 	if err := a.Service.config.References.CompleteOperation(ctx, operationID, receipt.LibraryID, receipt.ResourceID, receipt.JobID); err != nil {
 		return nil, err
 	}
+	a.Service.emitTaskChanged(receipt.JobID, receipt.LibraryID)
 	return receipt, nil
 }
 

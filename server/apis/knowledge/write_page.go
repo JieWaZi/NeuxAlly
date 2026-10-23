@@ -6,6 +6,7 @@ import (
 	"github.com/JieWaZi/neux-knowledge/core"
 	"github.com/gin-gonic/gin"
 	"github.com/shrewx/ginx"
+	"time"
 )
 
 // 保存知识页面
@@ -45,6 +46,8 @@ func (o *WritePage) Output(ctx *gin.Context) (interface{}, error) {
 		}
 		page = *v
 	}
+	// 证据来自权威当前页，读取时间必须来自调用者的原快照。
+	page.UpdatedAt = time.UnixMilli(o.Body.Page.UpdatedAt)
 	page.ID = o.PageID
 	page.KnowledgeBaseID = o.LibraryID
 	page.Slug = o.Body.Page.Slug

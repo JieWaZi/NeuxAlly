@@ -24,6 +24,21 @@ func (o *GetRemoteCapabilities) Output(ctx *gin.Context) (interface{}, error) {
 		return nil, err
 	}
 	out := RemoteCapabilities{Ref: remoteRef(c, o.LibraryID), Operations: map[string]bool{}, Permissions: map[string]string{}, Reasons: map[string]string{}, Details: map[string]RemoteCapabilityStatus{}, Profiles: []RemoteProfile{}}
+	out.ServiceKind = c.connection.Detection.ServiceKind
+	out.ServiceVersion = c.connection.Detection.Version
+	out.UploadMode = c.connection.Detection.UploadMode
+	out.ConnectionRevision = c.connection.Revision
+	out.Evidence = c.connection.Detection.Evidence
+	if c.connection.Backend == "integration" && c.custom == nil {
+		out.Profile = c.connection.Detection.Version
+		for name, value := range c.connection.Detection.Operations {
+			out.Details[name] = RemoteCapabilityStatus{Supported: value.Supported, Permission: value.Permission, Condition: value.Condition}
+			out.Permissions[name] = value.Permission
+			out.Reasons[name] = value.Condition
+			out.Operations[name] = value.Supported && value.Permission == "allowed" && (value.Condition == "ready")
+		}
+		return out, nil
+	}
 	if c.custom != nil {
 		v, e := c.custom.Capabilities(ctx)
 		if e != nil {

@@ -15,6 +15,11 @@ func (s *Service) pendingSourceHeads(ctx context.Context, library string) ([]str
 		if err != nil {
 			return nil, bridge.MapError(err)
 		}
+		// 全部已接纳任务共同投影来源占用，默认范围不能重复包含队列中的资料。
+		rows, err = s.config.Engine.SourceActivity(ctx, library, rows)
+		if err != nil {
+			return nil, bridge.MapError(err)
+		}
 		for _, source := range rows {
 			old := heads[source.SourceID]
 			if old == nil || source.Version > old.Version {
@@ -33,7 +38,7 @@ func (s *Service) pendingSourceHeads(ctx context.Context, library string) ([]str
 	out := []string{}
 	for _, key := range keys {
 		source := heads[key]
-		if organizableSourceState(source.State) && !source.Archived {
+		if organizableSourceState(source.State) && !source.Archived && !source.OrganizeBlocked {
 			out = append(out, source.ID)
 		}
 	}

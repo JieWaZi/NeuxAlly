@@ -288,3 +288,40 @@ func TestMaintenanceReadsWaitForPolicyWrite(t *testing.T) {
 	case <-time.After(100 * time.Millisecond):
 	}
 }
+
+// TestWikiWholePageCommandUsesCallerReadTime 防止智能体整页工具用最新读取时间掩盖旧正文。
+func TestWikiWholePageCommandUsesCallerReadTime(t *testing.T) {
+	s, lib := newServiceFixture(t)
+	ctx := context.Background()
+	rec, err := s.config.Engine.WritePage(ctx, core.WritePageInput{RequestID: "agent-time-page", LibraryID: lib.ID, StructureVersion: lib.StructureVersion, Page: core.Page{Slug: "concept/time", Title: "时间", PageType: "concept", Content: "需要保留的当前正文"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	p, err := s.config.Engine.GetPage(ctx, lib.ID, rec.ResourceID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	chat := models.Chat{ID: "time-chat", WakerID: "waker", ActiveExecutionID: "time-execution"}
+	s.config.Chats = selectedChat{chat: chat}
+	var binding *agentcapability.Binding
+	bindings := s.AgentBindings(ctx, chat)
+	for i := range bindings {
+		if bindings[i].Operation == "knowledge.pages.write" {
+			binding = &bindings[i]
+			break
+		}
+	}
+	if binding == nil {
+		t.Fatal("whole-page command missing")
+	}
+	params := map[string]any{"libraryId": lib.ID, "pageId": p.ID, "expectedVersion": p.Version, "expectedUpdatedAt": p.UpdatedAt.Add(-time.Millisecond).Format(time.RFC3339Nano), "structureVersion": lib.StructureVersion, "slug": p.Slug, "title": p.Title, "summary": p.Summary, "content": p.Content, "pageType": p.PageType}
+	_, err = binding.Call(ctx, agentcapability.Request{Operation: binding.Operation, RequestID: "agent-old-time", Params: params})
+	if !errors.Is(err, status_error.KnowledgeConflict) {
+		t.Fatalf("old agent read time error=%v", err)
+	}
+	params["expectedUpdatedAt"] = p.UpdatedAt.Format(time.RFC3339Nano)
+	params["content"] = p.Content + "，本次合法补充"
+	if _, err = binding.Call(ctx, agentcapability.Request{Operation: binding.Operation, RequestID: "agent-current-time", Params: params}); err != nil {
+		t.Fatal(err)
+	}
+}

@@ -4,6 +4,7 @@ import "github.com/shrewx/ginx/pkg/dbhelper"
 
 func init() {
 	dbhelper.RegisterTable(&KnowledgeConnectionSecret{})
+	dbhelper.RegisterTable(&KnowledgeConnectionRevision{})
 	dbhelper.RegisterTable(&KnowledgeConnectionStorageKey{})
 	dbhelper.RegisterTable(&KnowledgeConnectionMutation{})
 }
@@ -41,3 +42,17 @@ type KnowledgeConnectionMutation struct {
 }
 
 func (KnowledgeConnectionMutation) TableName() string { return "knowledge_connection_mutations" }
+
+// KnowledgeConnectionRevision 固定已发送写入的原目标和受保护凭据，不保存远端内容。
+type KnowledgeConnectionRevision struct {
+	// ConnectionID 固定连接身份，也是凭据密文的关联数据。
+	ConnectionID string `gorm:"primaryKey" json:"-"`
+	// Revision 固定已提交的连接配置代次。
+	Revision int64 `gorm:"primaryKey" json:"-"`
+	// Configuration 保存该代次的地址、协议和识别证据，不含凭据。
+	Configuration KnowledgeConnection `gorm:"serializer:json;type:text" json:"-"`
+	// CredentialCiphertext 仍使用现有 AES-GCM 保护，不进入普通操作 JSON。
+	CredentialCiphertext string `json:"-"`
+}
+
+func (KnowledgeConnectionRevision) TableName() string { return "knowledge_connection_revisions" }

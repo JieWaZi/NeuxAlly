@@ -120,6 +120,7 @@ func (m *service) summarizeCurrentSession(
 		}
 		defer release()
 		run.Target.AccountID = target.AccountID
+		run.Target.RefreshCredentials = target.RefreshCredentials
 		run.Target.Environment = target.Environment
 		run.Target.Isolated = target.Isolated
 		run.Target.CloseAfterRun = target.CloseAfterRun

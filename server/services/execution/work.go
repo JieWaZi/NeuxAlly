@@ -96,6 +96,8 @@ type pendingChat struct {
 
 // pendingMessage 保存尚未被 Runtime 接受、尚未进入权威日志的输入。
 type pendingMessage struct {
+	// automaticRunID 固定服务端编排来源，恢复和重试保持原调用链。
+	automaticRunID string
 	// submissionID 是耐久入口可选的续发请求身份。
 	submissionID string
 	// submissionHash 是接纳前冻结的规范化请求摘要。
@@ -521,6 +523,7 @@ func (m *service) startMessage(
 			}
 		}()
 		runRequest.Target.AccountID = target.AccountID
+		runRequest.Target.RefreshCredentials = target.RefreshCredentials
 		runRequest.Target.Environment = target.Environment
 		runRequest.Target.Isolated = target.Isolated
 		runRequest.Target.CloseAfterRun = target.CloseAfterRun
@@ -556,7 +559,7 @@ func (m *service) startMessage(
 	}
 	runRequest.Message.Text += pluginSelectionHint(pluginResources.selected)
 	agentFacts := &agentCommandFacts{}
-	agentActivate, capabilityRelease, agentSettle, err := m.prepareAgent(&runRequest, state.chat, executionID, request.toolCapabilities, request.allowedAgentDomains, agentFacts)
+	agentActivate, capabilityRelease, agentSettle, err := m.prepareAgent(&runRequest, state.chat, executionID, request.toolCapabilities, request.allowedAgentDomains, agentFacts, request.automaticRunID)
 	if err != nil {
 		return AcceptedExecution{}, err
 	}
@@ -686,6 +689,9 @@ func createRequestContent(request pendingMessage) []interface{} {
 		stableToolCapabilities(request.toolCapabilities),
 		request.supplementalInstructions,
 		request.allowedAgentDomains,
+	}
+	if request.automaticRunID != "" {
+		content = append(content, map[string]any{"automaticRunId": request.automaticRunID})
 	}
 	if request.allowedConnectorIDs != nil {
 		content = append(content, map[string]any{"allowedConnectorIds": *request.allowedConnectorIDs})
@@ -1322,6 +1328,7 @@ func newExecutionIndex(
 ) models.Execution {
 	now := nowMillis()
 	return models.Execution{
+		AutomaticRunID:    request.automaticRunID,
 		ID:                executionID,
 		ChatID:            state.chat.ID,
 		UserMessageID:     userMessageID,
@@ -1398,6 +1405,7 @@ func startedMessageEvents(
 			ExecutionID:  execution.ID,
 			InvocationID: invocationID,
 			Data: marshalData(eventlog.ExecutionCreatedData{
+				AutomaticRunID:    execution.AutomaticRunID,
 				PluginResources:   execution.PluginResources,
 				UserMessageID:     execution.UserMessageID,
 				SubmissionID:      execution.SubmissionID,

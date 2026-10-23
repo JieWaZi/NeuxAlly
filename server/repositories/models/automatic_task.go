@@ -136,6 +136,8 @@ func (AutomaticTask) TableName() string { return "automatic_tasks" }
 
 // AutomaticRun 保存一次机会的不可变输入和标准 Chat 接纳关系。
 type AutomaticRun struct {
+	// IntegrationInvocation 是原集成调用的受信身份，nil 保留定时与旧 Token 行为。
+	IntegrationInvocation *IntegrationInvocation `gorm:"serializer:json;type:text" json:"-"`
 	// WorkflowRunID 是已接纳的工作流运行，伙伴和团队目标为空。
 	WorkflowRunID string `gorm:"size:32;not null;default:'';index" json:"workflowRunId"`
 	// FinalState 是团队首次整体结束时的投影，防止用户后续续聊重新占用自动运行槽。

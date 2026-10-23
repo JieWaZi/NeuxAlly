@@ -39,7 +39,7 @@ func (s *Service) BindIntent(ctx context.Context, intent execution.WorkIntent, a
 	if err := s.validateTarget(ctx, waker, project, lib); err != nil {
 		return intent, err
 	}
-	validate := func(ctx context.Context) error {
+	validateTarget := func(ctx context.Context) error {
 		current, err := s.config.Engine.GetLibrary(ctx, lib.ID)
 		if err != nil {
 			return bridge.MapError(err)
@@ -58,10 +58,21 @@ func (s *Service) BindIntent(ctx context.Context, intent execution.WorkIntent, a
 		}
 		return s.validateTarget(ctx, waker, project, current)
 	}
+	validate := func(ctx context.Context) error {
+		if intent.AutomaticRunID != "" && s.config.InvocationGuard != nil {
+			release, err := s.config.InvocationGuard(ctx, intent.AutomaticRunID)
+			if err != nil {
+				return err
+			}
+			release()
+		}
+		return validateTarget(ctx)
+	}
 	var binding agentcapability.Binding
 	switch auth.Operation {
 	case "organize":
 		// 不得把空来源解释为全库；空时在签发时冻结当前pending集合。
+		originalAuthorization := auth
 		if len(auth.SourceVersionIDs) == 0 && len(auth.AttachmentIndexes) == 0 {
 			auth.SourceVersionIDs, err = s.pendingSourceHeads(ctx, lib.ID)
 			if err != nil {
@@ -69,6 +80,11 @@ func (s *Service) BindIntent(ctx context.Context, intent execution.WorkIntent, a
 			}
 		}
 
+		// 先核对原冻结授权，再展开 pending，不能把模型指定目标当自动任务授权。
+		session, err := s.automaticSession(ctx, intent, originalAuthorization, lib, models.KnowledgeTaskConfiguration{KnowledgeBaseID: lib.ID, RuntimeID: intent.Options.RuntimeID, AccountID: intent.Options.AccountID, Model: intent.Options.Model})
+		if err != nil {
+			return intent, err
+		}
 		frozen := append([]string(nil), auth.SourceVersionIDs...)
 		selected := append([]int(nil), auth.AttachmentIndexes...)
 		seen := map[int]bool{}
@@ -83,21 +99,25 @@ func (s *Service) BindIntent(ctx context.Context, intent execution.WorkIntent, a
 			originChat = (requestidempotency.Identity{ID: intent.ClientRequestID}).ResourceID("chat", waker)
 		}
 
-		session := models.KnowledgeTaskConfiguration{RuntimeID: intent.Options.RuntimeID, AccountID: intent.Options.AccountID, Model: intent.Options.Model}
-
+		identity := func(id string) string {
+			if intent.AutomaticRunID == "" {
+				return id
+			}
+			return (requestidempotency.Identity{ID: id}).ResourceID("automatic-knowledge", intent.AutomaticRunID, lib.ID)
+		}
 		binding = agentcapability.Binding{Operation: "knowledge.jobs.start", Call: func(ctx context.Context, r agentcapability.Request) (agentcapability.Result, error) {
 			if err := validate(ctx); err != nil {
 				return agentcapability.Result{}, err
 			}
 			chosen := append([]string(nil), frozen...)
 			if len(selected) > 0 {
-				imported, err := s.importSelectedAttachments(ctx, originChat, lib.ID, r.RequestID, selected, validate)
+				imported, err := s.importSelectedAttachments(ctx, originChat, lib.ID, identity(r.RequestID), selected, validateTarget, s.publishGuard(session))
 				if err != nil {
 					return agentcapability.Result{}, err
 				}
 				chosen = append(chosen, imported...)
 			}
-			receipt, _, err := s.Organize(ctx, OrganizeCommand{RequestID: r.RequestID, LibraryID: lib.ID, SourceVersionIDs: chosen, ExplicitSources: true, Configuration: session, Message: intent.Input.Content})
+			receipt, _, err := s.Organize(ctx, OrganizeCommand{RequestID: identity(r.RequestID), LibraryID: lib.ID, SourceVersionIDs: chosen, ExplicitSources: true, Configuration: session, Message: intent.Input.Content})
 			if err != nil {
 				return agentcapability.Result{}, err
 			}
@@ -110,7 +130,11 @@ func (s *Service) BindIntent(ctx context.Context, intent execution.WorkIntent, a
 		if err := validate(ctx); err != nil {
 			return agentcapability.Result{}, err
 		}
-		r, err := s.config.Engine.GetReceipt(ctx, id)
+		requestID := id
+		if intent.AutomaticRunID != "" {
+			requestID = (requestidempotency.Identity{ID: id}).ResourceID("automatic-knowledge", intent.AutomaticRunID, lib.ID)
+		}
+		r, err := s.config.Engine.GetReceipt(ctx, requestID)
 		if err != nil {
 			return agentcapability.Result{}, bridge.MapError(err)
 		}

@@ -1062,11 +1062,13 @@ const resources = {
       groups: {
         app: "应用",
         ai: "AI",
+        integration: "发布集成",
       },
       sections: {
         general: "通用",
         runtimeEnvironments: "智能体",
         accounts: "账号管理",
+        integrationAPI: "API 集成",
       },
       general: {
         title: "通用",

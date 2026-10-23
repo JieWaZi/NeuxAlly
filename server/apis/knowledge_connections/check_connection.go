@@ -29,7 +29,11 @@ func (o *CheckConnection) Output(ctx *gin.Context) (interface{}, error) {
 		return nil, err
 	}
 	var total int64
-	if c.official != nil {
+	if c.connection.Backend == "integration" {
+		items, e := mountedLibraries(ctx, c)
+		err = e
+		total = int64(len(items))
+	} else if c.official != nil {
 		items, e := c.official.ListLibraries(ctx)
 		err = e
 		total = int64(len(items))

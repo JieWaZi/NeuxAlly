@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/JieWaZi/NeuxAlly/server/constants/status_error"
 	"github.com/JieWaZi/NeuxAlly/server/repositories/models"
+	"github.com/JieWaZi/neux-knowledge/remote"
 	"testing"
 )
 
@@ -114,5 +115,51 @@ func TestKnowledgeJobLinkPersistsIndependentConfiguration(t *testing.T) {
 	}
 	if got.ConfigurationID != "model-config" || got.JobID != "job" || got.ChatID != "" || got.ExecutionID != "" {
 		t.Fatalf("独立任务引用丢失: %+v", got)
+	}
+}
+
+func TestIntegrationClaimRequiresCurrentConnectionAndExactMount(t *testing.T) {
+	for _, change := range []string{"revised", "disabled", "unmounted", "wrong-library"} {
+		t.Run(change, func(t *testing.T) {
+			db := newTestDB(t)
+			ctx := context.Background()
+			mounts := NewKnowledgeRemoteMountController(db)
+			_, err := mounts.Add(ctx, AddKnowledgeRemoteMountInput{RequestID: "mount", ConnectionID: "connection", MountID: "mount", Credential: "secret", Detection: remote.Detection{BaseURL: "http://fixture.test/api/v1", ServiceKind: "neuxally", UploadMode: "separate", Library: remote.Library{ID: "kb", Name: "知识"}}})
+			if err != nil {
+				t.Fatal(err)
+			}
+			c := NewKnowledgeController(db)
+			link := models.KnowledgeOperationLink{RequestID: "original", Operation: "source.import", Digest: "content", Backend: "integration", ConnectionID: "connection", ConnectionRevision: 1, KnowledgeBaseID: "kb"}
+			if fresh, e := c.ClaimRemoteOperation(ctx, link); e != nil || !fresh {
+				t.Fatal(fresh, e)
+			}
+			if change == "unmounted" {
+				err = mounts.Remove(ctx, "mount", 1)
+			} else if change != "wrong-library" {
+				connections := NewKnowledgeConnectionController(db)
+				connection, e := connections.Get(ctx, "connection")
+				if e != nil {
+					t.Fatal(e)
+				}
+				connection.Enabled = change != "disabled"
+				_, err = connections.Save(ctx, SaveKnowledgeConnectionInput{RequestID: "change", ExpectedRevision: 1, Connection: connection})
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			if fresh, e := c.ClaimRemoteOperation(ctx, link); e != nil || fresh {
+				t.Fatalf("original send fact changed: fresh=%v err=%v", fresh, e)
+			}
+			link.RequestID = "fresh"
+			if change == "wrong-library" {
+				link.KnowledgeBaseID = "other"
+			}
+			if fresh, e := c.ClaimRemoteOperation(ctx, link); e == nil || fresh {
+				t.Fatalf("stale or unmounted write accepted: fresh=%v err=%v", fresh, e)
+			}
+			if _, e := c.GetOperation(ctx, "fresh"); !errors.Is(e, status_error.KnowledgeNotFound) {
+				t.Fatalf("failed claim persisted: %v", e)
+			}
+		})
 	}
 }

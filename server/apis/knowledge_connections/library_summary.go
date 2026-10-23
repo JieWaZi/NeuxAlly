@@ -5,7 +5,6 @@ import (
 	"github.com/JieWaZi/NeuxAlly/server/apis/knowledge"
 	"github.com/JieWaZi/NeuxAlly/server/global"
 	"github.com/JieWaZi/NeuxAlly/server/repositories/models"
-	"github.com/JieWaZi/neux-knowledge/core"
 	"github.com/JieWaZi/neux-knowledge/remote"
 	"github.com/gin-gonic/gin"
 	"time"
@@ -40,7 +39,7 @@ func withLibrarySummaries(ctx context.Context, c *remoteClients, items []knowled
 }
 
 // recordPageTotal 只在远端成功响应且没有搜索、类型或主题筛选时记录总数。
-func (o *ListRemotePages) recordPageTotal(ctx *gin.Context, c *remoteClients, total, observedAt int64) error {
+func (o *ListRemotePages) recordPageTotal(ctx context.Context, c *remoteClients, total, observedAt int64) error {
 	if o.Query != "" || (o.PageType != "" && o.PageType != "all") || o.ThemeID != nil || global.KnowledgeControllerManager == nil {
 		return nil
 	}
@@ -52,7 +51,7 @@ func libraryWithPageTotal(ctx *gin.Context, c *remoteClients, item knowledge.Lib
 	observedAt := time.Now().UnixMilli()
 	var total int64
 	if c.custom != nil {
-		v, err := c.custom.ListPages(ctx, core.PageQuery{LibraryID: item.ID, Limit: 1})
+		v, err := c.custom.ListPageDirectory(ctx, 0, 1)
 		if err != nil {
 			return item, nil
 		}

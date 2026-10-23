@@ -3,8 +3,10 @@ package controllers
 import (
 	"context"
 	"errors"
+	"github.com/JieWaZi/NeuxAlly/server/constants"
 	"github.com/JieWaZi/NeuxAlly/server/constants/status_error"
 	"github.com/JieWaZi/NeuxAlly/server/repositories/models"
+	"github.com/shrewx/ginx/pkg/dbhelper"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"time"
@@ -34,6 +36,12 @@ type KnowledgeController interface {
 	// ListChatRemoteOperations 只返回实际聊天的远端整理引用，不复制任务或原件。
 	ListChatRemoteOperations(context.Context, string, int, int) ([]models.KnowledgeOperationLink, int64, error)
 	ClaimRemoteOperation(context.Context, models.KnowledgeOperationLink) (bool, error)
+	// MarkRemoteUnknown 保留原请求身份，不通过重传恢复。
+	MarkRemoteUnknown(context.Context, string) error
+	// AcceptNativeUpload 只保存原生接纳和资料身份，不生成核心回执。
+	AcceptNativeUpload(context.Context, string, string) error
+	// RecoverRemoteSending 在重启时将未确认发送转为未知。
+	RecoverRemoteSending(context.Context) error
 	ListRemoteOperations(context.Context, string, string, string, int, int) ([]models.KnowledgeOperationLink, int64, error)
 	RejectRemoteOperation(context.Context, string, int64) error
 	BeginOperation(context.Context, models.KnowledgeOperationLink) error
@@ -42,7 +50,6 @@ type KnowledgeController interface {
 	SetHostDiagnostic(context.Context, string, string, string, string) error
 	GetOperation(context.Context, string) (models.KnowledgeOperationLink, error)
 	ListPendingOperations(context.Context) ([]models.KnowledgeOperationLink, error)
-	ListJobOperations(context.Context) ([]models.KnowledgeOperationLink, error)
 	// FreezeTaskConfiguration 固定知识作业首次接纳的模型选择。
 	FreezeTaskConfiguration(context.Context, models.KnowledgeTaskConfiguration) (models.KnowledgeTaskConfiguration, error)
 	// GetTaskConfiguration 读取知识作业的独立模型配置。
@@ -53,10 +60,14 @@ type KnowledgeController interface {
 type knowledgeController struct {
 	// db 是默认主库连接，事务通过 Context 继承。
 	db *gorm.DB
+	// transactions 使首次发送登记与当前连接及挂载校验保持原子。
+	transactions TransactionController
 }
 
 // NewKnowledgeController 创建仅保存本机知识引用的Repository。
-func NewKnowledgeController(db *gorm.DB) KnowledgeController { return &knowledgeController{db: db} }
+func NewKnowledgeController(db *gorm.DB) KnowledgeController {
+	return &knowledgeController{db: db, transactions: NewTransactionController(dbhelper.NewGormTransactionManager(db))}
+}
 
 // BeginOperation 先持久化稳定请求身份并拒绝同键异内容。
 func (c *knowledgeController) BeginOperation(ctx context.Context, in models.KnowledgeOperationLink) error {
@@ -81,7 +92,7 @@ func (c *knowledgeController) BeginOperation(ctx context.Context, in models.Know
 
 // CompleteOperation 用实际核心回执补齐跨库资源关联。
 func (c *knowledgeController) CompleteOperation(ctx context.Context, id, kb, resource, job string) error {
-	err := controllerDB(ctx, c.db).Model(&models.KnowledgeOperationLink{}).Where("request_id = ?", id).Updates(map[string]any{"knowledge_base_id": kb, "resource_id": resource, "job_id": job, "receipt_confirmed": true}).Error
+	err := controllerDB(ctx, c.db).Model(&models.KnowledgeOperationLink{}).Where("request_id = ?", id).Updates(map[string]any{"knowledge_base_id": kb, "resource_id": resource, "job_id": job, "receipt_confirmed": true, "transfer_state": constants.RemoteTransferStateAccepted}).Error
 	if err != nil {
 		return databaseError("complete_knowledge_operation", id, err)
 	}
@@ -115,16 +126,6 @@ func knowledgeReferenceError(op, id string, err error) error {
 	return databaseError(op, id, err)
 }
 
-// ListJobOperations 返回原始接纳锚点以恢复核心已有检查点。
-func (c *knowledgeController) ListJobOperations(ctx context.Context) ([]models.KnowledgeOperationLink, error) {
-	out := []models.KnowledgeOperationLink{}
-	err := controllerDB(ctx, c.db).Where("operation = ? AND resource_id <> '' AND backend = ? AND connection_id = ?", "job.accept", "local", "local").Find(&out).Error
-	if err != nil {
-		return nil, databaseError("list_knowledge_job_links", "", err)
-	}
-	return out, nil
-}
-
 // LinkReceipt 仅连接入口与实际核心写回执，不保存正文或候选。
 func (c *knowledgeController) LinkReceipt(ctx context.Context, request, receipt string) error {
 	err := controllerDB(ctx, c.db).Model(&models.KnowledgeOperationLink{}).Where("request_id = ?", request).Update("receipt_request_id", receipt).Error
@@ -148,32 +149,67 @@ func (c *knowledgeController) SetHostDiagnostic(ctx context.Context, request, st
 
 // ClaimRemoteOperation 在发送HTTP前持久化一次尝试；已存在的未知请求只能查询原回执。
 func (c *knowledgeController) ClaimRemoteOperation(ctx context.Context, in models.KnowledgeOperationLink) (bool, error) {
-	if in.RequestID == "" || in.Operation == "" || in.Digest == "" || in.Backend != "custom" || in.ConnectionID == "" || in.ConnectionID == "local" || in.ConnectionRevision < 1 {
+	if in.RequestID == "" || in.Operation == "" || in.Digest == "" || (in.Backend != "custom" && in.Backend != "integration" && in.Backend != "weknora") || in.ConnectionID == "" || in.ConnectionID == "local" || in.ConnectionRevision < 1 {
 		return false, status_error.KnowledgeInvalid
 	}
 	if in.CreatedAt == 0 {
 		in.CreatedAt = time.Now().UnixMilli()
 	}
+	in.TransferState = constants.RemoteTransferStateSending
 	in.ReceiptConfirmed = false
 	in.ResourceID = ""
 	in.JobID = ""
 	in.RemoteErrorCode = 0
-	result := controllerDB(ctx, c.db).Clauses(clause.OnConflict{DoNothing: true}).Create(&in)
-	if result.Error != nil {
-		return false, databaseError("claim_remote_knowledge_operation", in.RequestID, result.Error)
-	}
-	if result.RowsAffected == 1 {
-		return true, nil
-	}
-	old, err := c.GetOperation(ctx, in.RequestID)
-	if err != nil {
-		return false, err
-	}
-	sameLibrary := old.KnowledgeBaseID == in.KnowledgeBaseID || (in.Operation == "library.create" && in.KnowledgeBaseID == "")
-	if old.Digest != in.Digest || old.Operation != in.Operation || old.Backend != in.Backend || old.ConnectionID != in.ConnectionID || old.ConnectionRevision != in.ConnectionRevision || !sameLibrary {
-		return false, status_error.KnowledgeConflict
-	}
-	return false, nil
+
+	fresh := false
+	err := c.transactions.Transaction(ctx, func(txctx context.Context) error {
+		// 重放只核对首次发送事实，后续禁用或卸载不能改写原请求身份。
+		fresh = false
+		db := controllerDB(txctx, c.db)
+		var old models.KnowledgeOperationLink
+		existing := db.Where("request_id = ?", in.RequestID).Limit(1).Find(&old)
+		if existing.Error != nil {
+			return databaseError("read_remote_knowledge_operation", in.RequestID, existing.Error)
+		}
+		if existing.RowsAffected != 0 {
+			sameLibrary := old.KnowledgeBaseID == in.KnowledgeBaseID || (in.Operation == "library.create" && in.KnowledgeBaseID == "")
+			if old.Digest != in.Digest || old.Operation != in.Operation || old.Backend != in.Backend || old.ConnectionID != in.ConnectionID || old.ConnectionRevision != in.ConnectionRevision || !sameLibrary {
+				return status_error.KnowledgeConflict
+			}
+			return nil
+		}
+		if in.Backend == "integration" {
+			var connection models.KnowledgeConnection
+			current := db.Where("id = ?", in.ConnectionID).Limit(1).Find(&connection)
+			if current.Error != nil {
+				return databaseError("check_remote_operation_connection", in.ConnectionID, current.Error)
+			}
+			if current.RowsAffected == 0 {
+				return status_error.KnowledgeNotFound
+			}
+			if !connection.Enabled {
+				return status_error.KnowledgeForbidden
+			}
+			if connection.Backend != in.Backend || connection.Revision != in.ConnectionRevision {
+				return status_error.KnowledgeConflict
+			}
+			if in.KnowledgeBaseID != "" {
+				var count int64
+				if err := db.Model(&models.KnowledgeRemoteMount{}).Where("connection_id = ? AND knowledge_base_id = ?", in.ConnectionID, in.KnowledgeBaseID).Count(&count).Error; err != nil {
+					return databaseError("check_remote_operation_mount", in.ConnectionID, err)
+				}
+				if count != 1 {
+					return status_error.KnowledgeNotFound
+				}
+			}
+		}
+		if err := db.Create(&in).Error; err != nil {
+			return databaseError("claim_remote_knowledge_operation", in.RequestID, err)
+		}
+		fresh = true
+		return nil
+	})
+	return fresh && err == nil, err
 }
 
 // ListRemoteOperations 只分页读取当前完整ref尚未确认的操作引用，不读取来源正文。
@@ -184,7 +220,16 @@ func (c *knowledgeController) ListRemoteOperations(ctx context.Context, backend,
 	if limit == 0 {
 		limit = 50
 	}
-	query := controllerDB(ctx, c.db).Model(&models.KnowledgeOperationLink{}).Where("backend = ? AND connection_id = ? AND knowledge_base_id = ? AND receipt_confirmed = ? AND remote_error_code = ?", backend, connection, library, false, 0).Where("operation <> ? AND parent_request_id = ?", "chat.remote.organize", "")
+	query := controllerDB(ctx, c.db).Model(&models.KnowledgeOperationLink{}).Where("backend IN ? AND receipt_confirmed = ? AND remote_error_code = ?", []string{"custom", "integration", "weknora"}, false, 0).Where("operation <> ? AND parent_request_id = ?", "chat.remote.organize", "").Where("native_upload = ? OR transfer_state <> ?", false, constants.RemoteTransferStateAccepted)
+	if backend != "" {
+		query = query.Where("backend = ?", backend)
+	}
+	if connection != "" {
+		query = query.Where("connection_id = ?", connection)
+	}
+	if library != "" {
+		query = query.Where("knowledge_base_id = ?", library)
+	}
 	var total int64
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, databaseError("count_remote_knowledge_operations", connection, err)
@@ -201,7 +246,7 @@ func (c *knowledgeController) RejectRemoteOperation(ctx context.Context, id stri
 	if code == 0 {
 		return status_error.KnowledgeInvalid
 	}
-	result := controllerDB(ctx, c.db).Model(&models.KnowledgeOperationLink{}).Where("request_id = ? AND backend = ? AND receipt_confirmed = ?", id, "custom", false).Update("remote_error_code", code)
+	result := controllerDB(ctx, c.db).Model(&models.KnowledgeOperationLink{}).Where("request_id = ? AND backend IN ? AND receipt_confirmed = ?", id, []string{"custom", "integration", "weknora"}, false).Updates(map[string]any{"remote_error_code": code, "transfer_state": constants.RemoteTransferStateFailed})
 	if result.Error != nil {
 		return databaseError("reject_remote_knowledge_operation", id, result.Error)
 	}
@@ -256,4 +301,33 @@ func (c *knowledgeController) GetTaskConfiguration(ctx context.Context, id strin
 	var out models.KnowledgeTaskConfiguration
 	err := controllerDB(ctx, c.db).Where("id = ?", id).First(&out).Error
 	return out, knowledgeReferenceError("get_knowledge_task_configuration", id, err)
+}
+
+// MarkRemoteUnknown 不覆盖已经确认的结果，所有后续恢复继续使用原请求和原目标。
+func (c *knowledgeController) MarkRemoteUnknown(ctx context.Context, id string) error {
+	err := controllerDB(ctx, c.db).Model(&models.KnowledgeOperationLink{}).Where("request_id = ? AND receipt_confirmed = ? AND remote_error_code = ? AND transfer_state <> ?", id, false, 0, constants.RemoteTransferStateAccepted).Update("transfer_state", constants.RemoteTransferStateUnknown).Error
+	if err != nil {
+		return databaseError("mark_remote_knowledge_unknown", id, err)
+	}
+	return nil
+}
+func (c *knowledgeController) AcceptNativeUpload(ctx context.Context, id, sourceID string) error {
+	if id == "" || sourceID == "" {
+		return status_error.KnowledgeInvalid
+	}
+	result := controllerDB(ctx, c.db).Model(&models.KnowledgeOperationLink{}).Where("request_id = ? AND native_upload = ? AND remote_error_code = ?", id, true, 0).Updates(map[string]any{"resource_id": sourceID, "transfer_state": constants.RemoteTransferStateAccepted})
+	if result.Error != nil {
+		return databaseError("accept_native_upload", id, result.Error)
+	}
+	if result.RowsAffected != 1 {
+		return status_error.KnowledgeNotFound
+	}
+	return nil
+}
+func (c *knowledgeController) RecoverRemoteSending(ctx context.Context) error {
+	err := controllerDB(ctx, c.db).Model(&models.KnowledgeOperationLink{}).Where("backend IN ? AND transfer_state = ? AND receipt_confirmed = ?", []string{"custom", "integration", "weknora"}, constants.RemoteTransferStateSending, false).Update("transfer_state", constants.RemoteTransferStateUnknown).Error
+	if err != nil {
+		return databaseError("recover_remote_knowledge_sending", "", err)
+	}
+	return nil
 }

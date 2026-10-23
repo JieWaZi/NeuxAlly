@@ -75,7 +75,7 @@ func TestWorkflowAPIUploadsUseManagedRootSeparateFromProgramData(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(h.api.config.DataDirectory, "workflow-files")); !os.IsNotExist(err) {
 		t.Fatalf("workflow uploads leaked into program data root: %v", err)
 	}
-	if _, err := os.Stat(filepath.Join(h.api.config.DataDirectory, "automatic-tasks-api.json")); err != nil {
+	if _, err := os.Stat(filepath.Join(h.api.config.DataDirectory, "integration-api.json")); err != nil {
 		t.Fatalf("API preferences moved out of program data: %v", err)
 	}
 }

@@ -24,21 +24,17 @@ type ListRemoteOperations struct {
 
 func (o *ListRemoteOperations) Path() string { return "/:connectionId/libraries/:libraryId/operations" }
 func (o *ListRemoteOperations) Output(ctx *gin.Context) (interface{}, error) {
-	c, err := client(ctx, o.ConnectionID, o.LibraryID)
-	if err != nil {
-		return nil, err
-	}
 	if global.KnowledgeControllerManager == nil {
 		return nil, status_error.KnowledgeUnsupported
 	}
 	offset, limit := remotePagination(knowledge.Pagination{Offset: o.Offset, Limit: o.Limit})
-	rows, total, err := global.KnowledgeControllerManager.ListRemoteOperations(ctx, c.connection.Backend, c.connection.ID, o.LibraryID, offset, limit)
+	rows, total, err := global.KnowledgeControllerManager.ListRemoteOperations(ctx, "", o.ConnectionID, o.LibraryID, offset, limit)
 	if err != nil {
 		return nil, err
 	}
 	items := []RemoteOperation{}
 	for _, v := range rows {
-		items = append(items, RemoteOperation{Ref: remoteRef(c, v.KnowledgeBaseID), RequestID: v.RequestID, Operation: v.Operation, ReceiptConfirmed: v.ReceiptConfirmed, Rejected: v.RemoteErrorCode != 0, ErrorCode: v.RemoteErrorCode, ResourceID: v.ResourceID, JobID: v.JobID})
+		items = append(items, operationDTO(v))
 	}
 	return RemoteOperationList{Items: items, Total: total}, nil
 }

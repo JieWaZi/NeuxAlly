@@ -37,9 +37,10 @@ import {
   refreshAutomaticTasks,
   setAutomaticTaskEnabledMutation,
 } from "../api/task-queries";
-import { AutomaticTaskAPISettingsDialog } from "../components/api-settings-dialog";
-import { TaskFormDialog } from "../components/task-form-dialog";
-import { TaskTokenDialog } from "../components/task-token-dialog";
+import {
+  AutomaticTaskAPISettingsDialog,
+  TaskFormDialog,
+} from "../components/task-dialogs";
 import {
   formatTime,
   RunState,
@@ -85,7 +86,6 @@ export function AutomaticTaskListPage() {
   const [apiSettingsOpen, setAPISettingsOpen] = useState(false);
   const [creatingLocally, setCreating] = useState(false);
   const creating = creatingLocally || params.get("create") === "1";
-  const [token, setToken] = useState<{ taskId: string; token: string }>();
   const labels = useTaskPaginationLabels();
   const query = useQuery({
     ...listGlobalAutomaticTasksOptions(
@@ -130,9 +130,7 @@ export function AutomaticTaskListPage() {
   const saved = (receipt: SavedTask) => {
     setCreating(false);
     change("create", "");
-    if (receipt.taskId && receipt.token)
-      setToken({ taskId: receipt.taskId, token: receipt.token });
-    else if (receipt.taskId) navigate(`/automatic-tasks/${receipt.taskId}`);
+    if (receipt.taskId) navigate(`/automatic-tasks/${receipt.taskId}`);
   };
   const counts = query.data?.counts;
   const filtered = Boolean(
@@ -396,14 +394,6 @@ export function AutomaticTaskListPage() {
         }}
         wakerId={wakerId}
         onSaved={saved}
-      />
-      <TaskTokenDialog
-        receipt={token}
-        onClose={() => {
-          const taskId = token?.taskId;
-          setToken(undefined);
-          if (taskId) navigate(`/automatic-tasks/${taskId}`);
-        }}
       />
     </ResourcePageSurface>
   );

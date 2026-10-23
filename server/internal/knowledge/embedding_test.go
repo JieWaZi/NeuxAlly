@@ -166,7 +166,7 @@ func TestLibraryEmbeddingFreezeUsesOnlyItsOwnProfileAndStableCoreReceipt(t *test
 	}
 	provider := LocalReadProvider{Engine: e, FreezeEmbedder: profiles.Freeze}
 	hits, mode, err := provider.SearchChunks(ctx, LocalRef(lib.ID), "query")
-	if err != nil || mode != "vector" || len(hits) == 0 {
+	if err != nil || mode != "hybrid" || len(hits) == 0 {
 		t.Fatal("per-library query not using indexed profile", mode, err)
 	}
 	if seen[len(seen)-1] != "Bearer key-a/model-a" {

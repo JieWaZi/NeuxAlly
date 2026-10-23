@@ -66,9 +66,11 @@ func (p *knowledgeScheduleExecutions) Start(ctx context.Context, intent executio
 				continue
 			}
 			found = true
-			if _, err := binding.Call(ctx, agentcapability.Request{Operation: binding.Operation, RequestID: p.receiptID, Params: map[string]any{}}); err != nil {
+			result, err := binding.Call(ctx, agentcapability.Request{Operation: binding.Operation, RequestID: p.receiptID, Params: map[string]any{}})
+			if err != nil {
 				return execution.AcceptedExecution{}, err
 			}
+			p.receiptID = result.Data.(map[string]any)["receipt"].(*core.Receipt).RequestID
 		}
 	}
 	if !found {
@@ -132,7 +134,8 @@ func knowledgeScheduleFixture(t *testing.T) (*Service, *core.Engine, *knowledgeS
 	}
 	projects := controllers.NewProjectController(db.DB)
 	executors := &knowledgeScheduleExecutions{states: map[string]chat.InitialExecutionState{}}
-	knowledge := knowledgeService.New(knowledgeService.Config{Engine: engine, References: controllers.NewKnowledgeController(db.DB), Projects: projects, ResolveModel: func(_ context.Context, selection models.LibraryExecutionDefaults) (models.LibraryExecutionDefaults, error) {
+	tasks := controllers.NewAutomaticTaskController(db.DB)
+	knowledge := knowledgeService.New(knowledgeService.Config{Engine: engine, References: controllers.NewKnowledgeController(db.DB), Projects: projects, AutomaticRun: tasks.GetRun, ResolveModel: func(_ context.Context, selection models.LibraryExecutionDefaults) (models.LibraryExecutionDefaults, error) {
 		return selection, nil
 	}})
 	service := New(Config{Tasks: controllers.NewAutomaticTaskController(db.DB), Transactions: controllers.NewTransactionController(dbhelper.NewGormTransactionManager(db.DB)), Wakers: wakers, Projects: projects, Executions: executors, Chats: knowledgeScheduleChats{executions: executors}, BindKnowledge: knowledge.BindIntent})

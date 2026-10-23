@@ -28,6 +28,8 @@ type ExtendedReadProvider interface {
 type LocalReadProvider struct {
 	// Engine 是独立核心权威，不持有业务副本。
 	Engine *core.Engine
+	// Limit 是调用入口的返回上限；零保持既有工具默认五条。
+	Limit int
 	// FreezeEmbedder 冻结同一库独立配置，查询失败不回落到关键词。
 	FreezeEmbedder func(context.Context, string, string) (core.DocumentEmbedder, error)
 }
@@ -50,9 +52,10 @@ func (p LocalReadProvider) Pages(ctx context.Context, ref ResourceRef, q core.Pa
 
 // DocumentReadHit 保留命中子块的定位，并返回父块上下文。
 type DocumentReadHit struct {
-	Chunk  core.IndexedDocumentChunk  `json:"chunk"`            // 命中子块及真实来源版本。
-	Score  float64                    `json:"score"`            // 实际向量相似度或关键词分数。
-	Parent *core.IndexedDocumentChunk `json:"parent,omitempty"` // 父子模式的完整父块上下文。
+	Chunk     core.IndexedDocumentChunk  `json:"chunk"`            // 命中子块及真实来源版本。
+	Score     float64                    `json:"score"`            // 实际向量、关键词或融合相关性分数。
+	MatchType core.MatchType             `json:"matchType"`        // 实际召回路径，向量为 0，关键词为 1。
+	Parent    *core.IndexedDocumentChunk `json:"parent,omitempty"` // 父子模式的完整父块上下文。
 }
 
 // DocumentReadProvider 为既有 Wiki 搜索补充真实原件检索，不改变远端读取端口。
@@ -70,10 +73,16 @@ func (p LocalReadProvider) SearchChunks(ctx context.Context, ref ResourceRef, qu
 		return nil, "", nil
 	}
 	mode := "keyword"
+	keywordQuery := query
 	var vector []float32
 	fingerprint := ""
 	if lib.IndexingStrategy.VectorEnabled {
 		mode = "vector"
+		keywordQuery = ""
+		if lib.IndexingStrategy.KeywordEnabled {
+			mode = "hybrid"
+			keywordQuery = query
+		}
 		if p.FreezeEmbedder == nil {
 			return nil, "", status_error.KnowledgeEmbeddingNotConfigured
 		}
@@ -104,20 +113,30 @@ func (p LocalReadProvider) SearchChunks(ctx context.Context, ref ResourceRef, qu
 		vector = values[0]
 		fingerprint = frozen.Fingerprint
 	}
-	hits, err := p.Engine.SearchDocumentChunks(ctx, ref.KnowledgeBaseID, query, vector, fingerprint, 5)
+	limit := p.Limit
+	if limit == 0 {
+		limit = 5
+	}
+	if limit < 1 || limit > 30 {
+		return nil, "", status_error.KnowledgeInvalid
+	}
+	hits, err := p.Engine.SearchDocumentChunks(ctx, ref.KnowledgeBaseID, keywordQuery, vector, fingerprint, limit)
 	if err != nil {
 		return nil, "", MapError(err)
 	}
 	out := make([]DocumentReadHit, 0, len(hits))
 	parentIDs := []string{}
+	seenParents := map[string]bool{}
 	for _, hit := range hits {
-		if hit.Chunk.ParentID != "" {
+		if hit.Chunk.ParentID != "" && !seenParents[hit.Chunk.ParentID] {
+			seenParents[hit.Chunk.ParentID] = true
 			parentIDs = append(parentIDs, hit.Chunk.ParentID)
 		}
 	}
 	parents := map[string]core.IndexedDocumentChunk{}
-	if len(parentIDs) > 0 {
-		rows, e := p.Engine.GetDocumentChunkParents(ctx, ref.KnowledgeBaseID, parentIDs)
+	for start := 0; start < len(parentIDs); start += 5 {
+		end := min(start+5, len(parentIDs))
+		rows, e := p.Engine.GetDocumentChunkParents(ctx, ref.KnowledgeBaseID, parentIDs[start:end])
 		if e != nil {
 			return nil, "", MapError(e)
 		}
@@ -126,7 +145,7 @@ func (p LocalReadProvider) SearchChunks(ctx context.Context, ref ResourceRef, qu
 		}
 	}
 	for _, hit := range hits {
-		item := DocumentReadHit{Chunk: hit.Chunk, Score: hit.Score}
+		item := DocumentReadHit{Chunk: hit.Chunk, Score: hit.Score, MatchType: hit.MatchType}
 		if hit.Chunk.ParentID != "" {
 			parent, ok := parents[hit.Chunk.ParentID]
 			if !ok || parent.SourceVersionID != hit.Chunk.SourceVersionID {

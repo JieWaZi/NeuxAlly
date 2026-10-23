@@ -117,6 +117,10 @@ func (s *service) drainNotifications(ctx context.Context, threadID string) error
 	if err != nil {
 		return err
 	}
+	automaticRunID, err := s.automaticWorkSource(ctx, thread)
+	if err != nil {
+		return err
+	}
 	prompt := teamNotificationPrompt(
 		entries,
 		buildTaskBoardSnapshot(tasks),
@@ -161,7 +165,7 @@ func (s *service) drainNotifications(ctx context.Context, threadID string) error
 	for _, entry := range entries {
 		options.HistoryMessageIDsToOmit = append(options.HistoryMessageIDsToOmit, entry.NotificationID)
 	}
-	accepted, err := s.executions.Start(ctx, execution.WorkIntent{
+	accepted, err := s.executions.Start(ctx, execution.WorkIntent{AutomaticRunID: automaticRunID,
 		ExecutionID: leadExecutionID,
 		Chat:        execution.ChatTarget{ChatID: thread.LeadChatID},
 		Input: execution.WorkInput{

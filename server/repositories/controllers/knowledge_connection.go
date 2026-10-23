@@ -51,7 +51,7 @@ func NewKnowledgeConnectionController(db *gorm.DB) KnowledgeConnectionController
 }
 func validateKnowledgeConnection(v models.KnowledgeConnection) bool {
 	u, err := url.Parse(v.BaseURL)
-	return err == nil && u != nil && u.Host != "" && (u.Scheme == "http" || u.Scheme == "https") && u.User == nil && u.RawQuery == "" && u.Fragment == "" && v.ID != "" && v.ID != "local" && strings.TrimSpace(v.Name) != "" && (v.Backend == "weknora" || v.Backend == "custom") && (v.AuthMode == "bearer" || (v.Backend == "weknora" && v.AuthMode == "api_key"))
+	return err == nil && u != nil && u.Host != "" && (u.Scheme == "http" || u.Scheme == "https") && u.User == nil && u.RawQuery == "" && u.Fragment == "" && v.ID != "" && v.ID != "local" && strings.TrimSpace(v.Name) != "" && (v.Backend == "weknora" || v.Backend == "custom" || v.Backend == "integration") && (v.AuthMode == "bearer" || ((v.Backend == "weknora" || v.Backend == "integration") && v.AuthMode == "api_key"))
 }
 func (c *knowledgeConnectionController) Save(ctx context.Context, in SaveKnowledgeConnectionInput) (out models.KnowledgeConnectionMutation, err error) {
 	if in.RequestID == "" || in.ExpectedRevision < 0 || !validateKnowledgeConnection(in.Connection) {
@@ -82,9 +82,17 @@ func (c *knowledgeConnectionController) Save(ctx context.Context, in SaveKnowled
 		} else if in.ExpectedRevision != old.Revision {
 			return status_error.KnowledgeConflict
 		}
+		if old.ID != "" && old.BaseURL != in.Connection.BaseURL && in.Credential == "" {
+			return status_error.KnowledgeInvalid
+		}
 		// 连接身份不能被重新指向另一协议；切换后端必须创建新的完整资源身份。
 		if old.ID != "" && old.Backend != in.Connection.Backend {
 			return status_error.KnowledgeConflict
+		}
+		if old.ID != "" {
+			if e := saveKnowledgeConnectionRevision(tx, old); e != nil {
+				return e
+			}
 		}
 		value := in.Connection
 		value.Revision = in.ExpectedRevision + 1
@@ -94,7 +102,7 @@ func (c *knowledgeConnectionController) Save(ctx context.Context, in SaveKnowled
 				return e
 			}
 		} else {
-			r := tx.Model(&models.KnowledgeConnection{}).Where("id = ? AND revision = ?", value.ID, in.ExpectedRevision).Select("Name", "BaseURL", "AuthMode", "Enabled", "Revision", "CredentialRef").Updates(&value)
+			r := tx.Model(&models.KnowledgeConnection{}).Where("id = ? AND revision = ?", value.ID, in.ExpectedRevision).Select("Name", "BaseURL", "AuthMode", "Enabled", "Revision", "CredentialRef", "Detection").Updates(&value)
 			if r.Error != nil {
 				return r.Error
 			}
@@ -116,6 +124,9 @@ func (c *knowledgeConnectionController) Save(ctx context.Context, in SaveKnowled
 			if e = tx.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "id"}}, DoUpdates: clause.AssignmentColumns([]string{"ciphertext"})}).Create(&secret).Error; e != nil {
 				return e
 			}
+		}
+		if e := saveKnowledgeConnectionRevision(tx, value); e != nil {
+			return e
 		}
 		out = models.KnowledgeConnectionMutation{RequestID: in.RequestID, Digest: digest, ConnectionID: value.ID, Revision: value.Revision}
 		return tx.Create(&out).Error
@@ -176,11 +187,14 @@ func readKnowledgeConnectionCredential(db *gorm.DB, id string) (string, error) {
 	if err := db.Where("id = ?", id).Take(&secret).Error; err != nil {
 		return "", status_error.KnowledgeForbidden
 	}
+	return decryptKnowledgeConnectionCredential(db, id, secret.Ciphertext)
+}
+func decryptKnowledgeConnectionCredential(db *gorm.DB, id, ciphertext string) (string, error) {
 	aead, err := knowledgeConnectionCipher(db, false)
 	if err != nil {
 		return "", status_error.KnowledgeForbidden
 	}
-	data, err := base64.RawStdEncoding.DecodeString(secret.Ciphertext)
+	data, err := base64.RawStdEncoding.DecodeString(ciphertext)
 	if err != nil || len(data) < aead.NonceSize() {
 		return "", status_error.KnowledgeForbidden
 	}
