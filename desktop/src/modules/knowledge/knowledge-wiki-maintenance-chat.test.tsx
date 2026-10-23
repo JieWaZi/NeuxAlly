@@ -80,7 +80,7 @@ const server = setupServer(
   http.get(`${api}/knowledge/libraries/kb/sources`, () =>
     HttpResponse.json({ items: [], total: 0 }),
   ),
-  http.get(`${api}/knowledge/libraries/kb/pages`, () =>
+  http.get(`${api}/knowledge/libraries/kb/page-directory`, () =>
     HttpResponse.json({ items: [page], total: 1 }),
   ),
   http.get(`${api}/knowledge/libraries/kb/pages/one`, () =>
@@ -164,15 +164,15 @@ function show(inPage = false) {
     },
   };
 }
-it("打开 AI 修订时保留 Wiki 和 Dock，浮窗宿主不占用 Scene 高度", async () => {
+it("打开 AI 修订时保留 Wiki 与目录导航，浮窗宿主不占用 Scene 高度", async () => {
   const user = userEvent.setup();
   const view = show(true);
   const content = await screen.findByText("保留可见的 Wiki 正文");
-  const dock = screen.getByRole("button", { name: "Wiki" });
+  const dock = screen.getByRole("radio", { name: /^知识/ });
   await user.click(screen.getByRole("button", { name: "AI 修订" }));
   expect(await screen.findByRole("region", { name: "悬浮对话" })).toBeVisible();
   expect(screen.getByText("保留可见的 Wiki 正文")).toBe(content);
-  expect(screen.getByRole("button", { name: "Wiki" })).toBe(dock);
+  expect(screen.getByRole("radio", { name: /^知识/ })).toBe(dock);
   // jsdom 不计算布局；隐藏属性验证宿主退出普通流，避免 h-full 将后面的 Wiki 挤出 Scene。
   const host = view.container.querySelector("[data-floating-chat-normal-host]");
   expect(host?.closest("[hidden]")).not.toBeNull();

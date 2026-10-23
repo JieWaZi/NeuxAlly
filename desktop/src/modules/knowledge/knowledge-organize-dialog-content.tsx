@@ -1,8 +1,5 @@
-import { knowledgeAdapter } from "@/shared/api/knowledge";
-import { KnowledgeRemoteOrganize } from "./knowledge-remote-organize";
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { localApiErrorMessage } from "@/shared/api/local-error-surface";
 import type { GetLibraryExecutionDefaultsResponse } from "@/shared/api/generated/types.gen";
 import {
   useExecutionSelection,
@@ -18,7 +15,6 @@ import { organizableSourcesOptions } from "./knowledge-queries";
 import type { Source } from "./knowledge-model";
 import { KnowledgeWikiContentLoading } from "./knowledge-loading";
 import type { KnowledgeOrganizeDialogProps as Props } from "./knowledge-organize-dialog";
-import { QueryState } from "@/shared/ui/query-state";
 import {
   libraryExecutionDefaultsOptions,
   readExecutionDefaults,
@@ -33,14 +29,8 @@ import {
   readOrganizePreferences,
   saveOrganizePreferences,
 } from "./knowledge-organize-preferences";
+
 export function KnowledgeOrganizeDialogContent(props: Props) {
-  return knowledgeAdapter(props.library.ref).localConfiguration ? (
-    <LocalOrganizeDialogContent {...props} />
-  ) : (
-    <KnowledgeRemoteOrganize {...props} />
-  );
-}
-function LocalOrganizeDialogContent(props: Props) {
   const t = useCopy();
   const defaults = useQuery(libraryExecutionDefaultsOptions(props.library.ref));
   const retainedDraft = props.intent?.get().draft;
@@ -60,15 +50,7 @@ function LocalOrganizeDialogContent(props: Props) {
           <div className="px-6 pb-5">
             <KnowledgeWikiContentLoading />
           </div>
-        ) : (
-          <QueryState
-            error={defaults.error || sources.error}
-            onRetry={() => {
-              void defaults.refetch();
-              if (!props.rebuild) void sources.refetch();
-            }}
-          />
-        )}
+        ) : null}
         <DialogFooter>
           <Button variant="secondary" onClick={props.onClose}>
             {t("close")}
@@ -211,11 +193,6 @@ function LoadedOrganizeDialog({
             maxLength={4000}
           />
         </Field>
-        {start.error && (
-          <p role="alert" className="type-body text-destructive">
-            {localApiErrorMessage(start.error, t("knowledgeOperationFailed"))}
-          </p>
-        )}
       </div>
       <DialogFooter>
         <Button variant="ghost" onClick={onClose}>

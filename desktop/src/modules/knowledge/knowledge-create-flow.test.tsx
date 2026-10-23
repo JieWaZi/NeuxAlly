@@ -77,10 +77,10 @@ function client() {
 }
 
 it.each(["relations", "history", "source", "project", "chat"])(
-  "旧 %s 链接只接纳当前库文档列表",
+  "旧 %s 链接回到当前库知识目录",
   (view) => {
     expect(readRoute(new URLSearchParams({ view, library: "kb" })).view).toBe(
-      "raw",
+      "wiki",
     );
   },
 );
@@ -121,7 +121,8 @@ it("部分上传失败逐文件保留结果，重试不重传已成功原件", a
     new File(["b"], "第二份.md"),
   ]);
   await user.click(screen.getByRole("button", { name: /上传文档/ }));
-  expect(await screen.findByText("第二份失败")).toBeVisible();
+  expect(await screen.findByText("上传失败")).toBeVisible();
+  expect(screen.queryByText("第二份失败")).not.toBeInTheDocument();
   expect(screen.getByText("待整理")).toBeVisible();
   expect(upload).toHaveBeenCalledTimes(2);
   await user.click(screen.getByRole("button", { name: /重试失败文档/ }));
@@ -276,36 +277,37 @@ vi.stubGlobal(
   },
 );
 
-it("创建保存位置可选择远端连接，草稿携带真实后端和连接身份", async () => {
+it("创建入口仅新建本地知识库，不提供保存位置或读取远端连接", async () => {
   const user = userEvent.setup();
   const create = vi.fn();
+  const listConnections = vi.fn(() => HttpResponse.json({ items: [] }));
   server.use(
-    http.get("http://ally.test/api/v1/knowledge/connections", () =>
-      HttpResponse.json({
-        items: [
-          { id: "remote", name: "共享服务", backend: "custom", enabled: true },
-        ],
-      }),
-    ),
+    http.get("http://ally.test/api/v1/knowledge/connections", listConnections),
   );
   render(
     <QueryClientProvider client={client()}>
       <CreateLibrary opened close={() => {}} create={create} />
     </QueryClientProvider>,
   );
-  (await screen.findByRole("combobox", { name: "保存位置" })).focus();
-  await user.keyboard("{Enter}");
-  await screen.findByRole("option", { name: "共享服务" });
-  await user.keyboard("{End}{Enter}");
-  await user.type(screen.getByRole("textbox", { name: "名称" }), "远端新库");
+  await user.type(
+    await screen.findByRole("textbox", { name: "名称" }),
+    "本地新库",
+  );
+  expect(
+    screen.queryByRole("combobox", { name: "保存位置" }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByText("选择保存知识内容的本地位置或已配置的远端连接。"),
+  ).not.toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "创建知识库" }));
   expect(create).toHaveBeenCalledWith(
     expect.objectContaining({
-      storage: "remote",
-      ref: { backend: "custom", connectionId: "remote", knowledgeBaseId: "" },
+      storage: "local",
+      ref: { backend: "local", connectionId: "local", knowledgeBaseId: "" },
     }),
     expect.any(Object),
     expect.any(String),
     expect.any(Object),
   );
+  expect(listConnections).not.toHaveBeenCalled();
 });

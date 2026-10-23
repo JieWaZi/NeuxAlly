@@ -5,17 +5,73 @@ import { ApiError } from "@/shared/api/errors";
 import { createKnowledgeUploadQueue } from "./knowledge-upload-queue";
 import { KnowledgeUploadDialog as UploadSources } from "./knowledge-upload-dialog";
 
+async function readyUploadInput() {
+  await vi.dynamicImportSettled();
+  return screen.findByLabelText<HTMLInputElement>("选择文件");
+}
+
+it("自动处理提示固定呈现，选择文件不发送，点击后显示远端接纳事实", async () => {
+  const upload = vi.fn().mockResolvedValue({
+    accepted: true,
+    uploadMode: "automatic",
+    sourceId: "source-a",
+    processingState: "pending",
+  });
+  const user = userEvent.setup();
+  render(
+    <UploadSources opened mode="automatic" close={() => {}} upload={upload} />,
+  );
+  expect(screen.getAllByText(/上传后将由远端自动处理/).length).toBeGreaterThan(
+    0,
+  );
+  await user.upload(await readyUploadInput(), [new File(["a"], "a.md")]);
+  expect(upload).not.toHaveBeenCalled();
+  await user.click(screen.getByRole("button", { name: "上传文档" }));
+  expect(await screen.findByText("远端已接纳")).toBeVisible();
+  expect(screen.queryByText("待整理")).not.toBeInTheDocument();
+  expect(upload).toHaveBeenCalledTimes(1);
+});
+
+it("连接版本变化停止剩余文件，未知模式禁用上传", async () => {
+  const upload = vi
+    .fn()
+    .mockRejectedValue(
+      new ApiError("模式已变化", "KnowledgeUploadModeChanged", 409),
+    );
+  const user = userEvent.setup();
+  const view = render(
+    <UploadSources opened mode="separate" close={() => {}} upload={upload} />,
+  );
+  await user.upload(await readyUploadInput(), [
+    new File(["a"], "a.md"),
+    new File(["b"], "b.md"),
+  ]);
+  await user.click(screen.getByRole("button", { name: "上传文档" }));
+  expect(
+    await screen.findByText(
+      "远端上传行为或连接版本已变化。当前队列已停止，请核对新提示后再次提交。",
+    ),
+  ).toBeVisible();
+  expect(screen.queryByText("模式已变化")).not.toBeInTheDocument();
+  expect(upload).toHaveBeenCalledTimes(1);
+  expect(screen.getByRole("button", { name: "重试失败文档" })).toBeDisabled();
+  view.unmount();
+  render(
+    <UploadSources opened mode="unknown" close={() => {}} upload={upload} />,
+  );
+  expect(
+    await screen.findByRole("button", { name: "上传文档" }),
+  ).toBeDisabled();
+});
+
 it("review: 两份内容不同但元数据相同的文件不应被静默丢弃", async () => {
   const upload = vi.fn().mockResolvedValue(undefined);
   const user = userEvent.setup();
   render(<UploadSources opened close={() => {}} upload={upload} />);
-  await user.upload(
-    await screen.findByLabelText<HTMLInputElement>("选择文件"),
-    [
-      new File(["a"], "readme.md", { lastModified: 1 }),
-      new File(["b"], "readme.md", { lastModified: 1 }),
-    ],
-  );
+  await user.upload(await readyUploadInput(), [
+    new File(["a"], "readme.md", { lastModified: 1 }),
+    new File(["b"], "readme.md", { lastModified: 1 }),
+  ]);
   await user.click(
     screen.getByRole("button", { name: /上传文档|重试失败文档/ }),
   );
@@ -34,22 +90,17 @@ it("review: 上传未知回执后关闭重开弹窗，重试应保留原请求�
   const first = render(
     <UploadSources opened queue={queue} close={() => {}} upload={upload} />,
   );
-  await user.upload(
-    await screen.findByLabelText<HTMLInputElement>("选择文件"),
-    [file],
-  );
+  await user.upload(await readyUploadInput(), [file]);
   await user.click(
     screen.getByRole("button", { name: /上传文档|重试失败文档/ }),
   );
-  await screen.findByRole("alert");
+  expect(await screen.findByText("上传失败")).toBeVisible();
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   first.unmount();
   render(
     <UploadSources opened queue={queue} close={() => {}} upload={upload} />,
   );
-  await user.upload(
-    await screen.findByLabelText<HTMLInputElement>("选择文件"),
-    [file],
-  );
+  await user.upload(await readyUploadInput(), [file]);
   await user.click(
     screen.getByRole("button", { name: /上传文档|重试失败文档/ }),
   );
@@ -67,21 +118,20 @@ it("未知接纳的上传不能通过移除丢失原请求，不同 File 对象�
   const first = render(
     <UploadSources opened queue={queue} close={() => {}} upload={upload} />,
   );
-  await user.upload(
-    await screen.findByLabelText<HTMLInputElement>("选择文件"),
-    [new File(["same"], "readme.md", { lastModified: 1 })],
-  );
+  await user.upload(await readyUploadInput(), [
+    new File(["same"], "readme.md", { lastModified: 1 }),
+  ]);
   await user.click(screen.getByRole("button", { name: "上传文档" }));
-  await screen.findByRole("alert");
+  expect(await screen.findByText("上传失败")).toBeVisible();
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   expect(screen.getByRole("button", { name: "移除 readme.md" })).toBeDisabled();
   first.unmount();
   render(
     <UploadSources opened queue={queue} close={() => {}} upload={upload} />,
   );
-  await user.upload(
-    await screen.findByLabelText<HTMLInputElement>("选择文件"),
-    [new File(["same"], "readme.md", { lastModified: 2 })],
-  );
+  await user.upload(await readyUploadInput(), [
+    new File(["same"], "readme.md", { lastModified: 2 }),
+  ]);
   await user.click(screen.getByRole("button", { name: "重试失败文档" }));
   await waitFor(() =>
     expect(screen.getByText("内容重复，沿用原上传项")).toBeVisible(),
@@ -101,10 +151,7 @@ it("上传进行中 Escape 不关闭外壳，完成后仍能正常关闭", async
   );
   const user = userEvent.setup();
   render(<UploadSources opened close={close} upload={upload} />);
-  await user.upload(
-    await screen.findByLabelText<HTMLInputElement>("选择文件"),
-    [new File(["a"], "资料.md")],
-  );
+  await user.upload(await readyUploadInput(), [new File(["a"], "资料.md")]);
   await user.click(screen.getByRole("button", { name: "上传文档" }));
   await waitFor(() => expect(upload).toHaveBeenCalledOnce());
   await user.keyboard("{Escape}");
@@ -152,7 +199,7 @@ it("文件与文件夹选择取消均保留既有队列，不产生空目录错�
   const upload = vi.fn().mockResolvedValue(undefined);
   const user = userEvent.setup();
   render(<UploadSources opened close={() => {}} upload={upload} />);
-  const files = await screen.findByLabelText<HTMLInputElement>("选择文件");
+  const files = await readyUploadInput();
   await user.upload(files, [new File(["existing"], "资料.md")]);
   fireEvent.change(files, { target: { files: [] } });
   await user.click(screen.getByRole("radio", { name: "文件夹" }));

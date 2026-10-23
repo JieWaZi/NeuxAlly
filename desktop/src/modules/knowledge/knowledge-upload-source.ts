@@ -1,4 +1,8 @@
-import { knowledgeClient, type ResourceRef } from "@/shared/api/knowledge";
+import {
+  knowledgeAdapter,
+  type ResourceRef,
+  type KnowledgeUploadContext,
+} from "@/shared/api/knowledge";
 
 /** 原件大小先校验，再读取实际字节；请求身份由调用方保留以处理未知结果。 */
 export async function encodeUpload(
@@ -29,8 +33,19 @@ export async function uploadKnowledgeSource(
   file: Parameters<typeof encodeUpload>[0],
   requestId: string,
   signal: AbortSignal,
+  confirmed?: KnowledgeUploadContext,
 ) {
   const body = await encodeUpload(file, requestId);
   signal.throwIfAborted();
-  return knowledgeClient(resource).importSource(body, signal);
+  return (
+    await knowledgeAdapter(resource).uploadSource(
+      {
+        path: { libraryId: resource.knowledgeBaseId },
+        body,
+        signal,
+        throwOnError: true,
+      },
+      confirmed,
+    )
+  ).data;
 }

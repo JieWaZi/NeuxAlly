@@ -1,10 +1,12 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { ChevronDown } from "lucide-react";
-import type { ComponentProps } from "react";
-import type { GithubComJieWaZiNeuxAllyServerApisKnowledgeWikiIndexGroup as IndexGroup } from "@/shared/api/generated/types.gen";
+import { useState, type ComponentProps, type ReactNode } from "react";
+import type {
+  GithubComJieWaZiNeuxAllyServerApisKnowledgeWikiIndexView as IndexView,
+  GithubComJieWaZiNeuxAllyServerApisKnowledgeWikiIndexGroup as IndexGroup,
+} from "@/shared/api/generated/types.gen";
 import { Button } from "@/shared/ui/button";
 import { EmptyState } from "@/shared/ui/empty-state";
-import { QueryState } from "@/shared/ui/query-state";
 import { StaticMarkdown } from "@/shared/ui/static-markdown";
 import { KnowledgeWikiContentLoading } from "./knowledge-loading";
 import { KnowledgeReadFeedback } from "./knowledge-read-feedback";
@@ -14,6 +16,7 @@ import { useWikiCopy } from "./use-wiki-copy";
 import {
   remarkWikiIndexBreaks,
   normalizeWikiIndexIntro,
+  stripDuplicateWikiTitle,
 } from "./knowledge-wiki-markdown";
 
 /** 复用上游结构化索引：导言只渲染一次，分组目录来自全库轻量分页。 */
@@ -22,53 +25,105 @@ export function KnowledgeWikiStructuredIndex({
   active,
   onLink,
   remarkPlugins,
+  actions,
 }: {
   resource: ResourceRef;
   active: boolean;
   onLink: (slug: string) => void;
   remarkPlugins: ComponentProps<typeof StaticMarkdown>["remarkPlugins"];
+  actions?: ReactNode;
+}) {
+  const query = useQuery({ ...wikiIndexOptions(resource), enabled: active });
+  if (query.isPending) return <KnowledgeWikiContentLoading />;
+  if (query.error && !query.data)
+    return (
+      <KnowledgeReadFeedback
+        state={{
+          pending: false,
+          error: query.error,
+          retry: () => void query.refetch(),
+        }}
+      />
+    );
+  if (!query.data) return null;
+  return (
+    <KnowledgeWikiIndexContent
+      resource={resource}
+      data={query.data}
+      refreshedAt={query.dataUpdatedAt}
+      onLink={onLink}
+      remarkPlugins={remarkPlugins}
+      actions={actions}
+      feedback={
+        query.error ? (
+          <KnowledgeReadFeedback
+            hasData
+            state={{
+              pending: false,
+              error: query.error,
+              retry: () => {
+                void query.refetch();
+              },
+            }}
+          />
+        ) : undefined
+      }
+    />
+  );
+}
+
+/** 本机索引与远端已读目录共享标题、导言和分组展示。 */
+export function KnowledgeWikiIndexContent({
+  resource,
+  data,
+  refreshedAt,
+  onLink,
+  remarkPlugins,
+  actions,
+  feedback,
+  complete = false,
+}: {
+  resource: ResourceRef;
+  data: IndexView;
+  refreshedAt: number;
+  onLink: (slug: string) => void;
+  remarkPlugins: ComponentProps<typeof StaticMarkdown>["remarkPlugins"];
+  actions?: ReactNode;
+  feedback?: ReactNode;
+  complete?: boolean;
 }) {
   const t = useWikiCopy();
   const indexRemarkPlugins = [...(remarkPlugins ?? []), remarkWikiIndexBreaks];
-  const query = useQuery({ ...wikiIndexOptions(resource), enabled: active });
-  if (query.isPending) return <KnowledgeWikiContentLoading />;
-  if (!query.data)
-    return (
-      <QueryState error={query.error} onRetry={() => void query.refetch()} />
-    );
-  const groups = (query.data.groups ?? []).filter(
-    (group) => (group.total ?? 0) > 0,
-  );
+  const groups = (data.groups ?? []).filter((group) => (group.total ?? 0) > 0);
   return (
     <div className="space-y-6">
-      {query.error && (
-        <KnowledgeReadFeedback
-          hasData
-          state={{
-            pending: false,
-            error: query.error,
-            retry: () => {
-              void query.refetch();
-            },
-          }}
-        />
-      )}
+      {feedback}
+      <header className="flex min-w-0 items-center gap-3">
+        <h1 className="type-conversation-title min-w-0 flex-1 truncate font-semibold">
+          {t("indexTitle")}
+        </h1>
+        <div className="flex shrink-0 items-center gap-2">{actions}</div>
+      </header>
       <StaticMarkdown
-        source={normalizeWikiIndexIntro(query.data.intro ?? "")}
+        source={stripDuplicateWikiTitle(
+          normalizeWikiIndexIntro(data.intro ?? ""),
+          t("indexTitle"),
+        )}
         remarkPlugins={indexRemarkPlugins}
         onLink={onLink}
       />
       {groups.map((group) => (
         <KnowledgeWikiIndexGroup
-          key={`${group.type}:${query.dataUpdatedAt}`}
+          key={`${group.type}:${refreshedAt}`}
           resource={resource}
           group={group}
-          refreshedAt={query.dataUpdatedAt}
+          complete={complete}
+          refreshedAt={refreshedAt}
           onLink={onLink}
           remarkPlugins={indexRemarkPlugins}
         />
       ))}
-      {!groups.length && !query.data.intro && (
+      {!groups.length && !data.intro && (
         <EmptyState title={t("empty")} description={t("emptyHelp")} />
       )}
     </div>
@@ -78,18 +133,21 @@ export function KnowledgeWikiStructuredIndex({
 function KnowledgeWikiIndexGroup({
   resource,
   group,
+  complete,
   refreshedAt,
   onLink,
   remarkPlugins,
 }: {
   resource: ResourceRef;
   group: IndexGroup;
+  complete: boolean;
   refreshedAt: number;
   onLink: (slug: string) => void;
   remarkPlugins: ComponentProps<typeof StaticMarkdown>["remarkPlugins"];
 }) {
   const t = useWikiCopy();
   // 新首屏读取后重置该组追加页，避免把更新前后的目录窗口拼成一份假快照。
+  const [visibleCount, setVisibleCount] = useState(50);
   const options = wikiIndexOptions(resource, group.type);
   const more = useInfiniteQuery({
     queryKey: [...options.queryKey, "more", refreshedAt],
@@ -104,7 +162,12 @@ function KnowledgeWikiIndexGroup({
     ...(more.data?.pages.flatMap((page) => page.groups?.[0]?.items ?? []) ??
       []),
   ];
-  const next = more.data ? more.hasNextPage : Boolean(group.nextCursor);
+  const visibleRows = complete ? rows.slice(0, visibleCount) : rows;
+  const next = complete
+    ? visibleCount < rows.length
+    : more.data
+      ? more.hasNextPage
+      : Boolean(group.nextCursor);
   const label =
     group.type === "summary"
       ? t("summaryType")
@@ -122,7 +185,7 @@ function KnowledgeWikiIndexGroup({
   return (
     <section className="space-y-3" aria-label={label}>
       <StaticMarkdown
-        source={`## ${label} (${group.total ?? 0})\n\n${appendIndexDirectoryLines(rows)}`}
+        source={`## ${label} (${group.total ?? 0})\n\n${appendIndexDirectoryLines(visibleRows)}`}
         remarkPlugins={remarkPlugins}
         onLink={onLink}
       />
@@ -143,8 +206,11 @@ function KnowledgeWikiIndexGroup({
           <Button
             type="button"
             variant="text"
-            disabled={more.isFetching}
-            onClick={() => void more.fetchNextPage()}
+            disabled={more.isFetching || more.isError}
+            onClick={() => {
+              if (complete) setVisibleCount((count) => count + 50);
+              else void more.fetchNextPage();
+            }}
           >
             <ChevronDown aria-hidden="true" />
             {t("loadMore")}

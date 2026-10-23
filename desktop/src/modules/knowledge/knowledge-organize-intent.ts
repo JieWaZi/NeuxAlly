@@ -7,7 +7,7 @@ type IntentState = {
   start?: KnowledgeOrganizeStart;
   frozen?: ExecutionSelection;
   remoteCommand?: {
-    profileId: string;
+    profileId?: string;
     sourceVersionIds: string[];
     instruction: string;
     expectedVersion: number;

@@ -3,13 +3,13 @@ import { knowledgeAdapterMetadata } from "./knowledge-adapter-metadata";
 import { ApiError } from "@/shared/api/errors";
 import { i18n } from "@/shared/i18n";
 import { knowledgeZh } from "@/shared/i18n/knowledge";
-import { withLocalErrorSurface } from "@/shared/api/local-error-surface";
 import type { ResourceRef } from "./knowledge-adapter-types";
 import {
   scopedKnowledgeOptions,
   knowledgeUnsupported,
   assertKnowledgeCapability,
   type KnowledgeOptions,
+  type KnowledgeUploadContext,
   type KnowledgeCapabilities,
   type KnowledgePageReadOptions,
   type KnowledgeRevisionsOptions,
@@ -66,28 +66,28 @@ export function localKnowledgeAdapter(ref: ResourceRef) {
     listAvailableLibraries: (
       options?: KnowledgeOptions<typeof api.listAvailableLibraries>,
     ) =>
-      api.listAvailableLibraries<true>(
-        withLocalErrorSurface({ ...options, throwOnError: true as const }),
-      ),
+      api.listAvailableLibraries<true>({
+        ...options,
+        throwOnError: true as const,
+      }),
     testLibraryEmbedding: (
       options: KnowledgeOptions<typeof api.testLibraryEmbedding>,
     ) =>
-      api.testLibraryEmbedding<true>(
-        withLocalErrorSurface({
-          ...options,
-          body: {
-            ...options.body,
-            libraryId: ref.knowledgeBaseId || undefined,
-          },
-          throwOnError: true,
-        }),
-      ),
+      api.testLibraryEmbedding<true>({
+        ...options,
+        body: {
+          ...options.body,
+          libraryId: ref.knowledgeBaseId || undefined,
+        },
+        throwOnError: true,
+      }),
     getLibrary: (options: KnowledgeOptions<typeof api.getLibrary>) =>
       api.getLibrary<true>(scope(options)),
     createLibrary: (options: KnowledgeOptions<typeof api.createLibrary>) =>
       api.createLibrary<true>(scope(options)),
     updateLibrary: (options: KnowledgeOptions<typeof api.updateLibrary>) =>
       api.updateLibrary<true>(scope(options)),
+    removeMount: async () => knowledgeUnsupported(),
     deleteLibrary: (options: KnowledgeOptions<typeof api.deleteLibrary>) =>
       api.deleteLibrary<true>(scope(options)),
     getLibraryDeletion: (
@@ -100,6 +100,15 @@ export function localKnowledgeAdapter(ref: ResourceRef) {
       api.listSources<true>(scope(options)),
     getSource: (options: KnowledgeOptions<typeof api.getSource>) =>
       api.getSource<true>(scope(options)),
+    redetectService: async () => knowledgeUnsupported(),
+    getUploadContext: async (
+      _signal?: AbortSignal,
+    ): Promise<KnowledgeUploadContext | undefined> => {
+      _signal?.throwIfAborted();
+      return undefined;
+    },
+    uploadSource: (options: KnowledgeOptions<typeof api.importSource>) =>
+      api.importSource<true>(scope(options)),
     importSource: (options: KnowledgeOptions<typeof api.importSource>) =>
       api.importSource<true>(scope(options)),
     archiveSource: (options: KnowledgeOptions<typeof api.archiveSource>) =>
@@ -133,6 +142,9 @@ export function localKnowledgeAdapter(ref: ResourceRef) {
     sendMaintenanceMessage: (
       options: KnowledgeOptions<typeof api.sendMaintenanceMessage>,
     ) => api.sendMaintenanceMessage<true>(scope(options)),
+    listPageDirectory: (
+      options: KnowledgeOptions<typeof api.listPageDirectory>,
+    ) => api.listPageDirectory<true>(scope(options)),
     listPages: (options: KnowledgeOptions<typeof api.listPages>) =>
       api.listPages<true>(scope(options)),
     getPageBySlug: (options: KnowledgeOptions<typeof api.getPageBySlug>) =>

@@ -1,4 +1,5 @@
 import { lazy, Suspense } from "react";
+import { knowledgeAdapter } from "@/shared/api/knowledge";
 import { Button } from "@/shared/ui/button";
 import { Dialog, DialogContent, DialogFooter } from "@/shared/ui/dialog";
 import { KnowledgeWikiContentLoading } from "./knowledge-loading";
@@ -10,9 +11,14 @@ export {
   createKnowledgeOrganizeIntent,
   type KnowledgeOrganizeIntent,
 } from "./knowledge-organize-intent";
-const Content = lazy(() =>
+const LocalContent = lazy(() =>
   import("./knowledge-organize-dialog-content").then((module) => ({
     default: module.KnowledgeOrganizeDialogContent,
+  })),
+);
+const RemoteContent = lazy(() =>
+  import("./knowledge-remote-organize").then((module) => ({
+    default: module.KnowledgeRemoteOrganize,
   })),
 );
 export type KnowledgeOrganizeDialogProps = {
@@ -27,6 +33,9 @@ export type KnowledgeOrganizeDialogProps = {
 /** 弹窗外壳跨分包、读取配置和编辑保持同一实例。 */
 export function KnowledgeOrganizeDialog(props: KnowledgeOrganizeDialogProps) {
   const t = useCopy();
+  const Content = knowledgeAdapter(props.library.ref).localConfiguration
+    ? LocalContent
+    : RemoteContent;
   return (
     <Dialog
       open

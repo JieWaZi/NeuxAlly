@@ -1,5 +1,12 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import {
+  act,
+  render,
+  renderHook,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
@@ -7,6 +14,10 @@ import { afterAll, afterEach, beforeAll, expect, it, vi } from "vitest";
 import { ThemeProvider } from "@/shared/theme";
 import { toApiError } from "@/shared/api/errors";
 import { client } from "@/shared/api/generated/client.gen";
+import {
+  dismissErrorNotice,
+  useErrorNotices,
+} from "@/shared/api/error-notices";
 import { KnowledgeWikiHistory } from "./knowledge-wiki-history";
 import type { ResourceRef } from "./knowledge-transfer";
 import type { KnowledgeWikiCommands } from "./knowledge-wiki-command";
@@ -67,7 +78,20 @@ beforeAll(() => {
   server.listen({ onUnhandledRequest: "error" });
   client.setConfig({ baseUrl: "http://ally.test" });
 });
-afterEach(() => server.resetHandlers());
+afterEach(() => {
+  server.resetHandlers();
+  const hook = renderHook(useErrorNotices);
+  act(() => {
+    for (const notice of hook.result.current) dismissErrorNotice(notice.id);
+  });
+  hook.unmount();
+});
+async function expectGlobalReadError() {
+  const notices = renderHook(useErrorNotices);
+  await waitFor(() => expect(notices.result.current.length).toBeGreaterThan(0));
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  notices.unmount();
+}
 afterAll(() => server.close());
 function show(
   options: {
@@ -230,7 +254,12 @@ it("恢复结果未知保留原命令，关闭重开后即使历史行消失也�
   await userEvent.click(
     within(dialog).getByRole("button", { name: "确认恢复" }),
   );
-  await within(dialog).findByRole("alert");
+  await waitFor(() =>
+    expect(
+      within(dialog).getByRole("button", { name: "确认恢复" }),
+    ).toBeEnabled(),
+  );
+  expect(within(dialog).queryByRole("alert")).not.toBeInTheDocument();
   expect(commands.get("restore:one")).toMatchObject({
     kind: "restore-page",
     revisionVersion: 2,
@@ -261,37 +290,33 @@ it("只读页面不提供恢复", async () => {
   ).not.toBeInTheDocument();
 });
 
-it("普通快照读取错误可重试，空正文快照仍可恢复，说明独立参与比较", async () => {
-  show();
-  let fail = true;
+it("历史读取失败保留当前版本，全局报告并在重新读取后恢复", async () => {
+  const { queryClient } = show();
+  let failed = true;
   server.use(
     http.get(`${root}/pages/one/revisions`, () =>
-      fail
+      failed
         ? new HttpResponse(null, { status: 500 })
-        : HttpResponse.json({
-            items: [
-              {
-                ...revisions[0],
-                content: "",
-                title: current.title,
-                summary: "只有说明不同",
-              },
-            ],
-            total: 1,
-          }),
+        : HttpResponse.json({ items: revisions, total: 2 }),
     ),
   );
-  expect(await screen.findAllByRole("alert")).not.toHaveLength(0);
-  fail = false;
-  for (const button of screen.getAllByRole("button", { name: /重试/ }))
-    await userEvent.click(button);
-  await select(2);
-  await userEvent.click(screen.getByRole("radio", { name: "累计比较" }));
-  expect(await screen.findByRole("region", { name: "页面说明" })).toBeVisible();
+  await expectGlobalReadError();
   expect(
-    screen.queryByRole("region", { name: "页面标题" }),
+    screen.getByRole("button", { name: /版本 3.*当前版本/ }),
+  ).toBeVisible();
+  failed = false;
+  await act(async () => {
+    await queryClient.refetchQueries();
+  });
+  await screen.findByRole("button", { name: /^版本 2/ });
+  expect(
+    screen.queryByRole("button", { name: "重试" }),
   ).not.toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "恢复此版本" })).toBeVisible();
+  await waitFor(() =>
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument(),
+  );
+  expect(screen.getByText("版本 2 → 版本 3")).toBeVisible();
+  expect(screen.getAllByLabelText("比较前")[0]).toHaveTextContent("第二版标题");
 });
 
 it("版本冲突保留错误但不当作未知结果，不报告恢复成功", async () => {
@@ -313,7 +338,10 @@ it("版本冲突保留错误但不当作未知结果，不报告恢复成功", a
     await screen.findByRole("button", { name: "恢复此版本" }),
   );
   await userEvent.click(screen.getByRole("button", { name: "确认恢复" }));
-  expect(await screen.findByRole("alert")).toHaveTextContent("页面已被更新");
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "确认恢复" })).toBeEnabled(),
+  );
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   expect(props.onRestored).not.toHaveBeenCalled();
   expect(commands.size).toBe(0);
 });
@@ -381,3 +409,58 @@ it("AI维护修订在历史中标记实际Agent来源", async () => {
   );
   await screen.findByText("AI 修订");
 });
+
+it.each([
+  { label: "上一版本", missingVersion: 2 },
+  { label: "所选版本", missingVersion: 1 },
+])(
+  "$label 快照失败全局报告，恢复后才允许使用快照",
+  async ({ missingVersion }) => {
+    const remoteRoot =
+      "http://ally.test/api/v1/knowledge/connections/remote/libraries/kb";
+    let failed = true;
+    const { queryClient } = show({
+      resource: {
+        backend: "custom",
+        connectionId: "remote",
+        knowledgeBaseId: "kb",
+      },
+    });
+    server.use(
+      http.get(`${remoteRoot}/pages/one/revisions`, () =>
+        HttpResponse.json({
+          items: [{ version: 2 }, { version: 1 }],
+          total: 2,
+        }),
+      ),
+      http.get(`${remoteRoot}/pages/one/revisions/:version`, ({ params }) =>
+        failed && Number(params.version) === missingVersion
+          ? HttpResponse.json(
+              { key: "KnowledgeForbidden", message: "快照暂不可读取" },
+              { status: 403 },
+            )
+          : HttpResponse.json(
+              revisions.find(
+                (revision) => revision.version === Number(params.version),
+              ),
+            ),
+      ),
+    );
+    if (missingVersion === 1) await select(1);
+    await expectGlobalReadError();
+    if (missingVersion === 1)
+      expect(
+        screen.queryByRole("button", { name: "恢复此版本" }),
+      ).not.toBeInTheDocument();
+    failed = false;
+    await act(async () => {
+      await queryClient.refetchQueries();
+    });
+    await waitFor(() =>
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument(),
+    );
+    if (missingVersion === 1)
+      expect(screen.getByRole("button", { name: "恢复此版本" })).toBeEnabled();
+    else expect(screen.getByText("版本 2 → 版本 3")).toBeVisible();
+  },
+);

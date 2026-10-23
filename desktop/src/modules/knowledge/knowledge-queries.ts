@@ -1,4 +1,5 @@
-import { queryOptions } from "@tanstack/react-query";
+import { queryOptions, infiniteQueryOptions } from "@tanstack/react-query";
+import { withLocalErrorSurface } from "@/shared/api/local-error-surface";
 import {
   knowledgeClient,
   KNOWLEDGE_SOURCE_PAGE_SIZE,
@@ -7,14 +8,13 @@ import {
   knowledgeAdapter,
   type KnowledgeSourceFilters,
 } from "@/shared/api/knowledge";
-import { withLocalErrorSurface } from "@/shared/api/local-error-surface";
 import type { ResourceRef } from "./knowledge-transfer";
 import {
   emptyLibrary,
   type Library,
   type LibraryLocation,
   type Source,
-  isOrganizableSourceState,
+  isOrganizableSource,
 } from "./knowledge-model";
 import {
   readEmbeddingModelId,
@@ -29,20 +29,24 @@ import type {
 export const knowledgeKeys = {
   all: ["knowledge"] as const,
   libraryLists: ["knowledge", "libraries"] as const,
+  capabilities: (ref: ResourceRef) =>
+    [...knowledgeKeys.resource(ref), "capabilities"] as const,
   jobs: (ref: ResourceRef) => [...knowledgeKeys.resource(ref), "jobs"] as const,
   job: (ref: ResourceRef, id: string) =>
     [...knowledgeKeys.resource(ref), "job", id] as const,
-  libraries: (offset = 0, location = "all") =>
-    ["knowledge", "libraries", location, offset] as const,
+  libraries: (offset = 0, location = "all", search = "") =>
+    ["knowledge", "libraries", location, offset, search] as const,
   resource: (ref: ResourceRef) =>
     ["knowledge", ref.backend, ref.connectionId, ref.knowledgeBaseId] as const,
 };
 export function librariesOptions(
   offset: number,
   location: LibraryLocation = "all",
+  search = "",
 ) {
+  const query = { offset, limit: 50, location, search };
   return queryOptions({
-    queryKey: knowledgeKeys.libraries(offset, location),
+    queryKey: knowledgeKeys.libraries(offset, location, search),
     // 返回列表时读取详情已更新的统计摘要，不等待全局缓存新鲜期。
     staleTime: 0,
     queryFn: async ({ signal }) =>
@@ -53,7 +57,7 @@ export function librariesOptions(
           knowledgeBaseId: "",
         }).listAvailableLibraries(
           withLocalErrorSurface({
-            query: { offset, limit: 50, location },
+            query,
             signal,
             throwOnError: true,
           }),
@@ -90,6 +94,48 @@ export function sourcesOptions(
   });
 }
 
+/** 原件目录累计读取真实分页，筛选变化使用独立缓存并从头开始。 */
+export function sourceDirectoryOptions(
+  ref: ResourceRef,
+  filters: KnowledgeSourceFilters,
+) {
+  return infiniteQueryOptions({
+    queryKey: [...knowledgeKeys.resource(ref), "sources", "directory", filters],
+    initialPageParam: 0,
+    queryFn: async ({ pageParam, signal }) => {
+      const result = await knowledgeClient(ref).listSources(
+        pageParam,
+        signal,
+        KNOWLEDGE_SOURCE_PAGE_SIZE,
+        filters,
+      );
+      if (!result.items?.length && (result.total ?? 0) > pageParam)
+        throw new Error("Incomplete knowledge source list");
+      return result;
+    },
+    getNextPageParam: (last, pages) => {
+      const offset = pages.reduce(
+        (total, page) => total + (page.items?.length ?? 0),
+        0,
+      );
+      return last.items?.length && offset < (last.total ?? offset)
+        ? offset
+        : undefined;
+    },
+    select: (data) => ({
+      ...data,
+      items: [
+        ...new Map(
+          data.pages
+            .flatMap((page) => page.items ?? [])
+            .map((source) => [source.id, source]),
+        ).values(),
+      ],
+      total: data.pages.at(-1)?.total ?? 0,
+    }),
+  });
+}
+
 /** 打开整理表单时完整读取来源，默认范围不受列表翻页与筛选影响。 */
 export function organizableSourcesOptions(ref: ResourceRef) {
   return queryOptions({
@@ -106,12 +152,19 @@ export function organizableSourcesOptions(ref: ResourceRef) {
         if (offset >= (page.total ?? offset)) break;
         if (!items.length) throw new Error("Incomplete knowledge source list");
       }
-      return sources.filter((source) => isOrganizableSourceState(source.state));
+      return sources.filter((source) => isOrganizableSource(source));
     },
   });
 }
 export function toLibrary(v: LibraryDTO): Library {
   return {
+    offline: v.offline,
+    mountId:
+      "mountId" in v && typeof v.mountId === "string" ? v.mountId : undefined,
+    mountRevision:
+      "mountRevision" in v && typeof v.mountRevision === "number"
+        ? v.mountRevision
+        : undefined,
     ...emptyLibrary(
       v.id ?? "",
       v.name ?? "",
@@ -144,6 +197,7 @@ export function toLibrary(v: LibraryDTO): Library {
 export function toSource(v: SourceDTO, backend = "local"): Source {
   return {
     sourceId: v.sourceId,
+    organizeBlocked: v.organizeBlocked,
     id: v.id ?? "",
     name: v.filename || v.id || "",
     size:

@@ -1,10 +1,42 @@
 import { queryOptions, type QueryClient } from "@tanstack/react-query";
 import { knowledgeAdapter } from "@/shared/api/knowledge";
+import { knowledgeDirectoryIncomplete } from "@/shared/api/knowledge/knowledge-adapter-types";
 import { withLocalErrorSurface } from "@/shared/api/local-error-surface";
 import { knowledgeKeys } from "./knowledge-queries";
 import type { ResourceRef } from "./knowledge-transfer";
 import type { KnowledgeGraph } from "./knowledge-graph-model";
-import { wikiPageOptions } from "./knowledge-wiki-queries";
+import { wikiPageOptions, type WikiPage } from "./knowledge-wiki-queries";
+
+/** 图谱按需读取链接关系，独立缓存不能复用不含出链的轻量目录。 */
+export function localGraphPagesOptions(ref: ResourceRef) {
+  return queryOptions({
+    queryKey: [...knowledgeKeys.resource(ref), "wiki", "graph-pages"],
+    queryFn: async ({ signal }) => {
+      const pages: WikiPage[] = [];
+      const adapter = knowledgeAdapter(ref);
+      while (true) {
+        const result = (
+          await adapter.listPages(
+            withLocalErrorSurface({
+              path: {
+                libraryId: ref.knowledgeBaseId,
+                connectionId: ref.connectionId,
+              },
+              query: { offset: pages.length, limit: 100 },
+              signal,
+              throwOnError: true,
+            }),
+          )
+        ).data;
+        const rows = result.items ?? [];
+        pages.push(...rows);
+        if (pages.length >= (result.total ?? pages.length)) return pages;
+        if (!rows.length) knowledgeDirectoryIncomplete();
+        signal.throwIfAborted();
+      }
+    },
+  });
+}
 
 export function remoteGraphOptions(ref: ResourceRef, center: string) {
   return queryOptions({
@@ -21,7 +53,8 @@ export function remoteGraphOptions(ref: ResourceRef, center: string) {
               mode: center ? "ego" : "overview",
               center,
               depth: 1,
-              limit: 500,
+              // 官方图谱及本机远端代理均以 200 个节点为单次上限。
+              limit: 200,
             },
             signal,
             throwOnError: true,

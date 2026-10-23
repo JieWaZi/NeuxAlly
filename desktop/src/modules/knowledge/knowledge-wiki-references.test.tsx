@@ -99,3 +99,49 @@ it("来源不可用时仍可进入统一预览查看失败，不隐藏已有引�
     "missing",
   );
 });
+
+it("被链接与来源文档各显示前 30 个，可独立展开和收起更多引用", async () => {
+  const onLink = show({
+    inLinks: Array.from(
+      { length: 31 },
+      (_, index) => `concept/page-${index + 1}`,
+    ),
+    sourceRefs: Array.from(
+      { length: 31 },
+      (_, index) => `version-${index + 1}|资料-${index + 1}.md`,
+    ),
+  });
+  const incoming = screen.getByRole("region", { name: "被链接" });
+  const sources = screen.getByRole("region", { name: "来源文档" });
+  expect(
+    within(incoming).getByRole("button", { name: "concept/page-30" }),
+  ).toBeVisible();
+  expect(
+    within(incoming).queryByRole("button", { name: "concept/page-31" }),
+  ).toBeNull();
+  expect(
+    within(sources).getByRole("button", { name: "资料-30.md" }),
+  ).toBeVisible();
+  expect(
+    within(sources).queryByRole("button", { name: "资料-31.md" }),
+  ).toBeNull();
+  await userEvent.click(within(incoming).getByRole("button", { name: "更多" }));
+  await userEvent.click(
+    within(incoming).getByRole("button", { name: "concept/page-31" }),
+  );
+  expect(onLink).toHaveBeenCalledWith("concept/page-31");
+  expect(
+    within(sources).queryByRole("button", { name: "资料-31.md" }),
+  ).toBeNull();
+  await userEvent.click(within(sources).getByRole("button", { name: "更多" }));
+  await userEvent.click(
+    within(sources).getByRole("button", { name: "资料-31.md" }),
+  );
+  expect(screen.getByRole("dialog", { name: "原件预览" })).toHaveTextContent(
+    "version-31",
+  );
+  await userEvent.click(within(incoming).getByRole("button", { name: "收起" }));
+  expect(
+    within(incoming).queryByRole("button", { name: "concept/page-31" }),
+  ).toBeNull();
+});

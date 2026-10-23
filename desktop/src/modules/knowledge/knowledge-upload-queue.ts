@@ -6,6 +6,7 @@ export type KnowledgeUploadEntry = {
   fingerprint?: string;
   state: "ready" | "uploading" | "done" | "failed" | "cancelled" | "duplicate";
   uncertain?: boolean;
+  acceptedMode?: "separate" | "automatic";
   error?: string;
 };
 /** 仅保存同库的客户端上传意图，弹窗关闭不丢失不可变输入与幂等身份。 */

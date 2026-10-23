@@ -1,19 +1,18 @@
 import { continueSourceCleanup } from "./knowledge-source-cleanup";
-import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { knowledgeAdapter } from "@/shared/api/knowledge";
 import type { GithubComJieWaZiNeuxKnowledgeInternalDomainSourcePurgePreview as PurgePreview } from "@/shared/api/generated/types.gen";
-import {
-  withLocalErrorSurface,
-  localApiErrorMessage,
-} from "@/shared/api/local-error-surface";
 import { ApiError } from "@/shared/api/errors";
 import { Dialog, DialogContent, DialogFooter } from "@/shared/ui/dialog";
 import { Button } from "@/shared/ui/button";
-import { QueryState } from "@/shared/ui/query-state";
 import { KnowledgeWikiContentLoading } from "./knowledge-loading";
 import { knowledgeKeys } from "./knowledge-queries";
 import { sourceDetailOptions } from "./knowledge-source-document";
+import { reportKnowledgeError } from "./knowledge-error-notice";
+import {
+  captureErrorNoticeRecovery,
+  resolveErrorNoticeRecovery,
+} from "@/shared/api/error-notices";
 import { isKnowledgeWriteOutcomeUnknown } from "./knowledge-write-outcome";
 import type { Library, Source } from "./knowledge-model";
 import { useDocumentCopy } from "./use-document-copy";
@@ -49,18 +48,16 @@ export function createSourceDeleter() {
         if (!attempt.purgeId) {
           const { data: receipt } = await knowledgeAdapter(
             library.ref,
-          ).confirmSourcePurge(
-            withLocalErrorSurface({
-              path,
-              body: {
-                requestId: attempt.requestId,
-                sourceId: attempt.preview.sourceId || "",
-                previewDigest: attempt.preview.digest || "",
-                confirmed: true,
-              },
-              throwOnError: true,
-            }),
-          );
+          ).confirmSourcePurge({
+            path,
+            body: {
+              requestId: attempt.requestId,
+              sourceId: attempt.preview.sourceId || "",
+              previewDigest: attempt.preview.digest || "",
+              confirmed: true,
+            },
+            throwOnError: true,
+          });
           if (!receipt.resourceId)
             throw new ApiError(
               "Missing cleanup receipt",
@@ -97,7 +94,6 @@ export function KnowledgeSourceDelete({
   const t = useDocumentCopy();
   const client = useQueryClient();
   const retained = remove.retained(library, source.id);
-  const [attempted, setAttempted] = useState(Boolean(retained));
   const preview = useQuery({
     queryKey: [
       ...knowledgeKeys.resource(library.ref),
@@ -107,26 +103,38 @@ export function KnowledgeSourceDelete({
     staleTime: 0,
     queryFn: async ({ signal }) => {
       if (retained) return retained;
+      const adapter = knowledgeAdapter(library.ref);
+      if (adapter.supportsServiceDetection)
+        await adapter.assertCapability("sourcePurge", signal);
+      const operation = `source-delete-preview:${JSON.stringify([...knowledgeKeys.resource(library.ref), source.id])}`;
+      const recovery = captureErrorNoticeRecovery(`knowledge:${operation}`);
       const stableId =
         source.sourceId ||
-        (await client.fetchQuery(sourceDetailOptions(library.ref, source.id)))
-          .sourceId;
+        (
+          await client
+            .fetchQuery(sourceDetailOptions(library.ref, source.id))
+            .then((detail) => {
+              resolveErrorNoticeRecovery(recovery);
+              return detail;
+            })
+            .catch((cause: unknown) => {
+              reportKnowledgeError(cause, operation, t("deleteFailed"));
+              throw cause;
+            })
+        ).sourceId;
       return (
-        await knowledgeAdapter(library.ref).previewSourcePurge(
-          withLocalErrorSurface({
-            path: { libraryId: library.id },
-            query: { sourceId: stableId || "" },
-            signal,
-            throwOnError: true,
-          }),
-        )
+        await knowledgeAdapter(library.ref).previewSourcePurge({
+          path: { libraryId: library.id },
+          query: { sourceId: stableId || "" },
+          signal,
+          throwOnError: true,
+        })
       ).data;
     },
   });
   const deletion = useMutation({
     mutationFn: async () => {
       if (!preview.data) return;
-      setAttempted(true);
       if (!(await remove.perform(library, source.id, preview.data)))
         throw new ApiError(t("deletePending"), "KNOWLEDGE_CLEANUP_PENDING");
       await onDeleted();
@@ -155,14 +163,7 @@ export function KnowledgeSourceDelete({
         <div className="space-y-4 px-6 pb-5">
           {preview.isPending ? (
             <KnowledgeWikiContentLoading />
-          ) : preview.error ? (
-            <QueryState
-              error={preview.error}
-              onRetry={() => {
-                void preview.refetch();
-              }}
-            />
-          ) : (
+          ) : preview.error ? null : (
             preview.data && (
               <p className="type-body text-content-secondary">
                 {t("deleteImpact", {
@@ -178,11 +179,6 @@ export function KnowledgeSourceDelete({
           {blocked && (
             <p className="type-body text-content-secondary">
               {t("deleteBlocked")}
-            </p>
-          )}
-          {deletion.error && (
-            <p role="alert" className="type-body text-destructive">
-              {localApiErrorMessage(deletion.error, t("deleteFailed"))}
             </p>
           )}
         </div>
@@ -204,9 +200,7 @@ export function KnowledgeSourceDelete({
             }
             onClick={() => deletion.mutate()}
           >
-            {t(
-              deletion.isPending ? "deleting" : attempted ? "retry" : "delete",
-            )}
+            {t(deletion.isPending ? "deleting" : "delete")}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -3,6 +3,11 @@ import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import { client } from "@/shared/api/generated/client.gen";
 import { ApiError } from "@/shared/api/errors";
+import {
+  ALLY_LOCAL_ERROR_SURFACE,
+  withLocalErrorSurface,
+} from "@/shared/api/local-error-surface";
+import { scopedKnowledgeOptions } from "@/shared/api/knowledge/knowledge-adapter-types";
 import "./use-copy";
 import { knowledgeAdapter } from "@/shared/api/knowledge";
 import type { ResourceRef } from "@/shared/api/knowledge";
@@ -27,6 +32,7 @@ const customRef = {
   knowledgeBaseId: "kb",
 };
 const officialRef = { ...customRef, backend: "weknora" };
+const integrationRef = { ...customRef, backend: "integration" };
 
 beforeAll(() => {
   client.setConfig({ baseUrl: origin });
@@ -66,6 +72,206 @@ function capabilities(
 }
 
 describe("知识库 Adapter 的目标与能力边界", () => {
+  it("资源身份作用域保留调用方局部错误声明供 Client 运行时处理", () => {
+    const options = scopedKnowledgeOptions(
+      customRef,
+      withLocalErrorSurface({
+        path: { connectionId: "other", libraryId: "other" },
+      }),
+    );
+    expect(new Headers(options.headers).get(ALLY_LOCAL_ERROR_SURFACE)).toBe(
+      "local",
+    );
+    expect(options.path).toEqual({
+      connectionId: "connection",
+      libraryId: "kb",
+    });
+  });
+
+  it("统一远端读取保持完整目标且保留服务端识别元数据", async () => {
+    server.use(
+      http.get(remoteRoot, () =>
+        HttpResponse.json({ id: "kb", name: "统一远端" }),
+      ),
+      http.get(`${remoteRoot}/capabilities`, () =>
+        HttpResponse.json({
+          ...capabilities(),
+          serviceKind: "neuxally",
+          uploadMode: "separate",
+          connectionRevision: 3,
+          evidence: ["explicit"],
+        }),
+      ),
+    );
+    const adapter = knowledgeAdapter(integrationRef);
+    expect(
+      (await adapter.getLibrary({ path: { libraryId: "other" } })).data.name,
+    ).toBe("统一远端");
+    expect(await adapter.getCapabilities()).toMatchObject({
+      serviceKind: "neuxally",
+      uploadMode: "separate",
+      connectionRevision: 3,
+      evidence: ["explicit"],
+    });
+  });
+  it("统一远端缺少显式配置或图谱能力时不从读写权限推断", async () => {
+    server.use(
+      http.get(`${remoteRoot}/capabilities`, () =>
+        HttpResponse.json({
+          operations: { read: true, write: true },
+          details: {
+            read: {
+              supported: true,
+              permission: "allowed",
+              condition: "ready",
+            },
+            write: {
+              supported: true,
+              permission: "allowed",
+              condition: "ready",
+            },
+          },
+        }),
+      ),
+    );
+    const adapter = knowledgeAdapter(integrationRef);
+    await expect(adapter.assertCapability("settings")).rejects.toMatchObject({
+      code: "KnowledgeUnsupported",
+    });
+    await expect(adapter.assertCapability("graph")).rejects.toMatchObject({
+      code: "KnowledgeUnsupported",
+    });
+  });
+  it("统一上传只发送已确认模式，模式变更时不发送业务写入", async () => {
+    let uploads = 0;
+    let mode = "separate";
+    server.use(
+      http.get(`${remoteRoot}/capabilities`, () =>
+        HttpResponse.json({
+          ...capabilities(),
+          uploadMode: mode,
+          connectionRevision: 3,
+        }),
+      ),
+      http.post(`${remoteRoot}/uploads`, async ({ request }) => {
+        uploads++;
+        const body = await request.json();
+        expect(body).toMatchObject({
+          requestId: "file-a",
+          uploadMode: "separate",
+          connectionRevision: 3,
+        });
+        return HttpResponse.json({
+          requestId: "file-a",
+          sourceId: "source-a",
+          accepted: true,
+          uploadMode: "separate",
+          transferState: "accepted",
+        });
+      }),
+    );
+    const adapter = knowledgeAdapter(integrationRef);
+    const confirmed = await adapter.getUploadContext();
+    expect(confirmed).toEqual({
+      uploadMode: "separate",
+      connectionRevision: 3,
+    });
+    const options = {
+      path: { libraryId: "kb" },
+      body: { requestId: "file-a", filename: "a.md", bytes: "YQ==" },
+    };
+    expect((await adapter.uploadSource(options, confirmed)).data).toMatchObject(
+      { accepted: true, sourceId: "source-a" },
+    );
+    mode = "automatic";
+    await expect(
+      adapter.uploadSource(
+        { ...options, body: { ...options.body, requestId: "file-b" } },
+        confirmed,
+      ),
+    ).rejects.toMatchObject({ code: "KnowledgeUploadModeChanged" });
+    expect(uploads).toBe(1);
+  });
+  it("自动处理服务没有确认回执时只查询原上传，不重新发送", async () => {
+    let uploads = 0;
+    server.use(
+      http.get(`${remoteRoot}/capabilities`, () =>
+        HttpResponse.json({
+          ...capabilities(),
+          uploadMode: "automatic",
+          connectionRevision: 3,
+          details: {
+            upload: {
+              supported: true,
+              permission: "unknown",
+              condition: "automatic_processing",
+            },
+          },
+        }),
+      ),
+      http.get(`${remoteRoot}/operations/file-a`, () =>
+        HttpResponse.json({
+          requestId: "file-a",
+          operation: "source.upload.native",
+          nativeUpload: true,
+          transferState: "unknown",
+          ref: integrationRef,
+        }),
+      ),
+      http.get(`${remoteRoot}/uploads/file-a`, () =>
+        HttpResponse.json({
+          requestId: "file-a",
+          accepted: false,
+          uploadMode: "automatic",
+          transferState: "unknown",
+        }),
+      ),
+      http.post(`${remoteRoot}/uploads`, () => {
+        uploads++;
+        return HttpResponse.json({});
+      }),
+    );
+    const adapter = knowledgeAdapter(integrationRef);
+    const confirmed = await adapter.getUploadContext();
+    await expect(
+      adapter.uploadSource(
+        {
+          path: { libraryId: "kb" },
+          body: { requestId: "file-a", filename: "a.md", bytes: "YQ==" },
+        },
+        confirmed,
+      ),
+    ).rejects.toMatchObject({ code: "KnowledgeRemoteOutcomeUnknown" });
+    expect(uploads).toBe(0);
+  });
+  it("上传响应缺少接纳事实时保持未知，不能显示成功", async () => {
+    server.use(
+      http.get(`${remoteRoot}/capabilities`, () =>
+        HttpResponse.json({
+          ...capabilities(),
+          uploadMode: "separate",
+          connectionRevision: 3,
+        }),
+      ),
+      http.post(`${remoteRoot}/uploads`, () =>
+        HttpResponse.json({
+          requestId: "file-a",
+          accepted: false,
+          transferState: "unknown",
+        }),
+      ),
+    );
+    const adapter = knowledgeAdapter(integrationRef);
+    await expect(
+      adapter.uploadSource(
+        {
+          path: { libraryId: "kb" },
+          body: { requestId: "file-a", filename: "a.md", bytes: "YQ==" },
+        },
+        { uploadMode: "separate", connectionRevision: 3 },
+      ),
+    ).rejects.toMatchObject({ code: "KnowledgeRemoteOutcomeUnknown" });
+  });
   it.each([localRef, customRef])(
     "读取以冻结引用覆盖调用方库身份且不预读能力 $backend",
     async (ref: ResourceRef) => {
@@ -752,6 +958,29 @@ describe("已删除库的持久清理恢复", () => {
 });
 
 describe("远端目录完整读取", () => {
+  it("自有服务完整目录一次读取，不按父目录重复取整表", async () => {
+    let reads = 0;
+    server.use(
+      http.get(`${remoteRoot}/themes`, ({ request }) => {
+        reads++;
+        expect(new URL(request.url).searchParams.get("all")).toBe("true");
+        return HttpResponse.json({
+          complete: true,
+          items: [
+            { id: "root", parentId: "", hasChildren: true },
+            { id: "child", parentId: "root", hasChildren: true },
+            { id: "leaf", parentId: "child", hasChildren: false },
+          ],
+        });
+      }),
+    );
+    const result = await knowledgeAdapter(customRef).listThemes({
+      path: { libraryId: "kb" },
+    });
+    expect(result.data.items).toHaveLength(3);
+    expect(reads).toBe(1);
+  });
+
   it("逐层读取父子目录并保留计数", async () => {
     server.use(
       http.get(`${remoteRoot}/themes`, ({ request }) => {

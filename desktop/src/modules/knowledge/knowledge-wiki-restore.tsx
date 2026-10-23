@@ -1,10 +1,6 @@
 import { useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { knowledgeAdapter } from "@/shared/api/knowledge";
-import {
-  localApiErrorMessage,
-  withLocalErrorSurface,
-} from "@/shared/api/local-error-surface";
 import { Button } from "@/shared/ui/button";
 import { Dialog, DialogContent, DialogFooter } from "@/shared/ui/dialog";
 import { knowledgeKeys } from "./knowledge-queries";
@@ -12,6 +8,7 @@ import type { ResourceRef } from "./knowledge-transfer";
 import type { WikiPage } from "./knowledge-wiki-queries";
 import type { KnowledgeWikiCommands } from "./knowledge-wiki-command";
 import { isKnowledgeWriteOutcomeUnknown } from "./knowledge-write-outcome";
+import { reportKnowledgeError } from "./knowledge-error-notice";
 import { useWikiCopy } from "./use-wiki-copy";
 
 /** 确认时固定目标和并发版本；未知结果关闭重开后仍核对原请求。 */
@@ -48,7 +45,6 @@ export function KnowledgeWikiRestore({
   );
   const busy = useRef(false);
   const [pending, setPending] = useState(false);
-  const [error, setError] = useState("");
   async function restore() {
     if (
       busy.current ||
@@ -60,25 +56,22 @@ export function KnowledgeWikiRestore({
       return;
     busy.current = true;
     setPending(true);
-    setError("");
     // 在网络请求前登记，异步期间切换视图也不会丢失核对入口。
     commands.set(commandKey, command);
     try {
-      await knowledgeAdapter(resource).restorePage(
-        withLocalErrorSurface({
-          path: {
-            libraryId: resource.knowledgeBaseId,
-            pageId: command.page.id,
-          },
-          body: {
-            requestId: command.requestId,
-            expectedVersion: command.page.version,
-            revisionVersion: command.revisionVersion,
-            structureVersion: command.structureVersion,
-          },
-          throwOnError: true,
-        }),
-      );
+      await knowledgeAdapter(resource).restorePage({
+        path: {
+          libraryId: resource.knowledgeBaseId,
+          pageId: command.page.id,
+        },
+        body: {
+          requestId: command.requestId,
+          expectedVersion: command.page.version,
+          revisionVersion: command.revisionVersion,
+          structureVersion: command.structureVersion,
+        },
+        throwOnError: true,
+      });
       commands.delete(commandKey);
       await Promise.all([
         client.invalidateQueries({
@@ -89,7 +82,11 @@ export function KnowledgeWikiRestore({
       onRestored();
     } catch (cause) {
       if (!isKnowledgeWriteOutcomeUnknown(cause)) commands.delete(commandKey);
-      setError(localApiErrorMessage(cause, t("restoreFailed")));
+      reportKnowledgeError(
+        cause,
+        `restore-wiki-page:${commandKey}`,
+        t("restoreFailed"),
+      );
     } finally {
       busy.current = false;
       setPending(false);
@@ -110,11 +107,6 @@ export function KnowledgeWikiRestore({
         })}
         size="sm"
       >
-        {error && (
-          <p role="alert" className="type-body text-destructive px-6 pb-5">
-            {error}
-          </p>
-        )}
         <DialogFooter>
           <Button variant="secondary" disabled={pending} onClick={onClose}>
             {t("cancel")}

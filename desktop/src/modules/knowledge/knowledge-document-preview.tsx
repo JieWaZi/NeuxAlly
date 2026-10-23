@@ -1,6 +1,5 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { localApiErrorMessage } from "@/shared/api/local-error-surface";
 import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogFooter } from "@/shared/ui/dialog";
 import { Button } from "@/shared/ui/button";
@@ -23,8 +22,9 @@ export function KnowledgeDocumentPreview({
   source,
   onClose,
   onDownload,
-  downloadError,
   downloading,
+  presentation = "dialog",
+  actions,
 }: {
   resource: ResourceRef;
   source: Source;
@@ -32,6 +32,8 @@ export function KnowledgeDocumentPreview({
   onDownload: () => void;
   downloadError?: unknown;
   downloading?: boolean;
+  presentation?: "dialog" | "pane";
+  actions?: ReactNode;
 }) {
   const t = useDocumentCopy();
   const copy = useCopy();
@@ -53,6 +55,122 @@ export function KnowledgeDocumentPreview({
   const documentSource = detail.data
     ? toSource(detail.data, resource.backend)
     : source;
+  const body = (
+    <div
+      className={
+        presentation === "pane"
+          ? "min-w-0 space-y-6"
+          : "scrollbar-hidden min-h-0 flex-1 space-y-6 overflow-y-auto px-6 pb-5"
+      }
+    >
+      <KnowledgeReadFeedback
+        hasData={Boolean(detail.data)}
+        state={{
+          pending: detail.isPending,
+          error: detail.error,
+          retry: () => {
+            void detail.refetch();
+          },
+        }}
+        loading={<KnowledgeWikiContentLoading />}
+      />
+      {detail.data && (
+        <>
+          <section className="space-y-3">
+            <h2 className="type-title font-semibold">{t("basic")}</h2>
+            <dl className="type-body flex flex-wrap gap-x-8 gap-y-3">
+              {[
+                [
+                  t("uploaded"),
+                  detail.data.createdAt
+                    ? new Intl.DateTimeFormat(i18n.language, {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      }).format(new Date(detail.data.createdAt))
+                    : documentSource.date,
+                ],
+                [
+                  t("fileType"),
+                  detail.data.mime ||
+                    documentSource.name.split(".").pop() ||
+                    "—",
+                ],
+                [t("fileSize"), documentSource.size],
+                [copy("state"), copy(documentSource.state)],
+              ].map(([label, value]) => (
+                <div key={label} className="space-y-1">
+                  <dt className="text-content-secondary">{label}</dt>
+                  <dd>{value}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+          {detail.data.description?.trim() && (
+            <section className="space-y-3">
+              <h2 className="type-title font-semibold">{t("summary")}</h2>
+              <p className="type-body text-content-secondary whitespace-pre-wrap">
+                {detail.data.description}
+              </p>
+            </section>
+          )}
+        </>
+      )}
+      <section className="space-y-3">
+        <h2 className="type-title font-semibold">{t("content")}</h2>
+        <KnowledgeReadFeedback
+          hasData={Boolean(content.data)}
+          state={{
+            pending: content.isPending,
+            error: content.error,
+            retry: () => {
+              void content.refetch();
+            },
+          }}
+          loading={<KnowledgeWikiContentLoading />}
+        />
+        {unresolvedLink && (
+          <p role="status" className="type-body text-content-secondary">
+            {t("linkUnavailable")}
+          </p>
+        )}
+        {content.data &&
+          (content.data.text ? (
+            content.data.markdown ? (
+              <StaticMarkdown
+                source={content.data.text}
+                onLink={() => setUnresolvedLink(true)}
+              />
+            ) : (
+              <pre className="type-body font-sans break-words whitespace-pre-wrap">
+                {content.data.text}
+              </pre>
+            )
+          ) : (
+            <p className="type-body text-content-secondary">{t("noPreview")}</p>
+          ))}
+      </section>
+    </div>
+  );
+  if (presentation === "pane")
+    return (
+      <article
+        aria-label={documentSource.name || source.name || copy("documents")}
+        className="min-w-0"
+      >
+        <header className="mb-5 space-y-3">
+          <div className="flex min-w-0 flex-wrap items-center gap-3">
+            <h2
+              title={documentSource.name || source.name}
+              className="type-title min-w-0 flex-1 truncate font-semibold"
+            >
+              {documentSource.name || source.name || copy("documents")}
+            </h2>
+            {actions}
+          </div>
+        </header>
+        {body}
+      </article>
+    );
   return (
     <Dialog
       open={active}
@@ -61,102 +179,11 @@ export function KnowledgeDocumentPreview({
       }}
     >
       <DialogContent
-        title={detail.data?.filename || source.name || copy("documents")}
+        title={source.name || copy("documents")}
         size="xl"
         layout="form"
       >
-        <div className="scrollbar-hidden min-h-0 flex-1 space-y-6 overflow-y-auto px-6 pb-5">
-          {downloadError ? (
-            <p role="alert" className="type-body text-destructive">
-              {localApiErrorMessage(downloadError, t("downloadFailed"))}
-            </p>
-          ) : null}
-          <KnowledgeReadFeedback
-            hasData={Boolean(detail.data)}
-            state={{
-              pending: detail.isPending,
-              error: detail.error,
-              retry: () => {
-                void detail.refetch();
-              },
-            }}
-            loading={<KnowledgeWikiContentLoading />}
-          />
-          {detail.data && (
-            <>
-              <section className="space-y-3">
-                <h2 className="type-title font-semibold">{t("basic")}</h2>
-                <dl className="type-body flex flex-wrap gap-x-8 gap-y-3">
-                  {[
-                    [
-                      t("uploaded"),
-                      detail.data.createdAt
-                        ? new Intl.DateTimeFormat(i18n.language, {
-                            dateStyle: "medium",
-                            timeStyle: "short",
-                          }).format(new Date(detail.data.createdAt))
-                        : documentSource.date,
-                    ],
-                    [
-                      t("fileType"),
-                      detail.data.mime ||
-                        documentSource.name.split(".").pop() ||
-                        "—",
-                    ],
-                    [t("fileSize"), documentSource.size],
-                  ].map(([label, value]) => (
-                    <div key={label} className="space-y-1">
-                      <dt className="text-content-secondary">{label}</dt>
-                      <dd>{value}</dd>
-                    </div>
-                  ))}
-                </dl>
-              </section>
-              <section className="space-y-3">
-                <h2 className="type-title font-semibold">{t("summary")}</h2>
-                <p className="type-body text-content-secondary whitespace-pre-wrap">
-                  {detail.data.description || t("noSummary")}
-                </p>
-              </section>
-            </>
-          )}
-          <section className="space-y-3">
-            <h2 className="type-title font-semibold">{t("content")}</h2>
-            <KnowledgeReadFeedback
-              hasData={Boolean(content.data)}
-              state={{
-                pending: content.isPending,
-                error: content.error,
-                retry: () => {
-                  void content.refetch();
-                },
-              }}
-              loading={<KnowledgeWikiContentLoading />}
-            />
-            {unresolvedLink && (
-              <p role="status" className="type-body text-content-secondary">
-                {t("linkUnavailable")}
-              </p>
-            )}
-            {content.data &&
-              (content.data.text ? (
-                content.data.markdown ? (
-                  <StaticMarkdown
-                    source={content.data.text}
-                    onLink={() => setUnresolvedLink(true)}
-                  />
-                ) : (
-                  <pre className="type-body font-sans break-words whitespace-pre-wrap">
-                    {content.data.text}
-                  </pre>
-                )
-              ) : (
-                <p className="type-body text-content-secondary">
-                  {t("noPreview")}
-                </p>
-              ))}
-          </section>
-        </div>
+        {body}
         <DialogFooter>
           <Button variant="secondary" onClick={onClose}>
             {t("close")}

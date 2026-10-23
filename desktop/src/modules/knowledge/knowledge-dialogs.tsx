@@ -1,3 +1,4 @@
+import { ApiError } from "@/shared/api/errors";
 import {
   useEffect,
   useImperativeHandle,
@@ -12,6 +13,7 @@ import { DialogFooter } from "@/shared/ui/dialog";
 import { SegmentedControl } from "@/shared/ui/segmented-control";
 import { useCopy } from "./use-extended-copy";
 import { IconAction, Pill } from "./knowledge-controls";
+import { reportKnowledgeError } from "./knowledge-error-notice";
 
 import {
   createKnowledgeUploadQueue,
@@ -27,8 +29,12 @@ export function UploadSourcesContent({
   close,
   upload,
   queue: retainedQueue,
+  mode = "separate",
+  onRedetect,
 }: {
   queue?: KnowledgeUploadQueue;
+  mode?: "separate" | "automatic" | "unknown";
+  onRedetect?: () => Promise<void>;
   dialogRef: Ref<{ close: () => void }>;
   close: () => void;
   upload: (
@@ -51,6 +57,8 @@ export function UploadSourcesContent({
   }
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [confirmationInvalid, setConfirmationInvalid] = useState(false);
+  const [redetecting, setRedetecting] = useState(false);
   useEffect(() => () => controller.current?.abort(), []);
   function accept(list: FileList | null, fromFolder = false) {
     if (!list?.length || running.current) return;
@@ -94,7 +102,7 @@ export function UploadSourcesContent({
     );
   }
   async function submit() {
-    if (running.current) return;
+    if (running.current || mode === "unknown" || confirmationInvalid) return;
     const pending = queue
       .getEntries()
       .filter((entry) => entry.state !== "done" && entry.state !== "duplicate");
@@ -136,9 +144,22 @@ export function UploadSourcesContent({
           }
           patch(entry.id, { state: "uploading", error: undefined });
           sent = true;
-          await upload(entry.file, entry.id, abort.signal);
-          patch(entry.id, { state: "done", uncertain: false });
+          const result = await upload(entry.file, entry.id, abort.signal);
+          const acceptedMode =
+            result &&
+            typeof result === "object" &&
+            "uploadMode" in result &&
+            (result.uploadMode === "automatic" ||
+              result.uploadMode === "separate")
+              ? result.uploadMode
+              : undefined;
+          patch(entry.id, { state: "done", uncertain: false, acceptedMode });
         } catch (cause) {
+          reportKnowledgeError(
+            cause,
+            `upload-source:${entry.id}`,
+            t("importSourceFailed"),
+          );
           patch(entry.id, {
             state: abort.signal.aborted ? "cancelled" : "failed",
             uncertain: Boolean(
@@ -149,6 +170,14 @@ export function UploadSourcesContent({
               ? undefined
               : localApiErrorMessage(cause, t("importSourceFailed")),
           });
+          if (
+            cause instanceof ApiError &&
+            (cause.code === "KnowledgeUploadModeChanged" ||
+              cause.status === 409)
+          ) {
+            setConfirmationInvalid(true);
+            break;
+          }
         }
       }
     } finally {
@@ -257,7 +286,9 @@ export function UploadSourcesContent({
                 entry.state === "duplicate"
                   ? "uploadDuplicate"
                   : entry.state === "done"
-                    ? "uploadPendingOrganize"
+                    ? entry.acceptedMode === "automatic"
+                      ? "uploadRemoteAccepted"
+                      : "uploadPendingOrganize"
                     : entry.state === "uploading"
                       ? "uploadingFile"
                       : entry.state === "failed"
@@ -286,11 +317,6 @@ export function UploadSourcesContent({
                 {t("uploadUnconfirmedHelp")}
               </p>
             )}
-            {entry.error && (
-              <p role="alert" className="type-body text-destructive w-full">
-                {entry.error}
-              </p>
-            )}
           </div>
         ))}
         {error && (
@@ -300,6 +326,47 @@ export function UploadSourcesContent({
         )}
       </div>
       <DialogFooter>
+        <div className="min-w-0 flex-1">
+          <p className="type-caption text-content-secondary">
+            {t(
+              mode === "automatic"
+                ? "uploadAutomaticNotice"
+                : mode === "unknown"
+                  ? "uploadUnknownNotice"
+                  : "uploadSeparateNotice",
+            )}
+          </p>
+          {confirmationInvalid && (
+            <p role="alert" className="type-caption text-warning">
+              {t("uploadModeChanged")}
+            </p>
+          )}
+          {onRedetect && (
+            <Button
+              type="button"
+              variant="text"
+              size="sm"
+              disabled={saving || redetecting}
+              onClick={async () => {
+                setRedetecting(true);
+                try {
+                  await onRedetect();
+                  setConfirmationInvalid(false);
+                } catch (cause) {
+                  reportKnowledgeError(
+                    cause,
+                    "redetect-upload-service",
+                    t("knowledgeOperationFailed"),
+                  );
+                } finally {
+                  setRedetecting(false);
+                }
+              }}
+            >
+              {t("remoteRedetect")}
+            </Button>
+          )}
+        </div>
         <Button
           variant="ghost"
           onClick={() => {
@@ -312,6 +379,9 @@ export function UploadSourcesContent({
         <Button
           disabled={
             saving ||
+            redetecting ||
+            confirmationInvalid ||
+            mode === "unknown" ||
             !entries.some(
               (entry) => entry.state !== "done" && entry.state !== "duplicate",
             )

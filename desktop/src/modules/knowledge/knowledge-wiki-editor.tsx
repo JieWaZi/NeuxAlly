@@ -1,10 +1,6 @@
 import { useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { knowledgeAdapter } from "@/shared/api/knowledge";
-import {
-  withLocalErrorSurface,
-  localApiErrorMessage,
-} from "@/shared/api/local-error-surface";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { Textarea } from "@/shared/ui/textarea";
@@ -15,6 +11,7 @@ import type { ResourceRef } from "./knowledge-transfer";
 import type { WikiPage, WikiTheme } from "./knowledge-wiki-queries";
 import type { KnowledgeWikiCommands } from "./knowledge-wiki-command";
 import { isKnowledgeWriteOutcomeUnknown } from "./knowledge-write-outcome";
+import { reportKnowledgeError } from "./knowledge-error-notice";
 import { useWikiCopy } from "./use-wiki-copy";
 
 /** 打开时固定版本；未知写入结果重用请求身份，失败不丢弃人工草稿。 */
@@ -45,7 +42,7 @@ export function KnowledgeWikiEditor({
   const client = useQueryClient();
   const [retained] = useState(() => commands.get(commandKey));
   const [unresolved, setUnresolved] = useState(Boolean(retained));
-  const snapshot = retained?.page ?? page;
+  const [snapshot] = useState(retained?.page ?? page);
   const [version] = useState(retained?.structureVersion ?? structureVersion);
   const [name, setName] = useState(retained?.draft?.name ?? page?.title ?? "");
   const [slug, setSlug] = useState(retained?.draft?.slug ?? page?.slug ?? "");
@@ -62,7 +59,6 @@ export function KnowledgeWikiEditor({
     retained?.draft?.type ?? page?.pageType ?? "concept",
   );
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
   const request = useRef<{ fingerprint: string; id: string }>(
     retained ? { fingerprint: "", id: retained.requestId } : undefined,
   );
@@ -109,32 +105,25 @@ export function KnowledgeWikiEditor({
       draft: { name, slug, summary, content, parent, type },
     };
     setSaving(true);
-    setError("");
     try {
       const path = { libraryId: resource.knowledgeBaseId };
       const result = folder
-        ? await knowledgeAdapter(resource).createTheme(
-            withLocalErrorSurface({
+        ? await knowledgeAdapter(resource).createTheme({
+            path,
+            body: { ...data, requestId },
+            throwOnError: true,
+          })
+        : kind === "edit"
+          ? await knowledgeAdapter(resource).writePage({
+              path: { ...path, pageId: page?.id ?? "" },
+              body: { ...data, requestId },
+              throwOnError: true,
+            })
+          : await knowledgeAdapter(resource).createPage({
               path,
               body: { ...data, requestId },
               throwOnError: true,
-            }),
-          )
-        : kind === "edit"
-          ? await knowledgeAdapter(resource).writePage(
-              withLocalErrorSurface({
-                path: { ...path, pageId: page?.id ?? "" },
-                body: { ...data, requestId },
-                throwOnError: true,
-              }),
-            )
-          : await knowledgeAdapter(resource).createPage(
-              withLocalErrorSurface({
-                path,
-                body: { ...data, requestId },
-                throwOnError: true,
-              }),
-            );
+            });
       await Promise.all([
         client.invalidateQueries({
           queryKey: knowledgeKeys.resource(resource),
@@ -149,7 +138,7 @@ export function KnowledgeWikiEditor({
       if (unknown) commands.set(commandKey, command);
       else commands.delete(commandKey);
       setUnresolved(unknown);
-      setError(localApiErrorMessage(cause, t("writeFailed")));
+      reportKnowledgeError(cause, `write-wiki:${commandKey}`, t("writeFailed"));
     } finally {
       setSaving(false);
     }
@@ -263,11 +252,6 @@ export function KnowledgeWikiEditor({
                   />
                 </Field>
               </>
-            )}
-            {error && (
-              <p role="alert" className="type-body text-destructive">
-                {error}
-              </p>
             )}
           </fieldset>
           <DialogFooter>

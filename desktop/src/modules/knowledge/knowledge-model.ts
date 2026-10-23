@@ -14,7 +14,13 @@ export type SourceState =
 export function isOrganizableSourceState(state: SourceState) {
   return state === "pending" || state === "failed" || state === "cancelled";
 }
+export function isOrganizableSource(
+  source: Pick<Source, "state" | "organizeBlocked">,
+) {
+  return !source.organizeBlocked && isOrganizableSourceState(source.state);
+}
 export type Source = {
+  organizeBlocked?: boolean;
   id: string;
   sourceId?: string;
   name: string;
@@ -61,6 +67,9 @@ export function defaultLibraryChunkingConfig(): LibraryChunkingConfig {
   };
 }
 export type Library = {
+  offline?: boolean;
+  mountId?: string;
+  mountRevision?: number;
   name: string;
   description: string;
   wiki: LibraryWikiSettings;
@@ -121,7 +130,7 @@ export function emptyLibrary(
     chunkingConfig: defaultLibraryChunkingConfig(),
   };
 }
-/** 文档、Wiki 与图谱使用稳定视图参数；其他旧视图回到文档列表。 */
+/** 库详情默认进入知识目录，原件与图谱保留稳定视图参数。 */
 export function readRoute(query: URLSearchParams): Route {
   const libraryId = query.get("library") ?? "";
   return {
@@ -130,9 +139,11 @@ export function readRoute(query: URLSearchParams): Route {
         ? "graph"
         : query.get("view") === "wiki"
           ? "wiki"
-          : libraryId && query.get("view") !== "library"
+          : query.get("view") === "raw"
             ? "raw"
-            : "library",
+            : libraryId && query.get("view") !== "library"
+              ? "wiki"
+              : "library",
     sourceQuery: query.get("sourceQuery") ?? "",
     sourceState: query.get("sourceState") ?? "all",
     sourceSort: query.get("sourceSort") ?? "newest",

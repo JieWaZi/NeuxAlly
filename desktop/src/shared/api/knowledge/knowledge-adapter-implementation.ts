@@ -11,7 +11,9 @@ export function knowledgeAdapter(input: ResourceRef) {
   const ref = Object.freeze({ ...input });
   if (ref.backend === "local") return localKnowledgeAdapter(ref);
   if (
-    (ref.backend === "custom" || ref.backend === "weknora") &&
+    (ref.backend === "custom" ||
+      ref.backend === "weknora" ||
+      ref.backend === "integration") &&
     ref.connectionId &&
     ref.connectionId !== "local"
   )

@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import { Skeleton } from "@/shared/ui/skeleton";
 import { Card, CardFooter } from "@/shared/ui/card";
 import { ResourceCardGrid } from "@/shared/ui/resource-page";
-import { Table, TableBody, TableRow, TableCell } from "@/shared/ui/table";
 import { useCopy } from "./use-copy";
 import { useRouteSceneActive } from "@/shared/workspace/app-scene-workspace";
 
@@ -50,45 +49,14 @@ function LoadingRegion({ children }: { children: ReactNode }) {
 export function KnowledgeDocumentsLoading() {
   return (
     <LoadingRegion>
-      <Table aria-hidden="true" className="min-w-xl table-fixed">
-        <colgroup>
-          <col className="w-12" />
-          <col />
-          <col className="w-24" />
-          <col className="w-32" />
-          <col className="w-40" />
-          <col className="w-14" />
-        </colgroup>
-        <TableBody>
-          {[0, 1, 2, 3, 4, 5].map((row) => (
-            <TableRow key={row}>
-              <TableCell>
-                <Skeleton className="size-4 motion-reduce:animate-none" />
-              </TableCell>
-              <TableCell>
-                <div className="flex items-center gap-2 py-1">
-                  <Skeleton className="size-icon-md shrink-0 motion-reduce:animate-none" />
-                  <div className="flex-1 space-y-2">
-                    <Skeleton className="h-4 w-2/3 motion-reduce:animate-none" />
-                  </div>
-                </div>
-              </TableCell>
-              <TableCell>
-                <Skeleton className="h-4 w-16 motion-reduce:animate-none" />
-              </TableCell>
-              <TableCell>
-                <Skeleton className="h-5 w-16 motion-reduce:animate-none" />
-              </TableCell>
-              <TableCell>
-                <Skeleton className="h-4 w-24 motion-reduce:animate-none" />
-              </TableCell>
-              <TableCell>
-                <Skeleton className="size-icon-md motion-reduce:animate-none" />
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      <div aria-hidden="true" className="space-y-3">
+        {[0, 1, 2, 3, 4, 5].map((row) => (
+          <div key={row} className="flex min-w-0 items-center gap-2 px-3 py-2">
+            <Skeleton className="size-icon-sm shrink-0 motion-reduce:animate-none" />
+            <Skeleton className="h-4 w-2/3 motion-reduce:animate-none" />
+          </div>
+        ))}
+      </div>
     </LoadingRegion>
   );
 }

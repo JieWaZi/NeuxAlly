@@ -42,17 +42,24 @@ it("设置骨架可同步展示导航，不提前注册完整编辑器词典", a
   expect(screen.getByRole("button", { name: "Save and close" })).toBeDisabled();
 });
 
-it("Dock 图谱入口可切换视图，不提前加载图谱完整词典", async () => {
-  const { KnowledgeDetailDock } = await import("./knowledge-detail-dock");
+it("顶部图谱入口可切换视图，不提前加载图谱完整词典", async () => {
+  const { KnowledgeLibraryActions } =
+    await import("./knowledge-library-actions");
   expect(i18n.getResource("zh-CN", "knowledgeGraph", "canvas")).toBeUndefined();
   const change = vi.fn();
   render(
     <TooltipProvider>
-      <KnowledgeDetailDock view="raw" onChange={change} />
+      <KnowledgeLibraryActions
+        onGraph={change}
+        onUpload={() => {}}
+        onOrganize={() => {}}
+        organizeDisabled
+        onSettings={() => {}}
+      />
     </TooltipProvider>,
   );
   await userEvent.click(screen.getByRole("button", { name: "图谱" }));
-  expect(change).toHaveBeenCalledWith("graph");
+  expect(change).toHaveBeenCalledOnce();
   await i18n.changeLanguage("en-US");
   expect(screen.getByRole("button", { name: "Graph" })).toBeVisible();
 });

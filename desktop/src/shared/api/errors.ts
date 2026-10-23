@@ -5,6 +5,8 @@ export class ApiError extends Error {
   readonly status?: number;
   /** 已报告的提示身份，让操作入口与 API 拦截器共用一条错误。 */
   noticeId?: string;
+  /** 请求的稳定操作身份，局部消费的读取失败也沿用原请求恢复。 */
+  requestOperation?: string;
 
   constructor(message: string, code = "UNKNOWN", status?: number) {
     super(message);

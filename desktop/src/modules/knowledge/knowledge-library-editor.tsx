@@ -1,7 +1,6 @@
 import { useState, useSyncExternalStore, type ReactNode } from "react";
 import { Copy, Lock } from "lucide-react";
 import { useExecutionSelection } from "@/shared/hooks/use-execution-selection";
-import { localApiErrorMessage } from "@/shared/api/local-error-surface";
 import { Button } from "@/shared/ui/button";
 import { DialogFooter } from "@/shared/ui/dialog";
 import { KnowledgeModelConfigurationFields } from "./knowledge-model-configuration-fields";
@@ -12,8 +11,6 @@ import { KnowledgeLibraryDialogShell } from "./knowledge-library-dialog-shell";
 import { Field, SectionTitle } from "./knowledge-controls";
 import { KnowledgeChunkingFields } from "./knowledge-chunking-fields";
 import { GeneralLibraryConfigFields } from "./knowledge-library-settings-fields";
-import { KnowledgeLibraryTarget } from "./knowledge-library-target";
-import { emptyEmbeddingDraft } from "./knowledge-embedding-draft";
 import { KnowledgeEmbeddingFields } from "./knowledge-embedding-fields";
 import type {
   KnowledgeEditorCommand,
@@ -192,25 +189,6 @@ export function KnowledgeLibraryEditor({
             }
           >
             <SectionTitle title={t("basicSettings")} />
-            {mode === "create" && (
-              <KnowledgeLibraryTarget
-                value={library.ref}
-                disabled={locked}
-                onChange={(ref) => {
-                  controller.edit({
-                    ...draft,
-                    library: {
-                      ...library,
-                      ref,
-                      storage: ref.backend === "local" ? "local" : "remote",
-                      embeddingModelId: "",
-                    },
-                    execution: {},
-                    embedding: emptyEmbeddingDraft(),
-                  });
-                }}
-              />
-            )}
             {mode === "edit" && (
               <Field label={t("libraryIdentifier")}>
                 <div className="flex min-w-0 items-center gap-2">
@@ -305,7 +283,7 @@ export function KnowledgeLibraryEditor({
             }
           >
             {!localConfiguration ? (
-              <p role="alert" className="type-body text-destructive">
+              <p role="status" className="type-body text-content-secondary">
                 {i18n.t("knowledge:remoteUnsupported")}
               </p>
             ) : (
@@ -355,15 +333,9 @@ export function KnowledgeLibraryEditor({
             />
           </div>
           {section === "activity" && activity}
-          {(state.error || validation) && (
+          {validation && (
             <p role="alert" className="type-body text-destructive">
-              {validation ||
-                localApiErrorMessage(state.error, t("settingsSaveFailed"))}
-            </p>
-          )}
-          {state.command && !state.pending && (
-            <p className="type-caption text-content-secondary">
-              {t("settingsUnconfirmedHelp")}
+              {validation}
             </p>
           )}
         </div>
@@ -392,13 +364,7 @@ export function KnowledgeLibraryEditor({
                         !execution.valid)))
                 }
               >
-                {t(
-                  state.command && !state.pending
-                    ? "retrySettingsSave"
-                    : mode === "create"
-                      ? "saveNew"
-                      : "saveAndClose",
-                )}
+                {t(mode === "create" ? "saveNew" : "saveAndClose")}
               </Button>
             </>
           )}

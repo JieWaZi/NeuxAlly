@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
+  act,
   fireEvent,
   cleanup,
   render,
@@ -27,12 +28,36 @@ import {
   vi,
 } from "vitest";
 import { client } from "@/shared/api/generated/client.gen";
+import type { GlobalEventObserver } from "@/shared/api/global-events";
 import { TooltipProvider } from "@/shared/ui/tooltip";
 import { KnowledgePage } from "./knowledge-page";
+import { graphEngine } from "./knowledge-force-test-double";
 import { saveOrganizePreferences } from "./knowledge-organize-preferences";
 
-vi.mock("@/shared/api/use-query-events", () => ({ useQueryEvents: vi.fn() }));
-const server = setupServer();
+vi.mock("react-force-graph-2d", () => import("./knowledge-force-test-double"));
+const { listeners } = vi.hoisted(() => ({
+  listeners: new Set<GlobalEventObserver>(),
+}));
+vi.mock("@/shared/api/global-events", () => ({
+  subscribeGlobalEvents: (
+    _topic: string,
+    _resource: unknown,
+    observer: GlobalEventObserver,
+  ) => {
+    listeners.add(observer);
+    return () => listeners.delete(observer);
+  },
+}));
+const server = setupServer(
+  http.get(
+    /\/knowledge\/(?:connections\/[^/]+\/)?libraries\/[^/]+\/(?:pages|page-directory)$/,
+    () => HttpResponse.json({ items: [], total: 0 }),
+  ),
+  http.get(
+    /\/knowledge\/(?:connections\/[^/]+\/)?libraries\/[^/]+\/themes$/,
+    () => HttpResponse.json([]),
+  ),
+);
 beforeAll(() => {
   server.listen({ onUnhandledRequest: "error" });
   client.setConfig({ baseUrl: "http://ally.test" });
@@ -84,7 +109,7 @@ function Location() {
     </>
   );
 }
-function show(initial = "/knowledge/kb") {
+function show(initial = "/knowledge/kb?view=raw") {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
@@ -102,8 +127,121 @@ function show(initial = "/knowledge/kb") {
   );
   return queryClient;
 }
+
+it("进入知识库默认展示知识目录，原件保留明确入口", async () => {
+  fixtures();
+  show("/knowledge/kb");
+  await vi.dynamicImportSettled();
+  await screen.findByRole("heading", { name: "通用资料库" }, { timeout: 5000 });
+  expect(
+    screen.queryByRole("button", { name: "返回知识库列表" }),
+  ).not.toBeInTheDocument();
+  await screen.findByRole("radio", { name: "原件 1" });
+  expect(await screen.findByRole("radio", { name: "知识 0" })).toBeChecked();
+  expect(screen.getByRole("radio", { name: "原件 1" })).not.toBeChecked();
+  expect(await screen.findByRole("treeitem", { name: "索引" })).toBeVisible();
+  expect(
+    screen.queryByRole("tree", { name: "原件列表" }),
+  ).not.toBeInTheDocument();
+});
+
+it.each(["knowledge", "summaries"])(
+  "停留在 %s 时上传和后台事件自动更新原件数量",
+  async (tab) => {
+    fixtures();
+    let sourceTotal = 1;
+    let organized = false;
+    const summary = {
+      id: "new-summary",
+      slug: "summary/new",
+      title: "新增摘要",
+      pageType: "summary",
+      content: "来源整理后的摘要正文。",
+    };
+    server.use(
+      http.get(
+        "http://ally.test/api/v1/knowledge/libraries/kb/page-directory",
+        () =>
+          HttpResponse.json({
+            items: organized
+              ? [
+                  summary,
+                  { id: "new-topic", title: "新增知识", pageType: "concept" },
+                ]
+              : [],
+            total: organized ? 2 : 0,
+          }),
+      ),
+      http.get(
+        "http://ally.test/api/v1/knowledge/libraries/kb/pages/new-summary",
+        () => HttpResponse.json(summary),
+      ),
+      http.get("http://ally.test/api/v1/knowledge/libraries/kb/sources", () =>
+        HttpResponse.json({
+          items: Array.from({ length: sourceTotal }, (_, index) => ({
+            ...firstSource,
+            id: `source-${index + 1}`,
+          })),
+          total: sourceTotal,
+        }),
+      ),
+      http.post(
+        "http://ally.test/api/v1/knowledge/libraries/kb/sources",
+        () => {
+          sourceTotal++;
+          return HttpResponse.json({ resourceId: "source-2", state: "saved" });
+        },
+      ),
+    );
+    const user = userEvent.setup();
+    const initial = `/knowledge/kb?view=wiki&wikiTab=${tab}`;
+    show(initial);
+    await vi.dynamicImportSettled();
+    await screen.findByRole("radio", { name: "原件 1" });
+    await user.click(screen.getByRole("button", { name: "上传资料" }));
+    const file = new File(["ab"], "新增原件.md", { type: "text/markdown" });
+    Object.defineProperty(file, "arrayBuffer", {
+      value: async () => new Uint8Array([97, 98]).buffer,
+    });
+    fireEvent.change(
+      await screen.findByLabelText<HTMLInputElement>("选择文件"),
+      {
+        target: { files: [file] },
+      },
+    );
+    await user.click(screen.getByRole("button", { name: "上传文档" }));
+    await within(screen.getByRole("dialog")).findByText("待整理");
+    await user.click(screen.getByText("关闭", { selector: "button" }));
+    await screen.findByRole("radio", { name: "原件 2" });
+    sourceTotal = 3;
+    organized = true;
+    act(() => {
+      for (const listener of listeners)
+        listener.onEvent({
+          protocolVersion: 1,
+          epoch: "epoch",
+          connectionId: "connection",
+          deliverySequence: 1,
+          topic: "knowledge",
+          type: "knowledge.changed",
+          resource: { kind: "knowledge_library", id: "kb", parentId: "local" },
+          eventId: "new-source",
+          transient: false,
+          payload: { jobId: "job" },
+        });
+    });
+    await screen.findByRole("radio", { name: "原件 3" });
+    await screen.findByRole("radio", { name: "知识 1" });
+    await screen.findByRole("radio", { name: "摘要 1" });
+    expect(screen.getByLabelText("当前路由")).toHaveTextContent(initial);
+    expect(screen.getByRole("radio", { name: "原件 3" })).not.toBeChecked();
+  },
+);
 function fixtures() {
   server.use(
+    http.get("http://ally.test/api/v1/knowledge/libraries/kb/wiki/index", () =>
+      HttpResponse.json({ intro: "# Wiki Index", version: 1, groups: [] }),
+    ),
     http.get(
       "http://ally.test/api/v1/knowledge/libraries/kb/source-purges",
       () => HttpResponse.json({ items: [], total: 0 }),
@@ -170,7 +308,7 @@ function fixtures() {
   );
 }
 
-it("文档页操作并入筛选栏，内容连续排列且无重复页头", async () => {
+it("知识库只保留标题与同行操作，搜索仅在左侧原件目录", async () => {
   fixtures();
   const job = {
     id: "job",
@@ -187,10 +325,8 @@ it("文档页操作并入筛选栏，内容连续排列且无重复页头", asyn
     ),
   );
   show();
-  await screen.findByText("原始资料.md");
-  expect(
-    screen.queryByRole("heading", { name: "通用资料库" }),
-  ).not.toBeInTheDocument();
+  await screen.findByText("原始资料.md", {}, { timeout: 5000 });
+  expect(screen.getByRole("heading", { name: "通用资料库" })).toBeVisible();
   expect(
     screen.queryByRole("button", { name: "返回列表" }),
   ).not.toBeInTheDocument();
@@ -199,42 +335,35 @@ it("文档页操作并入筛选栏，内容连续排列且无重复页头", asyn
     within(actions)
       .getAllByRole("button")
       .map((action) => action.getAttribute("aria-label")),
-  ).toEqual(["设置", "整理文档", "上传资料"]);
+  ).toEqual(["图谱", "设置", "整理文档", "上传资料"]);
   expect(
     within(actions).getByRole("button", { name: "设置" }),
   ).toHaveTextContent("");
   expect(
     within(actions).getByRole("button", { name: "整理文档" }),
   ).toHaveTextContent("");
-  expect(actions.parentElement).toContainElement(
-    screen.getByRole("searchbox", { name: "搜索原件…" }),
-  );
+  expect(
+    screen.getByRole("heading", { name: "通用资料库" }).closest("header"),
+  ).toContainElement(actions);
+  expect(
+    screen.getByRole("searchbox", { name: "搜索原件…" }).closest("aside"),
+  ).not.toBeNull();
+  expect(
+    screen.queryByRole("combobox", { name: "资料状态" }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("combobox", { name: "排序" }),
+  ).not.toBeInTheDocument();
   expect(screen.queryByText("整理完成")).not.toBeInTheDocument();
   expect(screen.queryByText(/本次 .*份文档/)).not.toBeInTheDocument();
   expect(screen.queryByText("查看整理对话")).not.toBeInTheDocument();
   expect(screen.queryByText("1 份资料")).not.toBeInTheDocument();
   expect(screen.queryByText("整理本页待处理文档")).not.toBeInTheDocument();
-  const table = screen.getByRole("table");
-  const flow = table.closest(
-    '[data-slot="resource-page-surface"]',
-  )?.firstElementChild;
-  // 页面仍可占满滚动区，但内容不能用隐式网格行分配剩余高度。
-  expect(flow).toHaveClass("flex", "flex-col");
-  const raw = table.parentElement?.parentElement?.parentElement;
-  expect(raw).toHaveClass("flex", "flex-col", "shrink-0");
-  expect(table).toHaveClass("table-fixed");
-  const columns = table.querySelectorAll("colgroup > col");
-  expect(columns).toHaveLength(6);
-  expect(
-    screen.queryByRole("heading", { name: "文档" }),
-  ).not.toBeInTheDocument();
-  expect(actions.parentElement?.parentElement?.parentElement).toHaveClass(
-    "border-b",
-  );
-  expect(
-    screen.getByRole("columnheader", { name: "操作" }),
-  ).toBeInTheDocument();
-  expect(columns[0]).toHaveClass("w-12");
+  const sourceItem = screen.getByRole("treeitem", { name: "原始资料.md" });
+  expect(sourceItem.closest("aside")).not.toBeNull();
+  expect(sourceItem).toHaveAttribute("title", "原始资料.md");
+  expect(screen.queryByRole("table")).not.toBeInTheDocument();
+  expect(screen.queryByRole("columnheader")).not.toBeInTheDocument();
 });
 
 it("空文档页不以固定最小高度撑开内容", async () => {
@@ -251,11 +380,11 @@ it("空文档页不以固定最小高度撑开内容", async () => {
 });
 
 it.each(["relations", "history", "source", "project", "chat"])(
-  "旧 %s 入口只读取文档并规范化 URL",
+  "旧 %s 入口回到知识目录并规范化 URL",
   async (view) => {
     fixtures();
     show(`/knowledge/kb?view=${view}&page=old&source=old&themeId=old`);
-    expect(await screen.findByText("原始资料.md")).toBeVisible();
+    expect(await screen.findByRole("radio", { name: "知识 0" })).toBeChecked();
     await waitFor(() =>
       expect(screen.getByLabelText("当前路由")).toHaveTextContent(
         "/knowledge/kb",
@@ -271,7 +400,7 @@ it.each(["relations", "history", "source", "project", "chat"])(
   },
 );
 
-it("Dock 图谱保留直链，读取完整分页关系并直接展示正文", async () => {
+it("顶部图谱保留直链，读取完整分页关系并直接展示正文", async () => {
   // jsdom 不执行布局；图谱外部资源须等实际容器尺寸可用后创建。
   const width = vi
     .spyOn(HTMLElement.prototype, "clientWidth", "get")
@@ -330,17 +459,24 @@ it("Dock 图谱保留直链，读取完整分页关系并直接展示正文", as
   );
   const user = userEvent.setup();
   show("/knowledge/kb?view=graph");
-  const canvas = await screen.findByRole("group", { name: "知识关系图" });
-  expect(canvas.closest('[data-slot="resource-page-surface"]')).toBeNull();
+  const canvas = await screen.findByRole(
+    "group",
+    { name: "知识关系图" },
+    { timeout: 5000 },
+  );
+  expect(canvas.closest('[data-slot="resource-page-surface"]')).not.toBeNull();
   expect(
-    canvas.closest('section[aria-label="图谱"]')?.parentElement,
-  ).toHaveClass("h-full");
-  expect(offsets).toEqual(["0", "1"]);
-  expect(canvas.querySelectorAll("line[data-edge]")).toHaveLength(1);
-  expect(screen.getByLabelText("当前路由")).toHaveTextContent("view=graph");
-  expect(
-    screen.queryByRole("button", { name: "上传资料" }),
+    screen.queryByRole("complementary", { name: "Wiki 目录" }),
   ).not.toBeInTheDocument();
+  expect(
+    document.querySelector('[data-slot="detail-dock-overlay"]'),
+  ).toBeNull();
+  expect(screen.getByRole("button", { name: "文档" })).toBeVisible();
+  expect(offsets).toEqual(["0", "1"]);
+  expect(canvas.querySelector("canvas")).toBeInTheDocument();
+  expect(graphEngine.props?.graphData?.links).toHaveLength(1);
+  expect(screen.getByLabelText("当前路由")).toHaveTextContent("view=graph");
+  expect(screen.getByRole("button", { name: "上传资料" })).toBeVisible();
   await user.click(within(canvas).getByRole("button", { name: "末页知识" }));
   expect(await screen.findByText("真实 Wiki 正文")).toBeVisible();
   expect(
@@ -390,7 +526,9 @@ it("上传后只显示待整理，点击整理才接纳一次冻结来源任务"
   );
   const user = userEvent.setup();
   show();
-  await user.click(await screen.findByRole("button", { name: "上传资料" }));
+  const upload = await screen.findByRole("button", { name: "上传资料" });
+  await waitFor(() => expect(upload).toBeEnabled());
+  await user.click(upload);
   const file = new File(["ab"], "新资料.md", { type: "text/markdown" });
   Object.defineProperty(file, "arrayBuffer", {
     value: async () => new Uint8Array([97, 98]).buffer,
@@ -404,7 +542,10 @@ it("上传后只显示待整理，点击整理才接纳一次冻结来源任务"
   ).toBeVisible();
   expect(organized).toHaveLength(0);
   await user.click(screen.getByText("关闭", { selector: "button" }));
-  await user.click(screen.getByRole("button", { name: "整理文档" }));
+  const organize = screen.getByRole("button", { name: "整理文档" });
+  await waitFor(() => expect(organize).toBeEnabled());
+  await user.click(organize);
+  await vi.dynamicImportSettled();
   const start = await screen.findByRole("button", { name: "开始整理" });
   await waitFor(() => expect(start).toBeEnabled());
   await user.dblClick(start);
@@ -448,11 +589,9 @@ it("默认整理全库，不受列表翻页与表格选中范围限制", async (
     ),
   );
   const user = userEvent.setup();
-  show("/knowledge/kb?sourcesPageSize=50");
-  await user.click(
-    await screen.findByRole("checkbox", { name: "选择 原始资料.md" }),
-  );
-  await user.click(screen.getByRole("button", { name: "下一页" }));
+  show("/knowledge/kb?view=raw");
+  await screen.findByRole("treeitem", { name: "原始资料.md" });
+  fireEvent.scroll(screen.getByRole("tree", { name: "原件列表" }));
   await screen.findByText("下一页.md");
   await user.click(screen.getByRole("button", { name: "整理文档" }));
   const start = await screen.findByRole("button", { name: "开始整理" });
@@ -499,11 +638,14 @@ it.each(["network", "partial500"])(
       "通用资料库",
     );
     await user.click(screen.getByRole("button", { name: "创建知识库" }));
-    await screen.findByRole("alert");
+    await waitFor(() =>
+      expect(screen.getByRole("textbox", { name: "名称" })).toBeDisabled(),
+    );
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "取消" }));
     await user.click(screen.getByRole("button", { name: "新建知识库" }));
     expect(screen.getByRole("textbox", { name: "名称" })).toBeDisabled();
-    await user.click(screen.getByRole("button", { name: "重试并核验结果" }));
+    await user.click(screen.getByRole("button", { name: "创建知识库" }));
     await waitFor(() => expect(requests).toHaveLength(2));
     expect(requests[1]).toEqual(requests[0]);
     expect(requests[0]).not.toHaveProperty("kind");
@@ -511,11 +653,11 @@ it.each(["network", "partial500"])(
       executionDefaults: { runtimeId: "codex", model: "model" },
     });
     expect(requests[1]).toMatchObject({ name: "通用资料库" });
-    expect(await screen.findByText("原始资料.md")).toBeVisible();
+    expect(await screen.findByRole("radio", { name: "知识 0" })).toBeChecked();
   },
 );
 
-it("后台运行只保护操作按钮，不展示任务状态或请求任务详情", async () => {
+it("后台运行允许上传和提交其他文件，不请求任务详情", async () => {
   fixtures();
   let detailReads = 0;
   server.use(
@@ -538,7 +680,7 @@ it("后台运行只保护操作按钮，不展示任务状态或请求任务详�
   await vi.dynamicImportSettled();
   await screen.findByText("原始资料.md", {}, { timeout: 4000 });
   await waitFor(() =>
-    expect(screen.getByRole("button", { name: "整理文档" })).toBeDisabled(),
+    expect(screen.getByRole("button", { name: "整理文档" })).toBeEnabled(),
   );
   expect(screen.queryByText("正在整理")).not.toBeInTheDocument();
   expect(detailReads).toBe(0);
@@ -669,7 +811,7 @@ it.each(["failed", "cancelled"] as const)(
   },
 );
 
-it("真实运行中的任务仍阻止默认整理失败来源", async () => {
+it("真实运行中的任务不阻止整理其他失败来源", async () => {
   fixtures();
   server.use(
     http.get("http://ally.test/api/v1/knowledge/libraries/kb/sources", () =>
@@ -689,31 +831,25 @@ it("真实运行中的任务仍阻止默认整理失败来源", async () => {
   show();
   await screen.findByText("原始资料.md");
   await waitFor(() =>
-    expect(screen.getByRole("button", { name: "整理文档" })).toBeDisabled(),
+    expect(screen.getByRole("button", { name: "整理文档" })).toBeEnabled(),
   );
 });
 
-it("整理可用性读取失败就近重试，不恢复任务状态展示", async () => {
+it("整理可用性读取失败只走通知并保持操作禁用", async () => {
   fixtures();
-  let failed = true;
   server.use(
     http.get("http://ally.test/api/v1/knowledge/libraries/kb/jobs", () =>
-      failed
-        ? HttpResponse.error()
-        : HttpResponse.json({ items: [], total: 0 }),
+      HttpResponse.error(),
     ),
   );
-  const user = userEvent.setup();
   show();
-  const alert = await screen.findByRole("alert");
-  expect(alert).toHaveTextContent("无法确认是否有整理任务正在运行，请重试。");
-  expect(screen.getByRole("button", { name: "整理文档" })).toBeDisabled();
-  failed = false;
-  await user.click(within(alert).getByRole("button", { name: "重试" }));
   await waitFor(() =>
-    expect(screen.getByRole("button", { name: "整理文档" })).toBeEnabled(),
+    expect(screen.getByRole("button", { name: "整理文档" })).toBeDisabled(),
   );
   expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: "重试" }),
+  ).not.toBeInTheDocument();
   expect(screen.queryByText("查看整理对话")).not.toBeInTheDocument();
 });
 
@@ -857,7 +993,8 @@ it("关闭重开上传弹窗后用原请求身份核对未知回执", async () =
     target: { files: [file] },
   });
   await user.click(screen.getByRole("button", { name: "上传文档" }));
-  await screen.findByRole("alert");
+  expect(await screen.findByText("上传失败")).toBeVisible();
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   await user.click(screen.getByText("关闭", { selector: "button" }));
   await user.click(screen.getByRole("button", { name: "上传资料" }));
   expect(screen.getByText("恢复资料.md")).toBeVisible();
@@ -984,7 +1121,10 @@ it("后台接纳200缺完整任务回执时关闭重开保留原请求，不重�
     "保留在线和离线适用条件",
   );
   await user.click(await screen.findByRole("button", { name: "开始整理" }));
-  await screen.findByRole("alert");
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "开始整理" })).toBeEnabled(),
+  );
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "取消" }));
   await user.click(screen.getByRole("button", { name: "整理文档" }));
   const requirements = await screen.findByRole("textbox", {
@@ -1030,6 +1170,9 @@ it("文档初次加载显示内容骨架，后台刷新仍保留已有文档与�
     expect(screen.queryByText("还没有原始资料")).not.toBeInTheDocument();
     release();
     await screen.findByText("原始资料.md");
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "整理文档" })).toBeEnabled(),
+    );
     pending = new Promise<void>((resolve) => {
       release = resolve;
     });
@@ -1037,6 +1180,7 @@ it("文档初次加载显示内容骨架，后台刷新仍保留已有文档与�
       predicate: (query) => query.queryKey.includes("sources"),
     });
     await waitFor(() => expect(queryClient.isFetching()).toBeGreaterThan(0));
+    expect(screen.getByRole("button", { name: "整理文档" })).toBeEnabled();
     expect(screen.getByText("原始资料.md")).toBeVisible();
     expect(
       screen.queryByRole("status", { name: "正在读取内容…" }),
@@ -1085,7 +1229,7 @@ it("后台接纳中关闭重开配置复用同一个待定请求，不取消任�
   ).not.toBeInTheDocument();
 });
 
-it("更早任务重试仍按activeJob保护操作，不把最新历史完成记录当成空闲", async () => {
+it("已有任务排队时仍可上传并仅提交其他待处理文件", async () => {
   fixtures();
   server.use(
     http.get("http://ally.test/api/v1/knowledge/libraries/kb/jobs", () =>
@@ -1101,14 +1245,60 @@ it("更早任务重试仍按activeJob保护操作，不把最新历史完成记�
       }),
     ),
   );
+  const requests: Record<string, unknown>[] = [];
+  server.use(
+    http.get("http://ally.test/api/v1/knowledge/libraries/kb/sources", () =>
+      HttpResponse.json({
+        items: [
+          firstSource,
+          {
+            ...firstSource,
+            id: "failed-but-reserved",
+            filename: "失败但本轮未结束.md",
+            state: "failed",
+            organizeBlocked: true,
+          },
+          {
+            ...firstSource,
+            id: "queued-source",
+            filename: "排队中.md",
+            state: "queued",
+          },
+          {
+            ...firstSource,
+            id: "processing-source",
+            filename: "整理中.md",
+            state: "processing",
+          },
+        ],
+        total: 4,
+      }),
+    ),
+    http.post(
+      "http://ally.test/api/v1/knowledge/libraries/kb/organize",
+      async ({ request }) => {
+        const body = (await request.json()) as Record<string, unknown>;
+        requests.push(body);
+        return HttpResponse.json({ receipt: acceptedReceipt(body) });
+      },
+    ),
+  );
+  const user = userEvent.setup();
   show();
   await screen.findByRole("button", { name: "设置" });
   await vi.dynamicImportSettled();
   await screen.findByText("原始资料.md", {}, { timeout: 4000 });
   await waitFor(() =>
-    expect(screen.getByRole("button", { name: "整理文档" })).toBeDisabled(),
+    expect(screen.getByRole("button", { name: "整理文档" })).toBeEnabled(),
   );
-  expect(screen.getByRole("button", { name: "上传资料" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "上传资料" })).toBeEnabled();
+  await user.click(screen.getByRole("button", { name: "整理文档" }));
+  const dialog = await screen.findByRole("dialog");
+  await vi.dynamicImportSettled();
+  await waitFor(() => expect(dialog).toHaveTextContent("已选 1 个文件"));
+  await user.click(screen.getByRole("button", { name: "开始整理" }));
+  await waitFor(() => expect(requests).toHaveLength(1));
+  expect(requests[0]?.sourceVersionIds).toEqual([firstSource.id]);
 });
 
 it("整理全库待处理文件，可搜索取消选择并提交仅本次的提取要求", async () => {
@@ -1191,6 +1381,73 @@ it("上传资料从点击到表单就绪保持同一个弹窗", async () => {
   await screen.findByRole("button", { name: "选择文件" });
   expect(screen.getByRole("dialog", { name: "上传资料" })).toBe(shell);
 });
+
+it.each(["unknown", "separate"])(
+  "远端模式为 %s 时不再展示检测提示条与重新检测按钮",
+  async (mode) => {
+    const remote =
+      "http://ally.test/api/v1/knowledge/connections/remote/libraries/kb";
+    server.use(
+      http.get(`${remote}/source-purges`, () =>
+        HttpResponse.json({ items: [], total: 0 }),
+      ),
+      http.get(remote, () =>
+        HttpResponse.json({
+          ...library,
+          ref: {
+            backend: "integration",
+            connectionId: "remote",
+            knowledgeBaseId: "kb",
+          },
+        }),
+      ),
+      http.get(`${remote}/sources`, () =>
+        HttpResponse.json({ items: [firstSource], total: 1 }),
+      ),
+      http.get(`${remote}/jobs`, () =>
+        HttpResponse.json({ items: [], total: 0 }),
+      ),
+      http.get(`${remote}/capabilities`, () =>
+        HttpResponse.json({
+          serviceKind: mode === "unknown" ? "unknown" : "neuxally",
+          uploadMode: mode,
+          connectionRevision: 2,
+          operations: { read: true, rawOnly: mode === "separate" },
+          details: {
+            read: {
+              supported: true,
+              permission: "allowed",
+              condition: "ready",
+            },
+            rawOnly: {
+              supported: mode === "separate",
+              permission: mode === "separate" ? "allowed" : "unknown",
+              condition: "ready",
+            },
+          },
+        }),
+      ),
+    );
+    show("/knowledge/kb?view=raw&backend=integration&connection=remote");
+    await screen.findByText("原始资料.md", {}, { timeout: 5000 });
+    await waitFor(() =>
+      expect(
+        screen
+          .getByRole("button", { name: "上传资料" })
+          .hasAttribute("disabled"),
+      ).toBe(mode === "unknown"),
+    );
+    expect(
+      screen.queryByRole("button", { name: "重新检测" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("上传仅保存资料，整理需单独启动。"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("服务类型或处理模式尚未确认，当前仅可读取。"),
+    ).not.toBeInTheDocument();
+  },
+);
 
 it("清空整理文件后不可提交，重新勾选才能开始", async () => {
   fixtures();
@@ -1328,8 +1585,9 @@ it("取消后重新挂载页面仍恢复本库的模型和整理要求，清空�
   ).toHaveValue("");
 });
 
-it("文档默认每页十条，翻页与切换条数使用真实查询并回到第一页", async () => {
+it("原件向下滚动追加真实分页，不再展示分页控件", async () => {
   fixtures();
+  const offsets: number[] = [];
   const all = Array.from({ length: 21 }, (_, index) => ({
     ...firstSource,
     id: `page-source-${index + 1}`,
@@ -1341,48 +1599,34 @@ it("文档默认每页十条，翻页与切换条数使用真实查询并回到�
       ({ request }) => {
         const params = new URL(request.url).searchParams;
         const offset = Number(params.get("offset"));
-        const limit = Number(params.get("limit"));
+        offsets.push(offset);
         return HttpResponse.json({
-          items: all.slice(offset, offset + limit),
+          items: all.slice(offset, offset + Number(params.get("limit"))),
           total: all.length,
         });
       },
     ),
   );
-  const user = userEvent.setup();
   show();
   await screen.findByText("分页资料-1.md");
   expect(screen.getByText("分页资料-10.md")).toBeVisible();
   expect(screen.queryByText("分页资料-11.md")).not.toBeInTheDocument();
-  expect(screen.getByText("共 21 条")).toBeVisible();
-  await user.click(screen.getByRole("button", { name: "下一页" }));
+  expect(
+    screen.queryByRole("button", { name: "下一页" }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: "每页数量" }),
+  ).not.toBeInTheDocument();
+  fireEvent.scroll(screen.getByRole("tree", { name: "原件列表" }));
   await screen.findByText("分页资料-11.md");
-  expect(screen.queryByText("分页资料-1.md")).not.toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "第 2 页" })).toHaveAttribute(
-    "aria-current",
-    "page",
-  );
-  await user.click(screen.getByRole("button", { name: "每页数量" }));
-  await user.click(screen.getByRole("menuitemradio", { name: "每页 30 条" }));
-  await screen.findByText("分页资料-1.md");
-  expect(screen.getByText("分页资料-21.md")).toBeVisible();
-  expect(screen.getByRole("button", { name: "第 1 页" })).toHaveAttribute(
-    "aria-current",
-    "page",
-  );
-  expect(screen.getByRole("button", { name: "下一页" })).toBeDisabled();
-  expect(screen.getByLabelText("当前路由")).toHaveTextContent(
-    "sourcesPageSize=30",
-  );
-  await user.click(screen.getByRole("button", { name: "每页数量" }));
-  await user.click(screen.getByRole("menuitemradio", { name: "每页 10 条" }));
-  await waitFor(() =>
-    expect(screen.queryByText("分页资料-11.md")).not.toBeInTheDocument(),
-  );
-  expect(screen.getByRole("button", { name: "下一页" })).toBeEnabled();
+  expect(screen.getByText("分页资料-1.md")).toBeVisible();
+  fireEvent.scroll(screen.getByRole("tree", { name: "原件列表" }));
+  await screen.findByText("分页资料-21.md");
+  expect(screen.getByText("分页资料-1.md")).toBeVisible();
+  expect(offsets).toEqual([0, 10, 20]);
 });
 
-it("跨页状态筛选、搜索与排序由后端执行并使用匹配总数", async () => {
+it("侧栏原件搜索使用后端匹配总数并重置累计目录", async () => {
   fixtures();
   const all = Array.from({ length: 44 }, (_, index) => ({
     ...firstSource,
@@ -1414,41 +1658,32 @@ it("跨页状态筛选、搜索与排序由后端执行并使用匹配总数", a
     ),
   );
   const user = userEvent.setup();
-  show("/knowledge/kb?sourcesOffset=10&sourceState=queued&sourceSort=oldest");
+  show("/knowledge/kb?view=raw&sourceQuery=排队");
   await vi.dynamicImportSettled();
-  await screen.findByText("排队-21.md", {}, { timeout: 5000 });
-  expect(screen.getByText("共 34 条")).toBeVisible();
-  expect(screen.queryByText("排队-11.md")).not.toBeInTheDocument();
-  fireEvent.keyDown(screen.getByRole("combobox", { name: "排序" }), {
-    key: "Enter",
-  });
-  fireEvent.keyDown(await screen.findByRole("option", { name: "最新上传" }), {
-    key: "Enter",
-  });
-  await screen.findByText("排队-44.md");
-  expect(screen.getByRole("button", { name: "第 1 页" })).toHaveAttribute(
-    "aria-current",
-    "page",
-  );
+  await screen.findByText("排队-44.md", {}, { timeout: 5000 });
+  expect(screen.getByRole("radio", { name: "原件 34" })).toBeVisible();
+  expect(screen.queryByText("排队-21.md")).not.toBeInTheDocument();
+  await user.clear(screen.getByRole("searchbox", { name: "搜索原件…" }));
   await user.type(
     screen.getByRole("searchbox", { name: "搜索原件…" }),
     "排队-1",
   );
-  await screen.findByText("共 9 条");
+  await screen.findByRole("radio", { name: "原件 9" });
   expect(screen.getByText("排队-19.md")).toBeVisible();
   expect(screen.queryByText("排队-44.md")).not.toBeInTheDocument();
-  fireEvent.keyDown(screen.getByRole("combobox", { name: "资料状态" }), {
-    key: "Enter",
-  });
-  fireEvent.keyDown(await screen.findByRole("option", { name: "已整理" }), {
-    key: "Enter",
-  });
-  await screen.findByText("共 0 条");
+  await user.clear(screen.getByRole("searchbox", { name: "搜索原件…" }));
+  await user.type(
+    screen.getByRole("searchbox", { name: "搜索原件…" }),
+    "无匹配",
+  );
+  await screen.findByRole("radio", { name: "原件 0" });
   expect(screen.queryByText("排队-19.md")).not.toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "下一页" })).toBeDisabled();
+  expect(
+    screen.queryByRole("combobox", { name: "资料状态" }),
+  ).not.toBeInTheDocument();
 });
 
-it("状态更新使末页超出匹配总数时回退到有效页", async () => {
+it("状态更新减少原件总数时重新核对累计目录", async () => {
   fixtures();
   let all = Array.from({ length: 21 }, (_, index) => ({
     ...firstSource,
@@ -1469,17 +1704,18 @@ it("状态更新使末页超出匹配总数时回退到有效页", async () => {
       },
     ),
   );
-  const client = show("/knowledge/kb?sourcesOffset=20");
+  const client = show("/knowledge/kb?view=raw");
   await vi.dynamicImportSettled();
-  await screen.findByText("进度资料-21.md", {}, { timeout: 5000 });
+  await screen.findByText("进度资料-1.md", {}, { timeout: 5000 });
+  fireEvent.scroll(screen.getByRole("tree", { name: "原件列表" }));
+  await screen.findByText("进度资料-11.md");
+  fireEvent.scroll(screen.getByRole("tree", { name: "原件列表" }));
+  await screen.findByText("进度资料-21.md");
   all = all.slice(0, 5);
   await client.invalidateQueries({ queryKey: ["knowledge"] });
   await screen.findByText("进度资料-1.md");
-  expect(screen.getByText("共 5 条")).toBeVisible();
-  expect(screen.getByRole("button", { name: "第 1 页" })).toHaveAttribute(
-    "aria-current",
-    "page",
-  );
+  expect(screen.getByRole("radio", { name: "原件 5" })).toBeVisible();
+  expect(screen.queryByText("进度资料-21.md")).not.toBeInTheDocument();
 });
 
 it.each([
@@ -1562,13 +1798,16 @@ it.each([
       });
     }),
   );
-  const queryClient = show("/knowledge/kb?backend=custom&connection=remote");
+  const queryClient = show(
+    "/knowledge/kb?view=raw&backend=custom&connection=remote",
+  );
   await screen.findByText("原始资料.md", {}, { timeout: 5000 });
   await user.click(screen.getByRole("button", { name: "整理文档" }));
   const start = await screen.findByRole("button", { name: "开始整理" });
   await waitFor(() => expect(start).toBeEnabled());
   await user.click(start);
-  await waitFor(() => expect(screen.getByRole("alert")).toBeVisible());
+  await waitFor(() => expect(start).toBeEnabled());
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   denied = true;
   await user.click(screen.getByRole("button", { name: "取消" }));
   await queryClient.invalidateQueries({
@@ -1582,4 +1821,83 @@ it.each([
   );
   expect(bodies).toHaveLength(2);
   expect(bodies[1]).toEqual(bodies[0]);
+});
+
+it("目录搜索从当前分页归零，URL 与请求共享筛选并展示服务端结果", async () => {
+  const requests: { search: string; offset: number }[] = [];
+  server.use(
+    http.get(
+      "http://ally.test/api/v1/knowledge/connections/libraries",
+      ({ request }) => {
+        const params = new URL(request.url).searchParams;
+        const search = params.get("search") ?? "";
+        const offset = Number(params.get("offset"));
+        requests.push({ search, offset });
+        return HttpResponse.json(
+          search
+            ? {
+                items: [
+                  {
+                    ...library,
+                    id: "beyond-page",
+                    name: "第 61 个知识库",
+                    purpose: "匹配中文描述",
+                  },
+                ],
+                total: 1,
+              }
+            : { items: [{ ...library, name: "当前分页知识库" }], total: 61 },
+        );
+      },
+    ),
+  );
+  const user = userEvent.setup();
+  const client = show("/knowledge?librariesOffset=50&location=remote");
+  await screen.findByRole("heading", { name: "当前分页知识库" });
+  fireEvent.change(screen.getByRole("searchbox", { name: "搜索知识库…" }), {
+    target: { value: "中文描述" },
+  });
+  await screen.findByRole("heading", { name: "第 61 个知识库" });
+  const url = new URL(
+    screen.getByLabelText("当前路由").textContent ?? "",
+    "http://ally.test",
+  );
+  expect(url.searchParams.get("search")).toBe("中文描述");
+  expect(url.searchParams.get("librariesOffset")).toBe("0");
+  expect(url.searchParams.get("location")).toBe("remote");
+  expect(requests).toContainEqual({ search: "中文描述", offset: 0 });
+  expect(screen.getByText("1 个知识库")).toBeVisible();
+  expect(
+    screen.queryByRole("button", { name: "下一页" }),
+  ).not.toBeInTheDocument();
+  expect(
+    client.getQueriesData({ queryKey: ["knowledge", "libraries"] }),
+  ).toHaveLength(2);
+  await user.clear(screen.getByRole("searchbox", { name: "搜索知识库…" }));
+  await screen.findByRole("heading", { name: "当前分页知识库" });
+  expect(requests).toContainEqual({ search: "", offset: 0 });
+});
+
+it("目录搜索直链保留筛选并从服务器分页读取", async () => {
+  const requests: URLSearchParams[] = [];
+  server.use(
+    http.get(
+      "http://ally.test/api/v1/knowledge/connections/libraries",
+      ({ request }) => {
+        requests.push(new URL(request.url).searchParams);
+        return HttpResponse.json({
+          items: [{ ...library, name: "直链搜索结果" }],
+          total: 65,
+        });
+      },
+    ),
+  );
+  show("/knowledge?search=中文&librariesOffset=50");
+  await screen.findByRole("heading", { name: "直链搜索结果" });
+  expect(screen.getByRole("searchbox", { name: "搜索知识库…" })).toHaveValue(
+    "中文",
+  );
+  expect(requests[0]?.get("search")).toBe("中文");
+  expect(requests[0]?.get("offset")).toBe("50");
+  expect(screen.getByText("65 个知识库")).toBeVisible();
 });

@@ -19,7 +19,8 @@ import { TooltipProvider } from "@/shared/ui/tooltip";
 import { emptyLibrary } from "./knowledge-model";
 import type { Source } from "./knowledge-model";
 import { KnowledgeResultDocument } from "./knowledge-result-document";
-import { KnowledgeDocumentTable } from "./knowledge-document-table";
+import { KnowledgeDocumentReader } from "./knowledge-document-reader";
+import { KnowledgeSourceList } from "./knowledge-source-list";
 
 vi.mock("@/shared/api/use-query-events", () => ({ useQueryEvents: vi.fn() }));
 
@@ -62,51 +63,46 @@ function show(
   function Subject() {
     const [rows, setRows] = useState([row]);
     hideRows = () => setRows([]);
+    const [opened, setOpened] = useState<Source>();
     return (
-      <KnowledgeDocumentTable
-        library={{
-          ...emptyLibrary("kb", "资料库", "general"),
-          ref,
-          writable: ref.backend === "local",
-        }}
-        rows={rows}
-        emptyContent={rows.length ? undefined : <p>空文档区域</p>}
-        selection={[]}
-        select={vi.fn()}
-        selectPage={vi.fn()}
-        disabled={disabled}
-        onRebuild={rebuild}
-        onDeleted={deleted}
-        pagination={{
-          page: 1,
-          pageSize: 50,
-          totalItems: rows.length,
-          onPageChange: vi.fn(),
-          labels: {
-            navigation: "分页",
-            next: "下一页",
-            previous: "上一页",
-            page: String,
-            pageSize: String,
-            pageSizeSelection: "每页",
-            total: String,
-          },
-        }}
-      />
+      <>
+        {rows.length ? (
+          <KnowledgeSourceList
+            rows={rows}
+            selectedId={opened?.id}
+            onOpen={setOpened}
+            onLoadMore={vi.fn()}
+          />
+        ) : (
+          <p>空文档区域</p>
+        )}
+        <KnowledgeDocumentReader
+          library={{
+            ...emptyLibrary("kb", "资料库", "general"),
+            ref,
+            writable: ref.backend === "local",
+          }}
+          source={opened}
+          onClose={() => setOpened(undefined)}
+          disabled={disabled}
+          onRebuild={rebuild}
+          onDeleted={deleted}
+        />
+      </>
     );
   }
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
   render(
-    <QueryClientProvider
-      client={
-        new QueryClient({ defaultOptions: { queries: { retry: false } } })
-      }
-    >
+    <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Subject />
       </TooltipProvider>
     </QueryClientProvider>,
   );
   return {
+    queryClient,
     rebuild,
     deleted,
     hideRows: () => act(() => hideRows()),
@@ -137,35 +133,51 @@ function fixtures() {
     http.get(`${root}/sources/version/chunks`, () => HttpResponse.json([])),
   );
 }
-it("点击文件名使用弹窗展示真实摘要与 Markdown，不展示自定义元数据", async () => {
+it("点击文件名在右侧正文展示真实摘要与 Markdown，操作位于标题右侧", async () => {
   fixtures();
   show();
-  await userEvent.click(screen.getByRole("button", { name: "evidence.md" }));
-  const dialog = screen.getByRole("dialog", { name: "evidence.md" });
+  await userEvent.click(screen.getByRole("treeitem", { name: "evidence.md" }));
+  const dialog = screen.getByRole("article", { name: "evidence.md" });
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  const actions = within(dialog).getByRole("group", { name: "文档操作" });
+  expect(within(actions).getByRole("button", { name: "下载" })).toBeVisible();
+  expect(
+    within(actions).getByRole("button", { name: "重建知识" }),
+  ).toBeVisible();
+  expect(within(actions).getByRole("button", { name: "删除" })).toBeVisible();
   expect(await within(dialog).findByText("真实文档摘要")).toBeVisible();
   expect(
     await within(dialog).findByRole("heading", { name: "Original" }),
   ).toBeVisible();
   expect(within(dialog).getByRole("link", { name: "Reference" })).toBeVisible();
+  expect(
+    within(dialog).queryByRole("button", { name: "返回原件列表" }),
+  ).not.toBeInTheDocument();
+  expect(dialog.querySelector("header [data-slot=separator]")).toBeNull();
+  expect(
+    screen.queryByRole("button", { name: "操作" }),
+  ).not.toBeInTheDocument();
   expect(within(dialog).queryByText("自定义元数据")).not.toBeInTheDocument();
   expect(
     within(dialog).queryByRole("heading", { name: "整理状态" }),
   ).not.toBeInTheDocument();
 });
-it("行尾菜单下载原字节，重建只选择当前文档", async () => {
+it("标题操作下载原字节，重建只选择当前文档", async () => {
   fixtures();
   const save = vi.spyOn(desktop, "saveBlob").mockResolvedValue(true);
   const { rebuild } = show();
   const user = userEvent.setup();
-  await user.click(screen.getByRole("button", { name: "操作" }));
-  await user.click(screen.getByRole("menuitem", { name: "下载" }));
+  if (!screen.queryAllByRole("article", { name: "evidence.md" }).length)
+    await user.click(screen.getByRole("treeitem", { name: "evidence.md" }));
+  await user.click(screen.getByRole("button", { name: "下载" }));
   await waitFor(() => expect(save).toHaveBeenCalledOnce());
   expect(save.mock.calls[0]?.[1]).toBe("evidence.md");
   expect(await save.mock.calls[0]?.[0].text()).toBe(
     "# Original\r\n\r\n[Reference](https://example.com)",
   );
-  await user.click(screen.getByRole("button", { name: "操作" }));
-  await user.click(screen.getByRole("menuitem", { name: "重建知识" }));
+  if (!screen.queryAllByRole("article", { name: "evidence.md" }).length)
+    await user.click(screen.getByRole("treeitem", { name: "evidence.md" }));
+  await user.click(screen.getByRole("button", { name: "重建知识" }));
   expect(rebuild).toHaveBeenCalledWith(source);
 });
 it("删除展示影响并明确确认，网络未知重试保留原身份且清理完成后才关闭", async () => {
@@ -204,33 +216,41 @@ it("删除展示影响并明确确认，网络未知重试保留原身份且清�
   );
   const { deleted, hideRows } = show();
   const user = userEvent.setup();
-  await user.click(screen.getByRole("button", { name: "操作" }));
-  await user.click(screen.getByRole("menuitem", { name: "删除" }));
-  const dialog = screen.getByRole("dialog", { name: "删除文档" });
+  if (!screen.queryAllByRole("article", { name: "evidence.md" }).length)
+    await user.click(screen.getByRole("treeitem", { name: "evidence.md" }));
+  await user.click(screen.getByRole("button", { name: "删除" }));
+  const dialog = await screen.findByRole("dialog", { name: "删除文档" });
   const confirm = await within(dialog).findByRole("button", { name: "删除" });
   await waitFor(() => expect(confirm).toBeEnabled());
   expect(bodies).toHaveLength(0);
   await user.click(confirm);
-  expect(await within(dialog).findByRole("alert")).toBeVisible();
+  await waitFor(() => expect(confirm).toBeEnabled());
+  expect(within(dialog).queryByRole("alert")).not.toBeInTheDocument();
   await user.click(within(dialog).getByRole("button", { name: "取消" }));
-  await user.click(screen.getByRole("button", { name: "操作" }));
-  await user.click(screen.getByRole("menuitem", { name: "删除" }));
-  const reopened = screen.getByRole("dialog", { name: "删除文档" });
+  await waitFor(() =>
+    expect(
+      screen.queryByRole("dialog", { name: "删除文档" }),
+    ).not.toBeInTheDocument(),
+  );
+  if (!screen.queryAllByRole("article", { name: "evidence.md" }).length)
+    await user.click(screen.getByRole("treeitem", { name: "evidence.md" }));
+  await user.click(screen.getByRole("button", { name: "删除" }));
+  const reopened = await screen.findByRole("dialog", { name: "删除文档" });
   fail = false;
   // 状态未完成时仍显示核验提示，不能把接纳回执当成删除完成。
-  await user.click(
-    within(reopened).getByRole("button", { name: "重试并核验结果" }),
-  );
-  expect(await within(reopened).findByRole("alert")).toBeVisible();
+  const retry = within(reopened).getByRole("button", { name: "删除" });
+  await user.click(retry);
+  await waitFor(() => expect(retry).toBeEnabled());
+  expect(within(reopened).queryByRole("alert")).not.toBeInTheDocument();
   expect(bodies[0]?.requestId).toBe(bodies[1]?.requestId);
   expect(deleted).not.toHaveBeenCalled();
   hideRows();
-  expect(screen.getByText("空文档区域")).toBeInTheDocument();
+  expect(
+    document.querySelector('article[aria-label="evidence.md"]'),
+  ).toBeInTheDocument();
   expect(reopened).toBeInTheDocument();
   completed = true;
-  await user.click(
-    within(reopened).getByRole("button", { name: "重试并核验结果" }),
-  );
+  await user.click(within(reopened).getByRole("button", { name: "删除" }));
   await waitFor(() =>
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
   );
@@ -283,8 +303,10 @@ it("已接纳的删除在来源消失及页面重开后仍可继续，恢复请�
     await screen.findByRole("button", { name: "查询并继续清理" }),
   );
   let dialog = screen.getByRole("dialog", { name: "继续文档清理" });
-  await user.click(within(dialog).getByRole("button", { name: "继续清理" }));
-  expect(await within(dialog).findByRole("alert")).toBeVisible();
+  const recover = within(dialog).getByRole("button", { name: "继续清理" });
+  await user.click(recover);
+  await waitFor(() => expect(recover).toBeEnabled());
+  expect(within(dialog).queryByRole("alert")).not.toBeInTheDocument();
   // 模拟离开并返回，前端临时 Map 已丢失，仍按持久清单恢复。
   const { cleanup } = await import("@testing-library/react");
   cleanup();
@@ -320,24 +342,31 @@ it("远端来源行消失后仍可从持久清理入口恢复", async () => {
   ).toBeEnabled();
 });
 
-it("文档菜单不再提供整理过程或聊天入口", async () => {
+it("文档标题不提供整理过程或聊天入口", async () => {
   fixtures();
   show();
-  await userEvent.click(screen.getByRole("button", { name: "操作" }));
+  await userEvent.click(screen.getByRole("treeitem", { name: "evidence.md" }));
   expect(
-    screen.queryByRole("menuitem", { name: "整理过程" }),
+    screen.queryByRole("button", { name: "整理过程" }),
   ).not.toBeInTheDocument();
 });
 
 it.each(["processed", "processing", "failed", "queued", "pending"] as const)(
-  "来源处于 %s 时菜单只包含文档操作",
+  "来源处于 %s 时标题操作保留下载并禁用写入",
   async (state) => {
     fixtures();
     show(undefined, true, { ...source, state });
-    await userEvent.click(screen.getByRole("button", { name: "操作" }));
+    await userEvent.click(
+      screen.getByRole("treeitem", { name: "evidence.md" }),
+    );
     expect(
-      screen.getAllByRole("menuitem").map((item) => item.textContent),
+      within(screen.getByRole("group", { name: "文档操作" }))
+        .getAllByRole("button")
+        .map((item) => item.getAttribute("aria-label")),
     ).toEqual(["下载", "重建知识", "删除"]);
+    expect(screen.getByRole("button", { name: "重建知识" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "删除" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "下载" })).toBeEnabled();
   },
 );
 
@@ -437,9 +466,8 @@ it.each(["processed", "failed"])(
         </TooltipProvider>
       </QueryClientProvider>,
     );
-    expect(
-      await screen.findByRole("heading", { name: "远页文档.md" }),
-    ).toBeVisible();
+    expect(await screen.findByRole("heading", { name: "文档" })).toBeVisible();
+    expect(await screen.findByText("original")).toBeVisible();
     expect(screen.queryByText("无法解析此文件")).not.toBeInTheDocument();
     expect(
       screen.queryByRole("heading", { name: "整理状态" }),
@@ -449,5 +477,156 @@ it.each(["processed", "failed"])(
     fireEvent(window, new Event("focus"));
     await act(() => new Promise((resolve) => setTimeout(resolve, 400)));
     expect(reads).toEqual([]);
+  },
+);
+
+it.each(["queued", "processing"] as const)(
+  "%s资料不能重复重建",
+  async (state) => {
+    fixtures();
+    const user = userEvent.setup();
+    const { rebuild } = show(undefined, false, { ...source, state });
+    await user.click(screen.getByRole("treeitem", { name: source.name }));
+    expect(screen.getByRole("button", { name: "重建知识" })).toBeDisabled();
+    expect(rebuild).not.toHaveBeenCalled();
+  },
+);
+
+it.each(["processed", "failed"] as const)(
+  "任务未结束的%s资料不能重复重建",
+  async (state) => {
+    fixtures();
+    const user = userEvent.setup();
+    show(undefined, false, { ...source, state, organizeBlocked: true });
+    await user.click(screen.getByRole("treeitem", { name: source.name }));
+    expect(screen.getByRole("button", { name: "重建知识" })).toBeDisabled();
+  },
+);
+
+it.each([false, true])(
+  "统一远端按协议支持读取清理记录，不让可选清理接口遮住正文，supported=%s",
+  async (supported) => {
+    const remote =
+      "http://ally.test/api/v1/knowledge/connections/remote/libraries/kb";
+    let purgeCalls = 0;
+    server.use(
+      http.get(`${remote}/capabilities`, () =>
+        HttpResponse.json({
+          serviceKind: supported ? "neuxally" : "weknora",
+          operations: { read: true, sourcePurge: supported, rebuild: false },
+          details: {
+            sourcePurge: {
+              supported,
+              permission: "allowed",
+              condition: "ready",
+            },
+            rebuild: {
+              supported: false,
+              permission: "unknown",
+              condition: "unsupported",
+            },
+          },
+        }),
+      ),
+      http.get(`${remote}/source-purges`, () => {
+        purgeCalls++;
+        return supported
+          ? HttpResponse.json({ items: [], total: 0 })
+          : HttpResponse.json(
+              {
+                code: "KnowledgeUnsupported",
+                message: "当前知识服务或智能体不支持此操作",
+              },
+              { status: 501 },
+            );
+      }),
+      http.get(`${remote}/sources/version`, () =>
+        HttpResponse.json({
+          id: "version",
+          filename: "evidence.md",
+          mime: "text/markdown",
+        }),
+      ),
+      http.get(`${remote}/sources/version/raw`, () =>
+        HttpResponse.json({
+          filename: "evidence.md",
+          bytes: btoa("# Remote original"),
+        }),
+      ),
+    );
+    show({
+      backend: "integration",
+      connectionId: "remote",
+      knowledgeBaseId: "kb",
+    });
+    await userEvent.click(
+      screen.getByRole("treeitem", { name: "evidence.md" }),
+    );
+    expect(
+      await screen.findByRole("heading", { name: "Remote original" }),
+    ).toBeVisible();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    await waitFor(() => expect(purgeCalls).toBe(supported ? 1 : 0));
+    expect(screen.getByRole("button", { name: "重建知识" })).toBeDisabled();
+    if (supported)
+      await waitFor(() =>
+        expect(screen.getByRole("button", { name: "删除" })).toBeEnabled(),
+      );
+    else expect(screen.getByRole("button", { name: "删除" })).toBeDisabled();
+  },
+);
+
+it.each([
+  { permission: "denied", condition: "ready", enabled: true },
+  { permission: "allowed", condition: "profile_unavailable", enabled: true },
+  { permission: "allowed", condition: "ready", enabled: false },
+])(
+  "远端协议支持但当前无完整操作许可时按钮禁用且不查询清理记录：%j",
+  async ({ permission, condition, enabled }) => {
+    const remote =
+      "http://ally.test/api/v1/knowledge/connections/remote/libraries/kb";
+    let purgeCalls = 0;
+    server.use(
+      http.get(`${remote}/capabilities`, () =>
+        HttpResponse.json({
+          serviceKind: "neuxally",
+          operations: { read: true, sourcePurge: enabled, rebuild: enabled },
+          details: {
+            sourcePurge: { supported: true, permission, condition },
+            rebuild: { supported: true, permission, condition },
+          },
+        }),
+      ),
+      http.get(`${remote}/source-purges`, () => {
+        purgeCalls++;
+        return HttpResponse.json({ items: [], total: 0 });
+      }),
+      http.get(`${remote}/sources/version`, () =>
+        HttpResponse.json({ id: "version", filename: "evidence.md" }),
+      ),
+      http.get(`${remote}/sources/version/raw`, () =>
+        HttpResponse.json({
+          filename: "evidence.md",
+          bytes: btoa("# Available content"),
+        }),
+      ),
+    );
+    const { queryClient, rebuild } = show({
+      backend: "integration",
+      connectionId: "remote",
+      knowledgeBaseId: "kb",
+    });
+    await userEvent.click(
+      screen.getByRole("treeitem", { name: "evidence.md" }),
+    );
+    expect(
+      await screen.findByRole("heading", { name: "Available content" }),
+    ).toBeVisible();
+    await waitFor(() => expect(queryClient.isFetching()).toBe(0));
+    expect(screen.getByRole("button", { name: "重建知识" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "删除" })).toBeDisabled();
+    expect(purgeCalls).toBe(0);
+    await userEvent.click(screen.getByRole("button", { name: "重建知识" }));
+    expect(rebuild).not.toHaveBeenCalled();
   },
 );

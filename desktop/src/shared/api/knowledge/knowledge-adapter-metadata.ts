@@ -6,9 +6,13 @@ export function knowledgeAdapterMetadata(ref: ResourceRef) {
   const official = ref.backend === "weknora";
   return {
     ref,
-    graphMode: official ? ("remote" as const) : ("pages" as const),
+    graphMode:
+      official || ref.backend === "integration"
+        ? ("remote" as const)
+        : ("pages" as const),
     revisionsIncludeContent: local,
     localConfiguration: local,
+    supportsServiceDetection: ref.backend === "integration",
     supportsJobs: !official,
     supportsSourceCleanup: !official,
   };

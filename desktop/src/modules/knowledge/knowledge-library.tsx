@@ -1,10 +1,7 @@
 import { KnowledgeLoading } from "./knowledge-loading";
-import { QueryState } from "@/shared/ui/query-state";
-import { Button } from "@/shared/ui/button";
-import { localApiErrorMessage } from "@/shared/api/local-error-surface";
 import { lazy, Suspense, useState } from "react";
 import { useRouteSceneActive } from "@/shared/workspace/app-scene-workspace";
-import { BookOpen, Plus } from "lucide-react";
+import { BookOpen, Plus, Cloud } from "lucide-react";
 import { ResourceFilterSelect } from "@/shared/ui/resource-filter-select";
 import {
   PageAction,
@@ -18,6 +15,7 @@ import { useCopy } from "./use-copy";
 import { type Library } from "./knowledge-model";
 import { Empty } from "./knowledge-controls";
 import { KnowledgeLibraryCard } from "./knowledge-library-card";
+import { KnowledgeReadFeedback } from "./knowledge-read-feedback";
 
 const KnowledgeLibraryDeleteDialog = lazy(() =>
   import("./knowledge-library-delete-dialog").then((module) => ({
@@ -30,9 +28,12 @@ export function LibraryList({
   open,
   create,
   canCreate = true,
+  onAddRemote,
   state,
   error,
   onRetry,
+  search = "",
+  onSearchChange,
   location = "all",
   onLocationChange,
   total,
@@ -40,11 +41,14 @@ export function LibraryList({
   canDelete = () => true,
 }: {
   libraries: Library[];
+  onAddRemote?: () => void;
   onDelete?: (library: Library, requestId: string) => Promise<void>;
   canDelete?: (library: Library) => boolean;
   state?: "loading" | "error";
   error?: unknown;
   onRetry?: () => void;
+  search?: string;
+  onSearchChange?: (search: string) => void;
   open: (library: Library) => void;
   location?: "all" | "local" | "remote";
   onLocationChange?: (location: "all" | "local" | "remote") => void;
@@ -55,12 +59,6 @@ export function LibraryList({
   const t = useCopy();
   const active = useRouteSceneActive();
   const [deleting, setDeleting] = useState<Library | null>(null);
-  const [search, setSearch] = useState("");
-  const rows = libraries.filter((library) =>
-    `${library.name} ${library.description}`
-      .toLowerCase()
-      .includes(search.toLowerCase()),
-  );
   return (
     <ResourcePageSurface contentClassName="pt-6">
       <ResourcePageHeader
@@ -68,6 +66,15 @@ export function LibraryList({
         description={t("intro")}
         actions={
           <>
+            {onAddRemote && (
+              <PageAction
+                intent="secondary"
+                label={t("addRemote")}
+                onClick={onAddRemote}
+              >
+                <Cloud />
+              </PageAction>
+            )}
             {canCreate && (
               <PageAction intent="primary" label={t("create")} onClick={create}>
                 <Plus />
@@ -96,7 +103,7 @@ export function LibraryList({
               aria-label={t("librarySearch")}
               placeholder={t("librarySearch")}
               value={search}
-              onChange={(event) => setSearch(event.target.value)}
+              onChange={(event) => onSearchChange?.(event.target.value)}
             />
           </>
         }
@@ -105,33 +112,24 @@ export function LibraryList({
           <b>{t("libraries")}</b>
           <span className="type-caption text-muted-foreground">
             {t("libraryCount", {
-              count: search ? rows.length : (total ?? rows.length),
+              count: total ?? libraries.length,
             })}
           </span>
         </div>
       </ResourcePageToolbar>
-      {state === "error" && libraries.length > 0 ? (
-        <div className="mt-4 flex min-w-0 flex-wrap items-center gap-2">
-          <p role="alert" className="type-body text-destructive wrap-anywhere">
-            {localApiErrorMessage(error, t("knowledgeReadFailed"))}
-          </p>
-          {onRetry ? (
-            <Button size="sm" variant="secondary" onClick={onRetry}>
-              {t("retry")}
-            </Button>
-          ) : null}
-        </div>
-      ) : null}
+      <KnowledgeReadFeedback
+        hasData={Boolean(libraries.length)}
+        state={{
+          pending: false,
+          error: state === "error" ? (error ?? true) : undefined,
+          retry: () => onRetry?.(),
+        }}
+      />
       {state === "loading" && !libraries.length ? (
         <KnowledgeLoading />
-      ) : state === "error" && !libraries.length ? (
-        <QueryState
-          error={error || new Error(t("knowledgeReadFailed"))}
-          onRetry={() => onRetry?.()}
-        />
-      ) : rows.length ? (
+      ) : libraries.length ? (
         <ResourceCardGrid className="mt-6" aria-label={t("libraries")}>
-          {rows.map((library) => (
+          {libraries.map((library) => (
             <KnowledgeLibraryCard
               key={JSON.stringify([
                 library.ref.backend,
@@ -145,13 +143,13 @@ export function LibraryList({
             />
           ))}
         </ResourceCardGrid>
-      ) : (
+      ) : state !== "error" ? (
         <Empty
           icon={BookOpen}
           title={t("emptyLibraries")}
           description={t("emptyLibrariesHelp")}
         />
-      )}
+      ) : null}
       {deleting && onDelete ? (
         <Suspense fallback={null}>
           <KnowledgeLibraryDeleteDialog

@@ -8,6 +8,7 @@ export {
 export type { KnowledgeSourceFilters } from "./knowledge-client";
 export type {
   KnowledgeCapabilities,
+  KnowledgeUploadContext,
   ResourceRef,
 } from "./knowledge-adapter-types";
 

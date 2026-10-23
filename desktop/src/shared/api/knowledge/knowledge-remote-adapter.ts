@@ -1,7 +1,6 @@
 import * as api from "@/shared/api/generated/sdk.gen";
 import { knowledgeAdapterMetadata } from "./knowledge-adapter-metadata";
 import type { ListRemoteThemesResponse } from "@/shared/api/generated/types.gen";
-import { withLocalErrorSurface } from "@/shared/api/local-error-surface";
 import type { ResourceRef } from "./knowledge-adapter-types";
 import {
   scopedKnowledgeOptions,
@@ -9,6 +8,7 @@ import {
   knowledgeDirectoryIncomplete,
   assertKnowledgeCapability,
   type KnowledgeOptions,
+  type KnowledgeUploadContext,
   type KnowledgeCapabilities,
   type KnowledgePageReadOptions,
   type KnowledgeRevisionsOptions,
@@ -105,9 +105,10 @@ export function remoteKnowledgeAdapter(ref: ResourceRef) {
     listAvailableLibraries: (
       options?: KnowledgeOptions<typeof api.listAvailableLibraries>,
     ) =>
-      api.listAvailableLibraries<true>(
-        withLocalErrorSurface({ ...options, throwOnError: true as const }),
-      ),
+      api.listAvailableLibraries<true>({
+        ...options,
+        throwOnError: true as const,
+      }),
     getLibrary: (options: KnowledgeOptions<typeof api.getLibrary>) =>
       api.getRemoteLibrary<true>(scope(options)),
     getLibraryDeletion: (
@@ -145,6 +146,9 @@ export function remoteKnowledgeAdapter(ref: ResourceRef) {
       _options.signal?.throwIfAborted();
       return knowledgeUnsupported();
     },
+    listPageDirectory: (
+      options: KnowledgeOptions<typeof api.listPageDirectory>,
+    ) => api.listRemotePageDirectory<true>(scope(options)),
     listPages: (options: KnowledgeOptions<typeof api.listPages>) =>
       api.listRemotePages<true>(scope(options)),
     getPageBySlug: (options: KnowledgeOptions<typeof api.getPageBySlug>) =>
@@ -159,6 +163,15 @@ export function remoteKnowledgeAdapter(ref: ResourceRef) {
         options.signal ?? undefined,
       );
       return api.updateRemoteLibrary<true>(scope(options));
+    },
+    removeMount: async (
+      options: KnowledgeOptions<typeof api.removeRemoteMount>,
+    ) => {
+      if (ref.backend !== "integration") knowledgeUnsupported();
+      return api.removeRemoteMount<true>({
+        ...options,
+        throwOnError: true,
+      });
     },
     deleteLibrary: async (
       options: KnowledgeOptions<typeof api.deleteLibrary>,
@@ -179,6 +192,42 @@ export function remoteKnowledgeAdapter(ref: ResourceRef) {
       const { recoverRemoteKnowledgeDeletion } =
         await import("./knowledge-remote-operations");
       return recoverRemoteKnowledgeDeletion(ref, options);
+    },
+    redetectService: async (expectedRevision: number, requestId: string) => {
+      if (ref.backend !== "integration") knowledgeUnsupported();
+      const result = await api.redetectConnection<true>({
+        path: { connectionId: ref.connectionId },
+        body: { expectedRevision, requestId },
+        throwOnError: true,
+      });
+      return result.data;
+    },
+    getUploadContext: async (
+      signal?: AbortSignal,
+    ): Promise<KnowledgeUploadContext | undefined> => {
+      if (ref.backend !== "integration") {
+        await assertCapability("rawOnly", signal);
+        return undefined;
+      }
+      const { remoteUploadContext } = await import("./knowledge-remote-upload");
+      return remoteUploadContext(await getCapabilities(signal));
+    },
+    uploadSource: async (
+      options: KnowledgeOptions<typeof api.importSource>,
+      confirmed?: KnowledgeUploadContext,
+    ) => {
+      if (ref.backend === "integration") {
+        const { uploadRemoteKnowledgeSource } =
+          await import("./knowledge-remote-upload");
+        return uploadRemoteKnowledgeSource(ref, options, confirmed);
+      }
+      await assertWriteCapability(
+        "rawOnly",
+        options.body.requestId,
+        "source.import",
+        options.signal ?? undefined,
+      );
+      return api.importRemoteSource<true>(scope(options));
     },
     importSource: async (
       options: KnowledgeOptions<typeof api.importSource>,
@@ -327,14 +376,12 @@ export function remoteKnowledgeAdapter(ref: ResourceRef) {
       const { executionDefaults, embeddingProfile, ...body } = options.body;
       if (executionDefaults || embeddingProfile) knowledgeUnsupported();
       // 创建属于连接级授权，不能借用已有库的 write 权限或读取空库能力。
-      return api.createRemoteLibrary<true>(
-        withLocalErrorSurface({
-          ...options,
-          path: { connectionId: ref.connectionId },
-          body,
-          throwOnError: true,
-        }),
-      );
+      return api.createRemoteLibrary<true>({
+        ...options,
+        path: { connectionId: ref.connectionId },
+        body,
+        throwOnError: true,
+      });
     },
     getSourceChunks: async (
       options: KnowledgeOptions<typeof api.getSourceChunks>,
@@ -368,9 +415,21 @@ export function remoteKnowledgeAdapter(ref: ResourceRef) {
         signal?.throwIfAborted();
         const parentId = parents.shift() ?? "";
         const { data } = await api.listRemoteThemes<true>(
-          scope({ ...options, query: { parentId } }),
+          scope({ ...options, query: { parentId, all: parentId === "" } }),
         );
         signal?.throwIfAborted();
+        if (data.complete) {
+          const rows = data.items ?? [];
+          const ids = new Set<string>();
+          for (const row of rows) {
+            if (!row.id || ids.has(row.id)) knowledgeDirectoryIncomplete();
+            ids.add(row.id);
+          }
+          for (const row of rows)
+            if (row.parentId && !ids.has(row.parentId))
+              knowledgeDirectoryIncomplete();
+          return { data: { items: rows } };
+        }
         for (const row of data.items ?? []) {
           if (!row.id || seen.has(row.id) || (row.parentId ?? "") !== parentId)
             knowledgeDirectoryIncomplete();
@@ -390,13 +449,13 @@ export function remoteKnowledgeAdapter(ref: ResourceRef) {
     },
     organizeRemote,
     getGraph: async (options: KnowledgeOptions<typeof api.getRemoteGraph>) => {
-      if (!official) knowledgeUnsupported();
+      if (!official && ref.backend !== "integration") knowledgeUnsupported();
       return api.getRemoteGraph<true>(scope(options));
     },
     getRemoteGraph: async (
       options: KnowledgeOptions<typeof api.getRemoteGraph>,
     ) => {
-      if (!official) knowledgeUnsupported();
+      if (!official && ref.backend !== "integration") knowledgeUnsupported();
       return api.getRemoteGraph<true>(scope(options));
     },
     getOperation: (options: KnowledgeOptions<typeof api.getRemoteOperation>) =>

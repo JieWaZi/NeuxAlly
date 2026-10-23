@@ -1,12 +1,10 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { knowledgeAdapter } from "@/shared/api/knowledge";
-import { withLocalErrorSurface } from "@/shared/api/local-error-surface";
 import type {
   GetLibraryEmbeddingProfileResponse,
   GetLibraryExecutionDefaultsResponse,
 } from "@/shared/api/generated/types.gen";
-import { QueryState } from "@/shared/ui/query-state";
 import {
   libraryEmbeddingProfileOptions,
   readEmbeddingProfile,
@@ -45,21 +43,7 @@ function LocalLibrarySettingsContent({
     (!defaults.data || !sources.data || !embedding.data) &&
     !retained?.getSnapshot().command
   )
-    return (
-      <KnowledgeLibrarySettingsLoading close={close}>
-        {defaults.error || sources.error || embedding.error ? (
-          <QueryState
-            pending={false}
-            error={defaults.error || sources.error || embedding.error}
-            onRetry={() => {
-              void defaults.refetch();
-              void sources.refetch();
-              void embedding.refetch();
-            }}
-          />
-        ) : undefined}
-      </KnowledgeLibrarySettingsLoading>
-    );
+    return <KnowledgeLibrarySettingsLoading close={close} />;
   return (
     <LoadedLibrarySettings
       key={library.id}
@@ -124,17 +108,15 @@ function LoadedLibrarySettings({
         const desiredBody = buildUpdateLibraryBody("", 1, desired.library);
         const savedBody = buildUpdateLibraryBody("", 1, saved.library);
         if (JSON.stringify(desiredBody) !== JSON.stringify(savedBody)) {
-          const response = await knowledgeAdapter(library.ref).updateLibrary(
-            withLocalErrorSurface({
-              path: { libraryId: library.id },
-              body: buildUpdateLibraryBody(
-                command.coreRequestId,
-                command.libraryVersion,
-                desired.library,
-              ),
-              throwOnError: true,
-            }),
-          );
+          const response = await knowledgeAdapter(library.ref).updateLibrary({
+            path: { libraryId: library.id },
+            body: buildUpdateLibraryBody(
+              command.coreRequestId,
+              command.libraryVersion,
+              desired.library,
+            ),
+            throwOnError: true,
+          });
           controller.acknowledgeLibrary({
             ...desired.library,
             revision: response.data.version ?? command.libraryVersion,
@@ -152,20 +134,18 @@ function LoadedLibrarySettings({
         ) {
           const response = await knowledgeAdapter(
             library.ref,
-          ).updateLibraryEmbeddingProfile(
-            withLocalErrorSurface({
-              path: { libraryId: library.id },
-              body: {
-                requestId: command.embeddingRequestId,
-                expectedVersion: command.embeddingVersion,
-                expectedLibraryVersion: saved.library.revision,
-                baseUrl: desired.embedding.baseUrl,
-                model: desired.embedding.model,
-                apiKey: desired.embedding.apiKey || undefined,
-              },
-              throwOnError: true,
-            }),
-          );
+          ).updateLibraryEmbeddingProfile({
+            path: { libraryId: library.id },
+            body: {
+              requestId: command.embeddingRequestId,
+              expectedVersion: command.embeddingVersion,
+              expectedLibraryVersion: saved.library.revision,
+              baseUrl: desired.embedding.baseUrl,
+              model: desired.embedding.model,
+              apiKey: desired.embedding.apiKey || undefined,
+            },
+            throwOnError: true,
+          });
           controller.acknowledgeEmbedding(
             readEmbeddingProfile(response.data),
             response.data.version ?? command.embeddingVersion,
@@ -180,17 +160,15 @@ function LoadedLibrarySettings({
         ) {
           const response = await knowledgeAdapter(
             library.ref,
-          ).updateLibraryExecutionDefaults(
-            withLocalErrorSurface({
-              path: { libraryId: library.id },
-              body: {
-                ...buildExecutionDefaults(desired.execution),
-                requestId: command.executionRequestId,
-                expectedVersion: command.executionVersion,
-              },
-              throwOnError: true,
-            }),
-          );
+          ).updateLibraryExecutionDefaults({
+            path: { libraryId: library.id },
+            body: {
+              ...buildExecutionDefaults(desired.execution),
+              requestId: command.executionRequestId,
+              expectedVersion: command.executionVersion,
+            },
+            throwOnError: true,
+          });
           controller.acknowledgeExecution(
             readExecutionDefaults(response.data),
             response.data.version ?? command.executionVersion,

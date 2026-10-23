@@ -1,12 +1,17 @@
-import type { ReactNode } from "react";
-import { useTranslation } from "react-i18next";
-import { Button } from "@/shared/ui/button";
-import { localApiErrorMessage } from "@/shared/api/local-error-surface";
-import { QueryState } from "@/shared/ui/query-state";
+import { useEffect, useId, useRef, type ReactNode } from "react";
+import { isCancelledError } from "@tanstack/react-query";
+import {
+  captureErrorNoticeRecovery,
+  resolveErrorNoticeRecovery,
+  useErrorNotices,
+  type ErrorNotice,
+} from "@/shared/api/error-notices";
+import { useRouteSceneActive } from "@/shared/workspace/app-scene-workspace";
+import { reportKnowledgeReadError } from "./knowledge-error-notice";
 import type { KnowledgeReadState } from "./knowledge-model";
 import { useCopy } from "./use-copy";
 
-/** 后台刷新保留已有内容，失败与陈旧提示留在所属读取区域。 */
+/** 读取失败统一进入全局通知，内容区只负责加载与陈旧状态。 */
 export function KnowledgeReadFeedback({
   state,
   hasData = false,
@@ -17,31 +22,50 @@ export function KnowledgeReadFeedback({
   loading?: ReactNode;
 }) {
   const t = useCopy();
-  const { t: common } = useTranslation("common");
+  const active = useRouteSceneActive();
+  const notices = useErrorNotices();
+  const operation = `knowledge:read:${useId()}`;
+  const failure = useRef<unknown>(undefined);
+  const recovery = useRef<ErrorNotice[]>([]);
+  const error = state?.error;
+  const pending = state?.pending;
+  const refreshing = state?.refreshing;
+  useEffect(() => {
+    if (error) {
+      if (!active || failure.current === error) return;
+      failure.current = error;
+      const binding = reportKnowledgeReadError(
+        error,
+        t("knowledgeOperationFailed"),
+        operation,
+      );
+      if (binding) {
+        const captured = binding.operation
+          ? captureErrorNoticeRecovery(binding.operation)
+          : notices.filter((notice) => notice.id === binding.id);
+        recovery.current = [
+          ...recovery.current.filter(
+            (old) =>
+              !captured.some((notice) => notice.operation === old.operation),
+          ),
+          ...captured,
+        ];
+      }
+    } else if (state && !pending && !refreshing) {
+      failure.current = undefined;
+      const captured = recovery.current;
+      recovery.current = [];
+      resolveErrorNoticeRecovery(captured);
+    }
+  }, [active, error, pending, state, notices, t, operation, refreshing]);
   if (!state) return null;
+  if (
+    isCancelledError(state.error) ||
+    (state.error instanceof DOMException && state.error.name === "AbortError")
+  )
+    return null;
+  if (state.error) return null;
   if (state.pending && !hasData && !state.error && loading) return loading;
-  if (state.error && hasData)
-    return (
-      <div
-        role="alert"
-        className="flex min-w-0 flex-wrap items-center gap-3 px-3 py-2"
-      >
-        <p className="type-body text-destructive min-w-0 break-words">
-          {localApiErrorMessage(state.error, t("knowledgeReadFailed"))}
-        </p>
-        <Button size="sm" variant="secondary" onClick={state.retry}>
-          {common("retry")}
-        </Button>
-      </div>
-    );
-  if (state.error || (state.pending && !hasData))
-    return (
-      <QueryState
-        pending={!state.error && state.pending && !hasData}
-        error={state.error}
-        onRetry={state.retry}
-      />
-    );
   if (state.stale)
     return (
       <p role="status" className="text-content-muted type-caption px-3 py-2">

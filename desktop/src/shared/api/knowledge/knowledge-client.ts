@@ -1,4 +1,3 @@
-import { withLocalErrorSurface } from "@/shared/api/local-error-surface";
 import { knowledgeAdapter } from "./knowledge-adapter";
 import type { GithubComJieWaZiNeuxAllyServerApisKnowledgeImportSourceInput as ImportSource } from "@/shared/api/generated/types.gen";
 import type { ResourceRef } from "./knowledge-adapter-types";
@@ -15,11 +14,7 @@ export function knowledgeClient(ref: ResourceRef) {
   const adapter = knowledgeAdapter(ref);
   return {
     getLibrary: async (signal?: AbortSignal) =>
-      (
-        await adapter.getLibrary(
-          withLocalErrorSurface({ path, signal, throwOnError: true }),
-        )
-      ).data,
+      (await adapter.getLibrary({ path, signal, throwOnError: true })).data,
     listSources: async (
       offset: number,
       signal?: AbortSignal,
@@ -27,20 +22,16 @@ export function knowledgeClient(ref: ResourceRef) {
       filters: KnowledgeSourceFilters = {},
     ) =>
       (
-        await adapter.listSources(
-          withLocalErrorSurface({
-            path,
-            query: { offset, limit: pageSize, ...filters },
-            signal,
-            throwOnError: true,
-          }),
-        )
+        await adapter.listSources({
+          path,
+          query: { offset, limit: pageSize, ...filters },
+          signal,
+          throwOnError: true,
+        })
       ).data,
     importSource: async (body: ImportSource, signal?: AbortSignal) => {
       return (
-        await adapter.importSource(
-          withLocalErrorSurface({ path, body, signal, throwOnError: true }),
-        )
+        await adapter.importSource({ path, body, signal, throwOnError: true })
       ).data;
     },
   };

@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { localApiErrorMessage } from "@/shared/api/local-error-surface";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { Dialog, DialogContent, DialogFooter } from "@/shared/ui/dialog";
@@ -11,6 +10,7 @@ import type { ResourceRef } from "./knowledge-transfer";
 import type { WikiTheme } from "./knowledge-wiki-queries";
 import type { KnowledgeWikiCommands } from "./knowledge-wiki-command";
 import { isKnowledgeWriteOutcomeUnknown } from "./knowledge-write-outcome";
+import { reportKnowledgeError } from "./knowledge-error-notice";
 import { useWikiCopy } from "./use-wiki-copy";
 
 /** 目录命令固定打开时的对象和版本；失败保留名称，未知结果沿原身份对账。 */
@@ -40,7 +40,6 @@ export function KnowledgeWikiFolderDialog({
   const [name, setName] = useState(retained?.theme?.name ?? folder.name ?? "");
   const [command, setCommand] = useState<{ fingerprint: string; id: string }>();
   const [pending, setPending] = useState(false);
-  const [error, setError] = useState("");
   const deleting = kind === "delete";
   async function submit() {
     if (pending || !folder.id || (!deleting && !name.trim())) return;
@@ -54,7 +53,6 @@ export function KnowledgeWikiFolderDialog({
           : crypto.randomUUID();
     setCommand({ fingerprint, id: requestId });
     setPending(true);
-    setError("");
     try {
       await knowledgeAdapter(resource).writeTheme({
         path: { libraryId: resource.knowledgeBaseId, themeId: folder.id },
@@ -82,7 +80,11 @@ export function KnowledgeWikiFolderDialog({
       else commands.delete(commandKey);
       setUnresolved(unknown);
       if (!unknown) setCommand(undefined);
-      setError(localApiErrorMessage(cause, t("writeFailed")));
+      reportKnowledgeError(
+        cause,
+        `write-wiki-folder:${commandKey}`,
+        t("writeFailed"),
+      );
     } finally {
       setPending(false);
     }
@@ -123,11 +125,6 @@ export function KnowledgeWikiFolderDialog({
                   onChange={(event) => setName(event.target.value)}
                 />
               </Field>
-            )}
-            {error && (
-              <p role="alert" className="type-body text-destructive">
-                {error}
-              </p>
             )}
           </div>
           <DialogFooter>

@@ -1,6 +1,5 @@
 import { knowledgeAdapter } from "@/shared/api/knowledge";
 import type { GithubComJieWaZiNeuxAllyServerApisKnowledgeOrganizeResponse as OrganizeResponse } from "@/shared/api/generated/types.gen";
-import { withLocalErrorSurface } from "@/shared/api/local-error-surface";
 import type { ExecutionSelection } from "@/shared/hooks/use-execution-selection";
 import type { Library } from "./knowledge-model";
 import type { KnowledgePerform } from "./knowledge-writes";
@@ -51,21 +50,19 @@ export function createKnowledgeOrganizeStart({
       await perform(
         `${rebuild ? "rebuild" : "organize"}:${library.id}:${intent.id}`,
         async (requestId) => {
-          const response = await knowledgeAdapter(library.ref).organize(
-            withLocalErrorSurface({
-              path: { libraryId: library.id },
-              body: {
-                requestId,
-                ...(rebuild ? { rebuild: true } : {}),
-                sourceVersionIds: [...batch],
-                runtimeId: chosen.runtimeId,
-                accountId: chosen.accountId,
-                model: chosen.model,
-                message,
-              },
-              throwOnError: true,
-            }),
-          );
+          const response = await knowledgeAdapter(library.ref).organize({
+            path: { libraryId: library.id },
+            body: {
+              requestId,
+              ...(rebuild ? { rebuild: true } : {}),
+              sourceVersionIds: [...batch],
+              runtimeId: chosen.runtimeId,
+              accountId: chosen.accountId,
+              model: chosen.model,
+              message,
+            },
+            throwOnError: true,
+          });
           accepted = response.data;
           if (
             (rebuild || !accepted.noop) &&

@@ -3,10 +3,6 @@ import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, ListFilter, RefreshCw } from "lucide-react";
 import { knowledgeAdapter } from "@/shared/api/knowledge";
 import type { ListLibraryActivityResponse } from "@/shared/api/generated/types.gen";
-import {
-  withLocalErrorSurface,
-  localApiErrorMessage,
-} from "@/shared/api/local-error-surface";
 import { Button } from "@/shared/ui/button";
 import { Badge } from "@/shared/ui/badge";
 import {
@@ -84,19 +80,17 @@ export function KnowledgeLibraryActivity({ library }: { library: Library }) {
     initialPageParam: 0,
     queryFn: async ({ pageParam, signal }) =>
       (
-        await knowledgeAdapter(library.ref).listLibraryActivity(
-          withLocalErrorSurface({
-            path: { libraryId: library.id },
-            query: {
-              afterId: pageParam || undefined,
-              limit: 30,
-              action: action || undefined,
-              outcome: outcome || undefined,
-            },
-            signal,
-            throwOnError: true,
-          }),
-        )
+        await knowledgeAdapter(library.ref).listLibraryActivity({
+          path: { libraryId: library.id },
+          query: {
+            afterId: pageParam || undefined,
+            limit: 10,
+            action: action || undefined,
+            outcome: outcome || undefined,
+          },
+          signal,
+          throwOnError: true,
+        })
       ).data,
     getNextPageParam: (last) => last.nextCursor || undefined,
     staleTime: 0,
@@ -152,21 +146,6 @@ export function KnowledgeLibraryActivity({ library }: { library: Library }) {
         />
       </div>
       <p className="type-caption text-content-secondary">{t("activityHelp")}</p>
-      {query.error && (
-        <div role="alert" className="flex flex-wrap items-center gap-3">
-          <p className="type-body text-destructive">
-            {localApiErrorMessage(query.error, t("activityLoadFailed"))}
-          </p>
-          <Button
-            type="button"
-            size="sm"
-            variant="secondary"
-            onClick={() => void query.refetch()}
-          >
-            {t("retry")}
-          </Button>
-        </div>
-      )}
       <Table aria-label={t("activitySection")} className="min-w-xl table-fixed">
         <colgroup>
           <col className="w-28" />
@@ -304,7 +283,7 @@ export function KnowledgeLibraryActivity({ library }: { library: Library }) {
           type="button"
           variant="text"
           className="justify-self-center"
-          disabled={query.isFetchingNextPage}
+          disabled={query.isFetchingNextPage || query.isFetchNextPageError}
           onClick={() => void query.fetchNextPage()}
         >
           <ChevronDown aria-hidden="true" />

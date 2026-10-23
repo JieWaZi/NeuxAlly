@@ -1,7 +1,6 @@
 import { queryOptions } from "@tanstack/react-query";
 import { knowledgeAdapter } from "@/shared/api/knowledge";
 import type { GetLibraryExecutionDefaultsResponse } from "@/shared/api/generated/types.gen";
-import { withLocalErrorSurface } from "@/shared/api/local-error-surface";
 import type { ExecutionSelection } from "@/shared/hooks/use-execution-selection";
 import type { ResourceRef } from "./knowledge-transfer";
 import { knowledgeKeys } from "./knowledge-queries";
@@ -11,13 +10,11 @@ export function libraryExecutionDefaultsOptions(ref: ResourceRef) {
     queryKey: [...knowledgeKeys.resource(ref), "execution-defaults"],
     queryFn: async ({ signal }) =>
       (
-        await knowledgeAdapter(ref).getLibraryExecutionDefaults(
-          withLocalErrorSurface({
-            path: { libraryId: ref.knowledgeBaseId },
-            signal,
-            throwOnError: true,
-          }),
-        )
+        await knowledgeAdapter(ref).getLibraryExecutionDefaults({
+          path: { libraryId: ref.knowledgeBaseId },
+          signal,
+          throwOnError: true,
+        })
       ).data,
     staleTime: 0,
   });

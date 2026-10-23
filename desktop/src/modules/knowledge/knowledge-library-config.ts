@@ -50,7 +50,10 @@ export function readLibraryChunkingConfig(
     chunk_size: cfg?.chunk_size ?? base.chunk_size,
     chunk_overlap: cfg?.chunk_overlap ?? base.chunk_overlap,
     separators: cfg?.separators ?? base.separators,
-    enable_parent_child: cfg?.enable_parent_child ?? base.enable_parent_child,
+    // Go 的 omitempty 会省略 false；已有配置中缺失该字段表示关闭。
+    enable_parent_child: cfg
+      ? (cfg.enable_parent_child ?? false)
+      : base.enable_parent_child,
     parent_chunk_size: cfg?.parent_chunk_size ?? base.parent_chunk_size,
     child_chunk_size: cfg?.child_chunk_size ?? base.child_chunk_size,
     strategy:

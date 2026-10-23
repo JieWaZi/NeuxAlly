@@ -1,7 +1,6 @@
 import { queryOptions } from "@tanstack/react-query";
 import { knowledgeAdapter } from "@/shared/api/knowledge";
 import type { GetLibraryEmbeddingProfileResponse } from "@/shared/api/generated/types.gen";
-import { withLocalErrorSurface } from "@/shared/api/local-error-surface";
 import { knowledgeKeys } from "./knowledge-queries";
 import type { ResourceRef } from "./knowledge-transfer";
 
@@ -26,13 +25,11 @@ export function libraryEmbeddingProfileOptions(ref: ResourceRef) {
     queryKey: [...knowledgeKeys.resource(ref), "embedding-profile"],
     queryFn: async ({ signal }) =>
       (
-        await knowledgeAdapter(ref).getLibraryEmbeddingProfile(
-          withLocalErrorSurface({
-            path: { libraryId: ref.knowledgeBaseId },
-            signal,
-            throwOnError: true,
-          }),
-        )
+        await knowledgeAdapter(ref).getLibraryEmbeddingProfile({
+          path: { libraryId: ref.knowledgeBaseId },
+          signal,
+          throwOnError: true,
+        })
       ).data,
     staleTime: 0,
   });

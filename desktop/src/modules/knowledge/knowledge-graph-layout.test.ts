@@ -1,17 +1,21 @@
 // 来源：Tencent/WeKnora，固定提交 8776a2d92d11ad3e76865d51cf3192e37e2a9976。
 // Copyright (C) 2026 Tencent. All rights reserved. MIT 许可与迁入边界见根目录 THIRD_PARTY_NOTICES.md。
 import assert from "node:assert/strict";
+import { forceSimulation } from "d3-force";
+import {
+  buildForceGraphData,
+  type ForceGraphNode,
+} from "./knowledge-force-data";
+import { graphForces } from "./knowledge-force-engine";
 import { test } from "vitest";
 import {
   selectGraphAnchors,
   buildGraphLayout,
   graphNodeRadius,
-  stepGraphLayout,
   visibleGraphLabels,
   initialGraphViewport,
   graphPointBounds,
   graphClusterOutline,
-  type ForceNode,
   type GraphLink,
   type LayoutInput,
 } from "./knowledge-graph-layout";
@@ -27,17 +31,38 @@ function simulate(
   >(),
 ) {
   const layout = buildGraphLayout(inputs, edges, 1200, 800, prior);
-  const nodes: ForceNode[] = inputs.map((n) => ({
-    slug: n.slug,
-    linkCount: n.link_count,
-    ...requiredTestValue(layout.placements.get(n.slug)),
-    vx: 0,
-    vy: 0,
-    pinned: false,
-  }));
-  const retained = new Set(prior.keys());
-  for (let alpha = 1; alpha >= 0.02; alpha *= 0.985)
-    stepGraphLayout(nodes, edges, layout.placements, alpha, retained);
+  const data = buildForceGraphData(
+    {
+      nodes: inputs.map((node) => ({
+        ...node,
+        title: node.title ?? node.slug,
+        page_type: node.page_type ?? "concept",
+      })),
+      edges,
+      meta: {
+        mode: "overview",
+        total: inputs.length,
+        returned: inputs.length,
+        truncated: false,
+      },
+    },
+    1200,
+    800,
+  );
+  const nodes = data.nodes;
+  for (const node of nodes) {
+    const point = layout.placements.get(node.slug);
+    if (point) {
+      node.x = point.x;
+      node.y = point.y;
+      node.center = point.center;
+    }
+    if (prior.has(node.slug)) {
+      node.fx = node.x;
+      node.fy = node.y;
+    }
+  }
+  settle(data);
   return { nodes, layout };
 }
 test("disconnected groups stay apart and isolated pages distinguish missing visible links", () => {
@@ -167,7 +192,7 @@ test("500 and 1500 node graphs settle with finite positions and node clearance",
           b = requiredTestValue(nodes[j]);
         assert.ok(
           Math.hypot(a.x - b.x, a.y - b.y) >=
-            graphNodeRadius(a.linkCount) + graphNodeRadius(b.linkCount) + 15,
+            graphNodeRadius(a.link_count) + graphNodeRadius(b.link_count) + 15,
           `${count}: ${a.slug} overlaps ${b.slug}`,
         );
       }
@@ -208,7 +233,7 @@ test("a large hub with 1499 neighbors settles with node clearance", () => {
         b = requiredTestValue(nodes[j]);
       assert.ok(
         Math.hypot(a.x - b.x, a.y - b.y) >=
-          graphNodeRadius(a.linkCount) + graphNodeRadius(b.linkCount) + 14,
+          graphNodeRadius(a.link_count) + graphNodeRadius(b.link_count) + 14,
         `${a.slug} overlaps ${b.slug}`,
       );
     }
@@ -218,23 +243,33 @@ test("collision separates coincident nodes while respecting a dragged pin", () =
     { slug: "a", link_count: 10 },
     { slug: "b", link_count: 10 },
   ];
-  const layout = buildGraphLayout(
-    inputs,
-    [{ source: "a", target: "b" }],
+  const data = buildForceGraphData(
+    {
+      nodes: inputs.map((node) => ({
+        ...node,
+        title: node.slug,
+        page_type: "concept",
+      })),
+      edges: [],
+      meta: { mode: "ego", total: 2, returned: 2, truncated: false },
+    },
     800,
     600,
   );
-  const nodes: ForceNode[] = inputs.map((n) => ({
-    slug: n.slug,
-    linkCount: n.link_count,
-    x: 400,
-    y: 300,
-    vx: 0,
-    vy: 0,
-    pinned: n.slug === "a",
-  }));
-  for (let i = 0; i < 10; i++)
-    stepGraphLayout(nodes, [], layout.placements, 0.02);
+  const nodes = data.nodes;
+  for (const node of nodes) {
+    node.x = 400;
+    node.y = 300;
+    node.stationary = false;
+    delete node.fx;
+    delete node.fy;
+  }
+  const first = nodes[0];
+  if (first) {
+    first.fx = 400;
+    first.fy = 300;
+  }
+  settle(data);
   assert.equal(requiredTestValue(nodes[0]).x, 400);
   assert.equal(requiredTestValue(nodes[0]).y, 300);
   assert.ok(
@@ -655,4 +690,14 @@ test("entity preference breaks a close ranking without displacing a substantiall
 function requiredTestValue<T>(value: T | undefined | null): T {
   assert.ok(value !== undefined && value !== null);
   return value;
+}
+
+function settle(data: ReturnType<typeof buildForceGraphData>) {
+  const simulation = forceSimulation<ForceGraphNode>(data.nodes)
+    .alphaMin(0.02)
+    .alphaDecay(0.02)
+    .stop();
+  for (const [name, force] of Object.entries(graphForces(data)))
+    simulation.force(name, force);
+  for (let i = 0; i < 260; i++) simulation.tick();
 }

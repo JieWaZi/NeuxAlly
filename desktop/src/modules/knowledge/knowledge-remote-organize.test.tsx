@@ -26,6 +26,89 @@ beforeAll(() => {
 });
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
+it("统一远端整理由服务器解析配置，不要求客户端 profile", async () => {
+  const user = userEvent.setup();
+  const accepted = vi.fn();
+  const bodies: unknown[] = [];
+  server.use(
+    http.get(`${root}/capabilities`, () =>
+      HttpResponse.json({
+        uploadMode: "separate",
+        connectionRevision: 2,
+        operations: { rebuild: true },
+        details: {
+          rebuild: {
+            supported: true,
+            permission: "allowed",
+            condition: "ready",
+          },
+        },
+        profiles: [],
+      }),
+    ),
+    http.post(`${root}/organize`, async ({ request }) => {
+      bodies.push(await request.json());
+      return HttpResponse.json({ jobId: "job-a", state: "accepted" });
+    }),
+  );
+  const resource = { ...ref, backend: "integration" };
+  function Subject() {
+    const operation = useKnowledgeWrites(resource).organize;
+    return (
+      <KnowledgeOrganizeDialog
+        library={{
+          ...emptyLibrary("kb", "远端库", "general"),
+          ref: resource,
+          storage: "remote",
+          revision: 2,
+          structureVersion: 3,
+          sources: [
+            {
+              id: "source-a",
+              sourceId: "source",
+              name: "原件.md",
+              state: "processed",
+              diagnostic: "",
+              size: "",
+              date: "",
+            },
+          ],
+        }}
+        batch={["source-a"]}
+        rebuild
+        operation={operation}
+        onAccepted={accepted}
+        onClose={() => {}}
+      />
+    );
+  }
+  render(
+    <QueryClientProvider
+      client={
+        new QueryClient({ defaultOptions: { queries: { retry: false } } })
+      }
+    >
+      <TooltipProvider>
+        <Subject />
+      </TooltipProvider>
+    </QueryClientProvider>,
+  );
+  await vi.dynamicImportSettled();
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "开始整理" })).toBeEnabled(),
+  );
+  expect(
+    screen.queryByRole("combobox", { name: "服务器执行配置" }),
+  ).not.toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "开始整理" }));
+  await waitFor(() => expect(accepted).toHaveBeenCalledOnce());
+  expect(bodies[0]).not.toHaveProperty("profileId");
+  expect(bodies[0]).toMatchObject({
+    sourceVersionIds: ["source-a"],
+    expectedVersion: 2,
+    structureVersion: 3,
+  });
+});
 it("远端重建使用服务端配置、冻结来源和用户要求，不读取本机Runtime配置", async () => {
   const user = userEvent.setup();
   const accepted = vi.fn();
@@ -103,6 +186,7 @@ it("远端重建使用服务端配置、冻结来源和用户要求，不读取�
       </TooltipProvider>
     </QueryClientProvider>,
   );
+  await vi.dynamicImportSettled();
   expect(
     await screen.findByRole(
       "combobox",
@@ -201,10 +285,12 @@ it("未知接纳关闭重开后即使能力读取失败仍可核对原冻结命�
     </QueryClientProvider>
   );
   const rendered = render(view(true));
+  await vi.dynamicImportSettled();
   const start = await screen.findByRole("button", { name: "开始整理" });
   await waitFor(() => expect(start).toBeEnabled());
   await user.click(start);
-  await waitFor(() => expect(screen.getByRole("alert")).toBeVisible());
+  await waitFor(() => expect(start).toBeEnabled());
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   expect(bodies).toHaveLength(1);
   unavailable = true;
   rendered.rerender(view(false));
@@ -294,6 +380,7 @@ it("远端接纳中关闭重开不会提前确认成功或重复发送", async (
     </QueryClientProvider>
   );
   const rendered = render(view(true));
+  await vi.dynamicImportSettled();
   try {
     const start = await screen.findByRole("button", { name: "开始整理" });
     await waitFor(() => expect(start).toBeEnabled());

@@ -2,10 +2,6 @@ import { useMutation } from "@tanstack/react-query";
 import { CheckCircle2 } from "lucide-react";
 import { knowledgeAdapter } from "@/shared/api/knowledge";
 import type { ResourceRef } from "./knowledge-transfer";
-import {
-  localApiErrorMessage,
-  withLocalErrorSurface,
-} from "@/shared/api/local-error-surface";
 import { Input } from "@/shared/ui/input";
 import { Button } from "@/shared/ui/button";
 import { Field } from "./knowledge-controls";
@@ -40,17 +36,15 @@ export function KnowledgeEmbeddingFields({
             connectionId: "local",
             knowledgeBaseId: libraryId ?? "",
           },
-        ).testLibraryEmbedding(
-          withLocalErrorSurface({
-            body: {
-              libraryId,
-              baseUrl: value.baseUrl.trim(),
-              model: value.model.trim(),
-              apiKey: value.apiKey || undefined,
-            },
-            throwOnError: true,
-          }),
-        )
+        ).testLibraryEmbedding({
+          body: {
+            libraryId,
+            baseUrl: value.baseUrl.trim(),
+            model: value.model.trim(),
+            apiKey: value.apiKey || undefined,
+          },
+          throwOnError: true,
+        })
       ).data,
     retry: false,
   });
@@ -121,11 +115,6 @@ export function KnowledgeEmbeddingFields({
           )}
         </Button>
       </div>
-      {test.error && (
-        <p role="alert" className="type-body text-destructive">
-          {localApiErrorMessage(test.error, t("embeddingTestFailed"))}
-        </p>
-      )}
       {test.isSuccess && (
         <p role="status" className="type-caption text-success">
           {t("embeddingDimensions", { count: test.data.dimensions ?? 0 })}

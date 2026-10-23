@@ -48,6 +48,8 @@ export function KnowledgeLibraryCard({
     library.pageTotal === undefined
       ? t("wikiCountUnknown")
       : t("pageCount", { count: library.pageTotal });
+  const canRemove =
+    canDelete && (library.storage === "local" || Boolean(library.mountId));
   const StorageIcon = library.storage === "remote" ? Cloud : HardDrive;
   const moreActions = t("libraryMoreActions", { name: library.name });
   return (
@@ -57,8 +59,9 @@ export function KnowledgeLibraryCard({
           <button
             type="button"
             aria-label={library.name}
+            disabled={library.offline}
             onClick={() => open(library)}
-            className="hover:bg-surface-subtle focus-visible:ring-ring duration-quick grid min-h-32 w-full min-w-0 grid-cols-[40px_minmax(0,1fr)] items-start gap-4 p-5 text-left transition-colors outline-none focus-visible:ring-2 focus-visible:ring-inset motion-reduce:transition-none"
+            className="hover:bg-surface-subtle focus-visible:ring-ring duration-quick grid min-h-32 w-full min-w-0 grid-cols-[40px_minmax(0,1fr)] items-start gap-4 p-5 text-left transition-colors outline-none focus-visible:ring-2 focus-visible:ring-inset disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none"
           >
             <BookOpen
               className="text-muted-foreground size-icon-lg"
@@ -77,6 +80,11 @@ export function KnowledgeLibraryCard({
                   <StorageIcon aria-hidden="true" />
                   {t(library.storage)}
                 </Badge>
+                {library.storage === "remote" && (
+                  <Badge variant={library.offline ? "destructive" : "success"}>
+                    {t(library.offline ? "offline" : "online")}
+                  </Badge>
+                )}
               </div>
               {library.description ? (
                 <p className="text-muted-foreground type-body mt-2 line-clamp-3 wrap-anywhere">
@@ -122,11 +130,11 @@ export function KnowledgeLibraryCard({
               <DropdownMenuContent align="end">
                 <DropdownMenuItem
                   className="text-destructive data-[highlighted]:text-destructive"
-                  disabled={!canDelete || !onDelete}
+                  disabled={!canRemove || !onDelete}
                   onSelect={() => onDelete?.(library)}
                 >
                   <Trash2 aria-hidden="true" />
-                  {t("deleteLibrary")}
+                  {t(library.mountId ? "removeRemoteMount" : "deleteLibrary")}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

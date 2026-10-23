@@ -3,11 +3,35 @@ import { describe, expect, it } from "vitest";
 import { buildCreateLibraryBody } from "./knowledge-library-write-body";
 import {
   readLibraryIndexingStrategy,
+  readLibraryChunkingConfig,
   readLibraryWikiSettings,
 } from "./knowledge-library-config";
 import type { GithubComJieWaZiNeuxAllyServerApisKnowledgeLibrary as LibraryDTO } from "@/shared/api/generated/types.gen";
 
 describe("knowledge-library-config", () => {
+  it("回读分块配置时将服务端省略的父子分块布尔值还原为关闭", () => {
+    const dto: LibraryDTO = {
+      chunkingConfig: { chunk_size: 2048, chunk_overlap: 0 },
+    };
+    expect(readLibraryChunkingConfig(dto)).toMatchObject({
+      chunk_size: 2048,
+      chunk_overlap: 0,
+      enable_parent_child: false,
+    });
+    for (const enabled of [true, false]) {
+      expect(
+        readLibraryChunkingConfig({
+          ...dto,
+          chunkingConfig: {
+            ...dto.chunkingConfig,
+            enable_parent_child: enabled,
+          },
+        }).enable_parent_child,
+      ).toBe(enabled);
+    }
+    expect(readLibraryChunkingConfig({}).enable_parent_child).toBe(true);
+  });
+
   it("reads nested wikiConfig and indexingStrategy from library DTO", () => {
     const dto = {
       id: "lib",

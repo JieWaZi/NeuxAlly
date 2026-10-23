@@ -6,10 +6,8 @@ import {
   queryOptions,
 } from "@tanstack/react-query";
 import { knowledgeAdapter } from "@/shared/api/knowledge";
-import {
-  withLocalErrorSurface,
-  localApiErrorMessage,
-} from "@/shared/api/local-error-surface";
+import { hasKnowledgeCapability } from "@/shared/api/knowledge/knowledge-adapter-types";
+import { withLocalErrorSurface } from "@/shared/api/local-error-surface";
 import { ApiError } from "@/shared/api/errors";
 import { Dialog, DialogContent, DialogFooter } from "@/shared/ui/dialog";
 import { Button } from "@/shared/ui/button";
@@ -25,29 +23,26 @@ export async function continueSourceCleanup(library: Library, purgeId: string) {
   const path = { libraryId: library.id, purgeId };
   const read = async () =>
     (
-      await knowledgeAdapter(library.ref).getSourcePurge(
-        withLocalErrorSurface({ path, throwOnError: true }),
-      )
+      await knowledgeAdapter(library.ref).getSourcePurge({
+        path,
+        throwOnError: true,
+      })
     ).data;
   const status = await read();
   if (status.state === "completed") return true;
   const currentPolicy =
     (
-      await knowledgeAdapter(library.ref).getLibrary(
-        withLocalErrorSurface({
-          path: { libraryId: library.id },
-          throwOnError: true,
-        }),
-      )
+      await knowledgeAdapter(library.ref).getLibrary({
+        path: { libraryId: library.id },
+        throwOnError: true,
+      })
     ).data.policyVersion || library.policyVersion;
   const requestId = `r:${purgeId}:${(status.version || 0).toString(36)}:${currentPolicy.toString(36)}`;
-  await knowledgeAdapter(library.ref).recoverSourcePurge(
-    withLocalErrorSurface({
-      path,
-      body: { requestId, expectedPolicyVersion: currentPolicy },
-      throwOnError: true,
-    }),
-  );
+  await knowledgeAdapter(library.ref).recoverSourcePurge({
+    path,
+    body: { requestId, expectedPolicyVersion: currentPolicy },
+    throwOnError: true,
+  });
   return (await read()).state === "completed";
 }
 function pendingCleanupOptions(library: Library) {
@@ -94,9 +89,21 @@ export function KnowledgePendingSourceCleanups({
   const t = useDocumentCopy();
   const client = useQueryClient();
   const active = useRouteSceneActive();
+  const adapter = knowledgeAdapter(library.ref);
+  const capabilities = useQuery({
+    queryKey: knowledgeKeys.capabilities(library.ref),
+    queryFn: ({ signal }) => adapter.getCapabilities(signal),
+    enabled: active && adapter.supportsServiceDetection,
+    refetchOnMount: false,
+  });
+  // 统一连接可能指向官方服务；仅在清理能力、授权与当前条件均可用时读取附属清单。
+  const supported =
+    adapter.supportsSourceCleanup &&
+    (!adapter.supportsServiceDetection ||
+      hasKnowledgeCapability(capabilities.data, "sourcePurge"));
   const pending = useQuery({
     ...pendingCleanupOptions(library),
-    enabled: active && knowledgeAdapter(library.ref).supportsSourceCleanup,
+    enabled: active && supported,
   });
   const [selected, setSelected] = useState<string>();
   const recovery = useMutation({
@@ -111,6 +118,7 @@ export function KnowledgePendingSourceCleanups({
     },
     retry: false,
   });
+  if (!supported) return null;
   return (
     <>
       <KnowledgeReadFeedback
@@ -155,11 +163,6 @@ export function KnowledgePendingSourceCleanups({
           }}
         >
           <DialogContent title={t("resumeTitle")} description={t("resumeHelp")}>
-            {recovery.error && (
-              <p role="alert" className="type-body text-destructive px-6 pb-5">
-                {localApiErrorMessage(recovery.error, t("deleteFailed"))}
-              </p>
-            )}
             <DialogFooter>
               <Button
                 variant="secondary"

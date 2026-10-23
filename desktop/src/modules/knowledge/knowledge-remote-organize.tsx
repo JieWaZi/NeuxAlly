@@ -1,12 +1,11 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { ApiError } from "@/shared/api/errors";
-import { localApiErrorMessage } from "@/shared/api/local-error-surface";
 import { Button } from "@/shared/ui/button";
 import { DialogFooter } from "@/shared/ui/dialog";
 import { Textarea } from "@/shared/ui/textarea";
-import { QueryState } from "@/shared/ui/query-state";
 import { SearchableMultiSelect } from "@/shared/ui/searchable-multi-select";
+import { hasKnowledgeCapability } from "@/shared/api/knowledge/knowledge-adapter-types";
 import { knowledgeAdapter } from "@/shared/api/knowledge";
 import { Choice, Field } from "./knowledge-controls";
 import { knowledgeKeys, organizableSourcesOptions } from "./knowledge-queries";
@@ -41,7 +40,7 @@ export function KnowledgeRemoteOrganize(props: KnowledgeOrganizeDialogProps) {
       (props.rebuild ? props.batch : undefined),
   );
   const capabilities = useQuery({
-    queryKey: [...knowledgeKeys.resource(props.library.ref), "capabilities"],
+    queryKey: knowledgeKeys.capabilities(props.library.ref),
     queryFn: ({ signal }) => adapter.getCapabilities(signal),
     staleTime: 0,
   });
@@ -50,6 +49,14 @@ export function KnowledgeRemoteOrganize(props: KnowledgeOrganizeDialogProps) {
     enabled: !props.rebuild,
   });
   const profiles = capabilities.data?.profiles ?? [];
+  const needsProfile = !capabilities.data?.uploadMode;
+  const independent =
+    capabilities.data?.uploadMode !== "automatic" &&
+    capabilities.data?.uploadMode !== "unknown";
+  const allowed = hasKnowledgeCapability(
+    capabilities.data,
+    props.rebuild ? "rebuild" : "organize",
+  );
   const selectedProfile = profile || profiles[0]?.id || "";
   const available = props.rebuild
     ? props.library.sources
@@ -58,7 +65,7 @@ export function KnowledgeRemoteOrganize(props: KnowledgeOrganizeDialogProps) {
   const start = useMutation({
     mutationFn: async () => {
       const command = intent.get().remoteCommand ?? {
-        profileId: selectedProfile,
+        ...(needsProfile ? { profileId: selectedProfile } : {}),
         sourceVersionIds: [...selected],
         instruction: requirements.trim(),
         expectedVersion: props.library.revision,
@@ -101,40 +108,44 @@ export function KnowledgeRemoteOrganize(props: KnowledgeOrganizeDialogProps) {
   return (
     <>
       <div className="grid gap-4 px-6 pb-5">
-        {error ? (
-          <QueryState
-            error={error}
-            onRetry={() => {
-              void capabilities.refetch();
-              if (!props.rebuild) void sources.refetch();
-            }}
-          />
-        ) : capabilities.isPending || (!props.rebuild && sources.isPending) ? (
+        {error ? null : capabilities.isPending ||
+          (!props.rebuild && sources.isPending) ? (
           <KnowledgeWikiContentLoading />
         ) : (
           <>
-            <Field label={t("remoteProfile")} hint={t("remoteProfileHelp")}>
-              {profiles.length ? (
-                <Choice
-                  label={t("remoteProfile")}
-                  value={selectedProfile}
-                  options={profiles.flatMap((entry) =>
-                    entry.id
-                      ? [{ value: entry.id, label: entry.name || entry.id }]
-                      : [],
-                  )}
-                  onChange={(profileId) => {
-                    setProfile(profileId);
-                    saveOrganizePreferences(props.library.ref, { profileId });
-                  }}
-                  disabled={frozen || start.isPending}
-                />
-              ) : (
-                <p role="alert" className="type-body text-destructive">
-                  {t("remoteProfileEmpty")}
-                </p>
-              )}
-            </Field>
+            {needsProfile && (
+              <Field label={t("remoteProfile")} hint={t("remoteProfileHelp")}>
+                {profiles.length ? (
+                  <Choice
+                    label={t("remoteProfile")}
+                    value={selectedProfile}
+                    options={profiles.flatMap((entry) =>
+                      entry.id
+                        ? [{ value: entry.id, label: entry.name || entry.id }]
+                        : [],
+                    )}
+                    onChange={(profileId) => {
+                      setProfile(profileId);
+                      saveOrganizePreferences(props.library.ref, { profileId });
+                    }}
+                    disabled={frozen || start.isPending}
+                  />
+                ) : (
+                  <p role="status" className="type-body text-content-secondary">
+                    {t("remoteProfileEmpty")}
+                  </p>
+                )}
+              </Field>
+            )}
+            {!independent && (
+              <p role="status" className="type-body text-content-secondary">
+                {t(
+                  capabilities.data?.uploadMode === "automatic"
+                    ? "remoteAutomaticOrganize"
+                    : "remoteDetectionUnknown",
+                )}
+              </p>
+            )}
             {!props.rebuild && (
               <Field label={t("organizeFiles")} hint={t("organizeFilesHelp")}>
                 <SearchableMultiSelect
@@ -176,11 +187,6 @@ export function KnowledgeRemoteOrganize(props: KnowledgeOrganizeDialogProps) {
             </Field>
           </>
         )}
-        {start.error && (
-          <p role="alert" className="type-body text-destructive">
-            {localApiErrorMessage(start.error, t("knowledgeOperationFailed"))}
-          </p>
-        )}
       </div>
       <DialogFooter>
         <Button variant="ghost" onClick={props.onClose}>
@@ -191,7 +197,11 @@ export function KnowledgeRemoteOrganize(props: KnowledgeOrganizeDialogProps) {
             start.isPending ||
             props.operation.pending ||
             (!frozen &&
-              (Boolean(error) || !selectedProfile || !selected.length))
+              (Boolean(error) ||
+                !independent ||
+                !allowed ||
+                (needsProfile && !selectedProfile) ||
+                !selected.length))
           }
           onClick={() => start.mutate()}
         >

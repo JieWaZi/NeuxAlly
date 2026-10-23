@@ -1,10 +1,6 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { knowledgeAdapter } from "@/shared/api/knowledge";
-import {
-  localApiErrorMessage,
-  withLocalErrorSurface,
-} from "@/shared/api/local-error-surface";
 import { Button } from "@/shared/ui/button";
 import { Dialog, DialogContent, DialogFooter } from "@/shared/ui/dialog";
 import { knowledgeKeys } from "./knowledge-queries";
@@ -12,6 +8,7 @@ import type { ResourceRef } from "./knowledge-transfer";
 import type { WikiPage } from "./knowledge-wiki-queries";
 import type { KnowledgeWikiCommands } from "./knowledge-wiki-command";
 import { isKnowledgeWriteOutcomeUnknown } from "./knowledge-write-outcome";
+import { reportKnowledgeError } from "./knowledge-error-notice";
 import { useWikiCopy } from "./use-wiki-copy";
 
 export function KnowledgeWikiDelete({
@@ -40,25 +37,21 @@ export function KnowledgeWikiDelete({
   );
   const [version] = useState(retained?.structureVersion ?? structureVersion);
   const [pending, setPending] = useState(false);
-  const [error, setError] = useState("");
   async function remove() {
     if (pending || !page.id || !page.version || !version) return;
     setPending(true);
-    setError("");
     try {
       // 沿用现有归档协议移除页面，保留完整正文、证据和历史版本。
-      await knowledgeAdapter(resource).writePage(
-        withLocalErrorSurface({
-          path: { libraryId: resource.knowledgeBaseId, pageId: page.id },
-          body: {
-            requestId,
-            expectedVersion: snapshot.version,
-            structureVersion: version,
-            page: { ...snapshot, status: "archived" },
-          },
-          throwOnError: true,
-        }),
-      );
+      await knowledgeAdapter(resource).writePage({
+        path: { libraryId: resource.knowledgeBaseId, pageId: page.id },
+        body: {
+          requestId,
+          expectedVersion: snapshot.version,
+          structureVersion: version,
+          page: { ...snapshot, status: "archived" },
+        },
+        throwOnError: true,
+      });
       commands.delete(commandKey);
       onDeleted();
       await Promise.all([
@@ -76,7 +69,11 @@ export function KnowledgeWikiDelete({
           page: snapshot,
         });
       else commands.delete(commandKey);
-      setError(localApiErrorMessage(cause, t("deleteFailed")));
+      reportKnowledgeError(
+        cause,
+        `delete-wiki-page:${commandKey}`,
+        t("deleteFailed"),
+      );
     } finally {
       setPending(false);
     }
@@ -93,11 +90,6 @@ export function KnowledgeWikiDelete({
         description={t("deleteHelp", { title: page.title ?? "" })}
         size="sm"
       >
-        {error && (
-          <p role="alert" className="type-body text-destructive px-6 pb-5">
-            {error}
-          </p>
-        )}
         <DialogFooter>
           <Button variant="secondary" disabled={pending} onClick={onClose}>
             {t("cancel")}

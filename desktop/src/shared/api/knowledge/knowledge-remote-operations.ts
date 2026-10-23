@@ -18,9 +18,10 @@ function record(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-/** 旧服务器没有 details 时保持不可判定，不能从汇总 false 猜测权限。 */
+/** 逐操作授权缺少明细时保持不可判定，不能从汇总布尔值猜测权限。 */
 function normalizeCapabilities(
   data: GetRemoteCapabilitiesResponse,
+  ref: ResourceRef,
 ): KnowledgeCapabilities {
   const details: KnowledgeCapabilities["details"] = {};
   const source = "details" in data ? data.details : undefined;
@@ -43,12 +44,43 @@ function normalizeCapabilities(
     settings: "write",
     graph: "read",
   })) {
-    if (details[original]) {
+    if (
+      ref.backend !== "integration" &&
+      !data.uploadMode &&
+      details[original]
+    ) {
       details[key] = details[original];
       operations[key] = Boolean(operations[original]);
     }
   }
-  return { operations, details, profiles: data.profiles ?? [] };
+  return {
+    operations,
+    details,
+    profiles: data.profiles ?? [],
+    ...("serviceKind" in data && typeof data.serviceKind === "string"
+      ? { serviceKind: data.serviceKind }
+      : {}),
+    ...("serviceVersion" in data && typeof data.serviceVersion === "string"
+      ? { serviceVersion: data.serviceVersion }
+      : {}),
+    ...("uploadMode" in data &&
+    (data.uploadMode === "separate" ||
+      data.uploadMode === "automatic" ||
+      data.uploadMode === "unknown")
+      ? { uploadMode: data.uploadMode }
+      : {}),
+    ...("connectionRevision" in data &&
+    typeof data.connectionRevision === "number"
+      ? { connectionRevision: data.connectionRevision }
+      : {}),
+    ...("evidence" in data &&
+    Array.isArray(data.evidence) &&
+    data.evidence.every(
+      (item: unknown): item is string => typeof item === "string",
+    )
+      ? { evidence: data.evidence }
+      : {}),
+  };
 }
 
 /** 远端能力与持久回执校验按实际操作加载，不进入本地页面启动链。 */
@@ -60,7 +92,7 @@ export async function getRemoteKnowledgeCapabilities(
   const { data } = await api.getRemoteCapabilities<true>(
     scopedKnowledgeOptions(ref, { path: {}, signal }),
   );
-  return normalizeCapabilities(data);
+  return normalizeCapabilities(data, ref);
 }
 
 /** 新请求必须取得真实能力；原持久操作只允许继续同一请求的回执对账。 */

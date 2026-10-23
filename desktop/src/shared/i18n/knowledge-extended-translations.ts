@@ -7,9 +7,8 @@ export const knowledgeExtendedZh = {
   libraryDeletionStatusHelp:
     "正在核对「{{name}}」及全部原始资料的永久清理结果。仅在清理完成后确认删除成功。",
   deleteLibraryHelp:
-    "将永久删除「{{name}}」及其全部 Wiki、历史记录和原始资料，此操作无法恢复。",
+    "将先停止「{{name}}」正在进行和排队中的整理任务，再永久删除知识库及其全部 Wiki、历史记录和原始资料，此操作无法恢复。",
   deleteLibraryFailed: "知识库删除失败，请重试。",
-  creationLocationHelp: "选择保存知识内容的本地位置或已配置的远端连接。",
   remoteProfile: "服务器执行配置",
   remoteProfileHelp: "使用远端服务器提供的执行配置整理资料。",
   remoteProfileEmpty: "远端未提供可用的执行配置。",
@@ -218,10 +217,8 @@ export const knowledgeExtendedEn: Record<
   libraryDeletionStatusHelp:
     "Checking permanent removal of {{name}} and all original source files. Deletion is confirmed only after cleanup completes.",
   deleteLibraryHelp:
-    "Permanently delete {{name}}, including all Wiki pages, history and original source files. This cannot be undone.",
+    "Stop all running and queued organization tasks for {{name}}, then permanently delete the knowledge base, all Wiki pages, history and original source files. This cannot be undone.",
   deleteLibraryFailed: "Could not delete the knowledge base. Try again.",
-  creationLocationHelp:
-    "Choose local storage or a configured remote connection for this knowledge base.",
   remoteProfile: "Server execution profile",
   remoteProfileHelp:
     "Organize with an execution profile provided by the remote server.",

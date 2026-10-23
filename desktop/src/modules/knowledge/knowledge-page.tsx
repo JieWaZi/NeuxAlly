@@ -1,20 +1,23 @@
+import {
+  canUploadKnowledge,
+  hasKnowledgeCapability,
+} from "@/shared/api/knowledge/knowledge-adapter-types";
 import { KnowledgeLibrarySettings } from "./knowledge-library-settings";
 import { CreateLibrary } from "./knowledge-library-dialogs";
 import { lazy, Suspense, useEffect, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import type { KnowledgeWikiCommands } from "./knowledge-wiki-command";
-import { knowledgeAdapter } from "@/shared/api/knowledge";
 import {
-  localApiErrorMessage,
-  withLocalErrorSurface,
-} from "@/shared/api/local-error-surface";
+  knowledgeAdapter,
+  type KnowledgeUploadContext,
+} from "@/shared/api/knowledge";
 import { useQueryEvents } from "@/shared/api/use-query-events";
 import { useRouteSceneActive } from "@/shared/workspace/app-scene-workspace";
-import { DetailDockLayout } from "@/shared/ui/detail-dock-layout";
+import { PageHeader } from "@/shared/ui/page-header";
+import { Separator } from "@/shared/ui/separator";
 import { ResourcePageSurface } from "@/shared/ui/resource-page";
 import { Pagination } from "@/shared/ui/pagination";
-import { Button } from "@/shared/ui/button";
 import {
   createKnowledgeEditorController,
   type KnowledgeEditorController,
@@ -31,29 +34,43 @@ import {
   KnowledgeOrganizeDialog,
 } from "./knowledge-organize-dialog";
 import { KnowledgeLibraryActions } from "./knowledge-library-actions";
-import { KnowledgeDetailDock } from "./knowledge-detail-dock";
 import {
   KnowledgeGraphLoading,
+  KnowledgeDocumentsLoading,
   KnowledgeWikiLoading,
 } from "./knowledge-loading";
-import { RawView } from "./knowledge-raw-view";
+const RawView = lazy(() =>
+  import("./knowledge-raw-view").then((module) => ({
+    default: module.RawView,
+  })),
+);
+const KnowledgeDocumentReader = lazy(() =>
+  import("./knowledge-document-reader").then((module) => ({
+    default: module.KnowledgeDocumentReader,
+  })),
+);
 import { LibraryList } from "./knowledge-library";
 import type { createLibraryDeleter } from "./delete-library";
 import { useKnowledgeWrites } from "./knowledge-writes";
 import { useKnowledgeWorkspaceQueries } from "./knowledge-workspace-queries";
 import { knowledgeKeys, toLibrary, toSource } from "./knowledge-queries";
-import { KNOWLEDGE_SOURCE_PAGE_SIZE } from "@/shared/api/knowledge";
 import {
   readRoute,
-  isOrganizableSourceState,
+  isOrganizableSource,
   type Source,
   type Route,
   type KnowledgeReadState,
 } from "./knowledge-model";
 import { isKnowledgeJobBusy, resourceKey } from "./knowledge-transfer";
 import { useKnowledgeSourcePaginationLabels } from "./use-knowledge-source-pagination";
+import { reportKnowledgeError } from "./knowledge-error-notice";
 import { useCopy } from "./use-copy";
 
+const KnowledgeRemoteAddDialog = lazy(() =>
+  import("./knowledge-remote-add-dialog").then((module) => ({
+    default: module.KnowledgeRemoteAddDialog,
+  })),
+);
 const KnowledgeWikiView = lazy(() =>
   import("./knowledge-wiki-view").then((module) => ({
     default: module.KnowledgeWikiView,
@@ -110,9 +127,9 @@ export function KnowledgePage() {
     route.view =
       params.get("view") === "graph"
         ? "graph"
-        : params.get("view") === "wiki"
-          ? "wiki"
-          : "raw";
+        : params.get("view") === "raw"
+          ? "raw"
+          : "wiki";
   }
   const detail = route.view !== "library" && Boolean(route.libraryId);
   const ref = {
@@ -120,6 +137,7 @@ export function KnowledgePage() {
     connectionId: detail ? params.get("connection") || "local" : "local",
     knowledgeBaseId: route.libraryId,
   };
+  const adapter = knowledgeAdapter(ref);
   const identity = resourceKey(ref);
   const root = knowledgeKeys.resource(ref);
   const location =
@@ -129,48 +147,22 @@ export function KnowledgePage() {
         ? "remote"
         : "all";
   const listOffset = Math.max(0, Number(params.get("librariesOffset")) || 0);
-  const requestedSourcePageSize = Number(params.get("sourcesPageSize"));
-  const sourcePageSize = [10, 30, 50].includes(requestedSourcePageSize)
-    ? requestedSourcePageSize
-    : KNOWLEDGE_SOURCE_PAGE_SIZE;
-  const sourceOffset = Math.max(0, Number(params.get("sourcesOffset")) || 0);
-  const { libraries, libraryQuery, sources, jobs, activeJob } =
+  const librarySearch = params.get("search") ?? "";
+  const { libraries, libraryQuery, sources, jobs, activeJob, capabilities } =
     useKnowledgeWorkspaceQueries({
       ref,
       detail,
       documentsVisible: route.view === "raw",
       active,
       listOffset,
-      sourceOffset,
-      sourcePageSize,
+      librarySearch,
       sourceFilters: {
         query: route.sourceQuery,
-        state: route.sourceState,
-        sort: route.sourceSort,
+        state: "all",
+        sort: "newest",
       },
       location,
     });
-  useEffect(() => {
-    if (route.view !== "raw" || !sources.isSuccess || sourceOffset === 0)
-      return;
-    const total = sources.data?.total ?? 0;
-    const lastOffset = Math.max(
-      0,
-      (Math.ceil(total / sourcePageSize) - 1) * sourcePageSize,
-    );
-    if (sourceOffset <= lastOffset) return;
-    const query = new URLSearchParams(params);
-    query.set("sourcesOffset", String(lastOffset));
-    navigate(`?${query}`, { replace: true });
-  }, [
-    route.view,
-    sources.isSuccess,
-    sources.data?.total,
-    sourceOffset,
-    sourcePageSize,
-    params,
-    navigate,
-  ]);
   const library = libraryQuery.data
     ? {
         ...toLibrary(libraryQuery.data),
@@ -183,20 +175,25 @@ export function KnowledgePage() {
   const busy = Boolean(
     activeJob && isKnowledgeJobBusy(activeJob.state ?? "unknown"),
   );
-  const [selected, setSelected] = useState<{
+  const [openedSource, setOpenedSource] = useState<{
     scope: string;
-    sources: Source[];
+    source: Source;
   }>();
-  const selection = selected?.scope === identity ? selected.sources : [];
+  const selectedSource =
+    openedSource?.scope === identity ? openedSource.source : undefined;
   const rows = library?.sources ?? [];
-  const batch = (selection.length ? selection : rows)
-    .filter((source) => isOrganizableSourceState(source.state))
-    .map((source) => source.id);
+  const currentSource =
+    rows.find((entry) => entry.id === selectedSource?.id) ?? selectedSource;
+  const batch = rows.filter(isOrganizableSource).map((source) => source.id);
   const writes = useKnowledgeWrites(ref);
   const [modal, setModal] = useState<{
-    kind: "create" | "upload" | "organize" | "rebuild" | "settings";
+    kind:
+      "create" | "remote-add" | "upload" | "organize" | "rebuild" | "settings";
     scope: string;
     batch?: string[];
+    uploadContext?: KnowledgeUploadContext;
+    uploadLoading?: boolean;
+    uploadIntent?: string;
   }>();
   const [organizeIntents] = useState(
     () => new Map<string, KnowledgeOrganizeIntent>(),
@@ -237,8 +234,8 @@ export function KnowledgePage() {
     ].some((key) => params.has(key)) ||
     (params.has("view") &&
       ![
-        detail ? "raw" : "library",
-        ...(detail ? ["wiki", "graph"] : []),
+        detail ? "wiki" : "library",
+        ...(detail ? ["raw", "graph"] : []),
       ].includes(params.get("view") ?? ""));
   useEffect(() => {
     if (!legacy) return;
@@ -271,36 +268,56 @@ export function KnowledgePage() {
   function go(patch: Partial<Route>) {
     changeQuery(
       Object.fromEntries(
-        Object.entries({ ...patch, sourcesOffset: "0" }).filter(
+        Object.entries(patch).filter(
           (entry): entry is [string, string] => typeof entry[1] === "string",
         ),
       ),
     );
   }
-  const [actionError, setActionError] = useState<{
-    scope: string;
-    message: string;
-  }>();
   async function openAction(
     capability: string,
     callback: () => void | Promise<void>,
   ) {
-    setActionError(undefined);
     try {
       if (!knowledgeAdapter(ref).localConfiguration)
         await knowledgeAdapter(ref).assertCapability(capability);
       await callback();
     } catch (cause) {
-      setActionError({
-        scope: identity,
-        message: localApiErrorMessage(cause, t("knowledgeOperationFailed")),
-      });
+      reportKnowledgeError(
+        cause,
+        `open-action:${identity}:${capability}`,
+        t("knowledgeOperationFailed"),
+      );
     }
   }
-  function openUpload() {
+  async function openUpload() {
     if (!uploadQueues.has(identity))
       uploadQueues.set(identity, createKnowledgeUploadQueue());
-    setModal({ kind: "upload", scope: identity });
+    const uploadIntent = crypto.randomUUID();
+    setModal({
+      kind: "upload",
+      scope: identity,
+      uploadLoading: !adapter.localConfiguration,
+      uploadIntent,
+    });
+    if (adapter.localConfiguration) return;
+    try {
+      const uploadContext = await adapter.getUploadContext();
+      setModal((current) =>
+        current?.uploadIntent === uploadIntent
+          ? { ...current, uploadContext, uploadLoading: false }
+          : current,
+      );
+    } catch (uploadError) {
+      reportKnowledgeError(
+        uploadError,
+        `open-upload:${identity}`,
+        t("knowledgeOperationFailed"),
+      );
+      setModal((current) =>
+        current?.uploadIntent === uploadIntent ? undefined : current,
+      );
+    }
   }
   const retainedOrganize = organizeIntents.get(identity)?.get();
   const recoveringOrganize = Boolean(
@@ -311,11 +328,33 @@ export function KnowledgePage() {
       organizeIntents.set(identity, createKnowledgeOrganizeIntent());
     setModal({ kind: "organize", scope: identity, batch: [...batch] });
   }
+  function changeView(view: "raw" | "wiki" | "graph", tab?: string) {
+    const query = new URLSearchParams(params);
+    query.set("view", view);
+    if (view !== "wiki" || (tab && tab !== params.get("wikiTab")))
+      query.delete("page");
+    if (tab) query.set("wikiTab", tab);
+    navigate(`?${query}`);
+  }
   const libraryActions = (
     <KnowledgeLibraryActions
       library={library}
-      busy={busy}
-      onUpload={() => void openAction("rawOnly", openUpload)}
+      onGraph={() => changeView(route.view === "graph" ? "wiki" : "graph")}
+      graphActive={route.view === "graph"}
+      graphDisabled={
+        route.view !== "graph" &&
+        adapter.supportsServiceDetection &&
+        !hasKnowledgeCapability(capabilities.data, "graph")
+      }
+      uploadDisabled={
+        adapter.supportsServiceDetection &&
+        !canUploadKnowledge(capabilities.data)
+      }
+      settingsDisabled={
+        adapter.supportsServiceDetection &&
+        !hasKnowledgeCapability(capabilities.data, "settings")
+      }
+      onUpload={() => void openUpload()}
       onSettings={() =>
         void openAction("settings", () =>
           setModal({ kind: "settings", scope: identity }),
@@ -324,7 +363,10 @@ export function KnowledgePage() {
       organizeDisabled={
         !library ||
         (!recoveringOrganize &&
-          (busy || jobs.isLoading || Boolean(jobs.error) || sources.isFetching))
+          adapter.supportsServiceDetection &&
+          !hasKnowledgeCapability(capabilities.data, "organize")) ||
+        (!recoveringOrganize &&
+          (jobs.isLoading || Boolean(jobs.error) || sources.isPending))
       }
       onOrganize={() => {
         // 原冻结请求通过 Adapter 对账；当前能力和任务状态只约束新接纳。
@@ -335,51 +377,7 @@ export function KnowledgePage() {
   );
   const documents = (
     <>
-      {actionError?.scope === identity && (
-        <p role="alert" className="type-body text-destructive">
-          {actionError.message}
-        </p>
-      )}
-      {route.view === "raw" && jobs.error && (
-        <div role="alert" className="flex flex-wrap items-center gap-3">
-          <p className="type-body text-destructive">
-            {t("organizeAvailabilityFailed")}
-          </p>
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() => void jobs.refetch()}
-          >
-            {t("retry")}
-          </Button>
-        </div>
-      )}
-      {route.view === "wiki" ? (
-        <Suspense fallback={<KnowledgeWikiLoading />}>
-          <KnowledgeWikiView
-            key={identity}
-            resource={ref}
-            commands={wikiCommands}
-            onMaintenance={(page) =>
-              void openAction("maintenanceChat", async () => {
-                const module =
-                  await import("./knowledge-wiki-maintenance-chat");
-                setMaintenance(module.renderWikiMaintenance(ref, page));
-              })
-            }
-            pageId={params.get("page") ?? ""}
-            onPage={(id) => {
-              const query = new URLSearchParams(params);
-              if (id) query.set("page", id);
-              else query.delete("page");
-              query.set("view", "wiki");
-              navigate(`?${query}`);
-            }}
-            writable={Boolean(library)}
-            structureVersion={libraryQuery.data?.structureVersion ?? 0}
-          />
-        </Suspense>
-      ) : route.view === "graph" ? (
+      {route.view === "graph" ? (
         <Suspense fallback={<KnowledgeGraphLoading />}>
           <KnowledgeGraphView
             key={identity}
@@ -394,53 +392,115 @@ export function KnowledgePage() {
           />
         </Suspense>
       ) : (
-        <RawView
-          key={identity}
-          library={library}
-          actions={libraryActions}
-          route={route}
-          go={go}
-          rows={rows}
-          selection={selection}
-          setSelection={(update) =>
-            setSelected((current) => ({
-              scope: identity,
-              sources: update(
-                current?.scope === identity ? current.sources : [],
-              ),
-            }))
-          }
-          upload={() => void openAction("rawOnly", openUpload)}
-          busy={busy}
-          readState={{
-            ...reading(sources),
-            pending: libraryQuery.isPending || sources.isPending,
-            error: libraryQuery.error || sources.error,
-            retry: () => {
-              void libraryQuery.refetch();
-              void sources.refetch();
-            },
-          }}
-          onRebuild={(source) => {
-            const chosen = [source.id];
-            const key = `${identity}:rebuild:${JSON.stringify(chosen)}`;
-            if (!organizeIntents.has(key))
-              organizeIntents.set(key, createKnowledgeOrganizeIntent());
-            setModal({ kind: "rebuild", scope: identity, batch: chosen });
-          }}
-          sourceOffset={sourceOffset}
-          sourcePageSize={sourcePageSize}
-          onSourcePageSizeChange={(size) =>
-            changeQuery({ sourcesOffset: "0", sourcesPageSize: String(size) })
-          }
-          sourceTotal={sources.data?.total ?? 0}
-          sourcePagePending={sources.isFetching}
-          onSourcePageChange={(page) =>
-            changeQuery({
-              sourcesOffset: String((page - 1) * sourcePageSize),
-            })
-          }
-        />
+        <Suspense fallback={<KnowledgeWikiLoading />}>
+          <KnowledgeWikiView
+            key={identity}
+            resource={ref}
+            view={route.view === "raw" ? "raw" : "wiki"}
+            directoryTab={
+              route.view === "raw"
+                ? "raw"
+                : params.get("wikiTab") === "summaries"
+                  ? "summaries"
+                  : "knowledge"
+            }
+            onDirectoryTab={(tab) =>
+              changeView(
+                tab === "raw" ? "raw" : "wiki",
+                tab === "raw" ? undefined : tab,
+              )
+            }
+            sourceCount={library?.sourceTotal ?? sources.data?.total ?? 0}
+            sourceQuery={route.sourceQuery}
+            onSourceQuery={(sourceQuery) => go({ sourceQuery })}
+            sourceDirectory={
+              route.view === "raw" ? (
+                <Suspense fallback={<KnowledgeDocumentsLoading />}>
+                  <RawView
+                    rows={rows}
+                    selectedId={currentSource?.id}
+                    onOpen={(source) =>
+                      setOpenedSource({ scope: identity, source })
+                    }
+                    route={route}
+                    readState={{
+                      ...reading(sources),
+                      pending: libraryQuery.isPending || sources.isPending,
+                      error: libraryQuery.error || sources.error,
+                      retry: () => {
+                        void libraryQuery.refetch();
+                        void sources.refetch();
+                      },
+                    }}
+                    hasMore={sources.hasNextPage}
+                    pending={sources.isFetchingNextPage}
+                    failed={sources.isFetchNextPageError}
+                    onLoadMore={() => {
+                      void sources.fetchNextPage({ cancelRefetch: false });
+                    }}
+                  />
+                </Suspense>
+              ) : undefined
+            }
+            content={
+              route.view === "raw" ? (
+                <Suspense fallback={<KnowledgeWikiLoading />}>
+                  {library && (
+                    <KnowledgeDocumentReader
+                      library={library}
+                      source={currentSource}
+                      disabled={sources.isFetching}
+                      deletionDisabled={busy}
+                      onClose={() => setOpenedSource(undefined)}
+                      onDeleted={() => setOpenedSource(undefined)}
+                      onRebuild={(source) => {
+                        const chosen = [source.id];
+                        const key = `${identity}:rebuild:${JSON.stringify(chosen)}`;
+                        if (!organizeIntents.has(key))
+                          organizeIntents.set(
+                            key,
+                            createKnowledgeOrganizeIntent(),
+                          );
+                        setModal({
+                          kind: "rebuild",
+                          scope: identity,
+                          batch: chosen,
+                        });
+                      }}
+                    />
+                  )}
+                </Suspense>
+              ) : undefined
+            }
+            commands={wikiCommands}
+            onMaintenance={(page) =>
+              void openAction("maintenanceChat", async () => {
+                const module =
+                  await import("./knowledge-wiki-maintenance-chat");
+                setMaintenance(module.renderWikiMaintenance(ref, page));
+              })
+            }
+            pageId={params.get("page") ?? ""}
+            onPage={(id, tab) => {
+              const query = new URLSearchParams(params);
+              if (id) query.set("page", id);
+              else query.delete("page");
+              query.set("view", "wiki");
+              if (tab) query.set("wikiTab", tab);
+              navigate(`?${query}`);
+            }}
+            writable={
+              Boolean(library) &&
+              (!adapter.supportsServiceDetection ||
+                hasKnowledgeCapability(capabilities.data, "write"))
+            }
+            maintenanceDisabled={
+              adapter.supportsServiceDetection &&
+              !hasKnowledgeCapability(capabilities.data, "maintenanceChat")
+            }
+            structureVersion={libraryQuery.data?.structureVersion ?? 0}
+          />
+        </Suspense>
       )}
     </>
   );
@@ -448,36 +508,19 @@ export function KnowledgePage() {
     <>
       {maintenance}
       {detail ? (
-        <DetailDockLayout
-          navigation={
-            <KnowledgeDetailDock
-              view={
-                route.view === "wiki"
-                  ? "wiki"
-                  : route.view === "graph"
-                    ? "graph"
-                    : "raw"
-              }
-              onChange={(view) => {
-                const query = new URLSearchParams(params);
-                query.set("view", view);
-                if (view !== "wiki") query.delete("page");
-                navigate(`?${query}`);
-              }}
-            />
-          }
+        <ResourcePageSurface
+          contentLayout="pane"
+          contentClassName="flex min-h-0 flex-col gap-5"
         >
-          {route.view === "graph" ? (
-            <div className="flex h-full min-h-0 flex-col">{documents}</div>
-          ) : (
-            <ResourcePageSurface
-              contentLayout={route.view === "raw" ? "scroll" : "pane"}
-              contentClassName="flex flex-col gap-5"
-            >
-              {documents}
-            </ResourcePageSurface>
-          )}
-        </DetailDockLayout>
+          <PageHeader
+            title={library?.name || params.get("knowledge") || t("knowledge")}
+            layout="detail"
+            className="items-center"
+            actions={libraryActions}
+          />
+          <Separator />
+          {documents}
+        </ResourcePageSurface>
       ) : (
         <>
           <LibraryList
@@ -491,6 +534,10 @@ export function KnowledgePage() {
             }
             error={libraries.error}
             onRetry={() => void libraries.refetch()}
+            search={librarySearch}
+            onSearchChange={(search) =>
+              changeQuery({ search, librariesOffset: "0" })
+            }
             location={location}
             onLocationChange={(value) =>
               changeQuery({ location: value, librariesOffset: "0" })
@@ -511,6 +558,9 @@ export function KnowledgePage() {
               setModal({ kind: "create", scope: identity });
             }}
             canCreate
+            onAddRemote={() =>
+              setModal({ kind: "remote-add", scope: identity })
+            }
             onDelete={async (value, requestId) => {
               await deleteLibrary(value, requestId);
               await client.invalidateQueries({
@@ -531,6 +581,25 @@ export function KnowledgePage() {
           )}
         </>
       )}
+      {currentModal?.kind === "remote-add" && (
+        <Suspense fallback={null}>
+          <KnowledgeRemoteAddDialog
+            onClose={() => setModal(undefined)}
+            onAdded={async (receipt) => {
+              const id = receipt.mount?.knowledgeBaseId;
+              const connection = receipt.mount?.connectionId;
+              if (!id || !connection) throw new Error(t("invalidResource"));
+              await client.invalidateQueries({
+                queryKey: knowledgeKeys.libraryLists,
+              });
+              setModal(undefined);
+              navigate(
+                `/knowledge/${encodeURIComponent(id)}?${new URLSearchParams({ backend: receipt.connection?.backend ?? "integration", connection, title: receipt.connection?.detection?.library?.name ?? id })}`,
+              );
+            }}
+          />
+        </Suspense>
+      )}
       {createLoaded && (
         <CreateLibrary
           opened={currentModal?.kind === "create"}
@@ -543,29 +612,26 @@ export function KnowledgePage() {
           create={async (value, execution, requestId, controller) => {
             const { buildCreateLibraryBody } =
               await import("./knowledge-library-write-body");
-            const response = await knowledgeAdapter(value.ref).createLibrary(
-              withLocalErrorSurface({
-                body: {
-                  ...buildCreateLibraryBody(requestId, value),
-                  ...(knowledgeAdapter(value.ref).localConfiguration
-                    ? { executionDefaults: buildExecutionDefaults(execution) }
-                    : {}),
-                  ...(knowledgeAdapter(value.ref).localConfiguration &&
-                  controller.getSnapshot().draft.embedding.baseUrl
-                    ? {
-                        embeddingProfile: {
-                          baseUrl:
-                            controller.getSnapshot().draft.embedding.baseUrl,
-                          model: controller.getSnapshot().draft.embedding.model,
-                          apiKey:
-                            controller.getSnapshot().draft.embedding.apiKey,
-                        },
-                      }
-                    : {}),
-                },
-                throwOnError: true,
-              }),
-            );
+            const response = await knowledgeAdapter(value.ref).createLibrary({
+              body: {
+                ...buildCreateLibraryBody(requestId, value),
+                ...(knowledgeAdapter(value.ref).localConfiguration
+                  ? { executionDefaults: buildExecutionDefaults(execution) }
+                  : {}),
+                ...(knowledgeAdapter(value.ref).localConfiguration &&
+                controller.getSnapshot().draft.embedding.baseUrl
+                  ? {
+                      embeddingProfile: {
+                        baseUrl:
+                          controller.getSnapshot().draft.embedding.baseUrl,
+                        model: controller.getSnapshot().draft.embedding.model,
+                        apiKey: controller.getSnapshot().draft.embedding.apiKey,
+                      },
+                    }
+                  : {}),
+              },
+              throwOnError: true,
+            });
             const id =
               response.data.resourceId ?? response.data.libraryId ?? "";
             if (!id) throw new Error(t("createLibraryFailed"));
@@ -605,6 +671,28 @@ export function KnowledgePage() {
       {library && currentModal?.kind === "upload" && (
         <UploadSources
           queue={uploadQueues.get(identity)}
+          mode={currentModal.uploadContext?.uploadMode}
+          pending={currentModal.uploadLoading}
+          confirmationVersion={currentModal.uploadContext?.connectionRevision}
+          onRedetect={
+            adapter.supportsServiceDetection
+              ? async () => {
+                  const latest = await adapter.getCapabilities();
+                  const revision = latest.connectionRevision;
+                  if (!revision) throw new Error(t("invalidResource"));
+                  await adapter.redetectService(revision, crypto.randomUUID());
+                  await client.invalidateQueries({
+                    queryKey: knowledgeKeys.resource(ref),
+                  });
+                  const uploadContext = await adapter.getUploadContext();
+                  setModal({
+                    ...currentModal,
+                    uploadContext,
+                    uploadLoading: false,
+                  });
+                }
+              : undefined
+          }
           opened
           close={() => setModal(undefined)}
           upload={async (file, requestId, signal) => {
@@ -615,6 +703,7 @@ export function KnowledgePage() {
               file,
               requestId,
               signal,
+              currentModal.uploadContext,
             );
             await Promise.all([
               client.invalidateQueries({ queryKey: [...root, "sources"] }),

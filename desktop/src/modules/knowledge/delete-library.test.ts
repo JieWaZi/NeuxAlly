@@ -13,6 +13,7 @@ const api = vi.hoisted(() => ({
   getRemoteLibraryDeletion: vi.fn(),
   recoverLibraryDeletion: vi.fn(),
   recoverRemoteLibraryDeletion: vi.fn(),
+  removeRemoteMount: vi.fn(),
 }));
 vi.mock("@/shared/api/generated/sdk.gen", () => api);
 const library = () => ({
@@ -42,6 +43,46 @@ describe("整库删除确认", () => {
     api.deleteLibrary.mockResolvedValue({ data: { state: "accepted" } });
     api.deleteRemoteLibrary.mockResolvedValue({ data: { state: "accepted" } });
   });
+  it("远端挂载只移除本机入口，不删除远端知识库或恢复记录", async () => {
+    const value = {
+      ...library(),
+      mountId: "mount-a",
+      mountRevision: 2,
+      ref: {
+        backend: "integration",
+        connectionId: "remote",
+        knowledgeBaseId: "kb",
+      },
+    };
+    api.removeRemoteMount.mockResolvedValue({ data: { removed: true } });
+    await deleteLibraryPermanently(value, "remove-mount");
+    expect(api.removeRemoteMount).toHaveBeenCalledWith(
+      expect.objectContaining({
+        path: { mountId: "mount-a" },
+        query: { revision: 2 },
+      }),
+    );
+    expect(api.deleteRemoteLibrary).not.toHaveBeenCalled();
+    expect(api.deleteLibrary).not.toHaveBeenCalled();
+    expect(api.getRemoteCapabilities).not.toHaveBeenCalled();
+  });
+  it("未挂载远端库拒绝删除且不调用远端删除接口", async () => {
+    const value = {
+      ...library(),
+      storage: "remote" as const,
+      ref: {
+        backend: "custom",
+        connectionId: "remote",
+        knowledgeBaseId: "kb",
+      },
+    };
+    await expect(
+      deleteLibraryPermanently(value, "forbidden"),
+    ).rejects.toMatchObject({ code: "KnowledgeUnsupported" });
+    expect(api.deleteRemoteLibrary).not.toHaveBeenCalled();
+    expect(api.getRemoteLibraryDeletion).not.toHaveBeenCalled();
+    expect(api.recoverRemoteLibraryDeletion).not.toHaveBeenCalled();
+  });
   it("接纳回执不会冒充原件清理完成", async () => {
     api.getLibraryDeletion.mockResolvedValue({
       data: { state: "blocked", version: 1 },
@@ -57,57 +98,6 @@ describe("整库删除确认", () => {
         body: { requestId: expect.any(String), expectedVersion: 1 },
       }),
     );
-  });
-  it("远端清理完成才返回成功，重试始终使用同一删除请求", async () => {
-    const value = library();
-    value.ref = {
-      backend: "custom",
-      connectionId: "remote",
-      knowledgeBaseId: "kb",
-    };
-    api.getRemoteLibraryDeletion.mockResolvedValue({
-      data: { state: "completed", version: 2 },
-    });
-    await deleteLibraryPermanently(value, "same-request");
-    await deleteLibraryPermanently(value, "same-request");
-    expect(api.deleteRemoteLibrary).toHaveBeenCalledTimes(2);
-    for (const [options] of api.deleteRemoteLibrary.mock.calls)
-      expect(options).toMatchObject({
-        path: { connectionId: "remote", libraryId: "kb" },
-        body: { requestId: "same-request", expectedVersion: 4 },
-      });
-    expect(api.deleteLibrary).not.toHaveBeenCalled();
-    expect(api.recoverRemoteLibraryDeletion).not.toHaveBeenCalled();
-  });
-  it("远端清理明确失败后用新请求重试，未知结果保留原请求", async () => {
-    const value = library();
-    value.ref = {
-      backend: "custom",
-      connectionId: "remote",
-      knowledgeBaseId: "kb",
-    };
-    api.getRemoteLibraryDeletion.mockResolvedValue({
-      data: { libraryId: "kb", policyVersion: 1, state: "pending", version: 1 },
-    });
-    api.recoverRemoteLibraryDeletion
-      .mockRejectedValueOnce(
-        new ApiError("version conflict", "KnowledgeConflict", 409),
-      )
-      .mockRejectedValueOnce(
-        new ApiError("unknown", "KnowledgeRemoteOutcomeUnknown", 504),
-      )
-      .mockRejectedValueOnce(
-        new ApiError("unknown", "KnowledgeRemoteOutcomeUnknown", 504),
-      );
-    for (let i = 0; i < 3; i++)
-      await expect(
-        deleteLibraryPermanently(value, "stable"),
-      ).rejects.toBeInstanceOf(ApiError);
-    const ids = api.recoverRemoteLibraryDeletion.mock.calls.map(
-      ([options]) => options.body.requestId,
-    );
-    expect(ids[0]).not.toBe(ids[1]);
-    expect(ids[1]).toBe(ids[2]);
   });
   it.each([408, 500, 503])(
     "清理恢复 HTTP %i 未知结果重用原请求身份",

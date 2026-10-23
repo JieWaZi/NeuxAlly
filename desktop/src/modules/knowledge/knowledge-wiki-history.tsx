@@ -9,7 +9,6 @@ import {
   KnowledgeWikiContentLoading,
   KnowledgeWikiDirectoryLoading,
 } from "./knowledge-loading";
-import { QueryState } from "@/shared/ui/query-state";
 import { cn } from "@/shared/lib/cn";
 import { useTheme } from "@/shared/theme";
 import { useRouteSceneActive } from "@/shared/workspace/app-scene-workspace";
@@ -148,7 +147,9 @@ export function KnowledgeWikiHistory({
                 pending: false,
                 error: revisions.error,
                 retry: () => {
-                  void revisions.refetch();
+                  if (revisions.isFetchNextPageError)
+                    void revisions.fetchNextPage();
+                  else void revisions.refetch();
                 },
               }}
             />
@@ -215,7 +216,10 @@ export function KnowledgeWikiHistory({
                 <Button
                   variant="secondary"
                   className="w-full"
-                  disabled={revisions.isFetchingNextPage}
+                  disabled={
+                    revisions.isFetchingNextPage ||
+                    revisions.isFetchNextPageError
+                  }
                   onClick={() => {
                     void revisions.fetchNextPage();
                   }}
@@ -329,11 +333,16 @@ function KnowledgeWikiRevision({
       </div>
       <div className="scrollbar-hidden min-h-0 flex-1 overflow-auto">
         {error ? (
-          <QueryState
-            error={error}
-            onRetry={() => {
-              if (selected.error) void selected.refetch();
-              if (previous.error) void previous.refetch();
+          <KnowledgeReadFeedback
+            hasData={Boolean(snapshot)}
+            state={{
+              pending: false,
+              error,
+              retry: () => {
+                if (selected.error) void selected.refetch();
+                if (mode === "incremental" && previous.error)
+                  void previous.refetch();
+              },
             }}
           />
         ) : pending ? (

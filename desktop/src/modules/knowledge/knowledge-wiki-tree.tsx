@@ -1,7 +1,5 @@
-import { useState, type KeyboardEvent } from "react";
+import { useState, type KeyboardEvent, type ReactNode } from "react";
 import {
-  List,
-  ListTree,
   FolderPlus,
   FilePlus2,
   MoreVertical,
@@ -20,7 +18,8 @@ import { SearchField } from "@/shared/ui/search-field";
 import { SegmentedControl } from "@/shared/ui/segmented-control";
 import { WorkspaceFileTypeIcon } from "@/shared/workspace/workspace-file-type-icon";
 import { IconAction } from "./knowledge-controls";
-import type { WikiPage, WikiTheme } from "./knowledge-wiki-queries";
+import type { WikiPageEntry, WikiTheme } from "./knowledge-wiki-queries";
+import { useCopy } from "./use-copy";
 import { useWikiCopy } from "./use-wiki-copy";
 
 export function KnowledgeWikiTree({
@@ -32,8 +31,15 @@ export function KnowledgeWikiTree({
   onCreate,
   onFolderAction,
   writable,
+  tab: controlledTab,
+  onTabChange,
+  sourceCount = 0,
+  feedback,
+  sourceDirectory,
+  sourceQuery = "",
+  onSourceQuery,
 }: {
-  pages: WikiPage[];
+  pages: WikiPageEntry[];
   themes: WikiTheme[];
   selectedPage: string;
   onPage: (id: string) => void;
@@ -44,13 +50,25 @@ export function KnowledgeWikiTree({
     folder: WikiTheme,
   ) => void;
   writable: boolean;
+  tab?: string;
+  onTabChange?: (tab: string) => void;
+  sourceCount?: number;
+  feedback?: ReactNode;
+  sourceDirectory?: ReactNode;
+  sourceQuery?: string;
+  onSourceQuery?: (query: string) => void;
 }) {
   const t = useWikiCopy();
+  const copy = useCopy();
   const [query, setQuery] = useState("");
-  const [tab, setTab] = useState("knowledge");
-  const [layout, setLayout] = useState("tree");
+  const [localTab, setLocalTab] = useState("knowledge");
+  const tab = controlledTab ?? localTab;
+  function setTab(next: string) {
+    setLocalTab(next);
+    onTabChange?.(next);
+  }
   const [closed, setClosed] = useState<Set<string>>(() => new Set());
-  const summary = (p: WikiPage) => p.pageType === "summary";
+  const summary = (p: WikiPageEntry) => p.pageType === "summary";
   const index = pages.find((p) => p.pageType === "index");
   const contents = pages.filter((p) => p.pageType !== "index");
   const rows = contents.filter(
@@ -111,7 +129,7 @@ export function KnowledgeWikiTree({
       buttons[Math.min(next, buttons.length - 1)]?.focus();
     }
   }
-  function pageRow(page: WikiPage, depth: number) {
+  function pageRow(page: WikiPageEntry, depth: number) {
     return (
       <FileTreeRow
         key={page.id}
@@ -262,24 +280,19 @@ export function KnowledgeWikiTree({
     <div className="flex min-h-0 flex-1 flex-col gap-3">
       <SearchField
         width="full"
-        aria-label={t("search")}
-        placeholder={t("search")}
-        value={query}
+        containerClassName="shrink-0"
+        aria-label={tab === "raw" ? copy("sourcePageSearch") : t("search")}
+        placeholder={tab === "raw" ? copy("sourcePageSearch") : t("search")}
+        value={tab === "raw" ? sourceQuery : query}
         clearLabel={t("clearSearch")}
-        onChange={(event) => setQuery(event.target.value)}
+        onChange={(event) =>
+          tab === "raw"
+            ? onSourceQuery?.(event.target.value)
+            : setQuery(event.target.value)
+        }
       />
-      <Button
-        variant="ghost"
-        className="justify-start"
-        aria-pressed={selectedPage === index?.id || !selectedPage}
-        onClick={() => {
-          onFolder("");
-          onPage(index?.id ?? "");
-        }}
-      >
-        {t("index")}
-      </Button>
-      <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
+
+      <div className="min-h-control-md flex min-w-0 shrink-0 flex-wrap items-center justify-between gap-2">
         <SegmentedControl
           size="sm"
           value={tab}
@@ -289,58 +302,86 @@ export function KnowledgeWikiTree({
             {
               value: "knowledge",
               label: t("knowledge", {
-                count: contents.filter((p) => !summary(p)).length,
+                count:
+                  contents.filter((p) => !summary(p)).length + (index ? 1 : 0),
               }),
             },
             {
               value: "summaries",
               label: t("summaries", { count: contents.filter(summary).length }),
             },
+            ...(onTabChange
+              ? [
+                  {
+                    value: "raw",
+                    label: t("originals", { count: sourceCount }),
+                  },
+                ]
+              : []),
           ]}
         />
-        <div className="flex items-center gap-1">
-          <IconAction
-            label={layout === "tree" ? t("list") : t("tree")}
-            icon={layout === "tree" ? List : ListTree}
-            onClick={() => setLayout(layout === "tree" ? "list" : "tree")}
-          />
-          {writable && (
-            <>
-              <IconAction
-                label={t("createFolder")}
-                icon={FolderPlus}
-                onClick={() => onCreate("folder")}
-              />
-              <IconAction
-                label={t("createPage")}
-                icon={FilePlus2}
-                onClick={() => onCreate("page")}
-              />
-            </>
-          )}
-        </div>
+        {tab !== "raw" && writable && (
+          <div className="flex items-center gap-1">
+            <IconAction
+              label={t("createFolder")}
+              icon={FolderPlus}
+              onClick={() => onCreate("folder")}
+            />
+            <IconAction
+              label={t("createPage")}
+              icon={FilePlus2}
+              onClick={() => onCreate("page")}
+            />
+          </div>
+        )}
       </div>
-      <div
-        className="scrollbar-hidden min-h-0 flex-1 overflow-y-auto"
-        role="tree"
-        aria-label={t("directory")}
-        onKeyDown={keyboard}
-      >
-        {tab === "summaries" || layout === "list" ? (
-          rows.map((p) => pageRow(p, 0))
-        ) : (
-          <>
-            {tree}
+      {tab === "raw"
+        ? sourceDirectory
+        : (feedback ?? (
+            <div
+              className="scrollbar-hidden min-h-0 flex-1 overflow-y-auto"
+              role="tree"
+              aria-label={t("directory")}
+              onKeyDown={keyboard}
+            >
+              {tab === "knowledge" &&
+                (!query.trim() || t("index").includes(query.trim())) && (
+                  <FileTreeRow
+                    className="w-full"
+                    aria-label={t("index")}
+                    selected={!selectedPage || selectedPage === index?.id}
+                    icon={
+                      <WorkspaceFileTypeIcon
+                        isDirectory={false}
+                        name="index.md"
+                      />
+                    }
+                    onClick={() => {
+                      onFolder("");
+                      onPage(index?.id ?? "");
+                    }}
+                  >
+                    <span className="truncate">{t("index")}</span>
+                  </FileTreeRow>
+                )}
+              {tab === "summaries" ? (
+                rows.map((p) => pageRow(p, 0))
+              ) : (
+                <>
+                  {tree}
 
-            {rows
-              .filter((p) => !p.themeId || !folderIds.has(p.themeId))
-              .map((p) => pageRow(p, 0))}
-          </>
-        )}
-        {!rows.length && query.trim() && (
-          <p className="type-body text-muted-foreground p-3">{t("noMatch")}</p>
-        )}
-      </div>
+                  {rows
+                    .filter((p) => !p.themeId || !folderIds.has(p.themeId))
+                    .map((p) => pageRow(p, 0))}
+                </>
+              )}
+              {!rows.length && query.trim() && (
+                <p className="type-body text-muted-foreground p-3">
+                  {t("noMatch")}
+                </p>
+              )}
+            </div>
+          ))}
     </div>
   );
 }

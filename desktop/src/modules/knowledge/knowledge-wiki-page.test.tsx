@@ -1,8 +1,10 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
+  act,
   configure,
   fireEvent,
   render,
+  renderHook,
   screen,
   waitFor,
   within,
@@ -15,6 +17,10 @@ import { afterAll, afterEach, beforeAll, expect, it, vi } from "vitest";
 import { ThemeProvider } from "@/shared/theme";
 import { client } from "@/shared/api/generated/client.gen";
 import { TooltipProvider } from "@/shared/ui/tooltip";
+import {
+  dismissErrorNotice,
+  useErrorNotices,
+} from "@/shared/api/error-notices";
 import { KnowledgePage } from "./knowledge-page";
 
 vi.mock("@/shared/ui/text-diff-view", () => ({
@@ -52,7 +58,20 @@ beforeAll(() => {
   server.listen({ onUnhandledRequest: "error" });
   client.setConfig({ baseUrl: "http://ally.test" });
 });
-afterEach(() => server.resetHandlers());
+afterEach(() => {
+  server.resetHandlers();
+  const hook = renderHook(useErrorNotices);
+  act(() => {
+    for (const notice of hook.result.current) dismissErrorNotice(notice.id);
+  });
+  hook.unmount();
+});
+async function expectGlobalReadError() {
+  const notices = renderHook(useErrorNotices);
+  await waitFor(() => expect(notices.result.current.length).toBeGreaterThan(0));
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  notices.unmount();
+}
 afterAll(() => {
   configure({ asyncUtilTimeout: 1000 });
   server.close();
@@ -70,6 +89,7 @@ function show(query = "") {
       HttpResponse.json({
         id: "kb",
         name: "Wiki 资料库",
+        description: "知识库布局说明",
         kind: "general",
         ref: { backend: "local", connectionId: "local", knowledgeBaseId: "kb" },
         structureVersion: 8,
@@ -83,6 +103,9 @@ function show(query = "") {
       }),
     ),
     http.get(`${root}/jobs`, () => HttpResponse.json({ items: [], total: 0 })),
+    http.get(`${root}/page-directory`, () =>
+      HttpResponse.json({ items: pages, total: 2 }),
+    ),
     http.get(`${root}/pages`, () =>
       HttpResponse.json({ items: pages, total: 2 }),
     ),
@@ -118,17 +141,11 @@ function show(query = "") {
       ),
     ),
   );
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
   render(
-    <QueryClientProvider
-      client={
-        new QueryClient({
-          defaultOptions: {
-            queries: { retry: false },
-            mutations: { retry: false },
-          },
-        })
-      }
-    >
+    <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <TooltipProvider>
           <MemoryRouter initialEntries={[`/knowledge/kb${query}`]}>
@@ -141,12 +158,18 @@ function show(query = "") {
       </ThemeProvider>
     </QueryClientProvider>,
   );
+  return queryClient;
 }
-it("Dock 在文档和 Wiki 间切换，保留文档筛选并通过正文链接定位页面", async () => {
+it("统一目录在原件与知识间切换，保留筛选且不再展示 Dock", async () => {
   const user = userEvent.setup();
-  show("?sourceQuery=原始");
+  show("?view=raw&sourceQuery=原始");
   expect(await screen.findByText("原始资料.md")).toBeVisible();
-  await user.click(screen.getByRole("button", { name: "Wiki" }));
+  expect(screen.getByRole("heading", { name: "Wiki 资料库" })).toBeVisible();
+  expect(
+    document.querySelector('[data-slot="detail-dock-overlay"]'),
+  ).toBeNull();
+  expect(screen.getByRole("button", { name: "图谱" })).toBeVisible();
+  await user.click(await screen.findByRole("radio", { name: /^知识/ }));
   expect(
     await screen.findByRole(
       "heading",
@@ -159,16 +182,113 @@ it("Dock 在文档和 Wiki 间切换，保留文档筛选并通过正文链接�
     await screen.findByRole("heading", { name: "页面正文" }),
   ).toBeVisible();
   expect(screen.getByLabelText("当前路由")).toHaveTextContent("page=one");
-  await user.click(screen.getByRole("button", { name: "文档" }));
+  await user.click(screen.getByRole("radio", { name: /^原件/ }));
   expect(await screen.findByText("原始资料.md")).toBeVisible();
   expect(screen.getByRole("searchbox", { name: "搜索原件…" })).toHaveValue(
     "原始",
   );
 });
+it("原件只在左侧列出图标与截断文件名，点击后右侧展示正文与操作", async () => {
+  show("?view=raw");
+  server.use(
+    http.get(`${root}/sources/source`, () =>
+      HttpResponse.json({
+        id: "source",
+        filename: "原始资料.md",
+        description: "源文件摘要",
+      }),
+    ),
+    http.get(`${root}/sources/source/raw`, () =>
+      HttpResponse.json({
+        filename: "原始资料.md",
+        bytes: btoa("# Source content"),
+      }),
+    ),
+  );
+  const item = await screen.findByRole("treeitem", { name: "原始资料.md" });
+  expect(item.closest("aside")).not.toBeNull();
+  expect(screen.queryByRole("table")).not.toBeInTheDocument();
+  expect(within(item).getByText("原始资料.md")).toHaveClass("truncate");
+  await userEvent.click(item);
+  const article = await screen.findByRole("article", { name: "原始资料.md" });
+  expect(
+    await within(article).findByRole("heading", { name: "Source content" }),
+  ).toBeVisible();
+  expect(within(article).getByRole("button", { name: "下载" })).toBeVisible();
+  expect(
+    within(article).getByRole("button", { name: "重建知识" }),
+  ).toBeVisible();
+  expect(within(article).getByRole("button", { name: "删除" })).toBeVisible();
+});
+it.each(["raw", "summaries"] as const)(
+  "索引链接等待目录时切换 %s，迟到结果不会夺回选择",
+  async (target) => {
+    let directoryReads = 0;
+    let release!: () => void;
+    const pending = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    show("?view=wiki");
+    server.use(
+      http.get(`${root}/page-directory`, async () => {
+        directoryReads++;
+        await pending;
+        return HttpResponse.json({ items: pages, total: 2 });
+      }),
+    );
+    try {
+      await screen.findByRole("heading", { name: "Wiki Index" });
+      await waitFor(() => expect(directoryReads).toBe(1));
+      await userEvent.click(screen.getByRole("link", { name: "阅读第一页" }));
+      await userEvent.click(
+        screen.getByRole("radio", {
+          name: target === "raw" ? /^原件/ : /^摘要/,
+        }),
+      );
+      await act(async () => {
+        release();
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      });
+      if (target === "raw")
+        await screen.findByRole("treeitem", { name: "原始资料.md" });
+      await waitFor(() =>
+        expect(screen.getByRole("radio", { name: "知识 2" })).toBeVisible(),
+      );
+      expect(screen.getByLabelText("当前路由")).toHaveTextContent(
+        target === "raw" ? "view=raw" : "wikiTab=summaries",
+      );
+      expect(
+        screen.getByRole("radio", {
+          name: target === "raw" ? /^原件/ : /^摘要/,
+        }),
+      ).toBeChecked();
+      expect(
+        screen.queryByRole("heading", { name: "页面正文" }),
+      ).not.toBeInTheDocument();
+    } finally {
+      release();
+    }
+  },
+);
+it("摘要 Tab 不显示索引，知识 Tab 将索引列为第一个文件", async () => {
+  show("?view=wiki&wikiTab=summaries");
+  await screen.findByText("还没有摘要");
+  expect(screen.getByRole("radio", { name: /^摘要/ })).toBeChecked();
+  expect(
+    screen.queryByRole("treeitem", { name: "索引" }),
+  ).not.toBeInTheDocument();
+  await userEvent.click(screen.getByRole("radio", { name: /^知识/ }));
+  expect(screen.getAllByRole("treeitem")[0]).toHaveAccessibleName("索引");
+  await userEvent.click(screen.getByRole("treeitem", { name: "索引" }));
+  expect(screen.getByRole("radio", { name: /^知识/ })).toBeChecked();
+  expect(screen.getByLabelText("当前路由")).toHaveTextContent(
+    "wikiTab=knowledge",
+  );
+});
 it("Wiki 目录读取全部分页，摘要与空目录均可见", async () => {
   show("?view=wiki");
   server.use(
-    http.get(`${root}/pages`, ({ request }) => {
+    http.get(`${root}/page-directory`, ({ request }) => {
       const offset = new URL(request.url).searchParams.get("offset");
       return HttpResponse.json(
         offset === "0"
@@ -203,25 +323,31 @@ it("Wiki 目录读取全部分页，摘要与空目录均可见", async () => {
     screen.queryByRole("treeitem", { name: "空目录" }),
   ).not.toBeInTheDocument();
 });
-it("目录读取失败提供重试，成功后恢复真实正文", async () => {
-  show("?view=wiki");
-  let fail = true;
+it("目录读取失败保留壳并全局报告，重新读取后恢复", async () => {
+  const queryClient = show("?view=wiki");
   server.use(
-    http.get(`${root}/pages`, () =>
-      fail
-        ? new HttpResponse(null, { status: 500 })
-        : HttpResponse.json({ items: pages, total: 2 }),
+    http.get(
+      `${root}/page-directory`,
+      () => new HttpResponse(null, { status: 500 }),
     ),
   );
   const sidebar = await screen.findByRole("complementary", {
     name: "Wiki 目录",
   });
-  const retry = await within(sidebar).findByRole("button", { name: "重试" });
-  fail = false;
-  await userEvent.click(retry);
-  expect(
-    await screen.findByRole("heading", { name: "Wiki Index" }),
-  ).toBeVisible();
+  await waitFor(() =>
+    expect(within(sidebar).queryByRole("status")).not.toBeInTheDocument(),
+  );
+  await expectGlobalReadError();
+  server.use(
+    http.get(`${root}/page-directory`, () =>
+      HttpResponse.json({ items: pages, total: pages.length }),
+    ),
+  );
+  await act(async () => {
+    await queryClient.refetchQueries();
+  });
+  await within(sidebar).findByRole("treeitem", { name: "第一页知识" });
+  expect(within(sidebar).queryByRole("alert")).not.toBeInTheDocument();
 });
 it("切换正文时不继续展示旧页内容，缺失页面提供返回索引", async () => {
   show("?view=wiki&page=missing");
@@ -264,7 +390,10 @@ it("新建子目录携带真实目录版本，失败后保留草稿和请求身�
     "新子目录",
   );
   await user.click(screen.getByRole("button", { name: "创建" }));
-  expect(await screen.findByRole("alert")).toBeVisible();
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "创建" })).toBeEnabled(),
+  );
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   expect(screen.getByRole("textbox", { name: "目录名称" })).toHaveValue(
     "新子目录",
   );
@@ -301,7 +430,10 @@ it("编辑以页面版本保存正文，失败保留草稿", async () => {
   await user.clear(content);
   await user.type(content, "人工更新正文");
   await user.click(screen.getByRole("button", { name: "保存" }));
-  expect(await screen.findByRole("alert")).toBeVisible();
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "保存" })).toBeEnabled(),
+  );
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   expect(content).toHaveValue("人工更新正文");
   expect(requests[0]).toMatchObject({
     expectedVersion: 3,
@@ -317,7 +449,7 @@ it("编辑以页面版本保存正文，失败保留草稿", async () => {
 it("没有持久索引时从真实页面目录提供索引，不误报空库", async () => {
   show("?view=wiki");
   server.use(
-    http.get(`${root}/pages`, () =>
+    http.get(`${root}/page-directory`, () =>
       HttpResponse.json({ items: [pages[1]], total: 1 }),
     ),
   );
@@ -328,7 +460,7 @@ it("没有持久索引时从真实页面目录提供索引，不误报空库", a
     await screen.findByRole("heading", { name: "页面正文" }),
   ).toBeVisible();
 });
-it("Wiki 直链不启动文档和整理任务查询，搜索保留匹配页面的祖先目录", async () => {
+it("Wiki 直链读取原件计数但不启动整理任务查询，搜索保留匹配页面的祖先目录", async () => {
   show("?view=wiki");
   let sources = 0;
   let jobs = 0;
@@ -352,7 +484,7 @@ it("Wiki 直链不启动文档和整理任务查询，搜索保留匹配页面�
   expect(
     screen.queryByRole("treeitem", { name: "空目录" }),
   ).not.toBeInTheDocument();
-  expect(sources).toBe(0);
+  expect(sources).toBe(1);
   expect(jobs).toBe(0);
 });
 it("创建页面成功后定位后端返回的真实页面", async () => {
@@ -483,7 +615,7 @@ it("连续切换已读 Wiki 页面时正文和表格只属于当前选择，不�
       "# 网络冲突检查正文\n\n## 检查范围\n\n| 范围 | 行为 |\n| --- | --- |\n| 网段 | 检查重叠 |",
   };
   server.use(
-    http.get(`${root}/pages`, () =>
+    http.get(`${root}/page-directory`, () =>
       HttpResponse.json({ items: [pages[0], first, second], total: 3 }),
     ),
     http.get(`${root}/pages/:pageId`, ({ params }) =>
@@ -580,8 +712,8 @@ it("历史版本按需读取，选择版本显示保存的历史正文", async (
   expect(reads).toBeGreaterThanOrEqual(1);
 });
 
-it("历史分页失败保留已读版本，重试可读取后续版本", async () => {
-  show("?view=wiki&page=one");
+it("历史分页失败保留已读版本并禁用追加，重新读取后可恢复", async () => {
+  const queryClient = show("?view=wiki&page=one");
   let fail = true;
   const offsets: string[] = [];
   server.use(
@@ -620,10 +752,18 @@ it("历史分页失败保留已读版本，重试可读取后续版本", async (
   const dialog = screen.getByRole("dialog", { name: "历史版本" });
   const more = await within(dialog).findByRole("button", { name: "加载更多" });
   await userEvent.click(more);
-  expect(await within(dialog).findAllByRole("alert")).not.toHaveLength(0);
+  await waitFor(() => expect(offsets).toContain("1"));
+  await waitFor(() => expect(more).toBeDisabled());
+  await expectGlobalReadError();
   expect(within(dialog).getByRole("button", { name: /版本 3/ })).toBeVisible();
   fail = false;
-  await userEvent.click(more);
+  await act(async () => {
+    await queryClient.refetchQueries();
+  });
+  await waitFor(() => expect(more).toBeEnabled());
+  await userEvent.click(
+    within(dialog).getByRole("button", { name: "加载更多" }),
+  );
   await userEvent.click(
     await within(dialog).findByRole("button", { name: /版本 2/ }),
   );
@@ -654,7 +794,7 @@ it("远端历史携带页面地址读取快照，写操作入口保留并检查�
         },
       }),
     ),
-    http.get(`${remote}/pages`, () =>
+    http.get(`${remote}/page-directory`, () =>
       HttpResponse.json({ items: pages, total: 2 }),
     ),
     http.get(`${remote}/themes`, () => HttpResponse.json({ items: [] })),
@@ -722,7 +862,11 @@ it("删除先确认，失败可重试且使用相同身份和原始版本，成�
   await user.click(screen.getByRole("button", { name: "删除页面" }));
   dialog = screen.getByRole("dialog", { name: "删除页面" });
   await user.click(within(dialog).getByRole("button", { name: "删除" }));
-  expect(await within(dialog).findAllByRole("alert")).not.toHaveLength(0);
+  await waitFor(() => expect(requests).toHaveLength(1));
+  await waitFor(() =>
+    expect(within(dialog).getByRole("button", { name: "删除" })).toBeEnabled(),
+  );
+  expect(within(dialog).queryByRole("alert")).not.toBeInTheDocument();
   fail = false;
   await user.click(within(dialog).getByRole("button", { name: "删除" }));
   await screen.findByRole("heading", { name: "Wiki Index" });
@@ -747,7 +891,7 @@ it("Wiki 目录和正文分别显示骨架，加载后替换为真实内容", as
   });
   show("?view=wiki");
   server.use(
-    http.get(`${root}/pages`, async () => {
+    http.get(`${root}/page-directory`, async () => {
       await pending;
       return HttpResponse.json({ items: pages, total: 2 });
     }),
@@ -814,7 +958,7 @@ it.each([false, true])(
       pageType: "summary",
     };
     server.use(
-      http.get(`${root}/pages`, () =>
+      http.get(`${root}/page-directory`, () =>
         HttpResponse.json({
           items: persisted ? [pages[0], old, added] : [old, added],
           total: persisted ? 3 : 2,
@@ -866,12 +1010,12 @@ it.each([false, true])(
   },
 );
 
-it("索引每组独立加载后页，失败保留已读条目且重试可导航", async () => {
-  show("?view=wiki");
+it("索引后页失败保留已读条目并禁用追加，重新读取后可导航", async () => {
+  const queryClient = show("?view=wiki");
   let fail = true;
   const cursors: string[] = [];
   server.use(
-    http.get(`${root}/pages`, () =>
+    http.get(`${root}/page-directory`, () =>
       HttpResponse.json({
         items: [
           ...pages,
@@ -925,14 +1069,37 @@ it("索引每组独立加载后页，失败保留已读条目且重试可导航"
   await screen.findByRole("heading", { level: 1, name: "Wiki Index" });
   await userEvent.click(screen.getByRole("button", { name: "加载更多" }));
   const group = screen.getByRole("region", { name: "概念" });
-  const retry = await within(group).findByRole("button", { name: "重试" });
+  await waitFor(() =>
+    expect(within(group).queryByText("正在读取内容…")).not.toBeInTheDocument(),
+  );
+  await expectGlobalReadError();
   expect(within(group).getByRole("link", { name: "第一页知识" })).toBeVisible();
+  await waitFor(() =>
+    expect(
+      within(group).getByRole("button", { name: "加载更多" }),
+    ).toBeDisabled(),
+  );
   fail = false;
-  await userEvent.click(retry);
-  const last = await within(group).findByRole("link", { name: "后页知识" });
+  await act(async () => {
+    await queryClient.refetchQueries();
+  });
+  await waitFor(() =>
+    expect(
+      within(screen.getByRole("region", { name: "概念" })).getByRole("button", {
+        name: "加载更多",
+      }),
+    ).toBeEnabled(),
+  );
+  const restoredGroup = screen.getByRole("region", { name: "概念" });
+  await userEvent.click(
+    within(restoredGroup).getByRole("button", { name: "加载更多" }),
+  );
+  const last = await within(restoredGroup).findByRole("link", {
+    name: "后页知识",
+  });
   expect(cursors).toEqual(["1", "1"]);
   expect(
-    within(group).queryByRole("button", { name: "加载更多" }),
+    within(restoredGroup).queryByRole("button", { name: "加载更多" }),
   ).not.toBeInTheDocument();
   await userEvent.click(last);
   expect(
@@ -962,7 +1129,7 @@ it("远端索引维持原读取边界，不请求同标识本地索引", async (
         },
       }),
     ),
-    http.get(`${remote}/pages`, () =>
+    http.get(`${remote}/page-directory`, () =>
       HttpResponse.json({ items: pages, total: 2 }),
     ),
     http.get(`${remote}/themes`, () => HttpResponse.json({ items: [] })),
@@ -1044,7 +1211,7 @@ it("索引正文沿上游Markdown分类层级、链接与同行摘要，不画�
   expect(screen.getByLabelText("当前路由")).toHaveTextContent("page=one");
 });
 
-it("Wiki 移除库页头与计数栏，编辑操作跟随可截断的正文标题", async () => {
+it("Wiki 保留统一库页头，编辑操作跟随可截断的正文标题", async () => {
   show("?view=wiki&page=one");
   const title = await screen.findByRole("heading", { name: "第一页知识" });
   expect(title).toHaveClass("truncate", "min-w-0");
@@ -1055,9 +1222,7 @@ it("Wiki 移除库页头与计数栏，编辑操作跟随可截断的正文标�
   expect(row).toContainElement(
     screen.getByRole("button", { name: "历史版本" }),
   );
-  expect(
-    screen.queryByRole("heading", { name: "Wiki 资料库" }),
-  ).not.toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Wiki 资料库" })).toBeVisible();
   expect(
     screen.queryByRole("heading", { name: "Wiki" }),
   ).not.toBeInTheDocument();
@@ -1116,7 +1281,10 @@ it("目录重命名保留父级、排序和失败草稿，删除空目录使用�
     }),
   );
   await user.click(screen.getByRole("button", { name: "保存" }));
-  expect(await screen.findByRole("alert")).toHaveTextContent("保存失败");
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "保存" })).toBeEnabled(),
+  );
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   expect(field).toHaveValue("改名目录");
   await user.click(screen.getByRole("button", { name: "保存" }));
   await waitFor(() =>
@@ -1152,7 +1320,7 @@ it("官方远端目录操作入口保留，点击明确提示能力未支持且�
         },
       }),
     ),
-    http.get(`${remote}/pages`, () =>
+    http.get(`${remote}/page-directory`, () =>
       HttpResponse.json({ items: pages, total: pages.length }),
     ),
     http.get(`${remote}/themes`, () =>
@@ -1168,10 +1336,10 @@ it("官方远端目录操作入口保留，点击明确提示能力未支持且�
     await screen.findByRole("button", { name: "主题目录的操作" }),
   );
   await user.click(screen.getByRole("menuitem", { name: "重命名目录" }));
-  expect(await screen.findByRole("alert")).toHaveTextContent("远端能力未支持");
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "编辑页面" }));
-  expect(await screen.findByRole("alert")).toHaveTextContent("远端能力未支持");
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 });
 
 it("目录写入结果未知时关闭重开仍保留原命令身份和草稿", async () => {
@@ -1195,7 +1363,10 @@ it("目录写入结果未知时关闭重开仍保留原命令身份和草稿", a
   await user.clear(field);
   await user.type(field, "待确认名称");
   await user.click(screen.getByRole("button", { name: "保存" }));
-  await screen.findByRole("alert");
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "保存" })).toBeEnabled(),
+  );
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "取消" }));
   await user.click(screen.getByRole("button", { name: "空目录的操作" }));
   await user.click(screen.getByRole("menuitem", { name: "重命名目录" }));
@@ -1231,7 +1402,10 @@ it("新建时更改所属目录后结果未知，独立核对入口继续原命�
     }),
   );
   await user.click(screen.getByRole("button", { name: "创建" }));
-  await screen.findByRole("alert");
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "创建" })).toBeEnabled(),
+  );
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "取消" }));
   await user.click(
     screen.getByRole("button", { name: "核对未确认操作：待确认新页" }),
@@ -1273,13 +1447,19 @@ it("未确认目录命令明确拒绝后可修改草稿并使用新的请求身�
     await user.clear(first);
     await user.type(first, "原请求名称");
     await user.click(screen.getByRole("button", { name: "保存" }));
-    await screen.findByRole("alert");
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "保存" })).toBeEnabled(),
+    );
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "取消" }));
     await user.click(
       screen.getByRole("button", { name: "核对未确认操作：原请求名称" }),
     );
     await user.click(screen.getByRole("button", { name: "保存" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("明确拒绝");
+    await waitFor(() =>
+      expect(screen.getByRole("textbox", { name: "目录名称" })).toBeEnabled(),
+    );
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     const next = screen.getByRole("textbox", { name: "目录名称" });
     await user.clear(next);
     await user.type(next, "新请求名称");
@@ -1334,7 +1514,10 @@ it("恢复结果未知保留独立核对入口，切换视图后重试刷新正�
   await user.click(await screen.findByRole("button", { name: /版本 2/ }));
   await user.click(await screen.findByRole("button", { name: "恢复此版本" }));
   await user.click(screen.getByRole("button", { name: "确认恢复" }));
-  await screen.findByRole("alert");
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "确认恢复" })).toBeEnabled(),
+  );
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "取消" }));
   await user.click(
     within(screen.getByRole("dialog", { name: "历史版本" })).getByRole(
@@ -1342,9 +1525,9 @@ it("恢复结果未知保留独立核对入口，切换视图后重试刷新正�
       { name: "关闭" },
     ),
   );
-  await user.click(screen.getByRole("button", { name: "文档" }));
+  await user.click(screen.getByRole("radio", { name: /^原件/ }));
   await screen.findByText("原始资料.md");
-  await user.click(screen.getByRole("button", { name: "Wiki" }));
+  await user.click(screen.getByRole("radio", { name: /^知识/ }));
   await user.click(
     await screen.findByRole("button", { name: "核对未确认操作：第一页知识" }),
   );
@@ -1360,4 +1543,77 @@ it("恢复结果未知保留独立核对入口，切换视图后重试刷新正�
   expect(
     screen.queryByRole("button", { name: /核对未确认操作/ }),
   ).not.toBeInTheDocument();
+});
+
+it("Wiki 正文初次读取失败全局报告，恢复后清除错误", async () => {
+  let failed = true;
+  const queryClient = show("?view=wiki&page=one");
+  server.use(
+    http.get(`${root}/pages/one`, () =>
+      failed
+        ? new HttpResponse(null, { status: 503 })
+        : HttpResponse.json({
+            id: "one",
+            slug: "concept/one",
+            title: "恢复正文",
+            content: "重试后正文",
+          }),
+    ),
+  );
+  await expectGlobalReadError();
+  failed = false;
+  await act(async () => {
+    await queryClient.refetchQueries();
+  });
+  await screen.findByText("重试后正文");
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+});
+
+it("索引初次读取失败全局报告，重新读取后恢复", async () => {
+  let failed = true;
+  const queryClient = show("?view=wiki");
+  server.use(
+    http.get(`${root}/wiki/index`, () =>
+      failed
+        ? new HttpResponse(null, { status: 503 })
+        : HttpResponse.json({ intro: "索引恢复正文", groups: [] }),
+    ),
+  );
+  await expectGlobalReadError();
+  failed = false;
+  await act(async () => {
+    await queryClient.refetchQueries();
+  });
+  await screen.findByText("索引恢复正文");
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+});
+
+it("轻量目录先展示，点击后才请求所选正文", async () => {
+  let detailReads = 0;
+  let directoryReads = 0;
+  const queryClient = show();
+  server.use(
+    http.get(`${root}/page-directory`, ({ request }) => {
+      directoryReads++;
+      expect(new URL(request.url).searchParams.get("limit")).toBe("1000");
+      return HttpResponse.json({ items: pages, total: pages.length });
+    }),
+    http.get(`${root}/pages/one`, () => {
+      detailReads++;
+      return HttpResponse.json({
+        ...pages[1],
+        content: "点击后读取的独立正文",
+      });
+    }),
+  );
+  try {
+    await screen.findByRole("treeitem", { name: "第一页知识" });
+    expect(directoryReads).toBe(1);
+    expect(detailReads).toBe(0);
+    await userEvent.click(screen.getByRole("treeitem", { name: "第一页知识" }));
+    await screen.findByText("点击后读取的独立正文");
+    expect(detailReads).toBe(1);
+  } finally {
+    queryClient.clear();
+  }
 });

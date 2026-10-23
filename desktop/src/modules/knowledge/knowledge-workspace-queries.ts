@@ -1,15 +1,14 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import {
   knowledgeAdapter,
   type KnowledgeSourceFilters,
 } from "@/shared/api/knowledge";
-import { withLocalErrorSurface } from "@/shared/api/local-error-surface";
 import type { ResourceRef } from "./knowledge-transfer";
 import {
   knowledgeKeys,
   librariesOptions,
   libraryOptions,
-  sourcesOptions,
+  sourceDirectoryOptions,
 } from "./knowledge-queries";
 import type { LibraryLocation } from "./knowledge-model";
 
@@ -20,8 +19,7 @@ export function useKnowledgeWorkspaceQueries({
   documentsVisible = true,
   active,
   listOffset,
-  sourceOffset,
-  sourcePageSize,
+  librarySearch = "",
   sourceFilters,
   location,
 }: {
@@ -30,47 +28,48 @@ export function useKnowledgeWorkspaceQueries({
   documentsVisible?: boolean;
   active: boolean;
   listOffset: number;
-  sourceOffset: number;
-  sourcePageSize: number;
+  librarySearch?: string;
   sourceFilters: KnowledgeSourceFilters;
   location: LibraryLocation;
 }) {
   const libraries = useQuery({
-    ...librariesOptions(listOffset, location),
+    ...librariesOptions(listOffset, location, librarySearch),
     enabled: active && !detail,
   });
   const libraryQuery = useQuery({
     ...libraryOptions(ref),
     enabled: active && detail,
   });
-  const sources = useQuery(
-    sourcesOptions(
-      ref,
-      sourceOffset,
-      active && detail && documentsVisible,
-      sourcePageSize,
-      sourceFilters,
-    ),
-  );
+  const sources = useInfiniteQuery({
+    ...sourceDirectoryOptions(ref, sourceFilters),
+    // 三个目录分段共用原件总数，不能随原件列表隐藏而停用事件对账。
+    enabled: active && detail && Boolean(ref.knowledgeBaseId),
+  });
+  const adapter = knowledgeAdapter(ref);
+  const capabilities = useQuery({
+    queryKey: knowledgeKeys.capabilities(ref),
+    queryFn: ({ signal }) => adapter.getCapabilities(signal),
+    enabled: active && detail && adapter.supportsServiceDetection,
+  });
   const jobs = useQuery({
     queryKey: knowledgeKeys.jobs(ref),
     queryFn: async ({ signal }) =>
       (
-        await knowledgeAdapter(ref).listJobs(
-          withLocalErrorSurface({
-            path: { libraryId: ref.knowledgeBaseId },
-            query: { offset: 0, limit: 1 },
-            signal,
-            throwOnError: true,
-          }),
-        )
+        await knowledgeAdapter(ref).listJobs({
+          path: { libraryId: ref.knowledgeBaseId },
+          query: { offset: 0, limit: 1 },
+          signal,
+          throwOnError: true,
+        })
       ).data,
     enabled:
       active &&
       detail &&
       documentsVisible &&
-      knowledgeAdapter(ref).supportsJobs,
+      adapter.supportsJobs &&
+      (!adapter.supportsServiceDetection ||
+        capabilities.data?.uploadMode === "separate"),
   });
   const activeJob = jobs.data?.activeJob;
-  return { libraries, libraryQuery, sources, jobs, activeJob };
+  return { libraries, libraryQuery, sources, jobs, activeJob, capabilities };
 }

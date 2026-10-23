@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { expect, it, vi } from "vitest";
@@ -53,11 +53,9 @@ it("新建请求等待时阻止重复提交，失败后保留草稿和重新提�
   await user.click(submit);
   expect(submit).toBeDisabled();
   rejectRequest?.(new Error("创建失败待重试"));
-  expect(await screen.findByRole("alert")).toHaveTextContent(
-    "保存设置失败，请重试。",
-  );
+  await waitFor(() => expect(submit).toBeEnabled());
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   expect(screen.getByRole("textbox", { name: "名称" })).toHaveValue("新库草稿");
-  expect(submit).toBeEnabled();
 });
 
 vi.stubGlobal(

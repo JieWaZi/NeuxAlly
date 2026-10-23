@@ -186,8 +186,10 @@ it("未知保存锁住原payload但允许关闭，重开同controller以原身�
     "不可重复创建",
   );
   await user.click(screen.getByRole("button", { name: "创建知识库" }));
-  await screen.findByRole("alert");
-  expect(screen.getByRole("textbox", { name: "名称" })).toBeDisabled();
+  await waitFor(() =>
+    expect(screen.getByRole("textbox", { name: "名称" })).toBeDisabled(),
+  );
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "取消" }));
   expect(close).toHaveBeenCalledOnce();
   rendered.unmount();
@@ -195,7 +197,7 @@ it("未知保存锁住原payload但允许关闭，重开同controller以原身�
   expect(screen.getByRole("textbox", { name: "名称" })).toHaveValue(
     "不可重复创建",
   );
-  await user.click(screen.getByRole("button", { name: "重试并核验结果" }));
+  await user.click(screen.getByRole("button", { name: "创建知识库" }));
   await waitFor(() => expect(save).toHaveBeenCalledTimes(2));
   expect(save.mock.calls[1]?.[0]).toEqual(save.mock.calls[0]?.[0]);
 });

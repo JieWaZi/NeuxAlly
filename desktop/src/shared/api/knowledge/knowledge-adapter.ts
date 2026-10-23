@@ -26,7 +26,9 @@ export function knowledgeAdapter(input: ResourceRef): Implementation {
   if (
     ref.backend !== "local" &&
     !(
-      (ref.backend === "custom" || ref.backend === "weknora") &&
+      (ref.backend === "custom" ||
+        ref.backend === "weknora" ||
+        ref.backend === "integration") &&
       ref.connectionId &&
       ref.connectionId !== "local"
     )
@@ -70,11 +72,15 @@ export function knowledgeAdapter(input: ResourceRef): Implementation {
     createLibrary: true,
     updateLibrary: true,
     deleteLibrary: true,
+    removeMount: true,
     getLibraryDeletion: true,
     recoverLibraryDeletion: true,
     listSources: true,
     getSource: true,
     importSource: true,
+    getUploadContext: true,
+    redetectService: true,
+    uploadSource: true,
     archiveSource: true,
     getRaw: true,
     getSourceChunks: true,
@@ -89,6 +95,7 @@ export function knowledgeAdapter(input: ResourceRef): Implementation {
     retryJob: true,
     sendMaintenanceMessage: true,
     listPages: true,
+    listPageDirectory: true,
     getPageBySlug: true,
     getWikiIndex: true,
     listThemes: true,

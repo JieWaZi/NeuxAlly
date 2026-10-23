@@ -15,11 +15,19 @@ const Content = lazy(() =>
 export function KnowledgeUploadDialog({
   opened,
   close,
+  mode = "separate",
+  confirmationVersion,
+  pending,
+  onRedetect,
   ...props
 }: {
   opened: boolean;
   close: () => void;
   queue?: KnowledgeUploadQueue;
+  mode?: "separate" | "automatic" | "unknown";
+  confirmationVersion?: number;
+  pending?: boolean;
+  onRedetect?: () => Promise<void>;
   upload: (
     file: File,
     requestId: string,
@@ -39,23 +47,52 @@ export function KnowledgeUploadDialog({
         if (!open) requestClose();
       }}
     >
-      <DialogContent title={t("upload")} description={t("uploadHelp")}>
-        <Suspense
-          fallback={
-            <>
-              <div className="px-6 pb-5">
-                <KnowledgeWikiContentLoading />
-              </div>
-              <DialogFooter>
-                <Button variant="ghost" onClick={close}>
-                  {t("close")}
-                </Button>
-              </DialogFooter>
-            </>
-          }
-        >
-          <Content {...props} close={close} dialogRef={content} />
-        </Suspense>
+      <DialogContent
+        title={t("upload")}
+        description={t(
+          mode === "automatic"
+            ? "uploadAutomaticNotice"
+            : mode === "unknown"
+              ? "uploadUnknownNotice"
+              : "uploadSeparateNotice",
+        )}
+      >
+        {pending ? (
+          <>
+            <div className="px-6 pb-5">
+              <KnowledgeWikiContentLoading />
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={close}>
+                {t("close")}
+              </Button>
+            </DialogFooter>
+          </>
+        ) : (
+          <Suspense
+            fallback={
+              <>
+                <div className="px-6 pb-5">
+                  <KnowledgeWikiContentLoading />
+                </div>
+                <DialogFooter>
+                  <Button variant="ghost" onClick={close}>
+                    {t("close")}
+                  </Button>
+                </DialogFooter>
+              </>
+            }
+          >
+            <Content
+              key={`${mode}:${confirmationVersion ?? 0}`}
+              {...props}
+              mode={mode}
+              onRedetect={onRedetect}
+              close={close}
+              dialogRef={content}
+            />
+          </Suspense>
+        )}
       </DialogContent>
     </Dialog>
   );

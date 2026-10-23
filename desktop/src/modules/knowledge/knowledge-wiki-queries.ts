@@ -2,6 +2,7 @@ import { queryOptions } from "@tanstack/react-query";
 import { knowledgeAdapter } from "@/shared/api/knowledge";
 import type {
   GithubComJieWaZiNeuxAllyServerApisKnowledgePage as WikiPage,
+  GithubComJieWaZiNeuxAllyServerApisKnowledgePageDirectoryEntry as WikiPageEntry,
   GithubComJieWaZiNeuxAllyServerApisKnowledgeTheme as WikiTheme,
 } from "@/shared/api/generated/types.gen";
 import { withLocalErrorSurface } from "@/shared/api/local-error-surface";
@@ -10,7 +11,7 @@ import { ApiError } from "@/shared/api/errors";
 import type { GithubComJieWaZiNeuxAllyServerApisKnowledgeRevision as WikiRevision } from "@/shared/api/generated/types.gen";
 import { knowledgeKeys } from "./knowledge-queries";
 import type { ResourceRef } from "./knowledge-transfer";
-export type { WikiPage, WikiTheme };
+export type { WikiPage, WikiPageEntry, WikiTheme };
 export type { WikiRevision };
 
 /** 快照不可变；缺失历史与普通读取故障分别表达，不将缺失伪装为空正文。 */
@@ -59,7 +60,9 @@ export function wikiPagesOptions(ref: ResourceRef) {
   return queryOptions({
     queryKey: [...knowledgeKeys.resource(ref), "wiki", "pages"],
     queryFn: async ({ signal }) => {
-      const pages: WikiPage[] = [];
+      const pages: WikiPageEntry[] = [];
+      const seen = new Set<string>();
+      const adapter = knowledgeAdapter(ref);
       // 目录与统计必须使用完整分页；中断或空页不冒充完整目录。
       while (true) {
         const options = withLocalErrorSurface({
@@ -67,12 +70,17 @@ export function wikiPagesOptions(ref: ResourceRef) {
             libraryId: ref.knowledgeBaseId,
             connectionId: ref.connectionId,
           },
-          query: { offset: pages.length, limit: 100 },
+          query: { offset: pages.length, limit: 1000 },
           signal,
           throwOnError: true as const,
         });
-        const result = (await knowledgeAdapter(ref).listPages(options)).data;
+        const result = (await adapter.listPageDirectory(options)).data;
         const rows = result.items ?? [];
+        for (const row of rows) {
+          if (!row.id || seen.has(row.id))
+            throw new Error(String(i18n.t("knowledgeWiki:incomplete")));
+          seen.add(row.id);
+        }
         pages.push(...rows);
         if (pages.length >= (result.total ?? pages.length)) return pages;
         if (!rows.length)

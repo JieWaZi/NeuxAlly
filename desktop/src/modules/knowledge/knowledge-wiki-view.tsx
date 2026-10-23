@@ -1,4 +1,10 @@
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import { trackHorizontalDrag } from "@/shared/lib/horizontal-drag";
 import { VerticalResizeHandle } from "@/shared/ui/vertical-resize-handle";
 import { useQuery } from "@tanstack/react-query";
@@ -15,12 +21,12 @@ import { Separator } from "@/shared/ui/separator";
 import { PageAction } from "@/shared/ui/resource-page";
 import { IconAction } from "./knowledge-controls";
 import { KnowledgeWikiStructuredIndex } from "./knowledge-wiki-index";
+import { KnowledgeWikiRemoteIndex } from "./knowledge-wiki-remote-index";
 import { KnowledgeWikiHistory } from "./knowledge-wiki-history";
 import { KnowledgeWikiDelete } from "./knowledge-wiki-delete";
 import { WikiTime } from "./knowledge-wiki-time";
 import { Button } from "@/shared/ui/button";
 import { EmptyState } from "@/shared/ui/empty-state";
-import { QueryState } from "@/shared/ui/query-state";
 import {
   KnowledgeWikiDirectoryLoading,
   KnowledgeWikiContentLoading,
@@ -38,7 +44,7 @@ import { KnowledgeReadFeedback } from "./knowledge-read-feedback";
 import { KnowledgeWikiTree } from "./knowledge-wiki-tree";
 import { useWikiCopy } from "./use-wiki-copy";
 import { knowledgeAdapter } from "@/shared/api/knowledge";
-import { localApiErrorMessage } from "@/shared/api/local-error-surface";
+import { reportKnowledgeError } from "./knowledge-error-notice";
 import { KnowledgeWikiFolderDialog } from "./knowledge-wiki-folder-dialog";
 import type { KnowledgeWikiCommands } from "./knowledge-wiki-command";
 import { resourceKey } from "./knowledge-transfer";
@@ -56,24 +62,41 @@ export function KnowledgeWikiView({
   pageId,
   onPage,
   writable,
+  maintenanceDisabled = false,
   structureVersion,
   commands: sharedCommands,
   onMaintenance,
+  content,
+  directoryTab,
+  onDirectoryTab,
+  sourceCount,
+  sourceDirectory,
+  sourceQuery,
+  onSourceQuery,
+  view = "wiki",
 }: {
   resource: ResourceRef;
   pageId: string;
-  onPage: (id: string) => void;
+  onPage: (id: string, tab?: string) => void;
   writable: boolean;
+  maintenanceDisabled?: boolean;
   structureVersion: number;
   commands?: KnowledgeWikiCommands;
   onMaintenance: (page: WikiPage) => void;
+  content?: ReactNode;
+  directoryTab?: string;
+  onDirectoryTab?: (tab: string) => void;
+  sourceCount?: number;
+  sourceDirectory?: ReactNode;
+  sourceQuery?: string;
+  onSourceQuery?: (query: string) => void;
+  view?: "raw" | "wiki" | "graph";
 }) {
   const t = useWikiCopy();
   const adapter = knowledgeAdapter(resource);
   const [localCommands] = useState<KnowledgeWikiCommands>(() => new Map());
   const commands = sharedCommands ?? localCommands;
   const keyFor = (operation: string) => `${resourceKey(resource)}:${operation}`;
-  const [actionError, setActionError] = useState("");
   const beginMaintenance = (targetPage: WikiPage) =>
     void act("maintenanceChat", () => onMaintenance(targetPage));
   const [folderAction, setFolderAction] = useState<{
@@ -86,7 +109,6 @@ export function KnowledgeWikiView({
     callback: () => void,
     commandKey?: string,
   ) {
-    setActionError("");
     try {
       if (
         !adapter.localConfiguration &&
@@ -95,7 +117,11 @@ export function KnowledgeWikiView({
         await adapter.assertCapability(capability);
       callback();
     } catch (cause) {
-      setActionError(localApiErrorMessage(cause, t("writeFailed")));
+      reportKnowledgeError(
+        cause,
+        `wiki-action:${keyFor(capability)}`,
+        t("writeFailed"),
+      );
     }
   }
   const active = useRouteSceneActive();
@@ -110,7 +136,13 @@ export function KnowledgeWikiView({
   const pages = useQuery({ ...wikiPagesOptions(resource), enabled: active });
   const themes = useQuery({ ...wikiThemesOptions(resource), enabled: active });
   const index = pages.data?.find((p) => p.pageType === "index");
-  const selectedId = pageId || index?.id || "";
+  const summaryMode = directoryTab === "summaries";
+  const selectedId =
+    pageId ||
+    (summaryMode
+      ? pages.data?.find((entry) => entry.pageType === "summary")?.id
+      : index?.id) ||
+    "";
   const page = useQuery({
     ...wikiPageOptions(
       resource,
@@ -119,6 +151,7 @@ export function KnowledgeWikiView({
     ),
     enabled:
       active &&
+      content === undefined &&
       Boolean(selectedId) &&
       (adapter.revisionsIncludeContent || Boolean(pages.data)),
   });
@@ -144,12 +177,19 @@ export function KnowledgeWikiView({
       resource.knowledgeBaseId,
       active,
       pageId,
+      view,
+      directoryTab,
     ],
   );
   function navigate(id: string) {
     indexNavigation.current += 1;
     setMissingLink(false);
-    onPage(id);
+    onPage(
+      id,
+      pages.data?.find((entry) => entry.id === id)?.pageType === "summary"
+        ? "summaries"
+        : "knowledge",
+    );
   }
   function follow(href: string, entries = pages.data) {
     let slug: string;
@@ -189,7 +229,7 @@ export function KnowledgeWikiView({
     ? normalizeWikiIndexIntro(page.data?.content ?? "")
     : stripDuplicateWikiTitle(page.data?.content ?? "", page.data?.title ?? "");
   const structuredIndex =
-    adapter.localConfiguration &&
+    !summaryMode &&
     (!pageId || pageId === index?.id || page.data?.pageType === "index");
   const failed = pages.error || themes.error;
   const editable = Boolean(
@@ -202,6 +242,7 @@ export function KnowledgeWikiView({
         <IconAction
           icon={Sparkles}
           label={t("aiRevise")}
+          disabled={maintenanceDisabled}
           onClick={() => beginMaintenance(currentPage)}
         />
       )}
@@ -320,11 +361,6 @@ export function KnowledgeWikiView({
                   })}
                 </Button>
               ))}
-            {actionError && (
-              <p role="alert" className="type-body text-destructive pb-3">
-                {actionError}
-              </p>
-            )}
             {failed && pages.data && themes.data && (
               <KnowledgeReadFeedback
                 hasData
@@ -338,61 +374,71 @@ export function KnowledgeWikiView({
                 }}
               />
             )}
-            {failed && (!pages.data || !themes.data) ? (
-              <QueryState
-                error={failed}
-                onRetry={() => {
-                  void pages.refetch();
-                  void themes.refetch();
-                }}
-              />
-            ) : pages.isPending || themes.isPending ? (
-              <KnowledgeWikiDirectoryLoading />
-            ) : (
-              <KnowledgeWikiTree
-                pages={pages.data ?? []}
-                themes={themes.data ?? []}
-                selectedPage={selectedId}
-                onPage={navigate}
-                onFolder={setFolder}
-                onCreate={(kind) =>
-                  void act(
-                    kind === "folder" ? "themeWrite" : "write",
-                    () =>
+            <KnowledgeWikiTree
+              tab={directoryTab}
+              onTabChange={onDirectoryTab}
+              sourceCount={sourceCount}
+              sourceDirectory={sourceDirectory}
+              sourceQuery={sourceQuery}
+              onSourceQuery={onSourceQuery}
+              feedback={
+                pages.isPending || themes.isPending ? (
+                  <KnowledgeWikiDirectoryLoading />
+                ) : failed && (!pages.data || !themes.data) ? (
+                  <KnowledgeReadFeedback
+                    state={{
+                      pending: false,
+                      error: failed,
+                      retry: () => {
+                        void pages.refetch();
+                        void themes.refetch();
+                      },
+                    }}
+                  />
+                ) : undefined
+              }
+              pages={pages.data ?? []}
+              themes={themes.data ?? []}
+              selectedPage={selectedId}
+              onPage={navigate}
+              onFolder={setFolder}
+              onCreate={(kind) =>
+                void act(
+                  kind === "folder" ? "themeWrite" : "write",
+                  () =>
+                    setEditor({
+                      kind,
+                      commandKey: keyFor(`${kind}:create:${folder}`),
+                    }),
+                  keyFor(`${kind}:create:${folder}`),
+                )
+              }
+              onFolderAction={(kind, target) =>
+                void act(
+                  "themeWrite",
+                  () => {
+                    if (kind === "create") {
+                      setFolder(target.id ?? "");
                       setEditor({
+                        kind: "folder",
+                        commandKey: keyFor(`folder:create:${target.id}`),
+                      });
+                    } else
+                      setFolderAction({
                         kind,
-                        commandKey: keyFor(`${kind}:create:${folder}`),
-                      }),
-                    keyFor(`${kind}:create:${folder}`),
-                  )
-                }
-                onFolderAction={(kind, target) =>
-                  void act(
-                    "themeWrite",
-                    () => {
-                      if (kind === "create") {
-                        setFolder(target.id ?? "");
-                        setEditor({
-                          kind: "folder",
-                          commandKey: keyFor(`folder:create:${target.id}`),
-                        });
-                      } else
-                        setFolderAction({
-                          kind,
-                          folder: target,
-                          commandKey: keyFor(`folder:${kind}:${target.id}`),
-                        });
-                    },
-                    keyFor(
-                      kind === "create"
-                        ? `folder:create:${target.id}`
-                        : `folder:${kind}:${target.id}`,
-                    ),
-                  )
-                }
-                writable={writable && !failed}
-              />
-            )}
+                        folder: target,
+                        commandKey: keyFor(`folder:${kind}:${target.id}`),
+                      });
+                  },
+                  keyFor(
+                    kind === "create"
+                      ? `folder:create:${target.id}`
+                      : `folder:${kind}:${target.id}`,
+                  ),
+                )
+              }
+              writable={writable && !failed}
+            />
           </aside>
           <VerticalResizeHandle
             className="hidden @[42rem]/wiki:block"
@@ -436,128 +482,157 @@ export function KnowledgeWikiView({
           <DetailDockScrollArea asChild>
             <article
               aria-label={
-                structuredIndex ? t("index") : pageLabel || t("index")
+                content !== undefined
+                  ? undefined
+                  : structuredIndex
+                    ? t("index")
+                    : pageLabel || t("index")
               }
-              className="pt-4 @[42rem]/wiki:pt-0 @[42rem]/wiki:pl-6"
+              className="flex min-h-0 flex-col pt-4 @[42rem]/wiki:pt-0 @[42rem]/wiki:pl-6"
             >
-              {!structuredIndex && page.error && page.data && (
-                <KnowledgeReadFeedback
-                  hasData
-                  state={{
-                    pending: false,
-                    error: page.error,
-                    retry: () => {
-                      void page.refetch();
-                    },
-                  }}
-                />
-              )}
-              {structuredIndex ? (
+              {content ?? (
                 <>
-                  {pageActions && (
-                    <div className="float-right ml-3 flex items-center gap-2">
-                      {pageActions}
-                    </div>
-                  )}
-                  {missingLink && (
-                    <p
-                      role="status"
-                      className="type-body text-muted-foreground mb-4"
-                    >
-                      {t("missingLink")}
-                    </p>
-                  )}
-                  <KnowledgeWikiStructuredIndex
-                    resource={resource}
-                    active={active}
-                    onLink={(href) => {
-                      void followIndex(href);
-                    }}
-                    remarkPlugins={wikiRemarkPlugins}
-                  />
-                </>
-              ) : page.error && !page.data ? (
-                <>
-                  <QueryState
-                    error={page.error}
-                    onRetry={() => void page.refetch()}
-                  />
-                  <Button variant="secondary" onClick={() => navigate("")}>
-                    {t("backIndex")}
-                  </Button>
-                </>
-              ) : !page.data &&
-                (pages.isPending || (selectedId && page.isPending)) ? (
-                <KnowledgeWikiContentLoading />
-              ) : page.data ? (
-                <>
-                  <header className="mb-5 space-y-3">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <h2
-                        title={pageLabel}
-                        className="type-title min-w-0 flex-1 truncate font-semibold"
-                      >
-                        {pageLabel}
-                      </h2>
-                      <div className="flex shrink-0 items-center gap-2">
-                        {pageActions}
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant="secondary">{t(typeLabel)}</Badge>
-                      {page.data.version ? (
-                        <Badge variant="secondary">
-                          {t("version", { version: page.data.version })}
-                        </Badge>
-                      ) : null}
-                      <WikiTime
-                        value={page.data.updatedAt}
-                        label={(time) => t("updatedAt", { time })}
-                      />
-                    </div>
-                    {page.data.summary && (
-                      <p className="type-body text-content-secondary">
-                        {page.data.summary}
-                      </p>
-                    )}
-                    <Separator className="mt-5" />
-                  </header>
-                  {missingLink && (
-                    <p
-                      role="status"
-                      className="type-body text-muted-foreground mb-4"
-                    >
-                      {t("missingLink")}
-                    </p>
-                  )}
-                  {source ? (
-                    <StaticMarkdown
-                      key={`${selectedId}:${page.data.version ?? 0}`}
-                      source={source}
-                      remarkPlugins={wikiRemarkPlugins}
-                      onLink={follow}
+                  {!structuredIndex && page.error && page.data && (
+                    <KnowledgeReadFeedback
+                      hasData
+                      state={{
+                        pending: false,
+                        error: page.error,
+                        retry: () => {
+                          void page.refetch();
+                        },
+                      }}
                     />
-                  ) : (
-                    <p className="type-body text-muted-foreground">
-                      {t("noContent")}
-                    </p>
                   )}
-                  <KnowledgeWikiReferences
-                    key={`references:${selectedId}`}
-                    resource={resource}
-                    page={page.data}
-                    pages={pages.data ?? []}
-                    onLink={follow}
-                  />
+                  {structuredIndex ? (
+                    <>
+                      {missingLink && (
+                        <p
+                          role="status"
+                          className="type-body text-muted-foreground mb-4"
+                        >
+                          {t("missingLink")}
+                        </p>
+                      )}
+                      {adapter.localConfiguration ? (
+                        <KnowledgeWikiStructuredIndex
+                          resource={resource}
+                          actions={pageActions}
+                          active={active}
+                          onLink={(href) => {
+                            void followIndex(href);
+                          }}
+                          remarkPlugins={wikiRemarkPlugins}
+                        />
+                      ) : (
+                        <KnowledgeWikiRemoteIndex
+                          resource={resource}
+                          active={active}
+                          actions={pageActions}
+                          onLink={(href) => {
+                            void followIndex(href);
+                          }}
+                          remarkPlugins={wikiRemarkPlugins}
+                        />
+                      )}
+                    </>
+                  ) : page.error && !page.data ? (
+                    <>
+                      <KnowledgeReadFeedback
+                        state={{
+                          pending: false,
+                          error: page.error,
+                          retry: () => void page.refetch(),
+                        }}
+                      />
+                      <Button variant="secondary" onClick={() => navigate("")}>
+                        {t("backIndex")}
+                      </Button>
+                    </>
+                  ) : summaryMode && !selectedId && !pages.isPending ? (
+                    <EmptyState
+                      title={t("emptySummaries")}
+                      description={t("emptySummariesHelp")}
+                    />
+                  ) : !page.data &&
+                    (pages.isPending || (selectedId && page.isPending)) ? (
+                    <KnowledgeWikiContentLoading />
+                  ) : page.data ? (
+                    <>
+                      <header className="mb-5 space-y-3">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <h2
+                            title={pageLabel}
+                            className="type-title min-w-0 flex-1 truncate font-semibold"
+                          >
+                            {pageLabel}
+                          </h2>
+                          <div className="flex shrink-0 items-center gap-2">
+                            {pageActions}
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant="secondary">{t(typeLabel)}</Badge>
+                          {page.data.version ? (
+                            <Badge variant="secondary">
+                              {t("version", { version: page.data.version })}
+                            </Badge>
+                          ) : null}
+                          <WikiTime
+                            value={page.data.updatedAt}
+                            label={(time) => t("updatedAt", { time })}
+                          />
+                        </div>
+                        {page.data.summary && (
+                          <p className="type-body text-content-secondary">
+                            {page.data.summary}
+                          </p>
+                        )}
+                        <Separator className="mt-5" />
+                      </header>
+                      {missingLink && (
+                        <p
+                          role="status"
+                          className="type-body text-muted-foreground mb-4"
+                        >
+                          {t("missingLink")}
+                        </p>
+                      )}
+                      {source ? (
+                        <StaticMarkdown
+                          key={`${selectedId}:${page.data.version ?? 0}`}
+                          source={source}
+                          remarkPlugins={wikiRemarkPlugins}
+                          onLink={follow}
+                        />
+                      ) : (
+                        <p className="type-body text-muted-foreground">
+                          {t("noContent")}
+                        </p>
+                      )}
+                      <KnowledgeWikiReferences
+                        key={`references:${selectedId}`}
+                        resource={resource}
+                        page={page.data}
+                        pages={pages.data ?? []}
+                        onLink={follow}
+                      />
+                    </>
+                  ) : !pages.isPending &&
+                    !failed &&
+                    Boolean(pages.data?.length) ? (
+                    <KnowledgeWikiIndex
+                      pages={pages.data ?? []}
+                      onPage={navigate}
+                    />
+                  ) : !pages.isPending && !failed ? (
+                    <EmptyState
+                      title={t("empty")}
+                      description={t("emptyHelp")}
+                    />
+                  ) : null}
                 </>
-              ) : !pages.isPending && !failed && Boolean(pages.data?.length) ? (
-                <KnowledgeWikiIndex
-                  pages={pages.data ?? []}
-                  onPage={navigate}
-                />
-              ) : !pages.isPending && !failed ? (
-                <EmptyState title={t("empty")} description={t("emptyHelp")} />
-              ) : null}
+              )}
             </article>
           </DetailDockScrollArea>
         </div>

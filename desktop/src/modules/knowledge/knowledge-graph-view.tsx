@@ -22,6 +22,7 @@ import {
   mergeGraphData,
 } from "./knowledge-graph-model";
 import {
+  localGraphPagesOptions,
   remoteGraphOptions,
   remoteGraphExpansionOptions,
   remoteGraphSearchOptions,
@@ -30,7 +31,6 @@ import { KnowledgeGraphReader } from "./knowledge-graph-reader";
 import { KnowledgeGraphLoading } from "./knowledge-loading";
 import { KnowledgeReadFeedback } from "./knowledge-read-feedback";
 import type { ResourceRef } from "./knowledge-transfer";
-import { wikiPagesOptions } from "./knowledge-wiki-queries";
 import { knowledgeAdapter } from "@/shared/api/knowledge";
 import { useGraphCopy } from "./use-graph-copy";
 
@@ -67,7 +67,7 @@ export function KnowledgeGraphView({
     expanded.center === center ? expanded.selection : "";
   const deferredSearch = useDeferredValue(search.trim());
   const local = useQuery({
-    ...wikiPagesOptions(resource),
+    ...localGraphPagesOptions(resource),
     select: buildLocalGraph,
     enabled: active && !remoteGraph,
   });

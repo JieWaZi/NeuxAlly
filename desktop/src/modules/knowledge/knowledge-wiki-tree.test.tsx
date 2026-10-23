@@ -25,6 +25,9 @@ it("系统未分类随内容出现和消失，保留普通空目录", () => {
     </TooltipProvider>
   );
   const { rerender } = render(view([]));
+  expect(
+    screen.queryByRole("button", { name: "列表视图" }),
+  ).not.toBeInTheDocument();
   expect(screen.getAllByRole("treeitem", { name: "未分类" })).toHaveLength(1);
   expect(screen.getByRole("treeitem", { name: "普通空目录" })).toBeVisible();
 

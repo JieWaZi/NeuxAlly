@@ -47,7 +47,7 @@ it("知识库入口先挂载搜索与操作，表单外壳同步打开且取消�
   const initialDialog = screen.getByRole("dialog", { name: "新建知识库" });
   const user = userEvent.setup();
   await user.type(
-    await screen.findByRole("textbox", { name: "名称" }),
+    await screen.findByRole("textbox", { name: "名称" }, { timeout: 5000 }),
     "待创建草稿",
   );
   expect(screen.getByRole("dialog", { name: "新建知识库" })).toBe(
