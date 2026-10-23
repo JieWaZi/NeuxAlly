@@ -3975,10 +3975,11 @@ export type GithubComJieWaZiNeuxAllyServerConstantsImConnectionState = '' | 'con
  * >
  * * `` - IMPlatformUnspecified 表示未选择平台。
  * * `feishu` - IMPlatformFeishu 表示飞书企业机器人。
+ * * `wecom` - IMPlatformWecom 表示企业微信智能机器人。
  * * `weixin` - IMPlatformWeixin 表示个人微信 iLink 机器人。
  *
  */
-export type GithubComJieWaZiNeuxAllyServerConstantsImPlatform = '' | 'feishu' | 'weixin';
+export type GithubComJieWaZiNeuxAllyServerConstantsImPlatform = '' | 'feishu' | 'wecom' | 'weixin';
 
 /**
  * >
@@ -7107,7 +7108,7 @@ export type GithubComJieWaZiNeuxAllyServerRepositoriesModelsImBinding = {
  */
 export type GithubComJieWaZiNeuxAllyServerRepositoriesModelsImConnection = {
     /**
-     * AppID 是飞书应用标识或微信机器人标识。
+     * AppID 是飞书应用或微信、企业微信机器人标识。
      */
     appId?: string;
     /**
@@ -9531,6 +9532,7 @@ export type ReadErrors = {
      * * `[IMConnectionDisabled][40900004006]`
      * * `[IMConnectionHasWorkflowDependencies][40900004005]`
      * * `[IMConnectionInUse][40900004004]`
+     * * `[IMConnectionReplaced][40900004007]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
      * * `[MCPConnectorNameConflict][40900000010]`
@@ -9805,6 +9807,7 @@ export type CommandErrors = {
      * * `[IMConnectionDisabled][40900004006]`
      * * `[IMConnectionHasWorkflowDependencies][40900004005]`
      * * `[IMConnectionInUse][40900004004]`
+     * * `[IMConnectionReplaced][40900004007]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
      * * `[MCPConnectorNameConflict][40900000010]`
@@ -10260,6 +10263,7 @@ export type StartAiAccountLoginErrors = {
      * * `[IMConnectionDisabled][40900004006]`
      * * `[IMConnectionHasWorkflowDependencies][40900004005]`
      * * `[IMConnectionInUse][40900004004]`
+     * * `[IMConnectionReplaced][40900004007]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
      * * `[MCPConnectorNameConflict][40900000010]`
@@ -10543,6 +10547,7 @@ export type CancelAiAccountLoginErrors = {
      * * `[IMConnectionDisabled][40900004006]`
      * * `[IMConnectionHasWorkflowDependencies][40900004005]`
      * * `[IMConnectionInUse][40900004004]`
+     * * `[IMConnectionReplaced][40900004007]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
      * * `[MCPConnectorNameConflict][40900000010]`
@@ -11024,6 +11029,7 @@ export type ListGlobalAutomaticTasksErrors = {
      * * `[IMConnectionDisabled][40900004006]`
      * * `[IMConnectionHasWorkflowDependencies][40900004005]`
      * * `[IMConnectionInUse][40900004004]`
+     * * `[IMConnectionReplaced][40900004007]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
      * * `[MCPConnectorNameConflict][40900000010]`
@@ -11382,6 +11388,7 @@ export type GetGlobalAutomaticTaskErrors = {
      * * `[IMConnectionDisabled][40900004006]`
      * * `[IMConnectionHasWorkflowDependencies][40900004005]`
      * * `[IMConnectionInUse][40900004004]`
+     * * `[IMConnectionReplaced][40900004007]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
      * * `[MCPConnectorNameConflict][40900000010]`
@@ -11661,6 +11668,7 @@ export type UpdateWorkflowAutomaticTaskErrors = {
      * * `[IMConnectionDisabled][40900004006]`
      * * `[IMConnectionHasWorkflowDependencies][40900004005]`
      * * `[IMConnectionInUse][40900004004]`
+     * * `[IMConnectionReplaced][40900004007]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
      * * `[MCPConnectorNameConflict][40900000010]`
@@ -13485,6 +13493,7 @@ export type StreamEventsErrors = {
      * * `[IMConnectionDisabled][40900004006]`
      * * `[IMConnectionHasWorkflowDependencies][40900004005]`
      * * `[IMConnectionInUse][40900004004]`
+     * * `[IMConnectionReplaced][40900004007]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
      * * `[MCPConnectorNameConflict][40900000010]`
@@ -13891,6 +13900,7 @@ export type StartImLoginErrors = {
     /**
      * >
      * * `[IMConfigurationInvalid][40000004001]`
+     * * `[IMFileInvalid][40000004002]`
      *
      */
     400: GithubComShrewxGinxPkgStatuserrorStatusErr;
@@ -14803,6 +14813,7 @@ export type ListPluginsErrors = {
      * * `[IMConnectionDisabled][40900004006]`
      * * `[IMConnectionHasWorkflowDependencies][40900004005]`
      * * `[IMConnectionInUse][40900004004]`
+     * * `[IMConnectionReplaced][40900004007]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
      * * `[MCPConnectorNameConflict][40900000010]`
@@ -15304,6 +15315,7 @@ export type PrepareCatalogPluginErrors = {
      * * `[IMConnectionDisabled][40900004006]`
      * * `[IMConnectionHasWorkflowDependencies][40900004005]`
      * * `[IMConnectionInUse][40900004004]`
+     * * `[IMConnectionReplaced][40900004007]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
      * * `[MCPConnectorNameConflict][40900000010]`
@@ -15809,6 +15821,7 @@ export type GetPluginErrors = {
      * * `[IMConnectionDisabled][40900004006]`
      * * `[IMConnectionHasWorkflowDependencies][40900004005]`
      * * `[IMConnectionInUse][40900004004]`
+     * * `[IMConnectionReplaced][40900004007]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
      * * `[MCPConnectorNameConflict][40900000010]`
@@ -16705,6 +16718,7 @@ export type InstallPluginErrors = {
      * * `[IMConnectionDisabled][40900004006]`
      * * `[IMConnectionHasWorkflowDependencies][40900004005]`
      * * `[IMConnectionInUse][40900004004]`
+     * * `[IMConnectionReplaced][40900004007]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
      * * `[MCPConnectorNameConflict][40900000010]`
@@ -17981,6 +17995,7 @@ export type SetAutomaticTaskApiErrors = {
      * * `[IMConnectionDisabled][40900004006]`
      * * `[IMConnectionHasWorkflowDependencies][40900004005]`
      * * `[IMConnectionInUse][40900004004]`
+     * * `[IMConnectionReplaced][40900004007]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
      * * `[MCPConnectorNameConflict][40900000010]`
@@ -18490,6 +18505,7 @@ export type ListAutomaticTasksErrors = {
      * * `[IMConnectionDisabled][40900004006]`
      * * `[IMConnectionHasWorkflowDependencies][40900004005]`
      * * `[IMConnectionInUse][40900004004]`
+     * * `[IMConnectionReplaced][40900004007]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
      * * `[MCPConnectorNameConflict][40900000010]`
@@ -18829,6 +18845,7 @@ export type ListAutomaticTaskAttentionErrors = {
      * * `[IMConnectionDisabled][40900004006]`
      * * `[IMConnectionHasWorkflowDependencies][40900004005]`
      * * `[IMConnectionInUse][40900004004]`
+     * * `[IMConnectionReplaced][40900004007]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
      * * `[MCPConnectorNameConflict][40900000010]`
@@ -19141,6 +19158,7 @@ export type DeleteAutomaticTaskErrors = {
      * * `[IMConnectionDisabled][40900004006]`
      * * `[IMConnectionHasWorkflowDependencies][40900004005]`
      * * `[IMConnectionInUse][40900004004]`
+     * * `[IMConnectionReplaced][40900004007]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
      * * `[MCPConnectorNameConflict][40900000010]`
@@ -19424,6 +19442,7 @@ export type GetAutomaticTaskErrors = {
      * * `[IMConnectionDisabled][40900004006]`
      * * `[IMConnectionHasWorkflowDependencies][40900004005]`
      * * `[IMConnectionInUse][40900004004]`
+     * * `[IMConnectionReplaced][40900004007]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
      * * `[MCPConnectorNameConflict][40900000010]`
@@ -19844,6 +19863,7 @@ export type ListAutomaticRunsErrors = {
      * * `[IMConnectionDisabled][40900004006]`
      * * `[IMConnectionHasWorkflowDependencies][40900004005]`
      * * `[IMConnectionInUse][40900004004]`
+     * * `[IMConnectionReplaced][40900004007]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
      * * `[MCPConnectorNameConflict][40900000010]`
@@ -20127,6 +20147,7 @@ export type TriggerAutomaticTaskErrors = {
      * * `[IMConnectionDisabled][40900004006]`
      * * `[IMConnectionHasWorkflowDependencies][40900004005]`
      * * `[IMConnectionInUse][40900004004]`
+     * * `[IMConnectionReplaced][40900004007]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
      * * `[MCPConnectorNameConflict][40900000010]`
@@ -20911,6 +20932,7 @@ export type ListWakerPluginsErrors = {
      * * `[IMConnectionDisabled][40900004006]`
      * * `[IMConnectionHasWorkflowDependencies][40900004005]`
      * * `[IMConnectionInUse][40900004004]`
+     * * `[IMConnectionReplaced][40900004007]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
      * * `[MCPConnectorNameConflict][40900000010]`
@@ -22420,6 +22442,7 @@ export type DeleteWorkflowErrors = {
      * * `[IMConnectionDisabled][40900004006]`
      * * `[IMConnectionHasWorkflowDependencies][40900004005]`
      * * `[IMConnectionInUse][40900004004]`
+     * * `[IMConnectionReplaced][40900004007]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
      * * `[MCPConnectorNameConflict][40900000010]`
@@ -22842,6 +22865,7 @@ export type SendWorkflowCreationMessageErrors = {
      * * `[IMConnectionDisabled][40900004006]`
      * * `[IMConnectionHasWorkflowDependencies][40900004005]`
      * * `[IMConnectionInUse][40900004004]`
+     * * `[IMConnectionReplaced][40900004007]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
      * * `[MCPConnectorNameConflict][40900000010]`
@@ -23820,6 +23844,7 @@ export type GetWorkflowInstanceErrors = {
      * * `[IMConnectionDisabled][40900004006]`
      * * `[IMConnectionHasWorkflowDependencies][40900004005]`
      * * `[IMConnectionInUse][40900004004]`
+     * * `[IMConnectionReplaced][40900004007]`
      * * `[IMDeliveryContextUnavailable][40900004002]`
      * * `[IMDeliveryRetryUnsafe][40900004003]`
      * * `[MCPConnectorNameConflict][40900000010]`

@@ -670,6 +670,9 @@ const (
 	// @errZH 发送连接已停用，请在连接设置中启用后重试
 	// @errEN delivery connection is disabled; enable it in connection settings and retry
 	IMConnectionDisabled StatusError = http.StatusConflict*1e8 + 4006
+	// @errZH 企业微信机器人已在其他客户端连接，请关闭其他连接后保存设置以重连
+	// @errEN wecom bot connected elsewhere; close the other connection and save settings to reconnect
+	IMConnectionReplaced StatusError = http.StatusConflict*1e8 + 4007
 )
 
 const (

@@ -329,3 +329,14 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
+
+
+## 企业微信 IM 协议参考
+
+适用范围：`server/internal/im/wecom*.go` 与企业微信扫码接入说明。长连接认证、心跳、消息、主动发送、媒体分片及解密协议参考企业微信团队的 [WecomTeam/aibot-node-sdk](https://github.com/WecomTeam/aibot-node-sdk)；接入行为参考其 [官方 OpenClaw 插件](https://github.com/WecomTeam/wecom-openclaw-plugin)（`2026.10.19`，MIT）。扫码生成与结果查询使用官方 [`@wecom/wecom-openclaw-cli`](https://www.npmjs.com/package/@wecom/wecom-openclaw-cli) `1.1.1`（ISC）发布包公开使用的企业微信 HTTPS 接口，来源标识为 `neuxally`。
+
+NeuxAlly 在现有 Go IM 边界实现协议互通，不分发或执行上述 Node SDK、OpenClaw 插件和安装 CLI，不代表企业微信官方产品。消息与媒体传输复用仓库已使用的 [Gorilla WebSocket](https://github.com/gorilla/websocket) 及 Go 标准库；上游接口可能独立变化，协议测试和真实平台验收分别维护。
+
+## 企业微信品牌图标
+
+适用范围：`desktop/src/shared/assets/brands/wecom.png`。图标原样取自[企业微信官网](https://work.weixin.qq.com/)导航使用的[官方 CDN 资源](https://wwcdn.weixin.qq.com/node/wework/images/wecom_20.c2xok7bh.png)，随应用本地加载，仅用于标识企业微信集成。企业微信名称与标识的权利归腾讯及相应权利人所有，不适用本仓库 MIT 许可，不表示官方背书。

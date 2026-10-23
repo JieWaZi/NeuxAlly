@@ -289,6 +289,8 @@ func (v StatusError) Key() string {
 		return "IMConnectionHasWorkflowDependencies"
 	case IMConnectionDisabled:
 		return "IMConnectionDisabled"
+	case IMConnectionReplaced:
+		return "IMConnectionReplaced"
 	case PluginVersionConflict:
 		return "PluginVersionConflict"
 	case PluginConfigurationConflict:
@@ -606,6 +608,7 @@ func GetStatusErrorMap() map[string]map[StatusError]string {
 			IMConnectionInUse:                    "connection is used by active workflows or pending deliveries; wait or stop the related work",
 			IMConnectionHasWorkflowDependencies:  "saved workflows reference this connection; review the affected workflows and confirm deletion again if dependencies change",
 			IMConnectionDisabled:                 "delivery connection is disabled; enable it in connection settings and retry",
+			IMConnectionReplaced:                 "wecom bot connected elsewhere; close the other connection and save settings to reconnect",
 			PluginVersionConflict:                "plugin version or content changed; confirm the operation again",
 			PluginConfigurationConflict:          "plugin shared configuration changed or is incompatible",
 			PluginNotReady:                       "complete required plugin configuration, authentication and dependencies first",
@@ -814,6 +817,7 @@ func GetStatusErrorMap() map[string]map[StatusError]string {
 			IMConnectionInUse:                    "连接仍被运行中的工作流或待发送消息使用，请等待完成或先停止相关任务",
 			IMConnectionHasWorkflowDependencies:  "连接被已保存工作流引用，请查看受影响流程并确认删除；依赖变化后需重新确认",
 			IMConnectionDisabled:                 "发送连接已停用，请在连接设置中启用后重试",
+			IMConnectionReplaced:                 "企业微信机器人已在其他客户端连接，请关闭其他连接后保存设置以重连",
 			PluginVersionConflict:                "插件版本或内容已变化，请重新确认",
 			PluginConfigurationConflict:          "插件共享配置已变化或不兼容，请重新确认",
 			PluginNotReady:                       "请先完成插件所需配置、认证和程序准备",

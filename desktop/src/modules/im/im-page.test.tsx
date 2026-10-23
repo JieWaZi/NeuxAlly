@@ -988,3 +988,38 @@ vi.mock("@/shared/api/global-events", () => ({
   registerCoreConnectionRecovery: () => () => {},
   subscribeGlobalEvents: () => () => {},
 }));
+
+it("企业微信平台入口直接打开扫码弹窗，详情使用 Bot ID 标识", async () => {
+  api.connections.mockResolvedValue({
+    data: {
+      resources: [
+        {
+          id: "connection",
+          name: "研发企微",
+          platform: "wecom",
+          appId: "aibot_example",
+          enabled: true,
+          revision: 1,
+        },
+      ],
+    },
+  });
+  const user = userEvent.setup();
+  show();
+  await user.click(
+    await screen.findByRole("link", { name: "查看研发企微连接详情" }),
+  );
+  expect(await screen.findByText("Bot ID")).toBeInTheDocument();
+  expect(screen.getByText("aibot_example")).toBeInTheDocument();
+  expect(screen.queryByText("应用 ID")).not.toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "返回列表" }));
+  await user.click(screen.getByRole("button", { name: "添加连接" }));
+  expect(
+    screen.getByText("扫码创建或授权企业微信智能机器人"),
+  ).toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "添加企业微信机器人" }));
+  expect(
+    await screen.findByRole("dialog", { name: "连接企业微信" }),
+  ).toBeInTheDocument();
+  expect(await screen.findByTitle("扫码连接")).toBeInTheDocument();
+});
