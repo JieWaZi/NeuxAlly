@@ -31,6 +31,8 @@ type acpRunner interface {
 
 // acpOptionsRequest 保存一次 ACP 配置探测已经准备完成的启动事实。
 type acpOptionsRequest struct {
+	// RefreshCredentials 与执行共用账号刷新权威，探测不私自刷新副本。
+	RefreshCredentials CredentialRefresh
 	// Model 是隔离探测会话需要实际选择的原生模型。
 	Model string
 	// RuntimeID 是内置 Runtime 或本地 Profile 的稳定标识。
@@ -182,7 +184,8 @@ func (backend *acpBackend) DetectOptions(
 	runRequest := acpRunRequest{
 		Prepared: request.Prepared,
 		Request: RunRequest{Target: RuntimeTarget{
-			RuntimeID: request.RuntimeID,
+			RuntimeID:          request.RuntimeID,
+			RefreshCredentials: request.RefreshCredentials,
 		}},
 	}
 	binding, err := backend.binding(request.Prepared.definition.baseRuntimeID)
@@ -558,12 +561,13 @@ func acpAdapterConfigForRequest(
 	binding acpRuntimeBinding,
 ) acpAdapterConfig {
 	config := acpAdapterConfig{
-		RuntimeID:        request.Request.Target.RuntimeID,
-		Executable:       request.Prepared.detection.ResolvedBinary,
-		PrefixArgs:       cloneStrings(request.Prepared.definition.prefixArgs),
-		Environment:      request.Prepared.environment.list(),
-		WorkingDirectory: request.Request.Workspace.Path,
-		PermissionMode:   string(request.Request.Policy.Execution.PermissionLevel),
+		RefreshCredentials: request.Request.Target.RefreshCredentials,
+		RuntimeID:          request.Request.Target.RuntimeID,
+		Executable:         request.Prepared.detection.ResolvedBinary,
+		PrefixArgs:         cloneStrings(request.Prepared.definition.prefixArgs),
+		Environment:        request.Prepared.environment.list(),
+		WorkingDirectory:   request.Request.Workspace.Path,
+		PermissionMode:     string(request.Request.Policy.Execution.PermissionLevel),
 	}
 	if binding.stateDirectory != nil {
 		config.StateDirectory = binding.stateDirectory(request)

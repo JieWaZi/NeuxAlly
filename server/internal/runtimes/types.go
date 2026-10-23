@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/JieWaZi/NeuxAlly/server/constants"
+	"github.com/JieWaZi/NeuxAlly/server/internal/codexoauth"
 )
 
 const (
@@ -75,8 +76,13 @@ type Defaults struct {
 	EventDelivery time.Duration
 }
 
+// CredentialRefresh 把凭据更新交给宿主权威，适配器只在原生认证请求时调用。
+type CredentialRefresh = codexoauth.RefreshFunc
+
 // DetectRequest 保存有界探测 Runtime 所需的显式输入。
 type DetectRequest struct {
+	// RefreshCredentials 将原生能力探测的刷新交给账号凭据权威。
+	RefreshCredentials CredentialRefresh `json:"-"`
 	// WorkingDirectory 是调用方创建并拥有的隔离探测目录；空值由 SDK 创建。
 	WorkingDirectory string
 	// Model 是本次必须实际选择并读取能力的原生模型 ID。
@@ -406,6 +412,8 @@ type ElicitationHandler interface {
 
 // RuntimeTarget 保存一次调用选择的 Runtime 及受控本地启动覆盖。
 type RuntimeTarget struct {
+	// RefreshCredentials 只协调原生令牌刷新，不限制会话或模型请求并发。
+	RefreshCredentials CredentialRefresh `json:"-"`
 	// AccountID 是本次执行固定使用的受管账号，空值表示沿用现有 CLI 配置。
 	AccountID string
 	// Environment 是账号准备生成的受控环境变量，不进入事件或日志。

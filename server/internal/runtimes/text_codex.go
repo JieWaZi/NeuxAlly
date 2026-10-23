@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"sync"
 
 	"github.com/BurntSushi/toml"
 	"github.com/JieWaZi/NeuxAlly/server/constants/status_error"
@@ -228,25 +227,16 @@ func textCodexProfileName(args []string) (string, error) {
 	return name, nil
 }
 
-// textCredentialLocks 仅串行本进程文本生成的同一认证文件更新，不代表跨进程CAS。
-var textCredentialLocks sync.Map
-
 func persistCodexTextAuth(source string, original []byte, temporary string, write func(string, []byte) error) error {
 	if len(original) == 0 {
 		return nil
 	}
-	canonical, err := filepath.Abs(source)
+	unlock, err := codexFileCredentialGate(source).Lock(context.Background())
 	if err != nil {
-		return status_error.RuntimeConfigurationInvalid
+		return err
 	}
-	if parent, e := filepath.EvalSymlinks(filepath.Dir(canonical)); e == nil {
-		canonical = filepath.Join(parent, filepath.Base(canonical))
-	}
-	value, _ := textCredentialLocks.LoadOrStore(canonical, &sync.Mutex{})
-	lock := value.(*sync.Mutex)
-	lock.Lock()
-	defer lock.Unlock()
-	current, err := readTextCredentialSeed(source, 1<<20)
+	defer unlock()
+	current, err := reconcileCodexFileAuth(source)
 	if err != nil {
 		return err
 	}
@@ -285,50 +275,4 @@ func codexTextSourceHome(prepared *preparedRuntime) (string, error) {
 		return "", status_error.RuntimeConfigurationInvalid
 	}
 	return filepath.Join(home, ".codex"), nil
-}
-
-// textOAuthLeases 覆盖读取认证种子、原生调用和刷新回写；仅约束本进程知识文本调用。
-var textOAuthLeases sync.Map
-
-func acquireCodexTextOAuthLease(ctx context.Context, prepared *preparedRuntime) (func(), error) {
-	home, err := codexTextSourceHome(prepared)
-	if err != nil {
-		return nil, err
-	}
-	source := filepath.Join(home, "auth.json")
-	// 这里只辨识认证模式，实际种子由prepareCodexText在取得租约后重新读取。
-	data, err := readTextCredentialSeed(source, 1<<20)
-	if err != nil {
-		return nil, err
-	}
-	var document map[string]any
-	if len(data) == 0 || json.Unmarshal(data, &document) != nil {
-		return func() {}, nil
-	}
-	tokens, _ := document["tokens"].(map[string]any)
-	if len(tokens) == 0 {
-		return func() {}, nil
-	}
-	canonical, err := filepath.Abs(source)
-	if err != nil {
-		return nil, status_error.RuntimeConfigurationInvalid
-	}
-	if parent, e := filepath.EvalSymlinks(filepath.Dir(canonical)); e == nil {
-		canonical = filepath.Join(parent, filepath.Base(canonical))
-	}
-	value, _ := textOAuthLeases.LoadOrStore(canonical, make(chan struct{}, 1))
-	lease := value.(chan struct{})
-	if err = ctx.Err(); err != nil {
-		return nil, err
-	}
-	select {
-	case lease <- struct{}{}:
-		if err = ctx.Err(); err != nil {
-			<-lease
-			return nil, err
-		}
-		return func() { <-lease }, nil
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	}
 }

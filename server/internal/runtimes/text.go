@@ -117,12 +117,13 @@ func (sdk *SDK) GenerateText(ctx context.Context, input TextRequest) TextResult 
 	prompt := compileTextMessages(input.Messages)
 	persistCredentials := func() error { return nil }
 	if prepared.definition.baseRuntimeID == RuntimeIDCodex {
-		releaseOAuth, leaseErr := acquireCodexTextOAuthLease(ctx, &prepared)
-		if leaseErr != nil {
-			output.Failure = failedRunError("text_credentials", leaseErr).Failure
-			return output
+		if request.Target.RefreshCredentials == nil {
+			request.Target.RefreshCredentials, err = codexRefreshForEnvironment(prepared.environment.list())
+			if err != nil {
+				output.Failure = failedRunError("text_credentials", err).Failure
+				return output
+			}
 		}
-		defer releaseOAuth()
 		prompt, persistCredentials, err = prepareCodexText(&prepared, workspace, input.Messages)
 		if err != nil {
 			output.Failure = failedRunError("text_isolation", err).Failure

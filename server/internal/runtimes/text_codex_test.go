@@ -254,7 +254,7 @@ func TestCodexTextCredentialRefreshPreservesAccountIdentity(t *testing.T) {
 	}
 }
 
-func TestGenerateTextOAuthLeaseCoversSeedPromptAndRefreshAndIsCancellable(t *testing.T) {
+func TestGenerateTextOAuthCallsOverlap(t *testing.T) {
 	source := t.TempDir()
 	t.Setenv("CODEX_HOME", source)
 	if err := os.WriteFile(filepath.Join(source, "auth.json"), []byte(`{"tokens":{"account_id":"fixture","refresh_token":"old"}}`), 0600); err != nil {
@@ -271,12 +271,6 @@ func TestGenerateTextOAuthLeaseCoversSeedPromptAndRefreshAndIsCancellable(t *tes
 			key, value, _ := strings.Cut(pair, "=")
 			if key == "CODEX_HOME" {
 				home = value
-			}
-		}
-		if count > 1 {
-			seed, err := os.ReadFile(filepath.Join(home, "auth.json"))
-			if err != nil || !strings.Contains(string(seed), "refreshed") {
-				return nil, fmt.Errorf("second invocation reused stale OAuth seed")
 			}
 		}
 		agent := &fakeCodexACPAgent{selectedConfigs: map[acp.SessionConfigId]acp.SessionConfigValueId{}, configOptions: textTestOptions("none"), scriptedUpdates: []acp.SessionUpdate{acp.UpdateAgentMessageText("answer")}, scriptedResponse: &acp.PromptResponse{StopReason: acp.StopReasonEndTurn}}
@@ -300,18 +294,18 @@ func TestGenerateTextOAuthLeaseCoversSeedPromptAndRefreshAndIsCancellable(t *tes
 	case <-time.After(time.Second):
 		t.Fatal("first model never started")
 	}
-	waitingCtx, stopWaiting := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	waitingCtx, stopWaiting := context.WithTimeout(context.Background(), time.Second)
 	defer stopWaiting()
 	second := sdk.GenerateText(waitingCtx, request)
-	if second.Failure == nil || calls.Load() != 1 {
+	if second.Failure != nil || calls.Load() != 2 {
 		cancel()
 		<-firstDone
-		t.Fatal("waiting OAuth invocation reused seed or ignored cancellation")
+		t.Fatal("second OAuth invocation waited for the first model to finish")
 	}
 	cancel()
 	<-firstDone
 	third := sdk.GenerateText(context.Background(), request)
-	if third.Failure != nil || calls.Load() != 2 {
+	if third.Failure != nil || calls.Load() != 3 {
 		t.Fatalf("lease was not released with refreshed seed: %+v calls=%d", third, calls.Load())
 	}
 }

@@ -14,7 +14,9 @@ import (
 	"time"
 
 	"github.com/JieWaZi/NeuxAlly/server/constants"
+	"github.com/JieWaZi/NeuxAlly/server/constants/status_error"
 	"github.com/JieWaZi/NeuxAlly/server/internal/accountconfig"
+	"github.com/JieWaZi/NeuxAlly/server/internal/codexoauth"
 )
 
 // TestOfficialCodexTextWireIsolation 使用真实 CLI 和本地假服务核对最终模型请求，不调用真实模型或账号。
@@ -108,7 +110,10 @@ func TestOfficialCodexTextWireIsolation(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
 			defer cancel()
 			result := sdk.GenerateText(ctx, TextRequest{
-				Target:    RuntimeTarget{RuntimeID: RuntimeIDCodex, AccountID: "native-wire-fixture", Isolated: true, Environment: environment},
+				Target: RuntimeTarget{RuntimeID: RuntimeIDCodex, AccountID: "native-wire-fixture", Isolated: true, Environment: environment, RefreshCredentials: func(context.Context, string) (codexoauth.Tokens, error) {
+					t.Error("API Key 请求不应刷新 OAuth")
+					return codexoauth.Tokens{}, status_error.RuntimeAuthRequired
+				}},
 				Detection: readyTextDetectionForRun(t, sdk, RuntimeIDCodex, binary), Model: "gpt-6-luna", Messages: messages,
 			})
 			if result.Failure != nil || result.Text != "NATIVE_FIXTURE_OK" {

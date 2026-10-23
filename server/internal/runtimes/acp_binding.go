@@ -2,6 +2,7 @@ package runtimes
 
 import (
 	"context"
+
 	"strings"
 
 	acp "github.com/coder/acp-go-sdk"
@@ -9,6 +10,8 @@ import (
 
 // acpAdapterConfig 保存所有 acp-go Runtime Adapter 共用的启动事实。
 type acpAdapterConfig struct {
+	// RefreshCredentials 将原生刷新路由到共享凭据权威。
+	RefreshCredentials CredentialRefresh
 	// RuntimeID 是本次连接所属的内置智能体或本地配置标识。
 	RuntimeID string
 	// DetectionID 关联一次独立能力探测；普通执行为空。
