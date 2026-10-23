@@ -20,6 +20,7 @@ export const buttonVariants = cva(
         ghost:
           "text-action-quiet hover:bg-action-quiet-hover hover:text-foreground active:bg-action-quiet-pressed",
         text: "text-action-quiet hover:text-foreground active:text-foreground",
+        link: "text-link hover:text-link-hover text-left whitespace-normal",
         choice:
           "text-foreground hover:bg-action-quiet-hover active:bg-action-quiet-pressed aria-pressed:bg-selection-surface",
         launcher:
