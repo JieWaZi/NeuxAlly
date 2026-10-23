@@ -77,9 +77,9 @@ type WakerSkill struct {
 	// ID 是 32 位无连字符 UUID。
 	ID string `gorm:"column:id;type:varchar(32);primaryKey" json:"id"`
 	// WakerID 是伙伴标识。
-	WakerID string `gorm:"column:waker_id;type:varchar(32);not null;uniqueIndex:idx_waker_skill" json:"wakerId"`
+	WakerID string `gorm:"column:waker_id;type:varchar(32);not null;uniqueIndex:idx_waker_skill;index:idx_skill_installed_partners,priority:2" json:"wakerId"`
 	// SkillPackageID 是技能包标识。
-	SkillPackageID string `gorm:"column:skill_package_id;type:varchar(32);not null;uniqueIndex:idx_waker_skill" json:"skillPackageId"`
+	SkillPackageID string `gorm:"column:skill_package_id;type:varchar(32);not null;uniqueIndex:idx_waker_skill;index:idx_skill_installed_partners,priority:1" json:"skillPackageId"`
 	// Enabled 表示该伙伴是否在后续执行中使用技能。
 	Enabled bool `gorm:"column:enabled;not null;default:false" json:"enabled"`
 	// CreatedAt 是创建时间的 Unix 毫秒值。

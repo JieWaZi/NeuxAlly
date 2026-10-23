@@ -479,6 +479,8 @@ func (v StatusError) Key() string {
 		return "IMProtocolInvalid"
 	case PluginAuthorizationFailed:
 		return "PluginAuthorizationFailed"
+	case PluginDistributionUnavailable:
+		return "PluginDistributionUnavailable"
 	case KnowledgeRemoteUnreachable:
 		return "KnowledgeRemoteUnreachable"
 	case KnowledgeRemoteIncompatible:
@@ -747,6 +749,7 @@ func GetStatusErrorMap() map[string]map[StatusError]string {
 			IMPlatformUnavailable:                "im platform is unavailable",
 			IMProtocolInvalid:                    "im platform returned an invalid protocol response",
 			PluginAuthorizationFailed:            "plugin authentication did not complete or external authorization expired",
+			PluginDistributionUnavailable:        "plugin catalog or archive could not be downloaded; check the network and retry",
 			KnowledgeRemoteUnreachable:           "remote knowledge service is unreachable",
 			KnowledgeRemoteIncompatible:          "remote knowledge service protocol is incompatible",
 			KnowledgeEmbeddingUnavailable:        "knowledge embedding service unavailable",
@@ -978,6 +981,7 @@ func GetStatusErrorMap() map[string]map[StatusError]string {
 			IMPlatformUnavailable:                "IM 平台暂时不可用",
 			IMProtocolInvalid:                    "IM 平台响应不符合当前协议",
 			PluginAuthorizationFailed:            "插件认证未完成或外部授权失效",
+			PluginDistributionUnavailable:        "插件目录或安装包暂时无法下载，请检查网络后重试",
 			KnowledgeRemoteUnreachable:           "远端知识服务连接失败",
 			KnowledgeRemoteIncompatible:          "远端知识服务响应不符合支持的协议",
 			KnowledgeEmbeddingUnavailable:        "知识库嵌入服务暂时不可用",

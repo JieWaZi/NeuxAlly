@@ -11,6 +11,7 @@ export type SkillSummary = {
   source: SkillSource;
   enabled: boolean;
   affectedWakerCount: number;
+  installedPartners?: { id: string; name: string; avatar?: string }[];
   updatedAt: string;
 };
 

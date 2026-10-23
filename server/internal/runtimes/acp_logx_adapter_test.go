@@ -219,3 +219,23 @@ func TestACPDetectionDeadlineKeepsProbeIdentity(t *testing.T) {
 		}
 	}
 }
+
+func TestACPLogsRedactBoundPluginAuthenticationValues(t *testing.T) {
+	capture := captureACPLogs(t)
+	token := "oauth-sentinel-private-174"
+	ctx := acpAgentLogContext(context.Background(), acpAdapterConfig{RuntimeID: "codex", Environment: []string{"ALLY_PLUGIN_AUTH_ABC=Bearer " + token}}, codexACPRuntimeBinding())
+	logger := acpAdapterLogger(ctx)
+	logger.Warn("Codex app-server stderr", "stderr", "Authorization: Bearer "+token)
+	logger.With("env", "ALLY_PLUGIN_AUTH_ABC=Bearer "+token).WithGroup("launch").Error("failure "+token, "error", errors.New("rejected "+token))
+	for _, entry := range capture.entries(t) {
+		data, _ := json.Marshal(entry)
+		if bytes.Contains(data, []byte(token)) {
+			t.Fatal("plugin authorization appeared in diagnostic log")
+		}
+	}
+	snapshot := environmentSnapshot{values: map[string]string{"ALLY_PLUGIN_AUTH_ABC": "Bearer " + token}}
+	digest := fingerprintEnvironment(snapshot)
+	if strings.Contains(digest, token) || len(digest) != 64 {
+		t.Fatal("environment fingerprint exposed value")
+	}
+}

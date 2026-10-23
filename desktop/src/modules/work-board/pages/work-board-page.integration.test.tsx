@@ -766,7 +766,86 @@ it("来源筛选只约束工作记录，上方全局待办与统计保持不变"
   );
 });
 
-it("概览卡片切换与取消多选状态，保留来源和日期，清除标题并重置游标", async () => {
+it("需要操作使用统一任务状态下拉框，按待审核类型筛选并可切回普通状态", async () => {
+  const queries = vi.fn();
+  server.use(
+    http.get(`${origin}/api/v1/work-board/summary`, () =>
+      boardResponse({
+        workCount: 3,
+        attentionCount: 3,
+        attention: [],
+        results: [],
+      }),
+    ),
+    http.get(`${origin}/api/v1/work-board`, ({ request }) => {
+      const params = new URL(request.url).searchParams;
+      queries(Object.fromEntries(params));
+      const kinds = (params.get("states") || "approval,input,review").split(
+        ",",
+      );
+      const attention =
+        params.get("mode") === "attention"
+          ? ["approval", "input", "review"]
+              .filter((kind) => kinds.includes(kind))
+              .map((kind) => ({
+                id: kind,
+                kind,
+                title: `待办-${kind}`,
+                workTitle: "审批工作",
+                ownerKind: "chat",
+                ownerId: "chat",
+                createdAt: 1,
+              }))
+          : [];
+      return boardResponse({
+        resources: [],
+        attention,
+        totalSize: attention.length,
+        hasMore: false,
+      });
+    }),
+  );
+  mount("/work-board?mode=attention&source=automatic");
+  const user = userEvent.setup();
+  const records = screen.getByRole("region", { name: "工作记录" });
+  await within(records).findByText("待办-approval");
+  expect(
+    screen.queryByRole("button", { name: "需要操作 · 恢复默认" }),
+  ).not.toBeInTheDocument();
+  await user.click(
+    within(records).getByRole("button", { name: "任务状态 (3)" }),
+  );
+  expect(screen.getByRole("checkbox", { name: "待审核" })).toBeChecked();
+  await user.click(screen.getByRole("checkbox", { name: "待补充" }));
+  await user.click(screen.getByRole("checkbox", { name: "待验收" }));
+  await waitFor(() =>
+    expect(queries).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mode: "attention",
+        states: "approval",
+        source: "automatic",
+      }),
+    ),
+  );
+  await waitFor(() =>
+    expect(within(records).queryByText("待办-input")).not.toBeInTheDocument(),
+  );
+  expect(within(records).getByText("待办-approval")).toBeVisible();
+  await user.click(screen.getByRole("checkbox", { name: "最近已完成" }));
+  await waitFor(() =>
+    expect(queries).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mode: "all",
+        states: "completed",
+        source: "automatic",
+      }),
+    ),
+  );
+  expect(screen.getByRole("checkbox", { name: "待审核" })).not.toBeChecked();
+  expect(screen.getByRole("checkbox", { name: "最近已完成" })).toBeChecked();
+});
+
+it("概览卡片切换筛选，再次点击保持选中，通过总数清除状态并保留来源和日期", async () => {
   const queries = vi.fn();
   const summaryQueries = vi.fn();
   server.use(
@@ -836,6 +915,11 @@ it("概览卡片切换与取消多选状态，保留来源和日期，清除标�
   await user.click(
     within(overview).getByRole("button", { name: "已结束任务" }),
   );
+  expect(queries.mock.lastCall?.[0].states).toBe("completed,failed,canceled");
+  expect(
+    within(overview).getByRole("button", { name: "已结束任务" }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await user.click(within(overview).getByRole("button", { name: "任务总数" }));
   await waitFor(() =>
     expect(queries.mock.lastCall?.[0].states).toBeUndefined(),
   );

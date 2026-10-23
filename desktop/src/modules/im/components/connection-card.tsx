@@ -32,8 +32,7 @@ import {
 } from "@/shared/ui/dropdown-menu";
 import { ConnectionDialog } from "./connection-dialog";
 import { ConnectionDeleteDialog } from "./connection-delete-dialog";
-import { Card, CardFooter } from "@/shared/ui/card";
-import { cn } from "@/shared/lib/cn";
+import { Card, CardBody, CardFooter } from "@/shared/ui/card";
 import { Badge } from "@/shared/ui/badge";
 import { useWorkExecutors } from "@/shared/hooks/use-work-executors";
 import type { IMConnection, IMBinding } from "../types";
@@ -125,10 +124,11 @@ export function ConnectionCard({
     <Card
       asChild
       variant="resource"
-      className={cn("h-im-connection-card", selected && "bg-accent-surface")}
+      className="h-im-connection-card"
+      data-state={selected ? "selected" : undefined}
     >
       <article>
-        <div className="hover:bg-surface-subtle relative min-h-0 flex-1 overflow-hidden transition-colors">
+        <CardBody className="relative min-h-0 flex-1 overflow-hidden transition-colors">
           <Link
             to={`/im/${connection.id}`}
             title={[
@@ -323,7 +323,7 @@ export function ConnectionCard({
               ) : null}
             </div>
           </div>
-        </div>
+        </CardBody>
         <CardFooter className="h-row-navigation shrink-0 gap-3">
           <ConnectionStatus connection={connection} appearance="inline" />
           <span className="text-content-secondary type-caption flex min-w-0 flex-1 items-center gap-1">

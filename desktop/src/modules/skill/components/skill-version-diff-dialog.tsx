@@ -11,7 +11,7 @@ import {
   DialogContent,
   DialogFooter,
 } from "@/shared/ui/dialog";
-import { ContentLoadingState } from "@/shared/ui/content-loading-state";
+import { ResourceLoadingState } from "@/shared/ui/resource-loading-state";
 import { getSkillVersionFileOptions } from "../api/skill-queries";
 
 const SkillVersionDiffView = lazy(() =>
@@ -175,14 +175,14 @@ export function SkillVersionDiffDialog({
           <div className="min-h-0 overflow-y-auto p-4">
             <Suspense
               fallback={
-                <ContentLoadingState
+                <ResourceLoadingState
                   label={t("common:loading")}
                   className="h-96"
                 />
               }
             >
               {loading ? (
-                <ContentLoadingState
+                <ResourceLoadingState
                   label={t("common:loading")}
                   className="h-96"
                 />

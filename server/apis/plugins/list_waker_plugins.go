@@ -23,7 +23,7 @@ func (*ListWakerPlugins) Path() string { return "/:wakerId/plugins" }
 
 // Output 只返回当前伙伴自有或已经安装的插件。
 func (o *ListWakerPlugins) Output(ctx *gin.Context) (interface{}, error) {
-	result, err := listPluginResources(ctx, o.WakerID, o.Query, o.PageNum, o.PageSize)
+	result, err := listPluginResources(ctx, o.WakerID, o.Query, o.PageNum, o.PageSize, false)
 	if err != nil {
 		return nil, ginx.WithStack(err)
 	}

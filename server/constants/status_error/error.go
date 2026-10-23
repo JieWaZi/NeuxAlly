@@ -703,6 +703,9 @@ const (
 	// @errZH 插件认证未完成或外部授权失效
 	// @errEN plugin authentication did not complete or external authorization expired
 	PluginAuthorizationFailed StatusError = http.StatusBadGateway*1e8 + 6501
+	// @errZH 插件目录或安装包暂时无法下载，请检查网络后重试
+	// @errEN plugin catalog or archive could not be downloaded; check the network and retry
+	PluginDistributionUnavailable StatusError = http.StatusBadGateway*1e8 + 6502
 	// @errZH 技能声明名称相同但内容不同，请调整已启用的技能或插件
 	// @errEN skills with the same declared name have different content
 	PluginSkillConflict StatusError = http.StatusConflict*1e8 + 6504

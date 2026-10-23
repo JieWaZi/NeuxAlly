@@ -20,6 +20,8 @@ type SkillController interface {
 	ListLibrary(context.Context, string, int, int) ([]models.SkillWithState, int64, error)
 	// InstalledCounts 返回实际安装关系总数。
 	InstalledCounts(context.Context, []string) (map[string]int64, error)
+	// InstalledPartnerPreviews 批量返回每项技能的实际安装伙伴资料预览，包含停用关系。
+	InstalledPartnerPreviews(context.Context, []string) (map[string][]models.Waker, error)
 	// CreatePackage 创建技能包元数据。
 	CreatePackage(ctx context.Context, skill models.SkillPackage) error
 	// GetPackage 按标识查询技能包。
@@ -390,4 +392,48 @@ func (c *skillController) ListLibrary(ctx context.Context, query string, offset,
 // InstalledCounts 批量读取实际安装关系数量。
 func (c *skillController) InstalledCounts(ctx context.Context, ids []string) (map[string]int64, error) {
 	return installedResourceCounts(ctx, c.db, &models.WakerSkill{}, "skill_package_id", ids)
+}
+
+// InstalledPartnerPreviews 先按技能截取伙伴窗口，再批量补齐公开资料，避免逐卡查询及无界头像读取。
+func (c *skillController) InstalledPartnerPreviews(ctx context.Context, ids []string) (map[string][]models.Waker, error) {
+	result := map[string][]models.Waker{}
+	db := controllerDB(ctx, c.db)
+	for start := 0; start < len(ids); start += 100 {
+		end := min(start+100, len(ids))
+		ranked := db.Model(&models.WakerSkill{}).
+			Select("skill_package_id, waker_id, ROW_NUMBER() OVER (PARTITION BY skill_package_id ORDER BY waker_id) AS partner_rank").
+			Where("skill_package_id IN ?", ids[start:end])
+		var relations []models.WakerSkill
+		if err := db.Table("(?) AS ranked_skills", ranked).
+			Select("skill_package_id", "waker_id").
+			Where("partner_rank <= ?", constants.SkillPartnerPreviewLimit).
+			Order("skill_package_id, waker_id").Find(&relations).Error; err != nil {
+			return nil, databaseError("read_skill_installed_partners", "", err)
+		}
+		partnerIDs := []string{}
+		seen := map[string]bool{}
+		for _, relation := range relations {
+			if !seen[relation.WakerID] {
+				seen[relation.WakerID] = true
+				partnerIDs = append(partnerIDs, relation.WakerID)
+			}
+		}
+		if len(partnerIDs) == 0 {
+			continue
+		}
+		var partners []models.Waker
+		if err := db.Select("id", "name", "avatar").Where("id IN ?", partnerIDs).Find(&partners).Error; err != nil {
+			return nil, databaseError("read_skill_partner_profiles", "", err)
+		}
+		profiles := map[string]models.Waker{}
+		for _, partner := range partners {
+			profiles[partner.ID] = partner
+		}
+		for _, relation := range relations {
+			if partner, ok := profiles[relation.WakerID]; ok {
+				result[relation.SkillPackageID] = append(result[relation.SkillPackageID], partner)
+			}
+		}
+	}
+	return result, nil
 }

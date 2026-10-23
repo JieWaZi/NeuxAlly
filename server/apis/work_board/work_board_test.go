@@ -355,6 +355,32 @@ func TestBoardHTTPScopesDeduplicateAndKeepOldAttention(t *testing.T) {
 	if summary.AttentionCount != 3 || len(summary.Attention) != 3 || summary.Attention[0].CreatedAt != 10 {
 		t.Fatalf("oldest request summary=%+v", summary)
 	}
+	for _, kind := range []string{"approval", "input", "review"} {
+		filtered, filterErr := callBoard(t, &ListWorkBoard{}, "?mode=attention&states="+kind+"&limit=1", nil, nil)
+		if filterErr != nil {
+			t.Fatal(filterErr)
+		}
+		filteredPage := filtered.(WorkBoardPage)
+		if filteredPage.TotalSize != 1 || len(filteredPage.Attention) != 1 || filteredPage.Attention[0].Kind != kind || filteredPage.HasMore {
+			t.Fatalf("wrong pending state %s: %+v", kind, filteredPage)
+		}
+	}
+	filtered, err := callBoard(t, &ListWorkBoard{}, "?mode=attention&states=approval,input&limit=1", nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	filteredPage := filtered.(WorkBoardPage)
+	if filteredPage.TotalSize != 2 || !filteredPage.HasMore || filteredPage.NextCursor == "" {
+		t.Fatalf("filtered pending pagination=%+v", filteredPage)
+	}
+	next, err := callBoard(t, &ListWorkBoard{}, "?mode=attention&states=approval,input&limit=1&cursor="+filteredPage.NextCursor, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	nextPage := next.(WorkBoardPage)
+	if nextPage.TotalSize != 2 || len(nextPage.Attention) != 1 || nextPage.Attention[0].Kind != "input" || nextPage.HasMore {
+		t.Fatalf("filtered pending next page=%+v", nextPage)
+	}
 	out, err = callBoard(t, &GetWorkBoardSummary{}, "?source=automatic", nil, nil)
 	if err != nil {
 		t.Fatal(err)

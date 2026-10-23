@@ -23,7 +23,7 @@ import type {
 } from "@/shared/api/generated/types.gen";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
-import { Card } from "@/shared/ui/card";
+import { OverviewCard } from "@/shared/ui/overview-card";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { SegmentedControl } from "@/shared/ui/segmented-control";
 import { Skeleton } from "@/shared/ui/skeleton";
@@ -326,92 +326,78 @@ export function WorkBoardOverview({
     metric: WorkBoardMetric;
     Icon: LucideIcon;
     value?: number;
+    description: string;
   }[] = [
     {
       metric: "all",
       Icon: ListTodo,
       value: summary?.workCount,
+      description: t("totalHint"),
     },
     {
       metric: "running",
       Icon: LoaderCircle,
       value: summary?.runningCount,
+      description: t("runningHint"),
     },
     {
       metric: "attention",
       Icon: ShieldQuestion,
       value: summary?.actionWorkCount,
+      description: t("attentionHint"),
     },
     {
       metric: "ended",
       Icon: CircleCheck,
       value: summary?.endedCount,
+      description: t("endedHint"),
     },
   ];
   return (
     <section aria-label={t("overview")} className="min-w-0">
-      <div className="grid grid-cols-2 gap-3 @[48rem]/resource-page:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 @[24rem]/resource-page:grid-cols-2 @[48rem]/resource-page:grid-cols-4">
         {cards.map((item) => (
-          <Card
+          <OverviewCard
             key={item.metric}
-            asChild
-            variant="resource"
-            className="hover:bg-accent-surface"
-          >
-            <button
-              type="button"
-              aria-label={t(
-                item.metric === "all"
-                  ? "totalWork"
-                  : item.metric === "running"
-                    ? "runningWork"
-                    : item.metric === "ended"
-                      ? "endedWork"
-                      : "attention",
-              )}
-              aria-pressed={selected === item.metric}
-              className="focus-visible:ring-ring min-w-0 cursor-pointer p-5 text-left outline-none focus-visible:ring-2"
-              onClick={() => {
-                if (item.metric === "attention") setFocus("attention");
-                onSelect(selected === item.metric ? "all" : item.metric);
-              }}
-            >
-              <div className="flex items-center justify-between gap-3">
-                <span className="type-body font-medium">
-                  {t(
-                    item.metric === "all"
-                      ? "totalWork"
-                      : item.metric === "running"
-                        ? "runningWork"
-                        : item.metric === "ended"
-                          ? "endedWork"
-                          : "attention",
-                  )}
+            description={item.description}
+            label={t(
+              item.metric === "all"
+                ? "totalWork"
+                : item.metric === "running"
+                  ? "runningWork"
+                  : item.metric === "ended"
+                    ? "endedWork"
+                    : "attention",
+            )}
+            selected={selected === item.metric}
+            onClick={() => {
+              if (selected === item.metric) return;
+              if (item.metric === "attention") setFocus("attention");
+              onSelect(item.metric);
+            }}
+            icon={
+              <item.Icon
+                className={
+                  item.metric === "attention" && (counts.attention ?? 0) > 0
+                    ? "text-warning"
+                    : undefined
+                }
+                strokeWidth={1.5}
+                aria-hidden="true"
+              />
+            }
+            value={
+              typeof item.value !== "number" && pending ? (
+                <Skeleton className="h-control-md w-12" />
+              ) : typeof item.value !== "number" ? (
+                <span className="type-ui text-destructive">
+                  {t("loadFailed")}
                 </span>
-                <item.Icon
-                  className={cn(
-                    "size-icon-md",
-                    item.metric === "attention" && (counts.attention ?? 0) > 0
-                      ? "text-warning"
-                      : "text-content-muted",
-                  )}
-                  strokeWidth={1.5}
-                  aria-hidden="true"
-                />
-              </div>
-              <div className="type-display mt-3 font-semibold tabular-nums">
-                {typeof item.value !== "number" && pending ? (
-                  <Skeleton className="h-control-md w-12" />
-                ) : typeof item.value !== "number" ? (
-                  <span className="type-ui text-destructive">
-                    {t("loadFailed")}
-                  </span>
-                ) : (
-                  (item.value ?? 0)
-                )}
-              </div>
-            </button>
-          </Card>
+              ) : (
+                item.value
+              )
+            }
+          />
         ))}
       </div>
       <section className="mt-6 min-w-0" aria-label={t("focus")}>

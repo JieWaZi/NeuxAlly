@@ -65,3 +65,35 @@ it("卡片选项保留简短名称与说明，键盘切换跳过不可用项", a
   expect(onValueChange).toHaveBeenCalledWith("api");
   expect(screen.getByRole("radio", { name: "本机 API" })).toHaveFocus();
 });
+
+it("资源分类卡片保留单选语义、说明和键盘焦点，跳过禁用分类", async () => {
+  const user = userEvent.setup();
+  const onValueChange = vi.fn();
+  render(
+    <SegmentedControl
+      appearance="resources"
+      ariaLabel="资源分类"
+      onValueChange={onValueChange}
+      value="plugins"
+      options={[
+        { label: "插件", value: "plugins", description: "扩展伙伴能力" },
+        { label: "技能", value: "skills", disabled: true },
+        { label: "连接器", value: "connectors", description: "连接外部工具" },
+      ]}
+    />,
+  );
+  const plugins = screen.getByRole("radio", { name: "插件" });
+  const connectors = screen.getByRole("radio", { name: "连接器" });
+  expect(plugins).toHaveAttribute("aria-checked", "true");
+  expect(plugins).not.toHaveAttribute("aria-pressed");
+  expect(plugins).toHaveAccessibleDescription("扩展伙伴能力");
+  expect(connectors).toHaveAccessibleDescription("连接外部工具");
+  plugins.focus();
+  await user.keyboard("{ArrowRight}");
+  expect(onValueChange).toHaveBeenLastCalledWith("connectors");
+  expect(connectors).toHaveFocus();
+  await user.keyboard("{Home}");
+  expect(plugins).toHaveFocus();
+  await user.click(connectors);
+  expect(onValueChange).toHaveBeenLastCalledWith("connectors");
+});

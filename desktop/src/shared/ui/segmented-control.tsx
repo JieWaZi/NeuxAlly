@@ -2,6 +2,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { useRef, type KeyboardEvent, type ReactNode } from "react";
 
 import { cn } from "@/shared/lib/cn";
+import { OverviewCard } from "./overview-card";
 
 const segmentedControlVariants = cva("items-stretch", {
   variants: {
@@ -10,6 +11,9 @@ const segmentedControlVariants = cva("items-stretch", {
         "bg-button-fill inline-flex w-fit gap-0.5 rounded-control p-0.5",
       cards:
         "grid w-full grid-cols-[repeat(auto-fit,minmax(min(100%,14rem),1fr))] gap-3",
+      underline: "inline-flex min-w-0 items-stretch gap-4",
+      resources:
+        "grid w-full grid-cols-1 gap-3 @[36rem]/resource-page:grid-cols-2 @[56rem]/resource-page:grid-cols-3",
     },
     size: {
       sm: "type-ui",
@@ -37,14 +41,16 @@ const segmentedControlVariants = cva("items-stretch", {
 });
 
 const segmentedOptionVariants = cva(
-  "duration-quick ease-ui focus-visible:ring-ring flex min-w-0 font-normal transition-[background-color,border-color,color] outline-none focus-visible:ring-2 [&_svg]:shrink-0",
+  "duration-quick ease-ui focus-visible:ring-status-success-content flex min-w-0 font-normal transition-[background-color,border-color,color] outline-none focus-visible:ring-2 [&_svg]:shrink-0",
   {
     variants: {
       appearance: {
         segments:
           "[&_svg]:size-icon-md h-full items-center justify-center gap-1.5 rounded-control-inner px-2",
         cards:
-          "border-border-subtle bg-surface-raised hover:bg-surface-tertiary [&_svg]:size-icon-lg items-center gap-3 rounded-md border p-4 text-left aria-checked:border-field-border-active",
+          "border-border-subtle bg-surface-raised hover:bg-surface-tertiary [&_svg]:size-icon-lg items-center gap-3 rounded-md border p-4 text-left aria-checked:border-accent-border",
+        underline:
+          "border-transparent aria-checked:border-content-primary min-h-control-md items-center justify-center border-b-2 px-1 py-2",
       },
       size: {
         sm: "px-2",
@@ -142,6 +148,27 @@ export function SegmentedControl<T extends string>({
     >
       {options.map((option, index) => {
         const selected = option.value === value;
+        if (appearance === "resources") {
+          return (
+            <OverviewCard
+              key={option.value}
+              ref={(node) => {
+                if (node) segmentRefs.current.set(option.value, node);
+                else segmentRefs.current.delete(option.value);
+              }}
+              role="radio"
+              aria-checked={selected}
+              selected={selected}
+              label={option.label}
+              icon={option.icon}
+              description={option.description}
+              disabled={disabled || option.disabled}
+              tabIndex={selected ? 0 : -1}
+              onClick={() => onValueChange(option.value)}
+              onKeyDown={(event) => moveSelection(event, index)}
+            />
+          );
+        }
         return (
           <button
             key={option.value}
@@ -162,9 +189,13 @@ export function SegmentedControl<T extends string>({
             onKeyDown={(event) => moveSelection(event, index)}
             className={cn(
               segmentedOptionVariants({ appearance, size, distribution }),
-              selected
-                ? "bg-surface-raised text-content-primary font-medium"
-                : "text-button-content hover:bg-button-fill-hover active:bg-button-fill-pressed",
+              appearance === "underline"
+                ? selected
+                  ? "text-content-primary font-medium"
+                  : "text-content-secondary hover:text-content-primary"
+                : selected
+                  ? "bg-surface-raised text-content-primary font-medium"
+                  : "text-button-content hover:bg-button-fill-hover active:bg-button-fill-pressed",
               option.disabled && "pointer-events-none opacity-45",
             )}
           >

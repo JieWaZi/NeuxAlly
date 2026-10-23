@@ -12,7 +12,7 @@
 
 Core 使用 CGO_ENABLED=0、-trimpath 和 -s -w。Renderer 由 Vite 编译，主进程与 preload 由 esbuild 编译，node-pty 保留原生运行依赖。系统技能、Pi Bridge、工作流 SDK、呈现目录与固定插件源必须和生成源一致。
 
-`pnpm plugins:prepare` 从独立 Git 快照生成标准插件 ZIP，并获取当前目标平台的固定飞书 CLI，并以固定 GitHub CLI 源码、Go 1.27.1 和底层钥匙串隔离补丁构建 GitHub CLI；sidecar 构建会选择并仅保留对应目标平台的 provider 程序。`pnpm plugins:check` 离线核对固定源与目录生成，不执行第三方 CLI。来源、更新和缓存用法见 [固定插件源](../../plugin-sources/README.md)。Electron 从安装包 plugins 目录装配；开发 Core 通过显式 ALLY_PLUGIN_RESOURCES_DIR 使用本地生成产物。
+`pnpm plugins:prepare` 生成自有插件库来源元数据，不生成内置插件安装 ZIP；既有提供者兼容依赖仍按固定来源和摘要准备。自有插件包及其桥接依赖由独立 NeuxAlly-Plugins 仓库构建和发布，用户通过 HTTP 目录安装。`pnpm plugins:check` 定向核对来源声明与本地资产规则，不执行第三方 CLI。来源、更新和缓存用法见 [固定插件源](../../plugin-sources/README.md)。运行期间不提供上传或导入本地插件的入口。
 
 已由 Vite 或 esbuild 打包的 JavaScript 依赖放在开发依赖中，安装包仅额外携带 node-pty 及其必要依赖。node-pty 只保留当前平台与架构的预编译文件；本机编译目录仅保留 Release 的原生模块、动态库、可执行文件及 ConPTY 运行文件，排除调试符号、静态库、对象目录和构建元数据。node-addon-api 只保留包信息与许可，不携带编译期头文件和工具。electron-builder 固定使用 `--publish never`，产物由独立发布任务统一上传，打包任务无需 GitHub 发布令牌。
 

@@ -1,21 +1,17 @@
+import { DetailSection } from "@/shared/ui/detail-section";
+import { MarkdownContent } from "@/shared/ui/markdown-content";
 import { useTranslation } from "react-i18next";
 
-import { DetailSection } from "@/shared/ui/detail-section";
-
-type SkillInstructionsPanelProps = {
-  content: string;
-};
-
-export function SkillInstructionsPanel({
-  content,
-}: SkillInstructionsPanelProps) {
+/** 元数据由资料区展示，正文预览隐藏闭合的 YAML 头部。 */
+export function SkillInstructionsPanel({ content }: { content: string }) {
   const { t } = useTranslation("skill");
-
+  const markdown = content.replace(
+    /^\uFEFF?---[ \t]*\r?\n[\s\S]*?\r?\n---[ \t]*(?:\r?\n|$)/,
+    "",
+  );
   return (
-    <DetailSection title="SKILL.md">
-      <pre className="bg-card text-foreground type-body max-h-[min(720px,calc(100dvh-280px))] min-w-0 overflow-auto rounded-xl p-5 font-mono [overflow-wrap:anywhere] whitespace-pre-wrap">
-        {content || t("detail.contentUnavailable")}
-      </pre>
+    <DetailSection title={t("detail.content")}>
+      <MarkdownContent content={markdown} />
     </DetailSection>
   );
 }

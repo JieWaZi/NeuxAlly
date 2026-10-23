@@ -13,7 +13,7 @@ const cardVariants = cva("bg-card text-foreground min-w-0 rounded-xl", {
       section: "p-5",
       floating: "bg-surface-scene shadow-md flex flex-col gap-5 py-5",
       resource:
-        "duration-quick hover:bg-card-hover data-[state=selected]:ring-ring data-[state=selected]:ring-1 data-[state=selected]:bg-accent-surface flex flex-col overflow-hidden transition-colors motion-reduce:transition-none",
+        "group/resource-card [--ring:var(--status-success-content)] duration-quick hover:bg-card-hover data-[state=selected]:bg-accent-surface flex flex-col overflow-hidden transition-colors motion-reduce:transition-none",
     },
   },
   defaultVariants: { variant: "default" },
@@ -64,6 +64,25 @@ export function CardContent({ className, ...props }: ComponentProps<"div">) {
     <div
       data-slot="card-content"
       className={cn("min-w-0 px-5", className)}
+      {...props}
+    />
+  );
+}
+
+/** 内容区响应整张资源卡的悬停，避免覆盖链接或独立操作导致明度不一致。 */
+export function CardBody({
+  asChild = false,
+  className,
+  ...props
+}: ComponentProps<"div"> & { asChild?: boolean }) {
+  const Component = asChild ? Slot : "div";
+  return (
+    <Component
+      data-slot="card-body"
+      className={cn(
+        "duration-quick group-hover/resource-card:bg-surface-subtle min-w-0 transition-colors motion-reduce:transition-none",
+        className,
+      )}
       {...props}
     />
   );

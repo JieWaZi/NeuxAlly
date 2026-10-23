@@ -7,6 +7,8 @@ import (
 	"encoding/hex"
 	"errors"
 	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/authorization"
+	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/commandbridge"
+	"github.com/JieWaZi/NeuxAlly/server/services/plugininstallation"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -26,6 +28,7 @@ import (
 	"github.com/JieWaZi/NeuxAlly/server/internal/memory"
 	"github.com/JieWaZi/NeuxAlly/server/internal/notification/events"
 	"github.com/JieWaZi/NeuxAlly/server/internal/plugins"
+	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/catalog"
 	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/feishu"
 	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/github"
 	"github.com/JieWaZi/NeuxAlly/server/internal/runtimes"
@@ -289,6 +292,13 @@ func Load(ctx context.Context, configuration *Configuration, handlerFactory sche
 		func() error { return loadChat(ctx, configuration, handlerFactory) },
 		func() error { return loadNotifications(ctx) },
 		func() error { return loadIntegrationAPI(ctx) },
+		func() error {
+			hub := EventHub
+			closePluginCatalog = catalog.Start(ctx, PluginCatalogSource(), filepath.Join(configuration.DataDirectory, "plugins", "catalog"), func() {
+				_ = events.Emit(hub, constants.PluginEventTopic, "plugins.changed", events.Resource{Kind: "global"}, nil)
+			})
+			return nil
+		},
 	)
 }
 
@@ -366,6 +376,12 @@ func loadDB(ctx context.Context, configuration *Configuration) error {
 	for _, auth := range PluginAuthorizations {
 		auth.Open(ctx)
 	}
+	PluginBridgeEnvironment = os.Environ()
+	PluginBridges = commandbridge.NewRegistry(ctx, func(id string) {
+		if EventHub != nil {
+			_ = events.Emit(EventHub, constants.PluginEventTopic, "plugins.changed", events.Resource{Kind: "plugin", ID: id}, nil)
+		}
+	})
 
 	SkillControllerManager = controllers.NewSkillController(DB)
 	MCPConnectorControllerManager = controllers.NewMCPConnectorController(DB)
@@ -531,15 +547,16 @@ func loadChat(ctx context.Context, configuration *Configuration, handlerFactory 
 			}
 			return bindings
 		},
-		Accounts:       AIAccountService,
-		Runtime:        RuntimeSDK,
-		Journal:        chatModule,
-		DormantChats:   chatModule,
-		Wakers:         WakerControllerManager,
-		Profiles:       ProfileDocumentControllerManager,
-		Projects:       ProjectControllerManager,
-		Skills:         SkillControllerManager,
-		PluginContents: PluginContents, Plugins: PluginControllerManager, PluginAuthorizers: PluginAuthorizations, PluginLauncher: coreExecutablePath(),
+		Accounts:            AIAccountService,
+		Runtime:             RuntimeSDK,
+		Journal:             chatModule,
+		DormantChats:        chatModule,
+		Wakers:              WakerControllerManager,
+		Profiles:            ProfileDocumentControllerManager,
+		Projects:            ProjectControllerManager,
+		Skills:              SkillControllerManager,
+		PluginInstallations: plugininstallation.New(plugininstallation.Config{Contents: PluginContents, DataDirectory: configuration.DataDirectory, Authorizers: PluginAuthorizations, Bridges: PluginBridges, BridgeEnvironment: PluginBridgeEnvironment}),
+		PluginContents:      PluginContents, Plugins: PluginControllerManager, PluginAuthorizers: PluginAuthorizations, PluginLauncher: coreExecutablePath(),
 		Connectors:          MCPConnectorControllerManager,
 		RuntimeEnvironments: RuntimeEnvironmentControllerManager,
 		SkillDataDirectory:  configuration.DataDirectory,
@@ -648,6 +665,10 @@ func Close() error {
 		KnowledgeService.Close()
 		KnowledgeService = nil
 	}
+	if closePluginCatalog != nil {
+		closePluginCatalog()
+		closePluginCatalog = nil
+	}
 	if AgentCapabilities != nil {
 		AgentCapabilities.Close()
 		AgentCapabilities = nil
@@ -685,6 +706,10 @@ func Close() error {
 		auth.Close()
 	}
 	PluginAuthorizations = nil
+	if PluginBridges != nil {
+		PluginBridges.Close()
+		PluginBridges = nil
+	}
 	if ChatService != nil {
 		ChatService.Close()
 		ChatService = nil
@@ -792,6 +817,12 @@ func coreExecutablePath() string {
 	return value
 }
 
+// PluginBridges 管理声明驱动的唯一插件身份。
+var PluginBridges *commandbridge.Registry
+
+// PluginBridgeEnvironment 只包含固定受信程序资产。
+var PluginBridgeEnvironment []string
+
 // PluginContents 保存当前 Core 的短期内容使用计数。
 var PluginContents *plugins.ContentStore
 
@@ -807,4 +838,15 @@ func loadKnowledge(ctx context.Context, configuration *Configuration) error {
 	var err error
 	KnowledgeEngine, err = knowledgebridge.Open(ctx, configuration.DataDirectory, configuration.ManagedFilesDirectory)
 	return err
+}
+
+// closePluginCatalog 取消并等待启动时的目录更新，先于事件通道关闭。
+var closePluginCatalog func()
+
+// PluginCatalogSource 返回HTTP分发入口；显式本地目录用于镜像与测试。
+func PluginCatalogSource() string {
+	if value := strings.TrimSpace(os.Getenv("ALLY_PLUGIN_CATALOG_URL")); value != "" {
+		return value
+	}
+	return constants.PluginCatalogHTTPSource
 }

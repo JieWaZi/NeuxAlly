@@ -43,7 +43,7 @@ import type { ConnectorTransport } from "../model/types";
 import { WakerDetailLayout } from "@/modules/waker";
 import { Button } from "@/shared/ui/button";
 import { EmptyState } from "@/shared/ui/empty-state";
-import { Skeleton } from "@/shared/ui/skeleton";
+import { ResourceLoadingState } from "@/shared/ui/resource-loading-state";
 
 type StatusFilter = "all" | "enabled" | "disabled";
 type TransportFilter = "all" | ConnectorTransport;
@@ -205,11 +205,7 @@ export function WakerConnectorsPage() {
         ) : null}
 
         {connectorsQuery.isPending ? (
-          <ResourceCardGrid className="mt-6">
-            {Array.from({ length: 6 }, (_, index) => (
-              <Skeleton key={index} className="h-44 rounded-lg" />
-            ))}
-          </ResourceCardGrid>
+          <ResourceLoadingState layout="cards" className="mt-6" />
         ) : connectorsQuery.isError ? (
           <EmptyState
             className="mt-6"

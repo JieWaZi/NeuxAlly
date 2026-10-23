@@ -863,6 +863,23 @@ func TestStartupDetectionDoesNotBlockInitializationAndPublishesEachResult(t *tes
 	if codex.DetectedAt != 0 || codex.Detection.State != "" {
 		t.Fatalf("unfinished probe claimed a completed state: %+v", codex)
 	}
+	// 重检已完成的 Claude 不得等待仍被阻塞的 Codex，也不得重新探测其他项。
+	refreshed := make(chan error, 1)
+	go func() { refreshed <- svc.RefreshOne(ctx, runtimes.RuntimeIDClaude) }()
+	select {
+	case err := <-refreshed:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("single runtime refresh waited for unrelated startup probe")
+	}
+	if count := base.detectionCount(); count != 2 {
+		t.Fatalf("completed detections = %d, want only two Claude probes", count)
+	}
+	if pending, failed, _ := svc.StartupDetection(); !pending || failed {
+		t.Fatalf("single refresh changed aggregate startup state: pending=%v failed=%v", pending, failed)
+	}
 }
 
 // TestRefreshKeepsKnownVersionWhenSelectedExecutableIsMissing 验证失效安装不会清空版本或伪造就绪状态。

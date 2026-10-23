@@ -42,6 +42,9 @@ const ChatForkDirectoryName = "forks"
 // WorkflowFileMaximumBytes 限制单次上传或下载的文件字节数。
 const WorkflowFileMaximumBytes int64 = 100 << 20
 
+// SkillPartnerPreviewLimit 是独立技能卡片最多返回的安装伙伴预览数。
+const SkillPartnerPreviewLimit = 4
+
 const (
 	// WorkflowInstanceBudget 标识整次工作流累计节点实例数的预算错误。
 	WorkflowInstanceBudget = "instances"
@@ -229,6 +232,8 @@ const (
 	MCPConnectorMinimumTimeoutMS = int64(100)
 	// MCPConnectorMaximumTimeoutMS 是 MCP 连接器允许的最大请求超时毫秒数。
 	MCPConnectorMaximumTimeoutMS = int64(300_000)
+	// PluginConnectorDiagnosticCacheLimit 是当前 Core 最多保留的插件连接诊断数量。
+	PluginConnectorDiagnosticCacheLimit = 256
 	// MCPConnectorMaximumToolCount 是单个连接器允许公开的最大工具数。
 	MCPConnectorMaximumToolCount = 200
 	// MCPConnectorMaximumSummaryLength 是连接器测试摘要允许的最大字符数。
@@ -585,6 +590,8 @@ const (
 	PluginFormatPortable = "agent-plugins"
 	// PluginFormatClaude 表示仅导入可支持组件的 Claude 插件包。
 	PluginFormatClaude = "claude"
+	// PluginFormatCodex 表示仅导入可支持组件的 Codex 兼容插件包。
+	PluginFormatCodex = "codex"
 	// PluginExtensionNamespace 是客户端扩展空间。
 	PluginExtensionNamespace = "com.ally"
 )
@@ -619,3 +626,41 @@ const KnowledgeSourceStateProcessing = "processing"
 
 // KnowledgeChatOrganizeOperation 标识普通聊天整理请求的持久输入锚点。
 const KnowledgeChatOrganizeOperation = "chat.organize"
+const (
+	// PluginLocaleEnglish 是插件英文展示与默认文档语言。
+	PluginLocaleEnglish = "en"
+	// PluginLocaleChinese 是插件简体中文展示与文档语言。
+	PluginLocaleChinese = "zh-CN"
+	// PluginCatalogHTTPSource 是默认公开软件目录。
+	PluginCatalogHTTPSource = "https://github.com/JieWaZi/NeuxAlly-Plugins/releases/latest/download/catalog.json"
+	// PluginAuthCommandStrategy 是包内授权桥接策略。
+	PluginAuthCommandStrategy = "plugin-command"
+	// PluginAuthProtocol 是逐行JSON-RPC授权扩展版本。
+	PluginAuthProtocol = "neuxally-auth/1"
+	// PluginAuthEnvironmentPrefix 隔离原生插件桥接秘密的进程环境键。
+	PluginAuthEnvironmentPrefix = "ALLY_PLUGIN_AUTH_"
+	// AIAccountCodexAPIKeyEnvironment 仅在执行进程中传递所选 Codex API 账号凭据。
+	AIAccountCodexAPIKeyEnvironment = "ALLY_CODEX_MODEL_API_KEY"
+	// PluginNativeMarketplace 是应用私有Codex原生索引身份。
+	PluginNativeMarketplace = "neuxally-managed"
+	// PluginDeliveryNative 是完整原生包交付。
+	PluginDeliveryNative = "native"
+	// PluginDeliveryProjection 是Skill/MCP投射交付。
+	PluginDeliveryProjection = "skill-mcp"
+	// PluginLoadStagePrepared 表示固定产物已准备，尚不代表模型调用成功。
+	PluginLoadStagePrepared = "prepared"
+	// PluginAuthStartMethod 发起桥接授权。
+	PluginAuthStartMethod = "auth/start"
+	// PluginAuthStatusMethod 核验实际身份。
+	PluginAuthStatusMethod = "auth/status"
+	// PluginAuthCancelMethod 停止上游等待。
+	PluginAuthCancelMethod = "auth/cancel"
+	// PluginAuthResolveMethod 解析获准组件秘密。
+	PluginAuthResolveMethod = "auth/resolve"
+	// PluginAuthLogoutMethod 清理插件私有身份。
+	PluginAuthLogoutMethod = "auth/logout"
+	// PluginAuthChallengeNotification 交付当前临时挑战。
+	PluginAuthChallengeNotification = "auth/challenge"
+	// PluginAuthStateNotification 交付协议实际阶段。
+	PluginAuthStateNotification = "auth/state"
+)

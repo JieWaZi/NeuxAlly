@@ -119,7 +119,12 @@ func (r *fixtureRuntime) Run(ctx context.Context, request runtimes.RunRequest, s
 type fixtureEnvironment struct{}
 
 func (fixtureEnvironment) Get(context.Context, string) (models.RuntimeEnvironment, error) {
-	return models.RuntimeEnvironment{RuntimeID: "codex", Enabled: true, Binary: "codex", DefaultModel: "fixture", Detection: runtimes.DetectionResult{Runtime: runtimes.RuntimeSummary{ID: "codex", BaseRuntimeID: "codex"}, State: runtimes.DetectionStateReady, ResolvedBinary: "codex", Capabilities: runtimes.CapabilitySet{runtimes.CapabilityMCPStreamableHTTP: true}, Models: []runtimes.ModelOption{{ID: "fixture", Name: "fixture", PermissionLevels: []runtimes.PermissionLevel{runtimes.PermissionLevelDefault, runtimes.PermissionLevelFullAccess}}}}}, nil
+	// Runtime.Run 已由测试替身接管，仅用测试进程满足 Core 的可执行路径校验。
+	binary, err := os.Executable()
+	if err != nil {
+		return models.RuntimeEnvironment{}, err
+	}
+	return models.RuntimeEnvironment{RuntimeID: "codex", Enabled: true, Binary: binary, DefaultModel: "fixture", Detection: runtimes.DetectionResult{Runtime: runtimes.RuntimeSummary{ID: "codex", BaseRuntimeID: "codex"}, State: runtimes.DetectionStateReady, ResolvedBinary: binary, Capabilities: runtimes.CapabilitySet{runtimes.CapabilityMCPStreamableHTTP: true}, Models: []runtimes.ModelOption{{ID: "fixture", Name: "fixture", PermissionLevels: []runtimes.PermissionLevel{runtimes.PermissionLevelDefault, runtimes.PermissionLevelFullAccess}}}}}, nil
 }
 
 func openCoreWorkflowFixture(t *testing.T, directory string, runtime *fixtureRuntime) (*workflowFixture, func()) {

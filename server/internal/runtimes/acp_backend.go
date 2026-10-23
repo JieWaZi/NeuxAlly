@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"io"
-	"strconv"
-	"strings"
 	"sync"
 
 	"github.com/JieWaZi/NeuxAlly/server/constants"
@@ -555,30 +553,6 @@ func (agent *embeddedACPAgent) Start(ctx context.Context) error {
 	return nil
 }
 
-// acpAdapterConfigForRequest 把 NeuxAlly 已准备完成的启动事实投影为通用 Adapter 配置。
-func acpAdapterConfigForRequest(
-	request acpRunRequest,
-	binding acpRuntimeBinding,
-) acpAdapterConfig {
-	config := acpAdapterConfig{
-		RefreshCredentials: request.Request.Target.RefreshCredentials,
-		RuntimeID:          request.Request.Target.RuntimeID,
-		Executable:         request.Prepared.detection.ResolvedBinary,
-		PrefixArgs:         cloneStrings(request.Prepared.definition.prefixArgs),
-		Environment:        request.Prepared.environment.list(),
-		WorkingDirectory:   request.Request.Workspace.Path,
-		PermissionMode:     string(request.Request.Policy.Execution.PermissionLevel),
-	}
-	if binding.stateDirectory != nil {
-		config.StateDirectory = binding.stateDirectory(request)
-	}
-	if request.Text != nil {
-		config.TextOnly = true
-		config, _ = textAdapterConfig(config, binding.baseRuntimeID)
-	}
-	return config
-}
-
 // alive 返回 ACP Server 是否仍在运行。
 func (agent *embeddedACPAgent) alive() bool {
 	select {
@@ -619,30 +593,6 @@ func (agent *embeddedACPAgent) Close(ctx context.Context) error {
 		}
 	})
 	return agent.closeErr
-}
-
-// acpAgentKey 使不同 Runtime、二进制版本和受控配置使用独立 ACP Agent。
-func acpAgentKey(request acpRunRequest) string {
-	binding := defaultACPRuntimeBindings()[request.Prepared.definition.baseRuntimeID]
-	return acpAgentKeyForBinding(request, binding)
-}
-
-// acpAgentKeyForBinding 使用当前 Backend 实际绑定计算 Agent 隔离键。
-func acpAgentKeyForBinding(request acpRunRequest, binding acpRuntimeBinding) string {
-	prefixArgs := request.Prepared.definition.prefixArgs
-	workspace := ""
-	if binding.agentScope != nil {
-		workspace = binding.agentScope(request)
-	}
-	if request.Text != nil {
-		workspace += "\x00text\x00" + request.InvocationID
-	}
-	return request.Request.Target.RuntimeID + "\x00" +
-		request.Prepared.detection.ResolvedBinary + "\x00" +
-		request.Prepared.detection.Version + "\x00" +
-		strconv.Itoa(len(prefixArgs)) + "\x00" +
-		strings.Join(prefixArgs, "\x00") + "\x00" +
-		request.Prepared.environment.fingerprint + "\x00" + workspace
 }
 
 // acpFailedResult 把连接和调用错误转换为 Runtime 稳定终态。
