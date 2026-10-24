@@ -18,7 +18,11 @@ Core 使用 CGO_ENABLED=0、-trimpath 和 -s -w。Renderer 由 Vite 编译，主
 
 首屏静态 JS 预算为 500,000 bytes。打包检查安装包 150 MiB、安装文件 450 MiB、Resources 215 MiB 的体积上限，输出机器可读报告。Resources 包含 Core、CLI、前端产物及必要原生模块；预算涵盖约 72 MiB 的 Core/CLI、约 40 MiB 的前端及运行资源，以及约 47 MiB 的固定飞书原生程序与完整技能、约 38 MiB 的固定 GitHub CLI。macOS arm64 实测 Resources 约 196.3 MiB（加入 GitHub 隔离构建后比 158.5 MiB 基线增加约 37.8 MiB），资源预算保留约 18 MiB 余量；应用实测约 436.6 MiB，其他平台以各自原生构建报告为准。Windows 即使超限也输出三项实测体积及最大的 30 个文件，失败构建的报告由发布工作流单独保存。实际文件名与默认平台以打包脚本为准。
 
-发布矩阵在原生 runner 上分别构建 macOS arm64、macOS x64（amd64）与 Windows x64，并校验构建机架构。GitHub Release 直接提供用户可安装的 NeuxAlly-mac-arm64.dmg、NeuxAlly-mac-x64.dmg 和 NeuxAlly-windows-x64.exe，附带分架构体积报告及 SHA256SUMS。Actions 中以 NeuxAlly 命名的 artifact 仅用于 CI 暂存与跨任务传输，用户下载入口为 Release 中的 DMG 或 EXE。代码签名、公证及签名密钥由发布环境管理；本地签名不表示完成发行签名与公证。
+发布矩阵在原生 runner 上分别构建 macOS arm64、macOS x64（amd64）与 Windows x64，并校验构建机架构。GitHub Release 直接提供用户可安装的 NeuxAlly-mac-arm64.dmg、NeuxAlly-mac-x64.dmg 和 NeuxAlly-windows-x64.exe，附带分架构体积报告及 SHA256SUMS。Actions 中以 NeuxAlly 命名的 artifact 仅用于 CI 暂存与跨任务传输，用户下载入口为 Release 中的 DMG 或 EXE。
+
+当前发行不接入正式发行者签名：macOS 保留运行所需的临时签名，不使用 Developer ID、不提交 Apple 公证；Windows 不接入 Authenticode。临时签名不能提供发行者身份认证，SHA256SUMS 只用于核对发行文件的下载完整性。安装包及升级下载继续使用 HTTPS 并保留证书校验。安装提示的用户操作统一见 [中文 README](../../README.zh-CN.md) 与 [英文 README](../../README.md)，不将 HTTPS 证书错误、未知发行者提示与明确恶意软件检测混为一谈。后续正式签名方案属于[独立讨论](../discussions/software-release-security-cn.md)，不作为本轮发布前提。
+
+发布任务先准备草稿及全部资产，上传完成后公开并标记为最新正式发行。客户端读取固定仓库的最新公开正式 Release，草稿和预发行不触发升级；tag、安装包名、包内版本及 SHA256SUMS 必须保持一致。设置中的“关于软件”提供当前版本、手动检查、更新说明、下载进度和打开安装包入口，自动探测与安全边界见 [桌面生命周期](../architecture/desktop-lifecycle-cn.md#软件更新)。整包覆盖安装后仍使用原应用标识和独立数据目录。
 
 ## 发布前
 
