@@ -304,9 +304,6 @@ func (s *Service) accept(ctx context.Context, input models.IMInbox) error {
 	}
 	options := link.Configuration.Options
 	workInput := execution.WorkInput{Actor: string(constants.ChannelMessageActorUser), SubmissionID: input.ID, Content: input.Content}
-	if binding.Kind == constants.IMChatKindGroup {
-		workInput.Content = "[群成员 " + input.SenderID + "]\n" + workInput.Content
-	}
 	if strings.TrimSpace(workInput.Content) == "" {
 		workInput.Content = "请处理附带的文件。"
 	}
