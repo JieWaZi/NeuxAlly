@@ -50,7 +50,7 @@ const segmentedOptionVariants = cva(
         cards:
           "border-border-subtle bg-surface-raised hover:bg-surface-tertiary [&_svg]:size-icon-lg items-center gap-3 rounded-md border p-4 text-left aria-checked:border-accent-border",
         underline:
-          "border-transparent aria-checked:border-content-primary min-h-control-md items-center justify-center border-b-2 px-1 py-2",
+          "border-transparent aria-checked:border-content-primary min-h-control-md items-center justify-center border-b-2 px-1",
       },
       size: {
         sm: "px-2",

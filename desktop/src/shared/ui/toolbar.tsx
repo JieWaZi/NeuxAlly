@@ -8,12 +8,14 @@ type ToolbarProps = ComponentProps<"div"> & {
   leadingClassName?: string;
   trailingClassName?: string;
   divided?: boolean;
+  size?: "sm" | "md";
 };
 
 export function Toolbar({
   children,
   className,
   divided = true,
+  size = "sm",
   leading,
   trailing,
   leadingClassName,
@@ -33,12 +35,14 @@ export function Toolbar({
         className={cn(
           trailing
             ? "flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2"
-            : "min-h-control-sm flex items-center",
+            : "flex items-center",
+          size === "md" ? "min-h-control-md" : "min-h-control-sm",
         )}
       >
         <div
           className={cn(
-            "min-h-control-sm flex max-w-full min-w-0 shrink-0 flex-wrap items-center gap-3",
+            "flex max-w-full min-w-0 shrink-0 flex-wrap items-center gap-3",
+            size === "md" ? "min-h-control-md" : "min-h-control-sm",
             leadingClassName,
           )}
         >

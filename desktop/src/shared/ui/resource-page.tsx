@@ -108,15 +108,14 @@ export function ResourcePageHeader({
 export function ResourcePageToolbar({
   children,
   filters,
-  appearance = "default",
 }: {
   children?: ReactNode;
   filters?: ReactNode;
-  appearance?: "default" | "navigation";
 }) {
   return (
     <Toolbar
-      className={appearance === "navigation" ? "pb-0" : undefined}
+      size="md"
+      className="pb-2"
       leading={children}
       trailing={filters}
       leadingClassName="max-w-full min-w-0"
