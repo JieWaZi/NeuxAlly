@@ -464,3 +464,7 @@ NeuxAlly 在现有 Go IM 边界实现协议互通，不分发或执行上述 Nod
 ## 企业微信品牌图标
 
 适用范围：`desktop/src/shared/assets/brands/wecom.png`。图标原样取自[企业微信官网](https://work.weixin.qq.com/)导航使用的[官方 CDN 资源](https://wwcdn.weixin.qq.com/node/wework/images/wecom_20.c2xok7bh.png)，随应用本地加载，仅用于标识企业微信集成。企业微信名称与标识的权利归腾讯及相应权利人所有，不适用本仓库 MIT 许可，不表示官方背书。
+
+## Qoder 与 WorkBuddy 品牌图标
+
+适用范围：`desktop/src/shared/assets/brands/qoder.svg` 与 `workbuddy.svg`。分别原样取自 [Qoder 官网 favicon](https://qoder.com/favIcon.svg) 与 [WorkBuddy 官网 CDN 图标](https://assets.workbuddy.cn/web/workbuddy/a5b2fb510f0e7b156f19d072fae0cd12ae1f2f19/assets/logo.svg)，随应用本地加载，仅用于标识对应智能体。软件名称与标识的权利归各自权利人所有，不适用本仓库 MIT 许可，不表示官方背书。

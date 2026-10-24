@@ -265,6 +265,18 @@ const (
 	RuntimeIDGrok = "grok"
 	// RuntimeIDWorkBuddy 通过 CodeBuddy Code 标准 ACP 提供 WorkBuddy 执行能力。
 	RuntimeIDWorkBuddy = "workbuddy"
+	// RuntimeIDQoder 是官方 Qoder CLI ACP 运行时。
+	RuntimeIDQoder = "qoder"
+	// RuntimeIDQoderCN 是官方 Qoder CN CLI ACP 运行时。
+	RuntimeIDQoderCN = "qoder-cn"
+	// RuntimeQoderDefaultModeID 是 Qoder 的默认权限模式。
+	RuntimeQoderDefaultModeID = "default"
+	// RuntimeQoderBypassModeID 是 Qoder ACP 的跳过权限模式。
+	RuntimeQoderBypassModeID = "bypassPermissions"
+	// RuntimeQoderYoloModeID 是当前 Qoder ACP 声明的完全访问模式。
+	RuntimeQoderYoloModeID = "yolo"
+	// RuntimeQoderAutoModeID 是支持自动风险审查的 Qoder ACP 模式。
+	RuntimeQoderAutoModeID = "auto"
 	// RuntimeWorkBuddyFastModelID 是本阶段不开放的快速自动路由模型标识。
 	RuntimeWorkBuddyFastModelID = "fast-model"
 	// RuntimeWorkBuddyBalancedModelID 是本阶段不开放的均衡自动路由模型标识。

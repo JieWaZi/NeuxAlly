@@ -47,7 +47,7 @@ func (sdk *SDK) ResolveExecutable(request DetectRequest) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return resolveExecutable(definition.binaryCandidates, environment)
+	return resolveExecutable(definitionExecutableCandidates(definition, request.HomeDirectory), environment)
 }
 
 // Detect 对指定 Runtime 执行有界且不触发模型推理的可用性探测。
@@ -113,7 +113,7 @@ func (sdk *SDK) Detect(
 		})
 		return result
 	}
-	binary, err := resolveExecutable(definition.binaryCandidates, environment)
+	binary, err := resolveExecutable(definitionExecutableCandidates(definition, request.HomeDirectory), environment)
 	if err != nil {
 		result.Diagnostics = append(result.Diagnostics, Diagnostic{
 			Code:    "RUNTIME_UNAVAILABLE",

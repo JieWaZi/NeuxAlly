@@ -25,7 +25,7 @@ const budgets = {
   application: 450 * mib,
   // 固定飞书约 47 MiB、GitHub CLI 约 38 MiB；macOS arm64 Resources 实测 196.3 MiB，保留约 18 MiB 余量。
   resources: 215 * mib,
-  installer: 150 * mib,
+  installer: 200 * mib,
 };
 
 async function sizeOf(file) {

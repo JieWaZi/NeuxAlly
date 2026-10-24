@@ -3,11 +3,13 @@ package integration
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net"
 	"net/http"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 func TestIntegrationListenerLifecycle(t *testing.T) {
@@ -58,4 +60,29 @@ func TestIntegrationListenerLifecycle(t *testing.T) {
 	}
 	listener.Close()
 	listener.Close()
+}
+
+func TestIntegrationDisableClosesListenerBeforeServeStarts(t *testing.T) {
+	bound, err := net.ListenTCP("tcp4", &net.TCPAddr{IP: net.ParseIP("127.0.0.1")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer bound.Close()
+	listener := NewListener(t.TempDir(), func(string) http.Handler { return http.NotFoundHandler() })
+	// 模拟已经登记监听套接字，但 Serve goroutine 尚未被调度的真实窗口。
+	listener.ctx, listener.cancel = context.WithCancel(context.Background())
+	listener.api = ListenerStatus{IP: "127.0.0.1", Port: bound.Addr().(*net.TCPAddr).Port, Available: true}
+	listener.server = &http.Server{Handler: http.NotFoundHandler()}
+	listener.listener = bound
+	defer listener.Close()
+
+	if err := listener.Configure(context.Background(), listener.api.IP, listener.api.Port, false, ""); err != nil {
+		t.Fatal(err)
+	}
+	if err := bound.SetDeadline(time.Now()); !errors.Is(err, net.ErrClosed) {
+		t.Fatalf("disabled listener retained bound socket before Serve: %v", err)
+	}
+	if listener.GetAPIStatus().Available || listener.Settings().Enabled {
+		t.Fatal("disabled API remains available")
+	}
 }

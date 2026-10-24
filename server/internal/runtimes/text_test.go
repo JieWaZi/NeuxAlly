@@ -320,7 +320,8 @@ func readyTextDetectionForRun(t *testing.T, sdk *SDK, runtimeID, binary string) 
 
 func TestUnknownTextCapabilityVerifiesManagedSessionBeforePrompt(t *testing.T) {
 	fixtureHome := t.TempDir()
-	t.Setenv("CODEX_HOME", fixtureHome)
+	// 受管账号不能依赖宿主凭据；通过账号配置显式提供测试认证目录。
+	t.Setenv("CODEX_HOME", t.TempDir())
 	if err := os.WriteFile(filepath.Join(fixtureHome, "auth.json"), []byte(`{"access_token":"fixture"}`), 0600); err != nil {
 		t.Fatal(err)
 	}
@@ -335,8 +336,8 @@ func TestUnknownTextCapabilityVerifiesManagedSessionBeforePrompt(t *testing.T) {
 	binary, _ := os.Executable()
 	detection := readyTextDetectionForRun(t, sdk, RuntimeIDCodex, binary)
 	delete(detection.Capabilities, CapabilityIsolatedTextGeneration)
-	result := sdk.GenerateText(context.Background(), TextRequest{Target: RuntimeTarget{RuntimeID: RuntimeIDCodex, AccountID: "managed-account", Isolated: true}, Detection: detection, Messages: []TextMessage{{Role: "user", Content: "source"}}})
-	if result.Failure == nil || agent.newCalls != 1 || agent.promptCalls != 0 || !agent.closed {
+	result := sdk.GenerateText(context.Background(), TextRequest{Target: RuntimeTarget{RuntimeID: RuntimeIDCodex, AccountID: "managed-account", Isolated: true, ConfigHome: fixtureHome}, Detection: detection, Messages: []TextMessage{{Role: "user", Content: "source"}}})
+	if result.Failure == nil || result.Failure.Code != FailureCodeProtocolIncompatible || agent.newCalls != 1 || agent.promptCalls != 0 || !agent.closed {
 		t.Fatalf("unverified managed session bypassed configuration: result=%+v new=%d prompt=%d closed=%v", result, agent.newCalls, agent.promptCalls, agent.closed)
 	}
 }
