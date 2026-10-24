@@ -267,6 +267,8 @@ const (
 	RuntimeIDWorkBuddy = "workbuddy"
 	// RuntimeIDQoder 是官方 Qoder CLI ACP 运行时。
 	RuntimeIDQoder = "qoder"
+	// RuntimeIDQoderCN 是官方 Qoder CN CLI ACP 运行时。
+	RuntimeIDQoderCN = "qoder-cn"
 	// RuntimeQoderDefaultModeID 是 Qoder 的默认权限模式。
 	RuntimeQoderDefaultModeID = "default"
 	// RuntimeQoderBypassModeID 是 Qoder ACP 的跳过权限模式。

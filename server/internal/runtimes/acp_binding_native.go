@@ -118,10 +118,18 @@ func qoderACPRuntimeBinding() acpRuntimeBinding {
 	binding.newAgent = func(ctx context.Context, config acpAdapterConfig) (acp.Agent, error) {
 		return nativeacp.NewAgent(ctx, nativeacp.Config{
 			Command: config.Executable, Args: append(cloneStrings(config.PrefixArgs), "--acp"),
-			VersionArgs: append(cloneStrings(config.PrefixArgs), "--version"), RuntimeName: RuntimeIDQoder,
+			VersionArgs: append(cloneStrings(config.PrefixArgs), "--version"), RuntimeName: config.RuntimeID,
 			Environment: cloneStrings(config.Environment), WorkingDirectory: config.WorkingDirectory,
 			Logger: acpAdapterLogger(ctx), PromptFIFO: true,
 		})
 	}
+	return binding
+}
+
+// qoderCNACPRuntimeBinding 与国际版共用官方 ACP 语义，进程身份和配置仍各自隔离。
+func qoderCNACPRuntimeBinding() acpRuntimeBinding {
+	binding := qoderACPRuntimeBinding()
+	binding.baseRuntimeID = RuntimeIDQoderCN
+	binding.displayName = "Qoder CN"
 	return binding
 }

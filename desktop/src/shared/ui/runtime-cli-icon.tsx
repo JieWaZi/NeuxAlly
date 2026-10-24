@@ -25,12 +25,16 @@ export function RuntimeCliIcon({
 }: RuntimeCliIconProps) {
   const normalizedRuntimeId = runtimeId?.trim().toLowerCase();
 
-  if (normalizedRuntimeId === "qoder" || normalizedRuntimeId === "workbuddy") {
+  if (
+    normalizedRuntimeId === "qoder" ||
+    normalizedRuntimeId === "qoder-cn" ||
+    normalizedRuntimeId === "workbuddy"
+  ) {
     return (
       <img
         aria-hidden
         alt=""
-        src={normalizedRuntimeId === "qoder" ? qoderIcon : workbuddyIcon}
+        src={normalizedRuntimeId === "workbuddy" ? workbuddyIcon : qoderIcon}
         className={cn("shrink-0 object-contain", className)}
         width={size}
         height={size}

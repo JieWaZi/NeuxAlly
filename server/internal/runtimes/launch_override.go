@@ -57,7 +57,11 @@ var protectedPrefixArguments = map[string]map[string]struct{}{
 
 // LaunchOverrideArgumentsAllowed 判断前置参数是否避开 NeuxAlly 管理的协议、模型、Session、工作区和权限参数。
 func LaunchOverrideArgumentsAllowed(baseRuntimeID string, arguments []string) bool {
-	protected, exists := protectedPrefixArguments[strings.TrimSpace(baseRuntimeID)]
+	baseRuntimeID = strings.TrimSpace(baseRuntimeID)
+	if baseRuntimeID == RuntimeIDQoderCN {
+		baseRuntimeID = RuntimeIDQoder
+	}
+	protected, exists := protectedPrefixArguments[baseRuntimeID]
 	if !exists {
 		return false
 	}

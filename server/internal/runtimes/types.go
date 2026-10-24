@@ -31,6 +31,8 @@ const (
 	RuntimeIDWorkBuddy = constants.RuntimeIDWorkBuddy
 	// RuntimeIDQoder 是 Qoder CLI 标准 ACP 运行时标识。
 	RuntimeIDQoder = constants.RuntimeIDQoder
+	// RuntimeIDQoderCN 是 Qoder 中国版 CLI 标准 ACP 运行时标识。
+	RuntimeIDQoderCN = constants.RuntimeIDQoderCN
 )
 
 const (

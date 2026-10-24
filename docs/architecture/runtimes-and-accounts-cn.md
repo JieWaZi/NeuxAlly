@@ -6,11 +6,13 @@
 
 internal/runtimes 提供数据库无关的探测、能力与执行适配。它复用 acp-go 的公共适配器，将智能体事件、审批、问答、会话与错误归一给 Execution。增加智能体通过现有注册和能力边界完成，不向 Chat 暴露私有协议。
 
-界面支持 Codex、Claude Code、Cursor、Kimi、Pi、OpenCode、Gemini CLI、Grok Build、WorkBuddy、Qoder。是否可用由本机安装、版本、登录、模型及真实 initialize 能力决定。
+界面支持 Codex、Claude Code、Cursor、Kimi、Pi、OpenCode、Gemini CLI、Grok Build、WorkBuddy、Qoder、Qoder CN。是否可用由本机安装、版本、登录、模型及真实 initialize 能力决定。
 
 ACP initialize 不声明尚无请求合同的原生 Schema 输出能力；宿主能力接收结构化候选与原生 Schema 输出分别判断。
 
 软件能力通过系统 `ally` Skill 交付。Core 将同包技能资源和当前平台的受管 CLI 一起准备到不可变目录，入口为 `scripts/allycli`（Windows 为 `scripts/allycli.exe`），知识指南为同目录下的 `references/knowledge.md`。CLI 字节与执行位参与内容摘要，程序更新后生成对应的新目录。执行指令提供 `SKILL.md`、CLI 和知识指南的明确绝对路径；`ALLYCLI_BINARY_PATH` 与进程 `PATH` 指向 Skill 内入口。智能体从 Skill 所在目录解析资源，无需搜索工作区或全局安装目录。
+
+Qoder 与 Qoder CN 的项目技能目录均为 `.qoder/skills`；两者分别使用 `QODER_CONFIG_DIR`、`QODERCN_CONFIG_DIR` 用户配置根。安装探测同时检查 PATH 和官方用户级原生程序位置；不主动扫描仅用于桌面命令分发的 `entry` 目录。
 
 探测保存可查询的安装证据与能力快照。查询使用持久事实，连接测试与能力刷新是明确操作；未完成探测不能解释为未安装。多安装路径需明确选择实际版本。
 
@@ -28,7 +30,7 @@ Codex 原生令牌刷新通过随机能力路径的回环端点交给宿主。�
 
 ## 权限与交互
 
-产品三级权限由 Runtime 映射到原生策略。Qoder 通过官方 `--acp` stdio 入口接入，按会话实际声明的模式提供默认、自动审批与完全访问；旧版未声明自动审批时不展示，不提供只读模式。自动审批仍受模型风险审查、原生规则和能力限制；完全访问也不能代替用户回答业务问题。
+产品三级权限由 Runtime 映射到原生策略。Qoder 与 Qoder CN 通过官方 `--acp` stdio 入口接入，按会话实际声明的模式提供默认、自动审批与完全访问；旧版未声明自动审批时不展示，不提供只读模式。自动审批仍受模型风险审查、原生规则和能力限制；完全访问也不能代替用户回答业务问题。
 
 结构化审批和用户问答通过所属 Execution 的精确身份路由；取消、断线与会话结束必须释放等待。MCP 传输、附加目录、分叉和流式追加各自声明能力，不以运行时名称推断支持。
 

@@ -16,6 +16,7 @@ func BaseRuntimeIDs() []string {
 		RuntimeIDGrok,
 		RuntimeIDWorkBuddy,
 		RuntimeIDQoder,
+		RuntimeIDQoderCN,
 		RuntimeIDCodex,
 		RuntimeIDClaude,
 		RuntimeIDKimi,
