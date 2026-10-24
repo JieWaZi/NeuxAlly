@@ -38,8 +38,10 @@
 
 ## 待实施规格
 
+- [Desktop / Web 共享应用](superpowers/specs/2026-10-23-desktop-web-split-design.md)
 - [API 集成、远端知识库与自动任务](superpowers/specs/2026-10-21-api-integration-design.md)
 
 ## 待实施计划
 
+- [Desktop / Web 拆分实施计划](superpowers/plans/2026-10-23-desktop-web-split.md)
 - [API 集成、远端知识库与自动任务实施计划](superpowers/plans/2026-10-22-api-integration.md)

@@ -10,12 +10,16 @@ import (
 	"strings"
 
 	"github.com/JieWaZi/NeuxAlly/server/constants/status_error"
+	"github.com/JieWaZi/NeuxAlly/server/global"
 )
 
 const trustedOriginsEnvironment = "ALLY_EVENT_TRUSTED_ORIGINS"
 
 // trustedOrigin 仅追加明确配置的完整Web来源；令牌认证仍由根中间件独立拥有。
 func trustedOrigin(request *http.Request) bool {
+	if global.LocalWeb != nil && global.LocalWeb.TrustedOrigin(request) {
+		return true
+	}
 	origins := request.Header.Values("Origin")
 	if len(origins) > 1 {
 		return false
@@ -94,3 +98,6 @@ func validOriginHost(host string) bool {
 	}
 	return true
 }
+
+// TrustedOrigin 供使用同一认证边界的独立终端流复用精确来源校验。
+func TrustedOrigin(request *http.Request) bool { return trustedOrigin(request) }

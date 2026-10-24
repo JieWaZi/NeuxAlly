@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/JieWaZi/NeuxAlly/server/apis/middleware"
 	"github.com/JieWaZi/NeuxAlly/server/constants/status_error"
 	"github.com/JieWaZi/NeuxAlly/server/global"
 	eventhub "github.com/JieWaZi/NeuxAlly/server/internal/notification/events"
@@ -42,7 +43,13 @@ func (*StreamEvents) Output(ctx *gin.Context) (interface{}, error) {
 		ctx.AbortWithStatus(http.StatusServiceUnavailable)
 		return nil, nil
 	}
-	return nil, serve(ctx, global.EventHub, newSource)
+	subject := middleware.AuthSubject(ctx)
+	return nil, serve(ctx, global.EventHub, func(child context.Context, command control) (source, error) {
+		if command.Topic == "workspace" {
+			return newWorkspaceSource(child, subject, command)
+		}
+		return newSource(child, command)
+	})
 }
 
 // source 拥有已经注册的原事件订阅及其取消边界。

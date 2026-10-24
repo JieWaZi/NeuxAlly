@@ -54,6 +54,8 @@ go -C server mod download
 pnpm dev:native
 ```
 
+For the local browser version, run `pnpm dev:web` instead and enter the one-time pairing code printed in the terminal. Run only one Core against a data directory. Use `pnpm package:web` for a standalone local Web bundle and `pnpm build:native` for a desktop installer. See [build and release](docs/development/build-and-release-cn.md) for runtime requirements and pairing.
+
 </details>
 
 See the [user guides](docs/README.md) for setup and usage, the [allycli capability reference](server/cmd/allycli/README.md) for available system operations, or [CONTRIBUTING.md](CONTRIBUTING.md) to help build NeuxAlly. These documents are currently in Simplified Chinese.

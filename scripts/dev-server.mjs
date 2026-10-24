@@ -26,10 +26,7 @@ const core = spawn(
       ...process.env,
       ALLYCLI_BINARY_PATH: cliPath,
       ALLY_PLUGIN_RESOURCES_DIR: pluginOutput,
-      PI_MCP_MODULE_PATH: path.join(
-        root,
-        "desktop/resources/pi-bridge/bridge.mjs",
-      ),
+      PI_MCP_MODULE_PATH: path.join(root, "resources/pi-bridge/bridge.mjs"),
     },
     stdio: "inherit",
   },

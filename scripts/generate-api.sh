@@ -35,4 +35,4 @@ ALLY_PUBLIC_SOURCE=$(mktemp)
 node scripts/public-openapi.mjs "$ALLY_PUBLIC_SOURCE" server/integration-openapi.json
 node scripts/normalize-openapi.mjs server/integration-openapi.json
 
-pnpm --dir desktop api:generate
+pnpm --dir packages/frontend api:generate

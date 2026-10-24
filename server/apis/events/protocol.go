@@ -54,7 +54,7 @@ type frame struct {
 	Payload json.RawMessage `json:"payload"`
 }
 
-var allowedTopics = map[string]bool{"notifications": true, "work-board": true, "work-results": true, "entities": true, "automatic-tasks": true, "im": true, "runtimes": true, "system": true, "chat": true, "team": true, "workflow": true, "account-login": true, "plugins": true, "resources": true, "knowledge": true}
+var allowedTopics = map[string]bool{"notifications": true, "work-board": true, "work-results": true, "entities": true, "automatic-tasks": true, "im": true, "runtimes": true, "system": true, "chat": true, "team": true, "workflow": true, "account-login": true, "plugins": true, "resources": true, "knowledge": true, "workspace": true}
 
 func decodeControl(data []byte) (control, error) {
 	var result control
@@ -92,12 +92,14 @@ func validResourceShape(topic string, resource eventhub.Resource) bool {
 		return false
 	}
 	if resource.Kind == "global" {
-		return resource.ID == "" && resource.ParentID == "" && topic != "chat" && topic != "team" && topic != "workflow" && topic != "account-login"
+		return resource.ID == "" && resource.ParentID == "" && topic != "chat" && topic != "team" && topic != "workflow" && topic != "account-login" && topic != "workspace"
 	}
 	if resource.ID == "" {
 		return false
 	}
 	switch topic {
+	case "workspace":
+		return resource.Kind == "workspace_watch" && resource.ParentID == ""
 	case "knowledge":
 		return resource.Kind == "knowledge_library" && resource.ParentID != ""
 	case "chat":

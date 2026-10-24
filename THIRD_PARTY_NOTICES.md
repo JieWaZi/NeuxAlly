@@ -4,7 +4,7 @@ NeuxAlly 自有代码与文档采用根目录 [MIT License](LICENSE)。以下版
 
 ## Dock 组件
 
-适用范围：desktop/src/shared/ui/dock.tsx。
+适用范围：packages/frontend/src/shared/ui/dock.tsx。
 
 ```text
 MIT License
@@ -412,7 +412,7 @@ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 THIS SOFTWARE.
 ```
 
-`desktop/src/modules/knowledge/knowledge-graph-layout.ts` 中的初始布局、连通社区、主题名称、标签避让与轮廓几何及对应测试迁自 [Tencent/WeKnora 固定提交](https://github.com/Tencent/WeKnora/tree/8776a2d92d11ad3e76865d51cf3192e37e2a9976) 的 `frontend/src/views/knowledge/wiki/wikiGraphLayout.ts`。宿主适配节点尺寸和显式引用校验；运行中的力导向与绘制由第三方引擎负责。WeKnora 的 MIT 许可与版权见本节下方声明。
+`packages/frontend/src/modules/knowledge/knowledge-graph-layout.ts` 中的初始布局、连通社区、主题名称、标签避让与轮廓几何及对应测试迁自 [Tencent/WeKnora 固定提交](https://github.com/Tencent/WeKnora/tree/8776a2d92d11ad3e76865d51cf3192e37e2a9976) 的 `frontend/src/views/knowledge/wiki/wikiGraphLayout.ts`。宿主适配节点尺寸和显式引用校验；运行中的力导向与绘制由第三方引擎负责。WeKnora 的 MIT 许可与版权见本节下方声明。
 
 ### WeKnora 集成凭据与授权
 
@@ -463,8 +463,8 @@ NeuxAlly 在现有 Go IM 边界实现协议互通，不分发或执行上述 Nod
 
 ## 企业微信品牌图标
 
-适用范围：`desktop/src/shared/assets/brands/wecom.png`。图标原样取自[企业微信官网](https://work.weixin.qq.com/)导航使用的[官方 CDN 资源](https://wwcdn.weixin.qq.com/node/wework/images/wecom_20.c2xok7bh.png)，随应用本地加载，仅用于标识企业微信集成。企业微信名称与标识的权利归腾讯及相应权利人所有，不适用本仓库 MIT 许可，不表示官方背书。
+适用范围：`packages/frontend/src/shared/assets/brands/wecom.png`。图标原样取自[企业微信官网](https://work.weixin.qq.com/)导航使用的[官方 CDN 资源](https://wwcdn.weixin.qq.com/node/wework/images/wecom_20.c2xok7bh.png)，随应用本地加载，仅用于标识企业微信集成。企业微信名称与标识的权利归腾讯及相应权利人所有，不适用本仓库 MIT 许可，不表示官方背书。
 
 ## Qoder 与 WorkBuddy 品牌图标
 
-适用范围：`desktop/src/shared/assets/brands/qoder.svg` 与 `workbuddy.svg`。分别原样取自 [Qoder 官网 favicon](https://qoder.com/favIcon.svg) 与 [WorkBuddy 官网 CDN 图标](https://assets.workbuddy.cn/web/workbuddy/a5b2fb510f0e7b156f19d072fae0cd12ae1f2f19/assets/logo.svg)，随应用本地加载，仅用于标识对应智能体。软件名称与标识的权利归各自权利人所有，不适用本仓库 MIT 许可，不表示官方背书。
+适用范围：`packages/frontend/src/shared/assets/brands/qoder.svg` 与 `workbuddy.svg`。分别原样取自 [Qoder 官网 favicon](https://qoder.com/favIcon.svg) 与 [WorkBuddy 官网 CDN 图标](https://assets.workbuddy.cn/web/workbuddy/a5b2fb510f0e7b156f19d072fae0cd12ae1f2f19/assets/logo.svg)，随应用本地加载，仅用于标识对应智能体。软件名称与标识的权利归各自权利人所有，不适用本仓库 MIT 许可，不表示官方背书。

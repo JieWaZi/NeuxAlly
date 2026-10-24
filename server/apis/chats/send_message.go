@@ -3,6 +3,7 @@ package chats
 import (
 	"strings"
 
+	"github.com/JieWaZi/NeuxAlly/server/apis/uploads"
 	"github.com/JieWaZi/NeuxAlly/server/constants"
 	"github.com/JieWaZi/NeuxAlly/server/global"
 	"github.com/JieWaZi/NeuxAlly/server/services/execution"
@@ -26,6 +27,12 @@ func (s *SendMessage) Path() string { return "/:chatId/messages" }
 // Output 调用 Chat 续发用例并返回启动后的执行标识。
 func (s *SendMessage) Output(ctx *gin.Context) (interface{}, error) {
 	input, options := s.Body.workInput()
+	release, err := uploads.ClaimWork(ctx, &input)
+	if err != nil {
+		return nil, err
+	}
+	accepted := false
+	defer func() { release(accepted) }()
 	intent := execution.WorkIntent{
 		Chat:      execution.ChatTarget{ChatID: strings.TrimSpace(s.ChatID)},
 		Input:     input,
@@ -43,5 +50,6 @@ func (s *SendMessage) Output(ctx *gin.Context) (interface{}, error) {
 	if err != nil {
 		return nil, ginx.WithStack(err)
 	}
+	accepted = true
 	return result, nil
 }

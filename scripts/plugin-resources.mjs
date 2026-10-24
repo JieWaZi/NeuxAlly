@@ -17,7 +17,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sourceRoot = path.join(root, "plugin-sources");
-const requireDesktop = createRequire(path.join(root, "desktop/package.json"));
+const requireDesktop = createRequire(path.join(root, "package.json"));
 const hash = (bytes) => createHash("sha256").update(bytes).digest("hex");
 
 // 固定来源和每个平台资产均需有完整身份，运行时不解析远端分支。

@@ -716,3 +716,39 @@ const (
 	// @errEN shared account is in use by work or authorization; try again after it exits
 	PluginBusy StatusError = http.StatusConflict*1e8 + 6505
 )
+
+const (
+	// @errZH 工作区授权范围无效或已过期
+	// @errEN workspace scope is invalid or expired
+	WorkspaceScopeInvalid StatusError = http.StatusForbidden*1e8 + 7101
+	// @errZH 工作区路径不合法
+	// @errEN workspace path is invalid
+	WorkspacePathInvalid StatusError = http.StatusBadRequest*1e8 + 7102
+	// @errZH 工作区资源不存在
+	// @errEN workspace resource was not found
+	WorkspaceResourceNotFound StatusError = http.StatusNotFound*1e8 + 7103
+	// @errZH 工作区资源已变化，请重新读取
+	// @errEN workspace resource changed; read it again
+	WorkspaceResourceConflict StatusError = http.StatusConflict*1e8 + 7104
+	// @errZH 工作区资源超过大小限制
+	// @errEN workspace resource exceeds the size limit
+	WorkspaceResourceTooLarge StatusError = http.StatusRequestEntityTooLarge*1e8 + 7105
+	// @errZH 工作区文件操作失败
+	// @errEN workspace storage operation failed
+	WorkspaceStorageFailed StatusError = http.StatusInternalServerError*1e8 + 7106
+	// @errZH Git 操作失败
+	// @errEN workspace git operation failed
+	WorkspaceGitFailed StatusError = http.StatusInternalServerError*1e8 + 7107
+	// @errZH 终端服务不可用
+	// @errEN terminal service is unavailable
+	TerminalUnavailable StatusError = http.StatusServiceUnavailable*1e8 + 7108
+	// @errZH 终端请求无效
+	// @errEN terminal request is invalid
+	TerminalInvalid StatusError = http.StatusBadRequest*1e8 + 7109
+	// @errZH 终端会话不存在或已结束
+	// @errEN terminal session was not found or has ended
+	TerminalNotFound StatusError = http.StatusNotFound*1e8 + 7110
+	// @errZH 当前会话无权操作此终端
+	// @errEN terminal session is not authorized
+	TerminalForbidden StatusError = http.StatusForbidden*1e8 + 7111
+)

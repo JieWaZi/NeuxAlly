@@ -1,6 +1,7 @@
 package channels
 
 import (
+	"github.com/JieWaZi/NeuxAlly/server/apis/uploads"
 	"github.com/JieWaZi/NeuxAlly/server/global"
 	channelservice "github.com/JieWaZi/NeuxAlly/server/services/channel"
 	"github.com/gin-gonic/gin"
@@ -28,13 +29,21 @@ func (s *SendChannelMessage) Output(ctx *gin.Context) (interface{}, error) {
 	if _, err := channelThread(ctx, s.ChannelID, s.ThreadID); err != nil {
 		return nil, ginx.WithStack(err)
 	}
+	input := s.Body.workInput()
+	release, err := uploads.ClaimWork(ctx, &input)
+	if err != nil {
+		return nil, err
+	}
+	accepted := false
+	defer func() { release(accepted) }()
 	result, err := global.ChannelService.SubmitMessage(ctx, channelservice.SubmitMessageInput{Continue: &channelservice.SendMessageInput{
 		ThreadID:       s.ThreadID,
 		MentionWakerID: s.Body.MentionWakerID,
-		Input:          s.Body.workInput(),
+		Input:          input,
 	}})
 	if err != nil {
 		return nil, ginx.WithStack(err)
 	}
+	accepted = true
 	return *result.Message, nil
 }
