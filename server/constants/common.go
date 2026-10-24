@@ -484,6 +484,36 @@ const (
 	WorkflowControlPathItems = "items"
 )
 
+// 企业微信智能机器人使用官方长连接通道，不开放任意服务器地址。
+const (
+	// IMWecomQRExpirySeconds 是扫码等待上限，与官方 CLI 的五分钟窗口一致。
+	IMWecomQRExpirySeconds = 300
+	// IMWecomQRPollSeconds 是官方扫码状态查询间隔，取消或确认后退出。
+	IMWecomQRPollSeconds = 3
+	// IMWecomQRBaseURL 是官方 CLI 使用的扫码注册入口。
+	IMWecomQRBaseURL = "https://work.weixin.qq.com/ai/qc"
+	// IMWecomWebSocketURL 是企业微信公有云长连接入口。
+	IMWecomWebSocketURL = "wss://openws.work.weixin.qq.com"
+	// IMWecomSubscribe 是机器人凭据订阅命令。
+	IMWecomSubscribe = "aibot_subscribe"
+	// IMWecomHeartbeat 是应用层心跳命令。
+	IMWecomHeartbeat = "ping"
+	// IMWecomMessageCallback 是消息推送命令。
+	IMWecomMessageCallback = "aibot_msg_callback"
+	// IMWecomEventCallback 是事件推送命令。
+	IMWecomEventCallback = "aibot_event_callback"
+	// IMWecomSendMessage 是向已发现会话主动发送的命令。
+	IMWecomSendMessage = "aibot_send_msg"
+	// IMWecomUploadInit 初始化临时素材上传。
+	IMWecomUploadInit = "aibot_upload_media_init"
+	// IMWecomUploadChunk 上传素材分片。
+	IMWecomUploadChunk = "aibot_upload_media_chunk"
+	// IMWecomUploadFinish 完成临时素材上传。
+	IMWecomUploadFinish = "aibot_upload_media_finish"
+	// IMWecomDisconnected 表示同一机器人被其他连接替换。
+	IMWecomDisconnected = "disconnected_event"
+)
+
 // IMFileMaximumBytes 是单个 IM 文件允许上传或下载的最大字节数。
 const IMFileMaximumBytes int64 = 20 * 1024 * 1024
 

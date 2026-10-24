@@ -31,7 +31,12 @@ import {
 import { BindingForm } from "./binding-form";
 import { BindingStatus, ConnectionStatus } from "./connection-status";
 import { imQueryKeys, useIMBindings } from "../queries";
-import type { ConnectionConfiguration, IMConnection, IMLogin } from "../types";
+import type {
+  ConnectionConfiguration,
+  IMConnection,
+  IMLogin,
+  IMPlatform,
+} from "../types";
 
 export function ConnectionDialog({
   connection,
@@ -41,7 +46,7 @@ export function ConnectionDialog({
   initialBindingId,
 }: {
   connection?: IMConnection;
-  platform?: "weixin" | "feishu";
+  platform?: IMPlatform;
   onClose: () => void;
   onSaved: () => void;
   initialBindingId?: string;
@@ -63,10 +68,15 @@ export function ConnectionDialog({
     appSecret: "",
     revision: connection?.revision || 0,
   });
+  const isWecom = value.platform === "wecom";
+  const supportsManual = value.platform === "feishu" || isWecom;
   const [saved, setSaved] = useState(connection);
   const [login, setLogin] = useState<IMLogin>();
   const [manual, setManual] = useState(
-    Boolean(connection?.platform === "feishu" && connection.appId),
+    Boolean(
+      (connection?.platform === "feishu" || connection?.platform === "wecom") &&
+      connection.appId,
+    ),
   );
   const [code, setCode] = useState("");
   const closed = useRef(false);
@@ -133,10 +143,13 @@ export function ConnectionDialog({
     if (started.current) return;
     started.current = true;
     // 等严格模式完成订阅重挂载后再派发，避免异步完成失去 Mutation 观察者。
-    if (!connection?.appId || connection.state === "login_required") {
+    if (
+      !connection?.appId ||
+      (connection.state === "login_required" && !supportsManual)
+    ) {
       queueMicrotask(() => begin());
     }
-  }, [begin, connection?.appId, connection?.state]);
+  }, [begin, connection?.appId, connection?.state, supportsManual]);
   useEffect(() => {
     if (confirmed && current?.id !== notified.current) {
       notified.current = current?.id || "";
@@ -145,7 +158,7 @@ export function ConnectionDialog({
     }
   }, [confirmed, current?.id, onSaved]);
   const save = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (credentials: boolean | undefined = true) => {
       // 扫码确认会更新版本；保存设置前读取当前连接，避免覆盖登录结果。
       const latest = saved?.id
         ? (
@@ -162,11 +175,12 @@ export function ConnectionDialog({
             ? latest?.name || value.name?.trim()
             : value.name?.trim(),
         keepAwake: latest?.keepAwake ?? value.keepAwake,
-        enabled: manual
-          ? true
-          : (latest?.enabled ?? connection?.enabled ?? false),
-        appId: manual ? value.appId : "",
-        appSecret: manual ? value.appSecret : "",
+        enabled:
+          manual && credentials
+            ? true
+            : (latest?.enabled ?? connection?.enabled ?? false),
+        appId: manual && credentials ? value.appId : "",
+        appSecret: manual && credentials ? value.appSecret : "",
       };
       const result = latest?.id
         ? await updateImConnection(
@@ -211,7 +225,8 @@ export function ConnectionDialog({
       value.name?.trim() &&
       value.name.trim() !== saved.name
     ) {
-      save.mutate(undefined, { onSuccess: finishClose });
+      // 取消配置只保留名称，不提交尚未完成的手工凭据或提前启用连接。
+      save.mutate(false, { onSuccess: finishClose });
       return;
     }
     finishClose();
@@ -244,15 +259,15 @@ export function ConnectionDialog({
     verify.error;
   const loginFields = (
     <>
-      {value.platform === "feishu" ? (
+      {supportsManual ? (
         <div className="flex justify-end">
           <Button
             type="button"
             variant="ghost"
             onClick={changeMode}
-            disabled={start.isPending}
+            disabled={start.isPending || save.isPending}
           >
-            {t(manual ? "returnQR" : "manualFeishu")}
+            {t(manual ? "returnQR" : isWecom ? "manualWecom" : "manualFeishu")}
           </Button>
         </div>
       ) : null}
@@ -260,40 +275,60 @@ export function ConnectionDialog({
         <div className="space-y-3">
           <div className="space-y-2">
             <FieldLabel htmlFor={id + "-app"} required>
-              {t("appId")}
+              {t(isWecom ? "wecomBotId" : "appId")}
             </FieldLabel>
             <Input
               id={id + "-app"}
-              placeholder={t("appIdPlaceholder")}
+              placeholder={t(
+                isWecom ? "wecomBotIdPlaceholder" : "appIdPlaceholder",
+              )}
               value={value.appId}
               required
-              disabled={Boolean(saved?.appId)}
+              disabled={Boolean(saved?.appId) || save.isPending}
               onChange={(e) => setValue({ ...value, appId: e.target.value })}
             />
           </div>
           <div className="space-y-2">
             <FieldLabel htmlFor={id + "-secret"} required={!saved?.appId}>
-              {t("appSecret")}
+              {t(isWecom ? "wecomBotSecret" : "appSecret")}
             </FieldLabel>
             <Input
               id={id + "-secret"}
               type="password"
               autoComplete="new-password"
+              disabled={save.isPending}
               value={value.appSecret}
               required={!saved?.appId}
-              placeholder={t("secretHint")}
+              placeholder={t(
+                isWecom && !saved?.appId
+                  ? "wecomBotSecretPlaceholder"
+                  : "secretHint",
+              )}
               onChange={(e) =>
                 setValue({ ...value, appSecret: e.target.value })
               }
             />
           </div>
           <p className="text-content-secondary type-caption">
-            {t("manualHint")}
-            {saved?.appId ? " " + t("existingFeishuHint") : ""}
+            {t(isWecom ? "manualWecomHint" : "manualHint")}
+            {saved?.appId
+              ? " " + t(isWecom ? "existingWecomHint" : "existingFeishuHint")
+              : ""}
           </p>
         </div>
       ) : current || start.isPending || !connection?.appId ? (
         <div className="space-y-3 text-center" aria-live="polite">
+          {isWecom && (!confirmed || !connection) ? (
+            <p className="text-content-secondary type-body">
+              {t(
+                confirmed
+                  ? "wecomFirstMessage"
+                  : saved?.appId
+                    ? "wecomReauthorizeHint"
+                    : "wecomScanHint",
+              )}
+            </p>
+          ) : null}
           {current?.qrContent ? (
             <QRCodeSVG
               className="mx-auto"
@@ -374,6 +409,11 @@ export function ConnectionDialog({
     </>
   );
   const nameChanged = Boolean(connection && value.name?.trim() !== saved?.name);
+  const needsCredentialRecovery =
+    isWecom &&
+    manual &&
+    (connection?.state === "login_required" ||
+      connection?.errorCode === "IMConnectionReplaced");
   const nameField = (
     <div className="space-y-2">
       <FieldLabel htmlFor={id + "-name"} required>
@@ -415,8 +455,10 @@ export function ConnectionDialog({
             onSaved={onSaved}
             disabled={busy || !value.name?.trim()}
             onBeforeSave={
-              nameChanged || (manual && value.appSecret)
-                ? () => save.mutateAsync()
+              nameChanged ||
+              (manual && value.appSecret) ||
+              needsCredentialRecovery
+                ? () => save.mutateAsync(undefined)
                 : undefined
             }
             beforeFields={
@@ -458,7 +500,7 @@ export function ConnectionDialog({
               ) : null}
               {connection && !bindings.isPending && !binding ? (
                 <p className="text-content-secondary type-body">
-                  {t("waitingForChat")}
+                  {t(isWecom ? "wecomFirstMessage" : "waitingForChat")}
                 </p>
               ) : null}
               {bindings.error && connection ? (
