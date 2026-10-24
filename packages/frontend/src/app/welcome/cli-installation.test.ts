@@ -38,3 +38,36 @@ it.each([
 it("未登记的智能体不会误用其他产品的安装方式", () => {
   expect(cliInstallation("custom-agent", "windows")).toBeUndefined();
 });
+
+it("Qoder 提供官方原生安装器，未知系统只展示安装文档", () => {
+  expect(cliInstallation("qoder", "macos")?.command).toBe(
+    "curl -fsSL https://qoder.com/install | bash",
+  );
+  expect(cliInstallation("qoder", "linux")?.command).toBe(
+    cliInstallation("qoder", "macos")?.command,
+  );
+  expect(cliInstallation("qoder", "windows")?.command).toBe(
+    "irm https://qoder.com/install.ps1 | iex",
+  );
+  expect(cliInstallation("qoder", "unknown")?.command).toBeUndefined();
+  expect(cliInstallation("qoder", "unknown")?.url).toBe(
+    "https://docs.qoder.com/cli/installation",
+  );
+  expect(cliInstallation("qoder", "macos")?.node).toBe(false);
+});
+
+it("Qoder CN 使用中国版官方安装器和文档", () => {
+  expect(cliInstallation("qoder-cn", "macos")?.command).toBe(
+    "curl -fsSL https://static.qoder.com.cn/qoder-cli-cn/install.sh | bash",
+  );
+  expect(cliInstallation("qoder-cn", "linux")?.command).toBe(
+    cliInstallation("qoder-cn", "macos")?.command,
+  );
+  expect(cliInstallation("qoder-cn", "windows")?.command).toBe(
+    "irm https://static.qoder.com.cn/qoder-cli-cn/install.ps1 | iex",
+  );
+  expect(cliInstallation("qoder-cn", "unknown")?.command).toBeUndefined();
+  expect(cliInstallation("qoder-cn", "unknown")?.url).toBe(
+    "https://docs.qoder.cn/cli/installation",
+  );
+});

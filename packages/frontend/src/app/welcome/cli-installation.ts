@@ -17,7 +17,7 @@ export function installationPlatform(
   return "unknown";
 }
 
-/** 安装命令仅用于展示和复制；来源为对应产品官方安装页，核查于 2026-10-16。 */
+/** 安装命令仅用于展示和复制；来源为对应产品官方安装页，Qoder 来源核查于 2026-10-24，其余核查于 2026-10-16。 */
 const installationGuides: Record<
   string,
   {
@@ -68,6 +68,17 @@ const installationGuides: Record<
     url: "https://grok.com/build",
     command: "curl -fsSL https://x.ai/cli/install.sh | bash",
     windows: "irm https://x.ai/cli/install.ps1 | iex",
+  },
+  "qoder-cn": {
+    url: "https://docs.qoder.cn/cli/installation",
+    command:
+      "curl -fsSL https://static.qoder.com.cn/qoder-cli-cn/install.sh | bash",
+    windows: "irm https://static.qoder.com.cn/qoder-cli-cn/install.ps1 | iex",
+  },
+  qoder: {
+    url: "https://docs.qoder.com/cli/installation",
+    command: "curl -fsSL https://qoder.com/install | bash",
+    windows: "irm https://qoder.com/install.ps1 | iex",
   },
   workbuddy: {
     url: "https://www.workbuddy.cn/docs/cli/installation",

@@ -189,3 +189,32 @@ func TestDiscoverInstallationsKeepsVersionAfterUnknownOutput(t *testing.T) {
 		t.Fatalf("known installation version overwritten: %+v", got)
 	}
 }
+
+// TestDiscoverInstallationsStillFindsPATHAfterExplicitSelection 验证保存明确路径后仍能枚举 PATH 中的新版本。
+func TestDiscoverInstallationsStillFindsPATHAfterExplicitSelection(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("fixture uses POSIX executable scripts")
+	}
+	selected := filepath.Join(t.TempDir(), "chosen-codex")
+	otherDirectory := t.TempDir()
+	other := filepath.Join(otherDirectory, "codex")
+	for _, path := range []string{selected, other} {
+		if err := os.WriteFile(path, []byte("#!/bin/sh\nprintf '1.2.3\\n'\n"), 0700); err != nil {
+			t.Fatal(err)
+		}
+	}
+	sdk, err := New(Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer sdk.Close(context.Background())
+	request := DetectRequest{RuntimeID: RuntimeIDCodex, HomeDirectory: t.TempDir(), BaseEnvironment: []string{"PATH=" + otherDirectory}, LaunchOverride: LaunchOverride{Binary: selected}}
+	installations := sdk.DiscoverInstallations(context.Background(), request, nil)
+	found := map[string]bool{}
+	for _, installation := range installations {
+		found[installation.Path] = installation.Available
+	}
+	if !found[selected] || !found[other] {
+		t.Fatalf("explicit selection hid PATH install: %+v", installations)
+	}
+}

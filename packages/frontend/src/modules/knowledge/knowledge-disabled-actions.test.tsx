@@ -218,7 +218,7 @@ it.each(["index", "history", "activity"])(
     });
     if (kind === "history") {
       expect(await screen.findByText("历史正文")).toBeVisible();
-      expect(screen.getByText("当前正文")).toBeVisible();
+      expect(await screen.findByText("当前正文")).toBeVisible();
     }
     await userEvent.click(more);
     await waitFor(() => expect(failed).toBe(true));

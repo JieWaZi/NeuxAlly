@@ -3,9 +3,12 @@ package runtimes
 import (
 	"context"
 
+	"github.com/JieWaZi/NeuxAlly/server/constants"
+	"github.com/JieWaZi/NeuxAlly/server/constants/status_error"
 	"github.com/JieWaZi/NeuxAlly/server/internal/accountconfig"
 	acpgemini "github.com/JieWaZi/acp-go/pkg/gemini"
 	acpgrok "github.com/JieWaZi/acp-go/pkg/grok"
+	"github.com/JieWaZi/acp-go/pkg/nativeacp"
 	acpopencode "github.com/JieWaZi/acp-go/pkg/opencode"
 	acp "github.com/coder/acp-go-sdk"
 )
@@ -67,5 +70,66 @@ func grokACPRuntimeBinding() acpRuntimeBinding {
 	binding.newAgent = func(ctx context.Context, config acpAdapterConfig) (acp.Agent, error) {
 		return acpgrok.NewAgent(ctx, acpgrok.Config{Logger: acpAdapterLogger(ctx), GrokPath: config.Executable, PrefixArgs: cloneStrings(config.PrefixArgs), Environment: cloneStrings(config.Environment), WorkingDirectory: config.WorkingDirectory, PermissionMode: config.PermissionMode})
 	}
+	return binding
+}
+
+// qoderACPRuntimeBinding 直连官方 stdio ACP，权限与模型仅使用当前会话声明的目录。
+// 官方契约：https://docs.qoder.com/cli/acp；当前模式目录同时核对 @qoder-ai/qodercli 1.1.78。
+func qoderACPRuntimeBinding() acpRuntimeBinding {
+	binding := nativeACPRuntimeBinding()
+	binding.baseRuntimeID = RuntimeIDQoder
+	binding.displayName = "Qoder"
+	binding.supportsMCPTransport = allMCPTransports
+	binding.validateSelection = cursorValidateSelection
+	binding.permissionLevels = func(options []acp.SessionConfigOption, modes []acp.SessionMode) []PermissionLevel {
+		available := acpAvailableModeIDs(options, modes)
+		levels := []PermissionLevel{}
+		if hasAnyMode(available, constants.RuntimeQoderDefaultModeID) {
+			levels = append(levels, PermissionLevelDefault)
+		}
+		if hasAnyMode(available, constants.RuntimeQoderAutoModeID) {
+			levels = append(levels, PermissionLevelAuto)
+		}
+		if hasAnyMode(available, constants.RuntimeQoderBypassModeID, constants.RuntimeQoderYoloModeID) {
+			levels = append(levels, PermissionLevelFullAccess)
+		}
+		return levels
+	}
+	binding.modeID = func(policy ExecutionPolicy, modes *acp.SessionModeState) (acp.SessionModeId, error) {
+		// 只读不能借用权限菜单中的其他模式；缺少目录时不猜测执行权限。
+		if policy.WorkspaceReadOnly || modes == nil {
+			return "", status_error.RuntimeProtocolIncompatible
+		}
+		candidates := []string{constants.RuntimeQoderDefaultModeID}
+		if policy.PermissionLevel == PermissionLevelFullAccess {
+			candidates = []string{constants.RuntimeQoderYoloModeID, constants.RuntimeQoderBypassModeID}
+		} else if policy.PermissionLevel == PermissionLevelAuto {
+			candidates = []string{constants.RuntimeQoderAutoModeID}
+		}
+		for _, candidate := range candidates {
+			for _, mode := range modes.AvailableModes {
+				if string(mode.Id) == candidate {
+					return mode.Id, nil
+				}
+			}
+		}
+		return "", status_error.RuntimeProtocolIncompatible
+	}
+	binding.newAgent = func(ctx context.Context, config acpAdapterConfig) (acp.Agent, error) {
+		return nativeacp.NewAgent(ctx, nativeacp.Config{
+			Command: config.Executable, Args: append(cloneStrings(config.PrefixArgs), "--acp"),
+			VersionArgs: append(cloneStrings(config.PrefixArgs), "--version"), RuntimeName: config.RuntimeID,
+			Environment: cloneStrings(config.Environment), WorkingDirectory: config.WorkingDirectory,
+			Logger: acpAdapterLogger(ctx), PromptFIFO: true,
+		})
+	}
+	return binding
+}
+
+// qoderCNACPRuntimeBinding 与国际版共用官方 ACP 语义，进程身份和配置仍各自隔离。
+func qoderCNACPRuntimeBinding() acpRuntimeBinding {
+	binding := qoderACPRuntimeBinding()
+	binding.baseRuntimeID = RuntimeIDQoderCN
+	binding.displayName = "Qoder CN"
 	return binding
 }
