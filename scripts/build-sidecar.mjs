@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { chmod, mkdir, rm } from "node:fs/promises";
+import { chmod, copyFile, mkdir, rm } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { allyCoreLdflags } from "./go-ldflags.mjs";
@@ -121,3 +121,27 @@ execFileSync(
 );
 if (target.goos !== "windows") await chmod(cliOutput, 0o755);
 console.log(`已生成软件能力 CLI: ${cliOutput}`);
+
+// 许可随实际引用的模块版本交付，宿主不重复维护依赖许可正文。
+const knowledgeModule = JSON.parse(
+  execFileSync(
+    "go",
+    ["list", "-m", "-json", "github.com/JieWaZi/neux-knowledge"],
+    {
+      cwd: path.join(root, "server"),
+      encoding: "utf8",
+    },
+  ),
+);
+const knowledgeLicenses = path.join(
+  root,
+  "desktop/resources/licenses/neux-knowledge",
+);
+await mkdir(knowledgeLicenses, { recursive: true });
+for (const name of ["LICENSE", "THIRD_PARTY_NOTICES.md"]) {
+  const destination = path.join(knowledgeLicenses, name);
+  // Go 模块缓存文件只读；先替换旧产物，保证重复构建可以覆盖。
+  await rm(destination, { force: true });
+  await copyFile(path.join(knowledgeModule.Dir, name), destination);
+  await chmod(destination, 0o644);
+}

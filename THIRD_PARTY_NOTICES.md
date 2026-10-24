@@ -330,6 +330,130 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
+## ledongthuc/pdf 文本阅读校验
+
+NeuxAlly 的文本 PDF 覆盖核对使用 `github.com/ledongthuc/pdf`，固定版本 `v0.0.0-20260907135840-6c8c28e0e8a0`（提交 `6c8c28e0e8a0`）。来源：[项目仓库](https://github.com/ledongthuc/pdf/tree/6c8c28e0e8a0)，基于 rsc/pdf，BSD-3-Clause。仅读取文本层，不包含 OCR。以下保留原始许可：
+
+```text
+Copyright (c) 2009 The Go Authors. All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+   * Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
+   * Redistributions in binary form must reproduce the above
+copyright notice, this list of conditions and the following disclaimer
+in the documentation and/or other materials provided with the
+distribution.
+   * Neither the name of Google Inc. nor the names of its
+contributors may be used to endorse or promote products derived from
+this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+```
+
+## 知识库
+
+### 图谱引擎与初始几何
+
+图谱使用 [react-force-graph-2d](https://github.com/vasturiano/react-force-graph) 及其 [force-graph](https://github.com/vasturiano/force-graph) Canvas 引擎（MIT），标准布局力来自 [d3-force](https://github.com/d3/d3-force)（ISC）。依赖包中的原始许可继续保留；图谱引擎的 MIT 许可如下。
+
+```text
+MIT License
+
+Copyright (c) 2018 Vasco Asturiano
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+D3 force 的 ISC 许可：
+
+```text
+Copyright 2010-2021 Mike Bostock
+
+Permission to use, copy, modify, and/or distribute this software for any purpose
+with or without fee is hereby granted, provided that the above copyright notice
+and this permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
+FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS
+OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
+THIS SOFTWARE.
+```
+
+`desktop/src/modules/knowledge/knowledge-graph-layout.ts` 中的初始布局、连通社区、主题名称、标签避让与轮廓几何及对应测试迁自 [Tencent/WeKnora 固定提交](https://github.com/Tencent/WeKnora/tree/8776a2d92d11ad3e76865d51cf3192e37e2a9976) 的 `frontend/src/views/knowledge/wiki/wikiGraphLayout.ts`。宿主适配节点尺寸和显式引用校验；运行中的力导向与绘制由第三方引擎负责。WeKnora 的 MIT 许可与版权见本节下方声明。
+
+### WeKnora 集成凭据与授权
+
+应用内集成凭据及路由授权迁自 [Tencent/WeKnora 固定提交](https://github.com/Tencent/WeKnora/tree/8776a2d92d11ad3e76865d51cf3192e37e2a9976)：`internal/application/service/tenant_api_key.go` 的随机凭据、摘要与 ID 归一化迁入 `server/internal/integration/key.go`；能力和资源集合规则来自 `internal/types/tenant_api_key.go`，在 `server/internal/integration/authorization.go` 适配空范围拒绝及独立整理授权。对应创建格式、授权、轮换和到期行为由宿主测试保留。未迁入上游第三方数据库、队列和前端依赖。
+
+```text
++Tencent is pleased to support the open source community by making  WeKnora available.
+
+Copyright (C) 2026 Tencent.  All rights reserved.
+
+The open-source software included in this distribution may have been modified by Tencent (“Tencent Modifications”). All Tencent Modifications are Copyright (C) Tencent.
+
+ WeKnora is licensed under the MIT except for the third-party components listed below.
+
+
+Terms of the MIT:
+--------------------------------------------------------------------
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+```
+
+### 独立知识核心
+
+知识库使用 [neux-knowledge](https://github.com/JieWaZi/neux-knowledge)，采用 MIT 许可。完整许可与第三方声明由该模块维护，构建时从所引用的模块版本复制并随安装包交付，见 [LICENSE](https://github.com/JieWaZi/neux-knowledge/blob/v0.1.0/LICENSE) 和 [THIRD_PARTY_NOTICES.md](https://github.com/JieWaZi/neux-knowledge/blob/v0.1.0/THIRD_PARTY_NOTICES.md)。
+
 
 ## 企业微信 IM 协议参考
 

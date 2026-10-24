@@ -294,3 +294,41 @@ func TestClaudeNativeCommandAndWorkingDirectoryUseClaudeRootAlias(t *testing.T) 
 		t.Fatalf("Claude root alias rejected: %+v", pkg.Diagnostics)
 	}
 }
+
+func TestPackageSnapshotRetainsLegacyRootWithoutChangingNewPackages(t *testing.T) {
+	for _, raw := range []string{`{"manifest":{"name":"office"},"sourcePath":"plugins/office"}`, `{"manifest":{"name":"office"}}`} {
+		var pkg Package
+		if err := json.Unmarshal([]byte(raw), &pkg); err != nil {
+			t.Fatal(err)
+		}
+		encoded, err := json.Marshal(pkg)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var roundTrip Package
+		if err := json.Unmarshal(encoded, &roundTrip); err != nil {
+			t.Fatal(err)
+		}
+		if roundTrip.SourcePath != pkg.SourcePath || roundTrip.Manifest.Name != "office" {
+			t.Fatalf("snapshot changed: %s", encoded)
+		}
+	}
+}
+
+func TestPackageRootRejectsEscapes(t *testing.T) {
+	root := t.TempDir()
+	outside := t.TempDir()
+	if err := os.Symlink(outside, filepath.Join(root, "outside")); err != nil {
+		t.Fatal(err)
+	}
+	for _, source := range []string{"../outside", outside, "outside", "missing"} {
+		pkg := Package{SourcePath: source}
+		if _, err := PackageRoot(root, pkg); err == nil {
+			t.Fatalf("unsafe or unavailable legacy root accepted: %q", source)
+		}
+	}
+	pkg := Package{}
+	if actual, err := PackageRoot(root, pkg); err != nil || actual != root {
+		t.Fatalf("new package root changed: %q %v", actual, err)
+	}
+}

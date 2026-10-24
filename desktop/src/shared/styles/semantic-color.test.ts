@@ -72,6 +72,34 @@ function resolveColor(
       a: rgba[4] === undefined ? 1 : Number(rgba[4]),
     };
   }
+  const oklch = /^oklch\(([\d.]+)% ([\d.]+) ([\d.]+)\)$/.exec(value);
+  if (oklch) {
+    // 主题绿采用 OKLCH，转为 sRGB 后参与同一套文字对比度核验。
+    const lightness = Number(oklch[1]) / 100;
+    const chroma = Number(oklch[2]);
+    const hue = (Number(oklch[3]) * Math.PI) / 180;
+    const a = chroma * Math.cos(hue);
+    const b = chroma * Math.sin(hue);
+    const l = (lightness + 0.3963377774 * a + 0.2158037573 * b) ** 3;
+    const m = (lightness - 0.1055613458 * a - 0.0638541728 * b) ** 3;
+    const s = (lightness - 0.0894841775 * a - 1.291485548 * b) ** 3;
+    const encode = (linear: number) =>
+      Math.max(
+        0,
+        Math.min(
+          1,
+          linear <= 0.0031308
+            ? 12.92 * linear
+            : 1.055 * linear ** (1 / 2.4) - 0.055,
+        ),
+      ) * 255;
+    return {
+      r: encode(4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s),
+      g: encode(-1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s),
+      b: encode(-0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s),
+      a: 1,
+    };
+  }
   const colorMix =
     /^color-mix\(\s*in srgb, var\((--[\w-]+)\) ([\d.]+)%, var\((--[\w-]+)\)\s*\)$/.exec(
       value,

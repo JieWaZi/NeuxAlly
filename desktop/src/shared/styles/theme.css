@@ -130,6 +130,11 @@
 
   --accent-default: var(--ref-ally-green-light);
   --accent-hover: var(--ref-ally-green-dark);
+  --accent-content: color-mix(
+    in srgb,
+    var(--accent-default) 40%,
+    var(--ref-neutral-1000)
+  );
   --accent-disabled: color-mix(in srgb, var(--accent-default) 30%, transparent);
   --accent-surface-subtle: color-mix(
     in srgb,
@@ -166,8 +171,12 @@
     transparent
   );
 
-  --link-default: var(--ref-blue-600);
-  --link-hover: var(--ref-blue-700);
+  --link-default: color-mix(
+    in srgb,
+    var(--accent-default) 55%,
+    var(--ref-neutral-1000)
+  );
+  --link-hover: var(--accent-content);
   --border-subtle: rgba(16, 26, 39, 0.08);
   --border-default: rgba(16, 26, 39, 0.15);
   --border-strong: rgba(16, 26, 39, 0.34);
@@ -359,6 +368,7 @@
 
   --accent-default: var(--ref-ally-green-dark);
   --accent-hover: var(--ref-ally-green-light);
+  --accent-content: var(--accent-hover);
   --accent-disabled: color-mix(in srgb, var(--accent-default) 30%, transparent);
   --accent-surface-subtle: color-mix(
     in srgb,
@@ -395,8 +405,8 @@
     transparent
   );
 
-  --link-default: var(--ref-blue-400);
-  --link-hover: var(--ref-blue-300);
+  --link-default: var(--accent-default);
+  --link-hover: var(--accent-hover);
   --border-subtle: rgba(255, 255, 255, 0.12);
   --border-default: rgba(255, 255, 255, 0.18);
   --border-strong: rgba(255, 255, 255, 0.3);

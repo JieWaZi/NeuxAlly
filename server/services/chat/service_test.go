@@ -217,6 +217,9 @@ func TestReadMessageHistoryReadsLatestAndOlderJSONLWindows(t *testing.T) {
 		changes[0].Path != "projects/Desktop/main.go" || changes[0].AddedLines != 1 {
 		t.Fatalf("latest file changes = %+v, want managed workspace relative path", changes)
 	}
+	if len(latest.Resources[1].RuntimeEvents) != 0 || len(latest.Resources[1].FileChangeDiffs) != 0 {
+		t.Fatal("message history must not retain private runtime events or full file diffs")
+	}
 	diff, err := chatService.GetMessageFileChange(
 		context.Background(),
 		chatID,

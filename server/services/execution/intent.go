@@ -25,6 +25,8 @@ type ToolCapability struct {
 
 // WorkIntent 是所有产品入口提交给 Execution Core 的中立工作契约。
 type WorkIntent struct {
+	// AutomaticRunID 是服务端编排传入的原自动运行，外部正文不能绑定。
+	AutomaticRunID string `json:"-"`
 	// RetryExecutionID 表示由用户重试的已失败执行；输入与配置从权威记录恢复。
 	RetryExecutionID string
 	// ExecutionID 是上层持久编排预先分配的可选执行标识；普通入口留空并由 Execution Core 生成。
@@ -159,9 +161,15 @@ func (m *service) Start(
 	ctx context.Context,
 	intent WorkIntent,
 ) (AcceptedExecution, error) {
+	if m.validateIntent != nil {
+		if err := m.validateIntent(ctx, intent); err != nil {
+			return AcceptedExecution{}, err
+		}
+	}
 	if intent.RetryExecutionID != "" {
 		return m.retryExecution(ctx, strings.TrimSpace(intent.Chat.ChatID), strings.TrimSpace(intent.RetryExecutionID))
 	}
+
 	inputContext := ctx
 	releaseTeam := func() {}
 	if m.acquireTeamChatInput != nil && strings.TrimSpace(intent.Chat.ChatID) != "" {
@@ -192,7 +200,7 @@ func (m *service) Start(
 		intent.Admission != constants.ExecutionAdmissionCommitBeforeDispatch {
 		return AcceptedExecution{}, status_error.BadRequest
 	}
-	request := pendingMessage{
+	request := pendingMessage{automaticRunID: intent.AutomaticRunID,
 		executionID:     intent.ExecutionID,
 		submissionID:    intent.Input.SubmissionID,
 		clientRequestID: intent.ClientRequestID,

@@ -67,7 +67,7 @@ func (m *service) retryExecution(ctx context.Context, chatID, executionID string
 	if err != nil {
 		return AcceptedExecution{}, err
 	}
-	request := pendingMessage{
+	request := pendingMessage{automaticRunID: previous.AutomaticRunID,
 		chatID:            chatID,
 		executionID:       retryID,
 		parentExecutionID: executionID,

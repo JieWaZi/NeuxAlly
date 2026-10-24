@@ -20,6 +20,7 @@ import {
   chatListInfiniteOptions,
   chatListKey,
   chatMessagesInfiniteOptions,
+  useChatHistoryVisibility,
   chatMessagesKey,
   getChatOptions,
   getChatQueryKey,
@@ -214,11 +215,12 @@ export function TeamChatPageContent({
     ...getChatOptions({
       path: { chatId: activeChatId ?? "pending" },
     }),
-    enabled: Boolean(activeChatId),
+    enabled: sceneActive && Boolean(activeChatId),
   });
+  useChatHistoryVisibility(activeChatId, sceneActive);
   const messagesQuery = useInfiniteQuery({
     ...chatMessagesInfiniteOptions(activeChatId ?? "pending"),
-    enabled: Boolean(activeChatId),
+    enabled: sceneActive && Boolean(activeChatId),
   });
   const runtimesQuery = useQuery(listRuntimesOptions());
   const wakers = wakersQuery.data?.resources ?? [];
@@ -1201,16 +1203,20 @@ export function TeamChatPageContent({
         `team:${teamContext.threadId}`,
       ],
       onRetryExecution: chatRuntime.retryExecution,
-      hasEarlierMessages: teamMainChat
-        ? Boolean(teamContext.hasEarlierTimelineMessages)
-        : Boolean(messagesQuery.hasNextPage),
+      hasEarlierMessages:
+        sceneActive &&
+        (teamMainChat
+          ? Boolean(teamContext.hasEarlierTimelineMessages)
+          : Boolean(messagesQuery.hasNextPage)),
       isLoadingEarlier: teamMainChat
         ? Boolean(teamContext.isLoadingEarlierTimelineMessages)
         : messagesQuery.isFetchingNextPage,
       onLoadEarlier: () =>
         teamMainChat
           ? (teamContext.onLoadEarlierTimelineMessages() ?? Promise.resolve())
-          : messagesQuery.fetchNextPage().then(() => {}),
+          : messagesQuery
+              .fetchNextPage({ cancelRefetch: false, throwOnError: true })
+              .then(() => {}),
       warning: workspaceWarning || undefined,
       requestedInteractionId: searchParams.get("request")?.split(":").at(-1),
       pendingApprovals: chatRuntime.pendingApprovals,

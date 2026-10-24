@@ -170,5 +170,6 @@ func (s *Store) readAndRepairLocked(
 		offset += lineLength
 	}
 	state.scope = scope
+	state.scopeLogInfo, _ = os.Stat(path)
 	return records, nil
 }

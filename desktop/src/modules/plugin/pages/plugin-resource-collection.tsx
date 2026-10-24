@@ -218,7 +218,6 @@ export function PluginResourceCollection({
             {searchField}
           </>
         }
-        appearance={wakerId ? "default" : "navigation"}
       >
         {wakerId ? (
           <ResourcePageLibraryLabel

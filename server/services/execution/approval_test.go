@@ -250,3 +250,13 @@ func waitPendingApprovals(t *testing.T, journal *approvalTestJournal, want int) 
 	t.Fatalf("pending approval count did not become %d", want)
 	return nil
 }
+
+// LoadExecutionChat 不参与此日志边界测试。
+func (j *approvalTestJournal) LoadExecutionChat(context.Context, string) (models.Chat, error) {
+	panic("unexpected LoadExecutionChat call")
+}
+
+// ReadExecutionRecords 不参与此日志边界测试。
+func (j *approvalTestJournal) ReadExecutionRecords(string, string) ([]eventlog.Record, error) {
+	panic("unexpected ReadExecutionRecords call")
+}

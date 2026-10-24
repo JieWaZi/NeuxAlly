@@ -9,6 +9,7 @@ import (
 	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/authorization"
 	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/commandbridge"
 	"github.com/JieWaZi/NeuxAlly/server/services/plugininstallation"
+	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -21,6 +22,8 @@ import (
 	"github.com/JieWaZi/NeuxAlly/server/internal/agentcapability"
 	"github.com/JieWaZi/NeuxAlly/server/internal/builtinrolepreset"
 	"github.com/JieWaZi/NeuxAlly/server/internal/builtinwaker"
+	integrationapi "github.com/JieWaZi/NeuxAlly/server/internal/integration"
+	knowledgebridge "github.com/JieWaZi/NeuxAlly/server/internal/knowledge"
 	"github.com/JieWaZi/NeuxAlly/server/internal/logx"
 	"github.com/JieWaZi/NeuxAlly/server/internal/memory"
 	"github.com/JieWaZi/NeuxAlly/server/internal/notification/events"
@@ -39,16 +42,26 @@ import (
 	"github.com/JieWaZi/NeuxAlly/server/services/chat"
 	"github.com/JieWaZi/NeuxAlly/server/services/execution"
 	imservice "github.com/JieWaZi/NeuxAlly/server/services/im"
+	knowledgeservice "github.com/JieWaZi/NeuxAlly/server/services/knowledge"
 	"github.com/JieWaZi/NeuxAlly/server/services/notification"
 	"github.com/JieWaZi/NeuxAlly/server/services/runtimeenvironment"
 	"github.com/JieWaZi/NeuxAlly/server/services/schedule"
 	"github.com/JieWaZi/NeuxAlly/server/services/workflow"
+	"github.com/JieWaZi/neux-knowledge/core"
 	"github.com/shrewx/ginx/pkg/conf"
 	"github.com/shrewx/ginx/pkg/dbhelper"
 	"gorm.io/gorm"
 )
 
 var (
+	// KnowledgeService 复用页面、聊天与自动入口的真实知识维护。
+	KnowledgeService *knowledgeservice.Service
+	// KnowledgeRemoteMountControllerManager 只保存用户明确选择的远端库入口。
+	KnowledgeRemoteMountControllerManager controllers.KnowledgeRemoteMountController
+	// KnowledgeEngine 拥有专属知识库和受管原件生命周期。
+	KnowledgeEngine *core.Engine
+	// KnowledgeControllerManager 仅持久化本机知识接入引用。
+	KnowledgeControllerManager controllers.KnowledgeController
 	// AgentCapabilities 只接纳当前执行授权，不接受桌面全局管理令牌。
 	AgentCapabilities *agentcapability.Registry
 	// EventHub 是当前 Core 生命周期内所有安全事件的窄路由器。
@@ -274,9 +287,11 @@ func Load(ctx context.Context, configuration *Configuration, handlerFactory sche
 		func() error { return cleanupSkillArtifacts(ctx, configuration) },
 		func() error { return loadBuiltinSkills(ctx, configuration) },
 		func() error { return loadMemory(ctx, configuration) },
+		func() error { return loadKnowledge(ctx, configuration) },
 		func() error { return loadRuntime(ctx) },
 		func() error { return loadChat(ctx, configuration, handlerFactory) },
 		func() error { return loadNotifications(ctx) },
+		func() error { return loadIntegrationAPI(ctx) },
 		func() error {
 			hub := EventHub
 			closePluginCatalog = catalog.Start(ctx, PluginCatalogSource(), filepath.Join(configuration.DataDirectory, "plugins", "catalog"), func() {
@@ -311,6 +326,7 @@ func loadDB(ctx context.Context, configuration *Configuration) error {
 	EventHub = events.New()
 	AgentCapabilities = agentcapability.New(builtinskills.Guide)
 	DB = controllers.WithEventPublisher(database.DB, EventHub)
+	KnowledgeControllerManager = controllers.NewKnowledgeController(DB)
 	IMControllerManager = controllers.NewIMController(DB)
 	WakerControllerManager = controllers.NewWakerController(DB)
 	RolePresetControllerManager = controllers.NewRolePresetController(DB)
@@ -318,6 +334,7 @@ func loadDB(ctx context.Context, configuration *Configuration) error {
 	TransactionControllerManager = controllers.NewTransactionController(
 		dbhelper.NewGormTransactionManager(DB),
 	)
+	loadIntegrationAuthorization()
 	ProjectSourceControllerManager = controllers.NewProjectSourceController(DB)
 	ProjectControllerManager = controllers.NewProjectController(DB)
 	WorkResultControllerManager = controllers.NewWorkResultController(DB)
@@ -370,7 +387,7 @@ func loadDB(ctx context.Context, configuration *Configuration) error {
 	MCPConnectorControllerManager = controllers.NewMCPConnectorController(DB)
 	RuntimeEnvironmentControllerManager = controllers.NewRuntimeEnvironmentController(DB)
 	AIAccountControllerManager = controllers.NewAIAccountController(DB)
-	AutomaticTaskControllerManager = controllers.NewAutomaticTaskController(DB)
+	AutomaticTaskControllerManager = IntegrationService.CoordinateTasks(controllers.NewAutomaticTaskController(DB))
 	AttentionNoticeControllerManager = controllers.NewAttentionNoticeController(DB)
 	WorkflowControllerManager = controllers.NewWorkflowController(DB)
 	WorkflowRunControllerManager = controllers.NewWorkflowRunController(DB)
@@ -499,6 +516,12 @@ func loadChat(ctx context.Context, configuration *Configuration, handlerFactory 
 		return mapCoreError("start_chat_service", status_error.CoreChatInitializationFailed, err)
 	}
 	executionCore, err := execution.New(execution.Config{
+		ValidateIntent: func(ctx context.Context, intent execution.WorkIntent) error {
+			if KnowledgeService == nil {
+				return nil
+			}
+			return KnowledgeService.ValidateWorkIntent(ctx, intent)
+		},
 		AcquireTeamChatInput: func(ctx context.Context, chatID string, userInput bool) (context.Context, func(), error) {
 			if ChannelService == nil {
 				return ctx, func() {}, nil
@@ -508,9 +531,17 @@ func loadChat(ctx context.Context, configuration *Configuration, handlerFactory 
 		Agent: AgentCapabilities, Events: EventHub,
 		AgentEndpoint: "http://127.0.0.1:" + strconv.Itoa(configuration.Server.Port) + constants.AgentCLIPath,
 		AgentBinary:   agentBinaryPath(),
-		AgentBindings: func(chat models.Chat, executionID string, roots []string) []agentcapability.Binding {
-			bindings := []agentcapability.Binding{}
-			bindings = append(bindings, MemoryService.AgentBindings(memory.Context{RunID: executionID, ChatID: chat.ID, PartnerID: chat.WakerID, ProjectID: chat.ProjectID})...)
+		AgentBindings: func(chat models.Chat, executionID string, roots []string, automaticRunID string) []agentcapability.Binding {
+			bindings := MemoryService.AgentBindings(memory.Context{RunID: executionID, ChatID: chat.ID, PartnerID: chat.WakerID, ProjectID: chat.ProjectID})
+			if KnowledgeService != nil {
+				knowledgeChat := chat
+				knowledgeChat.ActiveExecutionID = executionID
+				if automaticRunID != "" {
+					bindings = append(bindings, KnowledgeService.AutomaticBindings(context.Background(), knowledgeChat, automaticRunID)...)
+				} else {
+					bindings = append(bindings, KnowledgeService.AgentBindings(context.Background(), knowledgeChat)...)
+				}
+			}
 			if IMService != nil {
 				bindings = append(bindings, IMService.AgentBindings(chat, executionID, roots, EventHub)...)
 			}
@@ -535,10 +566,16 @@ func loadChat(ctx context.Context, configuration *Configuration, handlerFactory 
 		return mapCoreError("initialize_execution_service", status_error.CoreChatInitializationFailed, err)
 	}
 	ExecutionService = executionCore
+	libraryEmbeddings := knowledgebridge.LibraryEmbeddings{Engine: KnowledgeEngine, References: KnowledgeControllerManager}
+	KnowledgeService = knowledgeservice.New(knowledgeservice.Config{AutomaticRun: AutomaticTaskControllerManager.GetRun, InvocationGuard: IntegrationService.AcquireInvocationGuard, IntegrationGuard: IntegrationService.RestoreKnowledgeGuard, ResolveModel: resolveKnowledgeModel, Generator: newKnowledgeModelGenerator, FreezeEmbedder: libraryEmbeddings.Freeze, Connections: KnowledgeConnectionControllerManager, Engine: KnowledgeEngine, References: KnowledgeControllerManager, Projects: ProjectControllerManager, Chats: ChatService, Events: EventHub})
+	if err := KnowledgeService.Start(ctx); err != nil {
+		return err
+	}
 	if err := ExecutionService.Open(ctx); err != nil {
 		return mapCoreError("open_execution_service", status_error.CoreChatInitializationFailed, err)
 	}
 	channelModule, err := channelservice.New(channelservice.Config{
+		AutomaticRun:        AutomaticTaskControllerManager.GetRun,
 		Commands:            controllers.NewAgentCommandController(DB),
 		PrepareDirectResult: ChatService.PrepareParticipantResult,
 		Results:             WorkResultControllerManager,
@@ -590,16 +627,22 @@ func loadChat(ctx context.Context, configuration *Configuration, handlerFactory 
 		DataDirectory:    configuration.ManagedFilesDirectory,
 		Projects:         ProjectControllerManager,
 	})
-	ScheduleService = schedule.New(schedule.Config{
-		Workflows:    WorkflowService,
-		WorkflowRuns: WorkflowRunControllerManager,
-		APIHandler:   handlerFactory,
-		Tasks:        AutomaticTaskControllerManager, Transactions: TransactionControllerManager,
+	scheduleConfig := schedule.Config{AuthorizationWrite: IntegrationService.WithAuthorizationWrite,
+		BindKnowledge: KnowledgeService.BindIntent,
+		Workflows:     WorkflowService,
+		WorkflowRuns:  WorkflowRunControllerManager,
+		APIHandler:    handlerFactory,
+		Tasks:         AutomaticTaskControllerManager, Transactions: TransactionControllerManager,
 		Wakers: WakerControllerManager, Projects: ProjectControllerManager,
 		Executions: ExecutionService, Chats: chatModule, DataDirectory: configuration.DataDirectory,
 		ManagedFilesDirectory: configuration.ManagedFilesDirectory,
 		Teams:                 ChannelService, Channels: ChannelControllerManager, Threads: ChannelThreadControllerManager, TeamTasks: ChannelTaskControllerManager,
+	}
+	IntegrationAPIListener = integrationapi.NewListener(configuration.DataDirectory, func(address string) http.Handler {
+		return handlerFactory(ScheduleService, scheduleConfig, address)
 	})
+	scheduleConfig.APIListener = IntegrationAPIListener
+	ScheduleService = schedule.New(scheduleConfig)
 	if err := WorkflowService.Start(ctx); err != nil {
 		return err
 	}
@@ -614,7 +657,14 @@ func loadChat(ctx context.Context, configuration *Configuration, handlerFactory 
 
 // Close 按依赖逆序停止后台流程并关闭数据库连接。
 func Close() error {
+	closeIntegrationAPI()
 	var result error
+	KnowledgeConnectionControllerManager = nil
+	KnowledgeRemoteMountControllerManager = nil
+	if KnowledgeService != nil {
+		KnowledgeService.Close()
+		KnowledgeService = nil
+	}
 	if closePluginCatalog != nil {
 		closePluginCatalog()
 		closePluginCatalog = nil
@@ -682,6 +732,12 @@ func Close() error {
 		}
 		cancelClose()
 		RuntimeSDK = nil
+	}
+	if KnowledgeEngine != nil {
+		if err := KnowledgeEngine.Close(); err != nil && result == nil {
+			result = knowledgebridge.MapError(err)
+		}
+		KnowledgeEngine = nil
 	}
 	if MemoryService != nil {
 		MemoryService.Close()
@@ -769,6 +825,20 @@ var PluginBridgeEnvironment []string
 
 // PluginContents 保存当前 Core 的短期内容使用计数。
 var PluginContents *plugins.ContentStore
+
+// loadKnowledge 打开独立知识数据库，不启动模型或第二套执行宿主。
+func loadKnowledge(ctx context.Context, configuration *Configuration) error {
+	KnowledgeConnectionControllerManager = controllers.NewKnowledgeConnectionController(DB)
+	KnowledgeRemoteMountControllerManager = controllers.NewKnowledgeRemoteMountController(DB)
+	if KnowledgeControllerManager != nil {
+		if err := KnowledgeControllerManager.RecoverRemoteSending(ctx); err != nil {
+			return err
+		}
+	}
+	var err error
+	KnowledgeEngine, err = knowledgebridge.Open(ctx, configuration.DataDirectory, configuration.ManagedFilesDirectory)
+	return err
+}
 
 // closePluginCatalog 取消并等待启动时的目录更新，先于事件通道关闭。
 var closePluginCatalog func()

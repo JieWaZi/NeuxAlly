@@ -60,6 +60,14 @@ func TestListWakersReturnsAggregatedActivityState(t *testing.T) {
 		t.Fatalf("create Chat: %v", err)
 	}
 
+	if err := global.ChatControllerManager.Create(ctx, models.Chat{
+		ID: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", WakerID: idleWakerID,
+		ActiveExecutionID: "background-workflow-execution", HiddenFromWakerHistory: true,
+		WaitingApproval: true,
+	}); err != nil {
+		t.Fatalf("create background Chat: %v", err)
+	}
+
 	output, err := (&ListWakers{PageNum: 1, PageSize: 100}).Output(ctx)
 	if err != nil {
 		t.Fatalf("Output() error = %v", err)

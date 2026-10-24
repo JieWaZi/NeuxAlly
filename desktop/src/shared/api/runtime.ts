@@ -23,6 +23,12 @@ const recoveries = new WeakMap<
 /** 按方法、资源和查询参数区分操作，分页或其他请求成功不能清除当前失败。 */
 function requestOperation(request: Request) {
   const url = new URL(request.url);
+  const remoteKnowledge = url.pathname.match(
+    /^\/api\/v1\/knowledge\/connections\/([^/]+)\/libraries\/([^/]+)(?:\/|$)/,
+  );
+  if (remoteKnowledge?.[1] && remoteKnowledge[2]) {
+    return `api:knowledge:${remoteKnowledge[1]}:${remoteKnowledge[2]}`;
+  }
   url.searchParams.sort();
   return `api:${request.method}:${url.pathname}${url.search}`;
 }
@@ -105,6 +111,9 @@ export async function initializeApi(): Promise<CoreConnection> {
     });
     client.interceptors.error.use((error, response, request, options) => {
       const converted = toApiError(error, response?.status);
+      converted.requestOperation = request
+        ? requestOperation(request)
+        : undefined;
       if (
         request?.signal.aborted ||
         (error instanceof DOMException && error.name === "AbortError")

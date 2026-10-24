@@ -3,8 +3,12 @@
 set -eu
 
 ALLY_API_TOOL_DIRECTORY=$(mktemp -d)
+ALLY_PUBLIC_SOURCE=""
 cleanup() {
   rm -rf "$ALLY_API_TOOL_DIRECTORY"
+  if [ -n "$ALLY_PUBLIC_SOURCE" ]; then
+    rm -f "$ALLY_PUBLIC_SOURCE"
+  fi
 }
 trap cleanup EXIT HUP INT TERM
 
@@ -25,5 +29,10 @@ trap cleanup EXIT HUP INT TERM
 )
 
 node scripts/normalize-openapi.mjs server/openapi.json
+
+ALLY_PUBLIC_SOURCE=$(mktemp)
+(cd server && go run ./cmd/integration-contract "$ALLY_PUBLIC_SOURCE")
+node scripts/public-openapi.mjs "$ALLY_PUBLIC_SOURCE" server/integration-openapi.json
+node scripts/normalize-openapi.mjs server/integration-openapi.json
 
 pnpm --dir desktop api:generate

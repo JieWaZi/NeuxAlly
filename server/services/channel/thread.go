@@ -159,7 +159,7 @@ func (s *service) createThread(
 	if leadChatID == "" || leadConfig.WakerID == "" {
 		return ThreadResult{}, status_error.ChannelLeadInvalid
 	}
-	thread := models.ChannelThread{
+	thread := models.ChannelThread{AutomaticRunID: input.AutomaticRunID,
 		ID:                           threadID,
 		ChannelID:                    channel.ID,
 		ClientRequestID:              &requestIdentity.ID,
@@ -305,11 +305,11 @@ func (s *service) createThread(
 	workOptions.AccountID = leadConfig.AccountID
 
 	accepted, err := s.executions.Start(ctx, execution.WorkIntent{
-		ExecutionID: leadExecutionID,
-		Chat:        execution.ChatTarget{ChatID: leadChat.ID},
-		Input:       input.Input,
-		Options:     workOptions,
-		Admission:   constants.ExecutionAdmissionCommitBeforeDispatch,
+		AutomaticRunID: thread.AutomaticRunID, ExecutionID: leadExecutionID,
+		Chat:      execution.ChatTarget{ChatID: leadChat.ID},
+		Input:     input.Input,
+		Options:   workOptions,
+		Admission: constants.ExecutionAdmissionCommitBeforeDispatch,
 	})
 	if err != nil {
 		s.capabilities.Revoke(capabilityToken)

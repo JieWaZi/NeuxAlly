@@ -72,6 +72,9 @@ func messageFileChangeDiffs(
 	summaries []ToolFileChangeSummary,
 	scope workspacePathScope,
 ) []MessageFileChangeDiff {
+	if len(summaries) == 0 {
+		return nil
+	}
 	allowedTools := make(map[string]struct{})
 	for _, part := range parts {
 		if part.Type == constants.MessageDisplayPartTool &&

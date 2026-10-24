@@ -75,7 +75,7 @@ export function TimePicker({
           <Button
             size="sm"
             type="button"
-            variant="secondary"
+            variant="primary"
             onClick={() => {
               if (!value) onChange(`${hour}:${minute}`);
               setOpen(false);

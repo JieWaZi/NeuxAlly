@@ -12,6 +12,8 @@ import (
 
 // acpAdapterConfig 保存所有 acp-go Runtime Adapter 共用的启动事实。
 type acpAdapterConfig struct {
+	// RefreshCredentials 将原生刷新路由到共享凭据权威。
+	RefreshCredentials CredentialRefresh
 	// RuntimeID 是本次连接所属的内置智能体或本地配置标识。
 	RuntimeID string
 	// DetectionID 关联一次独立能力探测；普通执行为空。
@@ -34,6 +36,8 @@ type acpAdapterConfig struct {
 	StateDirectory string
 	// PermissionMode 是本次原生进程冻结的执行权限。
 	PermissionMode string
+	// TextOnly 表示本次不安装问答 MCP，只提供无状态模型生成。
+	TextOnly bool
 }
 
 // acpAgentFactory 从统一启动事实创建一个标准 ACP Agent。
@@ -153,18 +157,23 @@ func acpAdapterConfigForRequest(
 	binding acpRuntimeBinding,
 ) acpAdapterConfig {
 	config := acpAdapterConfig{
-		RuntimeID:        request.Request.Target.RuntimeID,
-		Executable:       request.Prepared.detection.ResolvedBinary,
-		PrefixArgs:       cloneStrings(request.Prepared.definition.prefixArgs),
-		Environment:      request.Prepared.environment.list(),
-		WorkingDirectory: request.Request.Workspace.Path,
-		PermissionMode:   string(request.Request.Policy.Execution.PermissionLevel),
+		RefreshCredentials: request.Request.Target.RefreshCredentials,
+		RuntimeID:          request.Request.Target.RuntimeID,
+		Executable:         request.Prepared.detection.ResolvedBinary,
+		PrefixArgs:         cloneStrings(request.Prepared.definition.prefixArgs),
+		Environment:        request.Prepared.environment.list(),
+		WorkingDirectory:   request.Request.Workspace.Path,
+		PermissionMode:     string(request.Request.Policy.Execution.PermissionLevel),
 	}
 	config.NativePluginDirectories = cloneStrings(request.Request.Target.NativePluginDirectories)
 	config.CodexPluginConfiguration = maps.Clone(request.Request.Target.CodexPluginConfiguration)
 	config.ClaudeSettingsPath = request.Request.Target.ClaudeSettingsPath
 	if binding.stateDirectory != nil {
 		config.StateDirectory = binding.stateDirectory(request)
+	}
+	if request.Text != nil {
+		config.TextOnly = true
+		config, _ = textAdapterConfig(config, binding.baseRuntimeID)
 	}
 	return config
 }
@@ -185,6 +194,9 @@ func acpAgentKeyForBinding(request acpRunRequest, binding acpRuntimeBinding) str
 	workspace := ""
 	if binding.agentScope != nil {
 		workspace = binding.agentScope(request)
+	}
+	if request.Text != nil {
+		workspace += "\x00text\x00" + request.InvocationID
 	}
 	return request.Request.Target.RuntimeID + "\x00" +
 		request.Prepared.detection.ResolvedBinary + "\x00" +

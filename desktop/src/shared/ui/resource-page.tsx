@@ -108,15 +108,14 @@ export function ResourcePageHeader({
 export function ResourcePageToolbar({
   children,
   filters,
-  appearance = "default",
 }: {
-  children: ReactNode;
+  children?: ReactNode;
   filters?: ReactNode;
-  appearance?: "default" | "navigation";
 }) {
   return (
     <Toolbar
-      className={appearance === "navigation" ? "pb-0" : undefined}
+      size="md"
+      className="pb-2"
       leading={children}
       trailing={filters}
       leadingClassName="max-w-full min-w-0"
@@ -138,8 +137,12 @@ export function ResourcePageSurface({
   children,
   className,
   contentClassName,
+  contentLayout = "scroll",
   ...props
-}: ComponentProps<"div"> & { contentClassName?: string }) {
+}: ComponentProps<"div"> & {
+  contentClassName?: string;
+  contentLayout?: "scroll" | "pane";
+}) {
   return (
     <div
       data-slot="resource-page-surface"
@@ -151,7 +154,10 @@ export function ResourcePageSurface({
     >
       <div
         className={cn(
-          "scrollbar-hidden pt-shell-content-top pb-scene-bottom scroll-pb-scene-bottom h-full overflow-y-auto px-4 @[42.5rem]/resource-page:px-6",
+          "pt-shell-content-top h-full px-4 @[42.5rem]/resource-page:px-6",
+          contentLayout === "scroll"
+            ? "scrollbar-hidden pb-scene-bottom scroll-pb-scene-bottom overflow-y-auto"
+            : "overflow-hidden",
           contentClassName,
         )}
       >

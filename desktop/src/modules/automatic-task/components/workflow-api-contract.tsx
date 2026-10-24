@@ -1,3 +1,8 @@
+import { i18n } from "@/shared/i18n";
+import {
+  automaticTaskApiZh,
+  automaticTaskApiEn,
+} from "@/shared/i18n/automatic-task-api";
 import { useTranslation } from "react-i18next";
 import {
   apiDocumentationSchema,
@@ -6,6 +11,21 @@ import {
 } from "../model/workflow-inputs";
 import type { TaskView } from "../model/types";
 import { CopyValue } from "./copy-value";
+
+i18n.addResourceBundle(
+  "zh-CN",
+  "automaticTask",
+  automaticTaskApiZh,
+  true,
+  true,
+);
+i18n.addResourceBundle(
+  "en-US",
+  "automaticTask",
+  automaticTaskApiEn,
+  true,
+  true,
+);
 
 export function WorkflowAPIContract({
   contract,

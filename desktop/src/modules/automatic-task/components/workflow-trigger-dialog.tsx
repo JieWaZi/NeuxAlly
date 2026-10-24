@@ -52,7 +52,6 @@ import {
   supportsInputBindings,
   type InputBindings,
 } from "../model/workflow-inputs";
-import { TaskTokenDialog } from "./task-token-dialog";
 import type { GithubComJieWaZiNeuxAllyServerRepositoriesModelsAutomaticTask as TriggerTask } from "@/shared/api/generated/types.gen";
 
 export function WorkflowTriggerDialog({
@@ -80,9 +79,6 @@ export function WorkflowTriggerDialog({
     ...getWorkflowTriggersOptions({ path: { id: definitionId } }),
     enabled: open,
   });
-  const [receipts, setReceipts] = useState<{ taskId: string; token: string }[]>(
-    [],
-  );
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -116,13 +112,6 @@ export function WorkflowTriggerDialog({
               onSaved={(tasks) => {
                 onOpenChange(false);
                 if (tasks[0]) onSaved?.(tasks[0]);
-                setReceipts(
-                  tasks.flatMap((value) =>
-                    value.taskId && value.token
-                      ? [{ taskId: value.taskId, token: value.token }]
-                      : [],
-                  ),
-                );
               }}
             />
           ) : (
@@ -132,10 +121,6 @@ export function WorkflowTriggerDialog({
           )}
         </DialogContent>
       </Dialog>
-      <TaskTokenDialog
-        receipt={receipts[0]}
-        onClose={() => setReceipts((current) => current.slice(1))}
-      />
     </>
   );
 }

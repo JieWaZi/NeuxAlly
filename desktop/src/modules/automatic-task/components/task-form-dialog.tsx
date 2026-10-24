@@ -1,3 +1,8 @@
+import { i18n } from "@/shared/i18n";
+import {
+  automaticTaskApiZh,
+  automaticTaskApiEn,
+} from "@/shared/i18n/automatic-task-api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Clock3,
@@ -33,7 +38,7 @@ import { TeamAvatarStack } from "@/modules/team";
 import { ExecutionConfigurationControls } from "@/shared/ui/execution-configuration-controls";
 import { Button } from "@/shared/ui/button";
 import { Card } from "@/shared/ui/card";
-import { Dialog, DialogContent, DialogFooter } from "@/shared/ui/dialog";
+import { DialogFooter } from "@/shared/ui/dialog";
 import { Input } from "@/shared/ui/input";
 import { FieldLabel } from "@/shared/ui/field-label";
 import { FieldControlTrigger } from "@/shared/ui/field-control-trigger";
@@ -96,42 +101,22 @@ function Field({
   );
 }
 
-export function TaskFormDialog({
-  open,
-  onOpenChange,
-  onSaved,
-  wakerId = "",
-  task,
-}: {
-  open: boolean;
-  onOpenChange: (value: boolean) => void;
-  onSaved: (value: SavedTask) => void;
-  wakerId?: string;
-  task?: TaskView;
-}) {
-  const { t } = useTranslation("automaticTask");
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        size="lg"
-        layout="form"
-        title={t(task ? "edit" : "create")}
-      >
-        {open ? (
-          <TaskForm
-            key={task?.id || "create"}
-            task={task}
-            wakerId={wakerId}
-            onSaved={onSaved}
-            onCancel={() => onOpenChange(false)}
-          />
-        ) : null}
-      </DialogContent>
-    </Dialog>
-  );
-}
+i18n.addResourceBundle(
+  "zh-CN",
+  "automaticTask",
+  automaticTaskApiZh,
+  true,
+  true,
+);
+i18n.addResourceBundle(
+  "en-US",
+  "automaticTask",
+  automaticTaskApiEn,
+  true,
+  true,
+);
 
-function TaskForm({
+export function TaskForm({
   task,
   wakerId,
   onSaved,

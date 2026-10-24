@@ -390,6 +390,7 @@ function AppShellContent({
   const routeSceneLabels = useMemo<RouteSceneLabels>(
     () => ({
       resources: t("plugin:title"),
+      knowledge: t("knowledge:knowledge"),
       workBoard: t("workBoard:title"),
       im: t("im:title"),
       automaticTask: t("automaticTask:title"),
@@ -517,6 +518,18 @@ function AppShellContent({
           }
           onOpenPartnerDetail={openPartnerDetail}
           onOpenAutomaticTasks={openAutomaticTasks}
+          onOpenKnowledge={() => {
+            setSceneNavigationVisible(false);
+            const href = "/knowledge";
+            navigate(href, { flushSync: true });
+            appScenes.dispatch({
+              type: "open",
+              tab: routeSceneForLocation(
+                { pathname: href, search: "" },
+                routeSceneLabels,
+              ),
+            });
+          }}
           onOpenResources={() => {
             setSceneNavigationVisible(false);
             const href = "/resources";
@@ -550,7 +563,7 @@ function AppShellContent({
           sceneNavigationVisible={sceneNavigationVisible}
           sceneContentFlush={
             (isChatSurface ||
-              /^\/(?:resources|work-board|workflows|im|automatic-tasks)(?:\/|$)/.test(
+              /^\/(?:knowledge|resources|work-board|workflows|im|automatic-tasks)(?:\/|$)/.test(
                 location.pathname,
               )) &&
             !settingsOpen

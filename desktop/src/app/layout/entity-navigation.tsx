@@ -18,6 +18,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import {
   Package,
+  BookOpen,
   ArrowLeftRight,
   ChevronUp,
   CircleAlert,
@@ -84,6 +85,7 @@ type EntityNavigationProps = {
   onOpenAutomaticTasks?: () => void;
   onOpenWorkflows?: () => void;
   onOpenResources?: () => void;
+  onOpenKnowledge?: () => void;
   collapsed: boolean;
   entityStatus?: "error" | "loading" | "ready";
   floating?: boolean;
@@ -393,6 +395,7 @@ export function EntityNavigation({
   onOpenAutomaticTasks,
   onOpenWorkflows,
   onOpenResources,
+  onOpenKnowledge,
   collapsed,
   entityStatus = "ready",
   floating = false,
@@ -893,6 +896,34 @@ export function EntityNavigation({
                   {collapsed ? (
                     <TooltipContent side="right">
                       {t("plugin:title")}
+                    </TooltipContent>
+                  ) : null}
+                </Tooltip>
+              ) : null}
+              {onOpenKnowledge ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    {collapsed ? (
+                      <Button
+                        size="icon"
+                        variant="choice"
+                        aria-label={t("knowledge:knowledge")}
+                        onClick={onOpenKnowledge}
+                      >
+                        <BookOpen />
+                      </Button>
+                    ) : (
+                      <NavigationItem
+                        density="navigation"
+                        icon={<BookOpen strokeWidth={1.5} />}
+                        label={t("knowledge:knowledge")}
+                        onClick={onOpenKnowledge}
+                      />
+                    )}
+                  </TooltipTrigger>
+                  {collapsed ? (
+                    <TooltipContent side="right">
+                      {t("knowledge:knowledge")}
                     </TooltipContent>
                   ) : null}
                 </Tooltip>

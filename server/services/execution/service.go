@@ -43,6 +43,8 @@ type Service interface {
 	Cancel(chatID string) error
 	// CancelAndWait 取消指定 Chat 当前活跃执行并等待 durable 终态。
 	CancelAndWait(ctx context.Context, chatID string) error
+	// CancelExecutionAndWait 只取消指定执行占用，旧任务不得影响同Chat后续输入。
+	CancelExecutionAndWait(ctx context.Context, chatID, executionID string) error
 	// ResolveApproval 处理 Chat 当前执行的一次未决审批。
 	ResolveApproval(ctx context.Context, chatID string, approvalID string, optionID string) error
 	// ResolveElicitation 处理 Chat 当前执行的一次未决结构化用户输入。
@@ -96,7 +98,9 @@ type service struct {
 	// agentBinary 是随应用发布的 CLI 真实路径。
 	agentBinary string
 	// agentBindings 提供伙伴当前普通业务能力的领域绑定。
-	agentBindings func(models.Chat, string, []string) []agentcapability.Binding
+	agentBindings func(models.Chat, string, []string, string) []agentcapability.Binding
+	// validateIntent 在任何首发、续发或重试接纳前校验领域持久约束。
+	validateIntent func(context.Context, WorkIntent) error
 	// agentSessions 保存同一原生会话进程独占的连接文件位置。
 	agentSessions *agentSessionFiles
 	// acquireTeamChatInput 将团队成员 Chat 的直接输入纳入团队聚合接纳边界。
@@ -158,7 +162,9 @@ type Config struct {
 	// AgentBinary 是应用提供的 CLI 绝对路径。
 	AgentBinary string
 	// AgentBindings 按冻结伙伴和目录范围签发普通能力。
-	AgentBindings func(models.Chat, string, []string) []agentcapability.Binding
+	AgentBindings func(models.Chat, string, []string, string) []agentcapability.Binding
+	// ValidateIntent 校验入口无关的领域接纳约束；为空时不增加额外限制。
+	ValidateIntent func(context.Context, WorkIntent) error
 	// AcquireTeamChatInput 保护团队成员直接输入，普通 Chat 通过不持锁。
 	AcquireTeamChatInput func(context.Context, string, bool) (context.Context, func(), error)
 	// Accounts 管理受管账号的使用租约和配置投射。
@@ -260,6 +266,7 @@ func New(config Config) (Core, error) {
 		agentEndpoint:        config.AgentEndpoint,
 		agentBinary:          config.AgentBinary,
 		agentBindings:        config.AgentBindings,
+		validateIntent:       config.ValidateIntent,
 		agentSessions:        &agentSessionFiles{slots: map[string]agentSessionSlot{}},
 		accounts:             config.Accounts,
 		acquireTeamChatInput: config.AcquireTeamChatInput,
@@ -317,6 +324,16 @@ func (m *service) CancelAndWait(ctx context.Context, chatID string) error {
 		return status_error.BadRequest
 	}
 	return m.executions.cancelAndWait(ctx, chatID)
+}
+
+// CancelExecutionAndWait 原子匹配聊天与执行身份后取消，等待该次执行的持久收尾。
+func (m *service) CancelExecutionAndWait(ctx context.Context, chatID, executionID string) error {
+	chatID = strings.TrimSpace(chatID)
+	executionID = strings.TrimSpace(executionID)
+	if chatID == "" || executionID == "" {
+		return status_error.BadRequest
+	}
+	return m.executions.cancelExecutionAndWait(ctx, chatID, executionID)
 }
 
 func resolveWorkingDirectory(value string) (models.ProjectSource, error) {

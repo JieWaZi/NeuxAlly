@@ -39,6 +39,33 @@ func codexACPRuntimeBinding() acpRuntimeBinding {
 	}
 	binding.messagePhase = codexACPMessagePhase
 	binding.newAgent = func(ctx context.Context, config acpAdapterConfig) (acp.Agent, error) {
+		refresh := config.RefreshCredentials
+		sourceAuth := ""
+		if refresh == nil {
+			var err error
+			sourceAuth, err = codexAuthPathForEnvironment(config.Environment)
+			if err != nil {
+				return nil, err
+			}
+			refresh, err = codexFileRefresh(sourceAuth, nil)
+			if err != nil {
+				return nil, err
+			}
+		}
+		var broker *codexRefreshBroker
+		if refresh != nil {
+			var err error
+			broker, err = newCodexRefreshBroker(refresh)
+			if err != nil {
+				return nil, err
+			}
+			environment, err := buildEnvironment(config.Environment, map[string]string{codexRefreshURLVariable: broker.url})
+			if err != nil {
+				broker.Close()
+				return nil, err
+			}
+			config.Environment = environment.list()
+		}
 		prefixArgs := cloneStrings(config.PrefixArgs)
 		keys := make([]string, 0, len(config.CodexPluginConfiguration))
 		for key := range config.CodexPluginConfiguration {
@@ -48,13 +75,23 @@ func codexACPRuntimeBinding() acpRuntimeBinding {
 		for _, key := range keys {
 			prefixArgs = append(prefixArgs, "-c", key+"="+config.CodexPluginConfiguration[key])
 		}
-		return acpcodex.NewAgent(ctx, acpcodex.Config{
+		agent, err := acpcodex.NewAgent(ctx, acpcodex.Config{
 			Logger:                      acpAdapterLogger(ctx),
 			CodexPath:                   config.Executable,
 			PrefixArgs:                  prefixArgs,
 			Environment:                 append([]string(nil), config.Environment...),
 			DefaultModeRequestUserInput: constants.RuntimeCodexDefaultModeRequestUserInput,
 		})
+		if err != nil {
+			if broker != nil {
+				broker.Close()
+			}
+			return nil, err
+		}
+		if broker != nil {
+			return &codexCredentialAgent{Agent: agent, broker: broker, sourceAuth: sourceAuth}, nil
+		}
+		return agent, nil
 	}
 	return binding
 }

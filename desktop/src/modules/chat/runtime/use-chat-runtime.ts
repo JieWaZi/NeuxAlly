@@ -898,7 +898,12 @@ export function useChatRuntime(options: ChatRuntimeOptions): ChatRuntimeResult {
   }, [advanceQueue, isRunning, options.queueKey, queueStore, queuedEntries]);
 
   useEffect(() => {
-    if (!options.chatId || !isRunning || !options.isHistoryReady) {
+    if (
+      options.queueActive === false ||
+      !options.chatId ||
+      !isRunning ||
+      !options.isHistoryReady
+    ) {
       return;
     }
     let subscribed = true;
@@ -907,8 +912,14 @@ export function useChatRuntime(options: ChatRuntimeOptions): ChatRuntimeResult {
       subscribed &&
       mountedRef.current &&
       observedChatKeyRef.current === subscribedChatKey;
+    let pendingSequence = 0;
     const eventBatcher = createChatEventBatcher((events) => {
       if (!isCurrentSubscription()) return;
+      // 接收不等于投影；隐藏时丢弃的短批次不能推进恢复游标。
+      cursorRef.current.sequence = Math.max(
+        cursorRef.current.sequence,
+        pendingSequence,
+      );
       setOverlay((current) => {
         const localMessages = mergeLocalMessages(
           handoffMessagesRef.current,
@@ -950,10 +961,7 @@ export function useChatRuntime(options: ChatRuntimeOptions): ChatRuntimeResult {
       onEvent: (event) => {
         if (!isCurrentSubscription()) return;
         resolveErrorNoticeRecovery(streamRecovery);
-        cursorRef.current.sequence = Math.max(
-          cursorRef.current.sequence,
-          event.sequence ?? 0,
-        );
+        pendingSequence = Math.max(pendingSequence, event.sequence ?? 0);
         const terminal = isTerminalEvent(event);
         const approvalRequest = event.approvalRequest;
         if (
@@ -1100,6 +1108,7 @@ export function useChatRuntime(options: ChatRuntimeOptions): ChatRuntimeResult {
         if (!isCurrentSubscription()) return;
         resolveErrorNoticeRecovery(streamRecovery);
         eventBatcher.close();
+        pendingSequence = cursorRef.current.sequence;
         setApprovalOverlay({
           chatId: options.chatId,
           added: [],
@@ -1156,6 +1165,7 @@ export function useChatRuntime(options: ChatRuntimeOptions): ChatRuntimeResult {
     options.conversationKey,
     options.isHistoryReady,
     options.messageVisibility,
+    options.queueActive,
   ]);
 
   const onNew = useCallback(

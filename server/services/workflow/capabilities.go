@@ -381,7 +381,7 @@ func (s *Service) handleConsumerTool(ctx context.Context, scope workflowtool.Sco
 		if input.InputFileRoots != nil {
 			roots = input.InputFileRoots
 		}
-		run, err := s.StartRun(ctx, StartRunCommand{InputFileRoots: roots, DefinitionID: input.WorkflowID, RevisionID: input.RevisionID, RequestID: requestID, Args: input.Args, TriggerSource: "agent", ConsumerLeaseID: lease.ID, ApprovedScope: &approved, Defaults: models.WorkflowExecutionDefaults{RuntimeID: actual.RuntimeID, AccountID: actual.AccountID, Model: actual.Model, Reasoning: actual.Reasoning, PermissionLevel: actual.PermissionLevel, WorkspaceReadOnly: actual.WorkspaceReadOnly}})
+		run, err := s.StartRun(ctx, StartRunCommand{AutomaticRunID: actual.AutomaticRunID, InputFileRoots: roots, DefinitionID: input.WorkflowID, RevisionID: input.RevisionID, RequestID: requestID, Args: input.Args, TriggerSource: "agent", ConsumerLeaseID: lease.ID, ApprovedScope: &approved, Defaults: models.WorkflowExecutionDefaults{RuntimeID: actual.RuntimeID, AccountID: actual.AccountID, Model: actual.Model, Reasoning: actual.Reasoning, PermissionLevel: actual.PermissionLevel, WorkspaceReadOnly: actual.WorkspaceReadOnly}})
 		if err != nil {
 			return nil, err
 		}

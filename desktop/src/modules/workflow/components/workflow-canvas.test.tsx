@@ -58,6 +58,41 @@ const manifest: Manifest = {
   ],
 };
 
+it("默认拖动空白即可移动画布，节点与缩放按钮保留点击行为", async () => {
+  const restore = installCanvasDOM();
+  vi.stubGlobal("PointerEvent", MouseEvent);
+  const select = vi.fn();
+  const view = render(<WorkflowCanvas manifest={manifest} onSelect={select} />);
+  try {
+    const canvas = screen.getByLabelText("画布");
+    Object.defineProperty(canvas, "setPointerCapture", {
+      configurable: true,
+      value: () => {},
+    });
+    const content = canvas.querySelector<HTMLElement>(
+      "div[style*='transform']",
+    );
+    const before = content?.style.transform;
+    fireEvent.pointerDown(canvas, { button: 0, clientX: 100, clientY: 100 });
+    fireEvent.pointerMove(canvas, { clientX: 150, clientY: 140 });
+    fireEvent.pointerUp(canvas);
+    expect(content?.style.transform).not.toBe(before);
+    expect(
+      screen.queryByRole("button", { name: "平移画布" }),
+    ).not.toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole("button", { name: "选择 人工复核" }),
+    );
+    expect(select).toHaveBeenCalledTimes(1);
+    const moved = content?.style.transform;
+    await userEvent.click(screen.getByRole("button", { name: "放大" }));
+    expect(content?.style.transform).not.toBe(moved);
+  } finally {
+    view.unmount();
+    restore();
+  }
+});
+
 it("输入连线沿用节点连线的流动层，隐藏画布时同步暂停", () => {
   const restore = installCanvasDOM();
   const props = {

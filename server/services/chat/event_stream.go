@@ -289,7 +289,7 @@ func (m *service) ListEvents(
 	if err != nil {
 		return nil, err
 	}
-	adapter, err := eventstream.Replay(window.Records)
+	adapter, err := eventstream.ReplayAfter(window.Records, after)
 	if err != nil {
 		logx.Errorf(
 			"project public chat events failed: chat_id=%s error=%v",
@@ -318,7 +318,7 @@ func (m *service) SubscribeEvents(
 		m.subscriptions.remove(chatID, subscriberID)
 		return Subscription{}, err
 	}
-	adapter, err := eventstream.Replay(window.Records)
+	adapter, err := eventstream.ReplayAfter(window.Records, after)
 	if err != nil {
 		m.subscriptions.remove(chatID, subscriberID)
 		logx.Errorf(
@@ -328,9 +328,9 @@ func (m *service) SubscribeEvents(
 		)
 		return Subscription{}, status_error.ChatLogError
 	}
-	allEvents := publicEventsFromStream(adapter.EventsAfter(0, 0))
-	backlog := eventsAfter(allEvents, after)
-	_, revisions := publicEventState(allEvents)
+	backlog := publicEventsFromStream(adapter.EventsAfter(after, 0))
+	revisions := adapter.MessageRevisions()
+	adapter.ReleaseHistory()
 	latestSequence := window.LatestSequence
 	streamContext, cancel := context.WithCancel(ctx)
 	events := make(chan PublicEvent, subscriberBufferSize)
@@ -536,32 +536,6 @@ func publicElicitationResolution(
 		Content:       content,
 		Result:        resolution.Result,
 	}
-}
-
-// publicEventState 提取权威公开事件当前游标和每条消息的最新修订号。
-func publicEventState(events []PublicEvent) (int64, map[string]int64) {
-	latestSequence := int64(0)
-	revisions := make(map[string]int64)
-	for _, event := range events {
-		if event.Sequence > latestSequence {
-			latestSequence = event.Sequence
-		}
-		if event.Message != nil && event.Message.Revision > revisions[event.Message.ID] {
-			revisions[event.Message.ID] = event.Message.Revision
-		}
-	}
-	return latestSequence, revisions
-}
-
-// eventsAfter 过滤已经完成转换的公开事件，不重新解释权威 Record。
-func eventsAfter(events []PublicEvent, after int64) []PublicEvent {
-	result := make([]PublicEvent, 0)
-	for _, event := range events {
-		if event.Sequence > after {
-			result = append(result, event)
-		}
-	}
-	return result
 }
 
 // sendPublicEvent 在订阅关闭时停止等待慢消费者。

@@ -43,6 +43,7 @@ import type {
   GithubComJieWaZiNeuxAllyServerRepositoriesModelsChat as Chat,
 } from "@/shared/api/generated/types.gen";
 import { cn } from "@/shared/lib/cn";
+import { DetailDockLayout } from "@/shared/ui/detail-dock-layout";
 import { navigateRouteImmediately } from "./immediate-route-navigation";
 import { ChatGroupHeader } from "@/modules/chat";
 import { TeamChatTree } from "./team-context-sidebar";
@@ -83,6 +84,7 @@ type PartnerNavigationLayoutProps = {
   onOpenAutomaticTasks: () => void;
   onOpenWorkflows?: () => void;
   onOpenResources?: () => void;
+  onOpenKnowledge?: () => void;
   onOpenSettings: () => void;
   onPreferencesChange: Dispatch<SetStateAction<PartnerNavigationPreferences>>;
   onSceneNavigationVisibleChange: (visible: boolean) => void;
@@ -205,6 +207,7 @@ function PartnerNavigationLayoutContent({
   onOpenAutomaticTasks,
   onOpenWorkflows,
   onOpenResources,
+  onOpenKnowledge,
   onOpenSettings,
   onPreferencesChange,
   onSceneNavigationVisibleChange,
@@ -399,6 +402,7 @@ function PartnerNavigationLayoutContent({
               onOpenAutomaticTasks={onOpenAutomaticTasks}
               onOpenWorkflows={onOpenWorkflows}
               onOpenResources={onOpenResources}
+              onOpenKnowledge={onOpenKnowledge}
               onReorder={updateOrder}
               onSelectPartner={onSelectPartner}
               onSelectTeam={onSelectTeam}
@@ -459,29 +463,17 @@ function PartnerNavigationLayoutContent({
                 onMouseDown={beginContextResize}
               />
             ) : null}
-            <div
-              className="relative min-h-0 min-w-0 overflow-hidden"
-              style={
-                showDetailDock
-                  ? ({
-                      "--scene-overlay-clearance":
-                        "var(--shell-detail-dock-clearance)",
-                    } as CSSProperties)
-                  : undefined
-              }
-            >
-              {children}
-              {showDetailDock ? (
-                <div
-                  className="pointer-events-none absolute inset-x-0 bottom-4 z-30 flex justify-center px-4"
-                  data-partner-detail-dock
-                >
+            <DetailDockLayout
+              navigation={
+                showDetailDock ? (
                   <Suspense fallback={null}>
                     <PartnerDetailDock partnerId={selectedPartnerId} />
                   </Suspense>
-                </div>
-              ) : null}
-            </div>
+                ) : undefined
+              }
+            >
+              {children}
+            </DetailDockLayout>
           </div>
           {!settingsLayout ? (
             <div className="absolute right-0 bottom-0 z-40">

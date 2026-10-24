@@ -1,5 +1,8 @@
 package constants
 
+// KnowledgeLibraryScanBatchSize 限制目录搜索与活动任务恢复每批读取的库元数据。
+const KnowledgeLibraryScanBatchSize = 100
+
 // RuntimeUserInputMCPServerName 是运行时受管问答服务的稳定协议名称。
 const RuntimeUserInputMCPServerName = "acp_go_user_input"
 
@@ -385,6 +388,8 @@ const (
 	CompanionAvatarPrefix = "companion:v2:"
 	// PersonalAssistantAvatar 固定内置私人助理的毛绒形象身份，由前端风格目录统一还原。
 	PersonalAssistantAvatar = "companion:v1:fe9a9eb52f5e4d7dac1959fe4f9559f2"
+	// WikiResearcherAvatar 固定内置维基研究员的形象身份，由共享形象目录还原。
+	WikiResearcherAvatar = CompanionAvatarPrefix + "854de954b7bd4e2cb9582fd0930dcd6d"
 	// DefaultAvatar 是未指定头像时使用的默认预设头像。
 	DefaultAvatar = "preset:generic"
 	// ChatLogSchemaVersion 是当前 Chat JSONL 信封版本。
@@ -643,6 +648,14 @@ const (
 // PluginStdioMode 是 Core 内部的原生 MCP 工作目录子进程模式。
 const PluginStdioMode = "plugin-stdio"
 
+// KnowledgeSourceStateQueued 表示来源已进入本次任务，尚未被真实阅读阶段领取。
+const KnowledgeSourceStateQueued = "queued"
+
+// KnowledgeSourceStateProcessing 表示来源已被真实阅读阶段领取，任务尚未结算。
+const KnowledgeSourceStateProcessing = "processing"
+
+// KnowledgeChatOrganizeOperation 标识普通聊天整理请求的持久输入锚点。
+const KnowledgeChatOrganizeOperation = "chat.organize"
 const (
 	// PluginLocaleEnglish 是插件英文展示与默认文档语言。
 	PluginLocaleEnglish = "en"

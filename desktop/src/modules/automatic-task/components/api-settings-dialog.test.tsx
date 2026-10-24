@@ -5,8 +5,8 @@ import { useState } from "react";
 import { beforeEach, expect, it, vi } from "vitest";
 import type * as SDK from "@/shared/api/generated/sdk.gen";
 import "@/shared/i18n";
-import { AutomaticTaskAPISettingsDialog } from "./api-settings-dialog";
-import { apiExamples } from "./task-token-dialog";
+import { AutomaticTaskAPISettingsDialog } from "./task-dialogs";
+import { apiExamples } from "./task-api-examples";
 
 const { getAPI, setAPI } = vi.hoisted(() => ({
   getAPI: vi.fn(),
@@ -14,13 +14,19 @@ const { getAPI, setAPI } = vi.hoisted(() => ({
 }));
 vi.mock("@/shared/api/generated/sdk.gen", async (original) => ({
   ...(await original<typeof SDK>()),
-  getAutomaticTaskApi: getAPI,
-  setAutomaticTaskApi: setAPI,
+  getApiService: getAPI,
+  updateApiService: setAPI,
 }));
 
 beforeEach(() => {
   getAPI.mockReset().mockResolvedValue({
-    data: { ip: "127.0.0.1", port: 8431, available: true },
+    data: {
+      ip: "127.0.0.1",
+      port: 8431,
+      available: true,
+      enabled: false,
+      publicBaseUrl: "https://example.test/api/v1",
+    },
   });
   setAPI.mockReset().mockResolvedValue({ data: {} });
 });
@@ -49,7 +55,10 @@ function renderSettings() {
 it("确认才提交 IP 和端口，刷新服务器设置并关闭弹窗", async () => {
   const user = userEvent.setup();
   renderSettings();
-  const ip = screen.getByLabelText(/IP 地址/);
+  const shell = screen.getByRole("dialog", { name: "API 服务设置" });
+  await vi.dynamicImportSettled();
+  const ip = await screen.findByLabelText(/IP 地址/);
+  expect(screen.getByRole("dialog", { name: "API 服务设置" })).toBe(shell);
   await waitFor(() => expect(ip).toHaveValue("127.0.0.1"));
   await user.clear(ip);
   await user.type(ip, "192.168.1.20");
@@ -58,12 +67,23 @@ it("确认才提交 IP 和端口，刷新服务器设置并关闭弹窗", async 
   await user.type(port, "18431");
   expect(setAPI).not.toHaveBeenCalled();
   getAPI.mockResolvedValue({
-    data: { ip: "192.168.1.20", port: 18431, available: true },
+    data: {
+      ip: "192.168.1.20",
+      port: 18431,
+      available: true,
+      enabled: false,
+      publicBaseUrl: "https://example.test/api/v1",
+    },
   });
   await user.click(screen.getByRole("button", { name: "确认" }));
   await waitFor(() => expect(setAPI).toHaveBeenCalledOnce());
   expect(setAPI.mock.calls[0]?.[0]).toMatchObject({
-    body: { ip: "192.168.1.20", port: 18431 },
+    body: {
+      ip: "192.168.1.20",
+      port: 18431,
+      enabled: false,
+      publicBaseUrl: "https://example.test/api/v1",
+    },
   });
   await waitFor(() =>
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
@@ -115,17 +135,12 @@ it("确认失败保留草稿和弹窗，允许修正后重试", async () => {
   expect(setAPI).toHaveBeenCalledTimes(2);
 });
 
-it("调用示例使用配置地址，IPv6 有方括号，通配地址使用本机回环示例", () => {
-  expect(apiExamples("task", 8431, undefined, "192.168.1.20").endpoint).toBe(
-    "http://192.168.1.20:8431/v1/automatic-tasks/task/runs",
+it("调用示例保留反代前缀并使用应用级 API Key", () => {
+  const example = apiExamples("task", "https://example.test/proxy/api/v1");
+  expect(example.endpoint).toBe(
+    "https://example.test/proxy/api/v1/automatic-tasks/task/runs",
   );
-  expect(apiExamples("task", 8431, undefined, "::1").endpoint).toBe(
-    "http://[::1]:8431/v1/automatic-tasks/task/runs",
-  );
-  expect(apiExamples("task", 8431, undefined, "0.0.0.0").endpoint).toContain(
-    "http://127.0.0.1:8431/",
-  );
-  expect(apiExamples("task", 8431, undefined, "::").endpoint).toContain(
-    "http://[::1]:8431/",
-  );
+  expect(example.trigger).toContain("X-API-Key: <API_KEY>");
+  expect(example.status).toContain("X-API-Key: <API_KEY>");
+  expect(example.trigger).not.toContain("Bearer");
 });

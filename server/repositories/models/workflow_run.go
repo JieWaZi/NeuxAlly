@@ -35,6 +35,8 @@ type WorkflowExecutionDefaults struct {
 
 // WorkflowRun 固定版本、参数、执行配置和租约，不读取后续创作修改。
 type WorkflowRun struct {
+	// AutomaticRunID 是服务端传入的原自动运行，不能从用户或模型正文绑定。
+	AutomaticRunID string `json:"-"`
 	// WorkerConfigurations 按源码节点身份冻结接纳时解析的有效执行配置，不包含凭据。
 	WorkerConfigurations map[string]WorkflowExecutionDefaults `gorm:"serializer:json;type:text;not null" json:"-"`
 	// RootRunID 绑定调用树，统一限制全部后代的数量。

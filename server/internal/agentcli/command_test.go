@@ -123,6 +123,14 @@ func TestHelpAndVersionNeedNoContext(t *testing.T) {
 	}
 }
 
+func TestRetiredKnowledgeMCPCommandIsNotAvailable(t *testing.T) {
+	var out, errOut bytes.Buffer
+	code := Execute(context.Background(), []string{"serve-knowledge-mcp", "--help"}, IO{Out: &out, Err: &errOut})
+	if code != 2 || out.Len() != 0 || !strings.Contains(errOut.String(), "AgentInputInvalid") {
+		t.Fatalf("retired MCP transport is still exposed: code=%d out=%s err=%s", code, &out, &errOut)
+	}
+}
+
 func TestMemoryScopeHelpAndInvalidInputUseTheSharedContract(t *testing.T) {
 	var out, errOut bytes.Buffer
 	code := Execute(context.Background(), []string{"memory", "entries", "search", "--help"}, IO{Out: &out, Err: &errOut})

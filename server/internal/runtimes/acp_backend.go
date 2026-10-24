@@ -29,6 +29,8 @@ type acpRunner interface {
 
 // acpOptionsRequest 保存一次 ACP 配置探测已经准备完成的启动事实。
 type acpOptionsRequest struct {
+	// RefreshCredentials 与执行共用账号刷新权威，探测不私自刷新副本。
+	RefreshCredentials CredentialRefresh
 	// Model 是隔离探测会话需要实际选择的原生模型。
 	Model string
 	// RuntimeID 是内置 Runtime 或本地 Profile 的稳定标识。
@@ -79,6 +81,8 @@ type acpRunRequest struct {
 	Sink EventSink
 	// EphemeralSession 表示本次隔离调用完成后必须立即关闭原生 Session。
 	EphemeralSession bool
+	// Text 仅在无状态模型生成时启用独占进程、配置确认和工具拒绝。
+	Text *textInvocation
 }
 
 // acpBackend 按 Runtime 启动指纹复用内嵌 ACP Agent。
@@ -178,7 +182,8 @@ func (backend *acpBackend) DetectOptions(
 	runRequest := acpRunRequest{
 		Prepared: request.Prepared,
 		Request: RunRequest{Target: RuntimeTarget{
-			RuntimeID: request.RuntimeID,
+			RuntimeID:          request.RuntimeID,
+			RefreshCredentials: request.RefreshCredentials,
 		}},
 	}
 	binding, err := backend.binding(request.Prepared.definition.baseRuntimeID)
@@ -469,7 +474,11 @@ func newEmbeddedACPAgent(
 
 	clientToAgentReader, clientToAgentWriter := io.Pipe()
 	agentToClientReader, agentToClientWriter := io.Pipe()
-	server, err := acpserver.NewWithUserInput(
+	newServer := acpserver.NewWithUserInput
+	if config.TextOnly {
+		newServer = acpserver.New
+	}
+	server, err := newServer(
 		agent,
 		clientToAgentReader,
 		agentToClientWriter,
@@ -614,11 +623,12 @@ func acpFailedResult(
 	failure := newFailureFromError(code, stage, err)
 	failure.SessionState = session.State
 	return Result{
-		ExitCode:    -1,
-		Session:     session,
-		Facts:       acpInvocationFacts(request),
-		Diagnostics: append([]Diagnostic(nil), request.Prepared.detection.Diagnostics...),
-		Failure:     failure,
+		TerminationReason: constants.RuntimeTerminationReasonUnknown,
+		ExitCode:          -1,
+		Session:           session,
+		Facts:             acpInvocationFacts(request),
+		Diagnostics:       append([]Diagnostic(nil), request.Prepared.detection.Diagnostics...),
+		Failure:           failure,
 	}
 }
 

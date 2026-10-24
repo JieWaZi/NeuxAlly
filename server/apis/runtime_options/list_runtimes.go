@@ -53,6 +53,8 @@ type RuntimeInstallation struct {
 
 // 运行时选项
 type RuntimeOption struct {
+	// 探测能力
+	Capabilities runtimes.CapabilitySet `json:"capabilities"`
 	// 默认账号
 	DefaultAccountID string `json:"defaultAccountId"`
 	// 基础 CLI 类型，用于账号协议兼容性判断。
@@ -181,6 +183,7 @@ func runtimeOption(environment models.RuntimeEnvironment) RuntimeOption {
 		})
 	}
 	return RuntimeOption{
+		Capabilities:           detection.Capabilities,
 		DefaultAccountID:       environment.DefaultAccountID,
 		BaseRuntimeID:          environment.BaseRuntimeID,
 		ID:                     environment.RuntimeID,

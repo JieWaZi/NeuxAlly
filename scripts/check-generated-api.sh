@@ -9,6 +9,7 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 cp server/openapi.json "$ALLY_GENERATED_CHECK_DIR/openapi.json"
+cp server/integration-openapi.json "$ALLY_GENERATED_CHECK_DIR/integration-openapi.json"
 if [ -d desktop/src/shared/api/generated ]; then
   cp -R desktop/src/shared/api/generated "$ALLY_GENERATED_CHECK_DIR/generated"
 fi
@@ -16,6 +17,7 @@ fi
 sh ./scripts/generate-api.sh
 
 diff -u "$ALLY_GENERATED_CHECK_DIR/openapi.json" server/openapi.json
+diff -u "$ALLY_GENERATED_CHECK_DIR/integration-openapi.json" server/integration-openapi.json
 if [ -d "$ALLY_GENERATED_CHECK_DIR/generated" ]; then
   diff -ru "$ALLY_GENERATED_CHECK_DIR/generated" desktop/src/shared/api/generated
 fi

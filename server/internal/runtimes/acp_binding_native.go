@@ -3,7 +3,6 @@ package runtimes
 import (
 	"context"
 
-	"github.com/JieWaZi/NeuxAlly/server/constants/status_error"
 	"github.com/JieWaZi/NeuxAlly/server/internal/accountconfig"
 	acpgemini "github.com/JieWaZi/acp-go/pkg/gemini"
 	acpgrok "github.com/JieWaZi/acp-go/pkg/grok"
@@ -21,10 +20,7 @@ func managedNativeBinding(id, name string) acpRuntimeBinding {
 	binding.permissionLevels = func([]acp.SessionConfigOption, []acp.SessionMode) []PermissionLevel {
 		return []PermissionLevel{PermissionLevelDefault, PermissionLevelAuto, PermissionLevelFullAccess}
 	}
-	binding.modeID = func(policy ExecutionPolicy, _ *acp.SessionModeState) (acp.SessionModeId, error) {
-		if policy.WorkspaceReadOnly {
-			return "", status_error.RuntimeProtocolIncompatible
-		}
+	binding.modeID = func(ExecutionPolicy, *acp.SessionModeState) (acp.SessionModeId, error) {
 		return "", nil
 	}
 	binding.validateSelection = cursorValidateSelection
@@ -52,7 +48,7 @@ func geminiACPRuntimeBinding() acpRuntimeBinding {
 	binding.stateDirectory = func(request acpRunRequest) string { return request.Prepared.environment.get("GEMINI_CLI_HOME") }
 	binding.modeID = func(policy ExecutionPolicy, _ *acp.SessionModeState) (acp.SessionModeId, error) {
 		if policy.WorkspaceReadOnly {
-			return "", status_error.RuntimeProtocolIncompatible
+			return "default", nil
 		}
 		if policy.PermissionLevel == PermissionLevelFullAccess {
 			return "yolo", nil

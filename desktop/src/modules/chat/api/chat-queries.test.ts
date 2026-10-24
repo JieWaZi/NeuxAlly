@@ -1,9 +1,21 @@
-import { QueryClient } from "@tanstack/react-query";
-import { describe, expect, it } from "vitest";
+import {
+  InfiniteQueryObserver,
+  QueryClient,
+  QueryClientProvider,
+  useInfiniteQuery,
+} from "@tanstack/react-query";
+import { act, renderHook, waitFor } from "@testing-library/react";
+import { createElement, type ReactNode } from "react";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { http, HttpResponse } from "msw";
+import { setupServer } from "msw/node";
+import { client } from "@/shared/api/generated/client.gen";
 
 import {
   chatListKey,
   chatMessagesKey,
+  chatMessagesInfiniteOptions,
+  useChatHistoryVisibility,
   evictDeletedChatsFromCache,
   nextChatCursor,
   nextMessageCursor,
@@ -74,5 +86,174 @@ describe("chat query cursors", () => {
       ],
       pageParams: [undefined],
     });
+  });
+});
+
+describe("chat history network budget", () => {
+  const server = setupServer();
+  beforeAll(() => {
+    client.setConfig({ baseUrl: "http://127.0.0.1:19876" });
+    server.listen({ onUnhandledRequest: "error" });
+  });
+  afterAll(() => server.close());
+
+  it("隐藏时仅标记历史陈旧，不发请求；五分钟内恢复可见也会对账最新窗口", async () => {
+    let reads = 0;
+    server.use(
+      http.get(
+        "http://127.0.0.1:19876/api/v1/chats/history-visible/messages",
+        () => {
+          reads++;
+          return HttpResponse.json({
+            resources: [
+              { id: "assistant", content: reads === 1 ? "处理中" : "已完成" },
+            ],
+            hasMore: false,
+          });
+        },
+      ),
+    );
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const wrapper = ({ children }: { children: ReactNode }) =>
+      createElement(QueryClientProvider, { client: queryClient }, children);
+    const { result, rerender, unmount } = renderHook(
+      ({ active }) => {
+        useChatHistoryVisibility("history-visible", active);
+        return useInfiniteQuery({
+          ...chatMessagesInfiniteOptions("history-visible"),
+          enabled: active,
+        });
+      },
+      {
+        wrapper,
+        initialProps: { active: true },
+      },
+    );
+    try {
+      await waitFor(() =>
+        expect(result.current.data?.pages[0]?.resources?.[0]?.content).toBe(
+          "处理中",
+        ),
+      );
+      rerender({ active: false });
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(reads).toBe(1);
+      rerender({ active: true });
+      await waitFor(() =>
+        expect(result.current.data?.pages[0]?.resources?.[0]?.content).toBe(
+          "已完成",
+        ),
+      );
+      expect(reads).toBe(2);
+    } finally {
+      unmount();
+      queryClient.clear();
+    }
+  });
+
+  it("首屏只读最近50条，上翻按游标读；刷新复用游标未变化的旧页", async () => {
+    const received: (number | null)[] = [];
+    server.use(
+      http.get(
+        "http://127.0.0.1:19876/api/v1/chats/history-budget/messages",
+        ({ request }) => {
+          const params = new URL(request.url).searchParams;
+          expect(params.get("limit")).toBe("50");
+          const before = params.has("beforeSequence")
+            ? Number(params.get("beforeSequence"))
+            : null;
+          received.push(before);
+          return HttpResponse.json({
+            resources: [
+              {
+                id: `message-${before ?? "latest"}`,
+                role: "assistant",
+                status: "completed",
+              },
+            ],
+            hasMore: before !== 41,
+            nextBeforeSequence:
+              before === null ? 81 : before === 81 ? 41 : undefined,
+            latestSequence: before === null ? 120 : undefined,
+          });
+        },
+      ),
+    );
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const observer = new InfiniteQueryObserver(
+      queryClient,
+      chatMessagesInfiniteOptions("history-budget"),
+    );
+    const unsubscribe = observer.subscribe(() => {});
+    try {
+      await observer.refetch();
+      expect(received).toEqual([null]);
+      await observer.fetchNextPage();
+      await observer.fetchNextPage();
+      expect(received).toEqual([null, 81, 41]);
+      await observer.refetch();
+      expect(received).toEqual([null, 81, 41, null]);
+      expect(observer.getCurrentResult().data?.pages).toHaveLength(3);
+    } finally {
+      unsubscribe();
+      queryClient.clear();
+    }
+  });
+
+  it("新消息改变分页边界时读取新游标窗口，不能把不匹配的旧页当作完整历史", async () => {
+    const received: (number | null)[] = [];
+    let updated = false;
+    server.use(
+      http.get(
+        "http://127.0.0.1:19876/api/v1/chats/history-shift/messages",
+        ({ request }) => {
+          const params = new URL(request.url).searchParams;
+          const before = params.has("beforeSequence")
+            ? Number(params.get("beforeSequence"))
+            : null;
+          received.push(before);
+          return HttpResponse.json({
+            resources: [
+              { id: `message-${before ?? (updated ? "new" : "old")}` },
+            ],
+            hasMore: before === null,
+            nextBeforeSequence:
+              before === null ? (updated ? 91 : 81) : undefined,
+            latestSequence: before === null ? (updated ? 130 : 120) : undefined,
+          });
+        },
+      ),
+    );
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const observer = new InfiniteQueryObserver(
+      queryClient,
+      chatMessagesInfiniteOptions("history-shift"),
+    );
+    const unsubscribe = observer.subscribe(() => {});
+    try {
+      await observer.refetch();
+      await observer.fetchNextPage();
+      updated = true;
+      await observer.refetch();
+      expect(received).toEqual([null, 81, null, 91]);
+      expect(observer.getCurrentResult().data?.pageParams).toEqual([
+        undefined,
+        { beforeSequence: 91 },
+      ]);
+      expect(
+        observer.getCurrentResult().data?.pages[1]?.resources?.[0]?.id,
+      ).toBe("message-91");
+    } finally {
+      unsubscribe();
+      queryClient.clear();
+    }
   });
 });

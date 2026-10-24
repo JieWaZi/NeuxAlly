@@ -579,6 +579,18 @@ function ChatThreadHistoryHarness({
 }
 
 describe("chat composer", () => {
+  it("历史滚动区关闭浏览器原生锚定，避免与消息锚点补偿竞争", () => {
+    const { container } = render(
+      <ChatQueueProvider>
+        <ChatThreadHistoryHarness
+          messages={[{ id: "message-1", role: "user", content: "历史消息" }]}
+        />
+      </ChatQueueProvider>,
+    );
+    expect(container.querySelector("[data-chat-scroll-viewport]")).toHaveClass(
+      "[overflow-anchor:none]",
+    );
+  });
   it("@ 文件搜索期间显示加载状态而不提前展示无匹配", async () => {
     const user = userEvent.setup();
     let finishSearch: ((entries: []) => void) | undefined;

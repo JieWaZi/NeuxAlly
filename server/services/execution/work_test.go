@@ -1915,3 +1915,35 @@ func TestForkContinuationNeverSuppliesInheritedPrompt(t *testing.T) {
 		t.Fatal("missing native session fell back to history")
 	}
 }
+
+func TestIntegrationAutomaticTaskExecutionProvenanceSurvivesJournalReplay(t *testing.T) {
+	manager := newMessageTestService(t, t.TempDir(), &fakeRuntime{})
+	ctx := context.Background()
+	intent := WorkIntent{AutomaticRunID: "original-automatic-run", ClientRequestID: "automatic-provenance", ExecutionID: util.New(), Chat: ChatTarget{Create: &CreateChatSpec{WakerID: "waker-1", WorkingDirectory: t.TempDir(), HiddenFromWakerHistory: true}}, Input: WorkInput{Actor: constants.AutomaticTaskActor, Content: "整理正文"}, Options: WorkOptions{RuntimeID: runtimes.RuntimeIDCodex, PermissionLevel: runtimes.PermissionLevelAuto}, Admission: constants.ExecutionAdmissionCommitBeforeDispatch}
+	accepted, err := manager.execution.Start(ctx, intent)
+	if err != nil {
+		t.Fatal(err)
+	}
+	waitForChatTerminal(t, manager, accepted.Chat.ID)
+	initial, err := manager.chats.(chatservice.Module).ReadInitialExecution(ctx, accepted.Chat.ID)
+	if err != nil || initial.InitialExecution.AutomaticRunID != intent.AutomaticRunID {
+		t.Fatal("journal lost trusted automatic origin", initial, err)
+	}
+	replay, err := manager.execution.Start(ctx, intent)
+	if err != nil || replay.Execution.AutomaticRunID != intent.AutomaticRunID {
+		t.Fatal(replay, err)
+	}
+	changed := intent
+	changed.AutomaticRunID = "another-run"
+	if _, err = manager.execution.Start(ctx, changed); !errors.Is(err, status_error.CreateRequestConflict) {
+		t.Fatal("same execution changed its automatic origin", err)
+	}
+	continued, err := manager.sendTestMessage(ctx, testMessageInput{ChatID: accepted.Chat.ID, Message: userMessage{Text: "用户后续操作"}, Runtime: runtimeSelection{RuntimeID: runtimes.RuntimeIDCodex}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if continued.Execution.AutomaticRunID != "" {
+		t.Fatal("manual continuation inherited API caller", continued.Execution)
+	}
+	waitForChatTerminal(t, manager, accepted.Chat.ID)
+}

@@ -6,6 +6,7 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vitest/config";
 import type { Plugin } from "vite";
+import { graphVendorScope } from "./knowledge-graph-vendor";
 
 const currentDirectory = path.dirname(fileURLToPath(import.meta.url));
 const pdfAssetsDirectory = path.join(
@@ -76,7 +77,7 @@ function pdfAssets(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [react(), tailwindcss(), pdfAssets()],
+  plugins: [react(), tailwindcss(), pdfAssets(), graphVendorScope()],
   resolve: {
     alias: {
       "@": path.resolve(currentDirectory, "src"),

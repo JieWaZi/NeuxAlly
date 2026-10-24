@@ -26,6 +26,8 @@ export type FloatingChatSnapshot = {
 
 type FloatingChatProps = {
   chatId?: string;
+  /** 外部整理动作递增请求号，展开已存在的同一浮窗。 */
+  openRequest?: number;
   children: ReactNode;
   fullView: boolean;
   scopeKey: string;
@@ -59,6 +61,7 @@ function focusFloatingChatShellLauncher() {
 /** 同一 ChatThread 根节点在聊天主区和浮窗之间移动，不重建运行时视图。 */
 export function FloatingChat({
   chatId,
+  openRequest = 0,
   children,
   fullView,
   scopeKey,
@@ -67,6 +70,7 @@ export function FloatingChat({
 }: FloatingChatProps) {
   const { t } = useTranslation("chat");
   const [openScopeKey, setOpenScopeKey] = useState<string | null>(null);
+  const [dismissedRequest, setDismissedRequest] = useState(0);
   const [position, setPosition] = useState<Position | null>(null);
   const [contentNode] = useState(() => {
     const node = document.createElement("div");
@@ -78,7 +82,8 @@ export function FloatingChat({
   const floatingPanel = useRef<HTMLDivElement>(null);
   const floatingLayer = useRef<HTMLDivElement>(null);
   const dragCleanup = useRef<(() => void) | undefined>(undefined);
-  const active = fullView && openScopeKey === scopeKey;
+  const active =
+    fullView && (openScopeKey === scopeKey || openRequest > dismissedRequest);
   const showProgress = Boolean(
     chatId &&
     (snapshot.isRunning ||
@@ -157,7 +162,7 @@ export function FloatingChat({
       observer?.disconnect();
       window.removeEventListener("resize", update);
     };
-  }, [active]);
+  }, [active, openRequest]);
 
   useEffect(() => {
     if (!active) return;
@@ -168,11 +173,12 @@ export function FloatingChat({
       if (event.key !== "Escape") return;
       event.stopPropagation();
       setOpenScopeKey(null);
+      setDismissedRequest(openRequest);
       focusFloatingChatShellLauncher();
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [active]);
+  }, [active, openRequest]);
 
   useEffect(() => () => dragCleanup.current?.(), []);
 
@@ -272,6 +278,7 @@ export function FloatingChat({
                     data-floating-chat-minimize
                     onClick={() => {
                       setOpenScopeKey(null);
+                      setDismissedRequest(openRequest);
                       focusFloatingChatShellLauncher();
                     }}
                   >

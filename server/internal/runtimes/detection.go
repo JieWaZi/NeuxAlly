@@ -143,8 +143,9 @@ func (sdk *SDK) Detect(
 	}
 
 	catalog, catalogErr := sdk.acp.DetectOptions(ctx, acpOptionsRequest{
-		RuntimeID: definition.id,
-		Model:     request.Model,
+		RefreshCredentials: request.RefreshCredentials,
+		RuntimeID:          definition.id,
+		Model:              request.Model,
 		Prepared: preparedRuntime{
 			definition:  definition,
 			detection:   result,

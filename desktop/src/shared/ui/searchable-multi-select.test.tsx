@@ -52,3 +52,27 @@ describe("SearchableMultiSelect", () => {
     expect(list.scrollTop).toBe(48);
   });
 });
+
+it("允许在当前搜索中创建自定义选项，普通选择仍保留原行为", () => {
+  let selected: string[] = [];
+  render(
+    <SearchableMultiSelect
+      options={[]}
+      value={[]}
+      onValueChange={(value) => {
+        selected = value;
+      }}
+      triggerLabel="分隔符"
+      searchLabel="搜索"
+      emptyLabel="没有匹配"
+      clearSearchLabel="清空"
+      createLabel="添加分隔符"
+    />,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "分隔符" }));
+  fireEvent.change(screen.getByRole("searchbox", { name: "搜索" }), {
+    target: { value: "===章节===" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "添加分隔符" }));
+  expect(selected).toEqual(["===章节==="]);
+});

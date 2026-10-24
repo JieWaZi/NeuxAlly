@@ -1,7 +1,7 @@
-import { Bot, KeyRound, Settings2 } from "lucide-react";
+import { Bot, KeyRound, Settings2, Plug } from "lucide-react";
 
 export type SettingsSection =
-  "general" | "ai-accounts" | "runtime-environments";
+  "general" | "ai-accounts" | "runtime-environments" | "integration-api";
 
 export const settingsNavigationGroups = [
   {
@@ -16,6 +16,16 @@ export const settingsNavigationGroups = [
         key: "runtime-environments",
         labelKey: "sections.runtimeEnvironments",
         icon: Bot,
+      },
+    ],
+  },
+  {
+    titleKey: "groups.integration",
+    items: [
+      {
+        key: "integration-api",
+        labelKey: "sections.integrationAPI",
+        icon: Plug,
       },
     ],
   },
@@ -38,7 +48,9 @@ export const settingsNavigation = settingsNavigationGroups.flatMap(
 );
 
 export function settingsSectionOf(value?: string): SettingsSection {
-  return value === "runtime-environments" || value === "ai-accounts"
+  return value === "runtime-environments" ||
+    value === "ai-accounts" ||
+    value === "integration-api"
     ? value
     : "general";
 }

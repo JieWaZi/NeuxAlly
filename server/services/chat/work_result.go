@@ -63,7 +63,7 @@ func resultFromRecords(records []eventlog.Record, messageID string) (*models.Wor
 	if terminal == nil {
 		return nil, nil
 	}
-	messages, err := messageview.ReplayMessages(records)
+	messages, err := messageview.ReplayPublicMessages(records)
 	if err != nil {
 		return nil, err
 	}

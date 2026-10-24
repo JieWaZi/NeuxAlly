@@ -1,3 +1,4 @@
+import type { FloatingChatSnapshot } from "./floating-chat";
 import { useQueryEvents } from "@/shared/api/use-query-events";
 import { useInfiniteQuery, useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
@@ -20,6 +21,7 @@ import { useRouteSceneActive } from "@/shared/workspace/app-scene-workspace";
 import {
   cancelChatExecutionMutation,
   chatMessagesInfiniteOptions,
+  useChatHistoryVisibility,
   getChatOptions,
   resolveApprovalMutation,
   resolveElicitationMutation,
@@ -35,27 +37,34 @@ import { getWakerOptions } from "@/shared/api/generated/@tanstack/react-query.ge
 export function ChatPane({
   scopeKey,
   chatId,
+  wakerId: initialWakerId,
   title,
   defaults,
   draft,
   emptyState,
   centered = false,
   showComposer = true,
+  allowExecutionRetry = true,
   isHistoryLoading = false,
   onSend,
   onAccepted,
   onRefresh,
   onConfigurationChange,
   onRunningChange,
+  onSnapshotChange,
 }: {
   scopeKey: string;
   chatId?: string;
+  /** 新会话在接纳前绑定伙伴，接纳后以 Chat 的真实身份为准。 */
+  wakerId?: string;
   title: string;
   defaults?: ExecutionSelection;
   draft?: string;
   emptyState?: ReactNode;
   centered?: boolean;
   showComposer?: boolean;
+  /** 受限工作入口可关闭原生重试，改由其专用发送入口重新接纳。 */
+  allowExecutionRetry?: boolean;
   /** 上层入口尚在解析 Chat 身份时，只延长消息区的加载状态。 */
   isHistoryLoading?: boolean;
   onSend: (
@@ -67,6 +76,7 @@ export function ChatPane({
   onRefresh?: () => void;
   onConfigurationChange?: (selection: ChatSendSelection | undefined) => void;
   onRunningChange?: (running: boolean) => void;
+  onSnapshotChange?: (snapshot: FloatingChatSnapshot) => void;
 }) {
   const { t } = useTranslation("chat");
   const active = useRouteSceneActive();
@@ -86,11 +96,12 @@ export function ChatPane({
     active,
     enabled: Boolean(chatId),
   });
+  useChatHistoryVisibility(chatId, active);
   const history = useInfiniteQuery({
     ...chatMessagesInfiniteOptions(chatId || "pending"),
     enabled: active && Boolean(chatId),
   });
-  const wakerId = detail.data?.chat?.wakerId;
+  const wakerId = detail.data?.chat?.wakerId || initialWakerId;
   const partner = useQuery({
     ...getWakerOptions({ path: { wakerId: wakerId || "pending" } }),
     enabled: active && Boolean(wakerId),
@@ -105,11 +116,20 @@ export function ChatPane({
       }),
     );
   }, [history.data]);
+  const chat = detail.data?.chat;
+  // 已有会话沿用真实执行选择，后台任务的配置不能被全局默认值覆盖。
+  const savedSelection = chat?.lastRuntimeId
+    ? {
+        runtimeId: chat.lastRuntimeId,
+        accountId: chat.lastAccountId || "system",
+        model: chat.lastModel,
+        reasoning: chat.lastReasoning,
+        permissionLevel: chat.lastPermissionLevel,
+      }
+    : defaults;
   const execution = useExecutionSelection({
-    value: detail.data?.chat?.activeExecutionId
-      ? (defaults ?? {})
-      : { ...defaults, ...selection },
-    defaults: true,
+    value: { ...savedSelection, ...selection },
+    defaults: !chat?.lastRuntimeId,
     enabled: active,
   });
   const config = useMemo<ChatSendSelection>(
@@ -165,7 +185,13 @@ export function ChatPane({
     isHistoryReady: !chatId || history.isSuccess,
     isLoading: Boolean(chatId && (detail.isLoading || history.isLoading)),
     isSendDisabled:
-      !active || !config.runtimeId || execution.loading || isHistoryLoading,
+      !showComposer ||
+      !active ||
+      !config.runtimeId ||
+      execution.loading ||
+      !execution.valid ||
+      Boolean(chatId && !detail.isSuccess) ||
+      isHistoryLoading,
     attachmentOnlyText: t("attachmentOnlyMessage"),
     incompleteErrorText: t("executionIncomplete"),
     selection: config,
@@ -186,6 +212,20 @@ export function ChatPane({
   useEffect(() => {
     onRunningChange?.(state.isRunning);
   }, [onRunningChange, state.isRunning]);
+  useEffect(() => {
+    onSnapshotChange?.({
+      isRunning: state.isRunning,
+      pendingApprovalCount: state.pendingApprovals.length,
+      pendingElicitationCount: state.pendingElicitations.length,
+      streamState: state.streamState,
+    });
+  }, [
+    onSnapshotChange,
+    state.isRunning,
+    state.pendingApprovals.length,
+    state.pendingElicitations.length,
+    state.streamState,
+  ]);
   const historyLoading = Boolean(
     isHistoryLoading ||
     (chatId && chatId !== state.boundChatId) ||
@@ -194,6 +234,7 @@ export function ChatPane({
   return (
     <ChatThread
       runtime={state.runtime}
+      wakerId={wakerId}
       wakerName={partner.data?.name || title}
       wakerAvatar={partner.data?.avatar}
       isRunning={state.isRunning}
@@ -201,11 +242,18 @@ export function ChatPane({
       emptyStatePosition={centered ? "center" : "fill"}
       isHistoryLoading={historyLoading}
       composerSettings={
-        <ExecutionConfigurationControls
-          state={execution}
-          onChange={setSelection}
-          showPermissions={false}
-        />
+        <>
+          <ExecutionConfigurationControls
+            state={execution}
+            onChange={setSelection}
+            showPermissions={false}
+          />
+          {!execution.loading && !execution.error && !execution.valid && (
+            <span role="alert" className="text-destructive type-caption w-full">
+              {t("common:executionSelection.invalid")}
+            </span>
+          )}
+        </>
       }
       renderComposerContextStrip={() => (
         <ChatComposerWorkspaceStrip
@@ -223,6 +271,11 @@ export function ChatPane({
         />
       )}
       composerDraft={draft}
+      composerDisabled={
+        execution.loading ||
+        !execution.valid ||
+        Boolean(chatId && !detail.isSuccess)
+      }
       showComposer={
         showComposer ||
         state.pendingApprovals.length > 0 ||
@@ -240,12 +293,20 @@ export function ChatPane({
         return true;
       }}
       sendFailure={state.sendFailure}
-      errorScopes={[scopeKey, `chat:${chatId ?? "pending"}`]}
-      onRetryExecution={state.retryExecution}
+      errorScopes={[
+        scopeKey,
+        chatId || scopeKey,
+        `chat:${chatId ?? "pending"}`,
+      ]}
+      onRetryExecution={allowExecutionRetry ? state.retryExecution : undefined}
       contextMetrics={state.contextMetrics}
-      hasEarlierMessages={Boolean(history.hasNextPage)}
+      hasEarlierMessages={active && Boolean(history.hasNextPage)}
       isLoadingEarlier={history.isFetchingNextPage}
-      onLoadEarlier={() => history.fetchNextPage().then(() => {})}
+      onLoadEarlier={() =>
+        history
+          .fetchNextPage({ cancelRefetch: false, throwOnError: true })
+          .then(() => {})
+      }
       pendingApprovals={active ? state.pendingApprovals : []}
       approvalSubmissionState={approval.isPending ? "submitting" : "idle"}
       onResolveApproval={(approvalId, optionId) => {

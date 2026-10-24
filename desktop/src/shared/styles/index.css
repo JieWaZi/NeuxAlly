@@ -44,7 +44,9 @@
   --color-primary-foreground: var(--primary-foreground);
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
+  --color-accent-content: var(--accent-content);
   --color-accent-surface: var(--accent-surface);
+  --color-accent-surface-subtle: var(--accent-surface-subtle);
   --color-accent-surface-strong: var(--accent-surface-strong);
   --color-accent-border: var(--accent-border);
   --color-accent-secondary: var(--accent-secondary);

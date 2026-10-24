@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { TaskFormDialog } from "./task-form-dialog";
+import { TaskFormDialog } from "./task-dialogs";
 import { ApiError } from "@/shared/api/errors";
 import type * as AutomaticTaskSDK from "@/shared/api/generated/sdk.gen";
 import "@/shared/i18n";
@@ -101,16 +101,14 @@ beforeEach(() => {
   vi.stubGlobal("cancelAnimationFrame", (id: number) =>
     window.clearTimeout(id),
   );
-  create
-    .mockReset()
-    .mockResolvedValue({ data: { taskId: "task-1", token: "once-token" } });
+  create.mockReset().mockResolvedValue({ data: { taskId: "task-1" } });
   update.mockReset().mockResolvedValue({ data: { taskId: "task-1" } });
   selectDirectory.mockReset().mockResolvedValue("/workspace/authorized");
 });
 
 afterEach(() => vi.unstubAllGlobals());
 
-it("新建API 任务冻结智能体、模型、账号和授权目录，并交付一次密钥收据", async () => {
+it("新建 API 任务冻结智能体、模型、账号和授权目录，并提供集成 Key 指引", async () => {
   const user = userEvent.setup();
   const saved = vi.fn();
   render(
@@ -127,7 +125,11 @@ it("新建API 任务冻结智能体、模型、账号和授权目录，并交付
       />
     </QueryClientProvider>,
   );
-  await user.type(screen.getByLabelText("任务名称"), "每日归档");
+  const shell = screen.getByRole("dialog", { name: "新建自动任务" });
+  await vi.dynamicImportSettled();
+  await screen.findByLabelText("任务名称");
+  expect(screen.getByRole("dialog", { name: "新建自动任务" })).toBe(shell);
+  await user.type(await screen.findByLabelText("任务名称"), "每日归档");
   await user.type(screen.getByLabelText("执行指令"), "整理项目资料");
   await user.click(screen.getByRole("radio", { name: "API" }));
   await user.click(screen.getByRole("radio", { name: "本地目录" }));
@@ -158,7 +160,6 @@ it("新建API 任务冻结智能体、模型、账号和授权目录，并交付
   await waitFor(() =>
     expect(saved).toHaveBeenCalledWith({
       taskId: "task-1",
-      token: "once-token",
     }),
   );
 });
@@ -197,8 +198,10 @@ it("编辑保留启停、执行配置和编辑版本，保存失败时保留草�
       />
     </QueryClientProvider>,
   );
+  await vi.dynamicImportSettled();
+  await screen.findByLabelText("任务名称");
   await user.clear(screen.getByLabelText("任务名称"));
-  await user.type(screen.getByLabelText("任务名称"), "新名称");
+  await user.type(await screen.findByLabelText("任务名称"), "新名称");
   await user.click(screen.getByRole("button", { name: "使用会话临时目录" }));
   await waitFor(() =>
     expect(screen.getByRole("button", { name: "保存" })).toBeEnabled(),
@@ -254,6 +257,8 @@ it("指令框内选择默认模型、推理和权限，并保存同一份执行�
       />
     </QueryClientProvider>,
   );
+  await vi.dynamicImportSettled();
+  await screen.findByLabelText("任务名称");
   const model = await screen.findByRole("button", { name: /^模型一/ });
   await user.click(model);
   await user.click(screen.getByRole("button", { name: "选择模型" }));
@@ -312,6 +317,8 @@ it("定时表单在一次性与定期之间切换，并将运行时间保存为�
       />
     </QueryClientProvider>,
   );
+  await vi.dynamicImportSettled();
+  await screen.findByLabelText("任务名称");
 
   expect(screen.getByRole("button", { name: "时区" })).toHaveAttribute(
     "aria-expanded",
@@ -397,7 +404,9 @@ it("全局新建选择团队；输入框默认继承成员设置且不创建覆�
       <TaskFormDialog open onOpenChange={vi.fn()} onSaved={vi.fn()} />
     </QueryClientProvider>,
   );
-  await user.type(screen.getByLabelText("任务名称"), "团队归档");
+  await vi.dynamicImportSettled();
+  await screen.findByLabelText("任务名称");
+  await user.type(await screen.findByLabelText("任务名称"), "团队归档");
   await user.click(screen.getByRole("radio", { name: "团队" }));
   await waitFor(() =>
     expect(screen.getByRole("combobox", { name: "执行者" })).toBeEnabled(),
@@ -480,6 +489,8 @@ it("编辑团队任务可切换成员自定义配置并分别恢复团队设置"
       />
     </QueryClientProvider>,
   );
+  await vi.dynamicImportSettled();
+  await screen.findByLabelText("任务名称");
   await waitFor(
     () => expect(screen.getByRole("button", { name: "保存" })).toBeEnabled(),
     { timeout: 5000 },
@@ -558,7 +569,9 @@ it.each(["project", "directory"])(
         />
       </QueryClientProvider>,
     );
-    await user.type(screen.getByLabelText("任务名称"), "临时目录任务");
+    await vi.dynamicImportSettled();
+    await screen.findByLabelText("任务名称");
+    await user.type(await screen.findByLabelText("任务名称"), "临时目录任务");
     await user.type(screen.getByLabelText("执行指令"), "整理会话资料");
     await user.click(screen.getByRole("radio", { name: "API" }));
     if (scope === "directory") {

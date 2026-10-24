@@ -1,14 +1,4 @@
-import {
-  Bot,
-  Code2,
-  GitBranch,
-  Hand,
-  Maximize,
-  MessageCircle,
-  Minus,
-  Plus,
-  Workflow,
-} from "lucide-react";
+import { Bot, Code2, GitBranch, MessageCircle, Workflow } from "lucide-react";
 import {
   useEffect,
   useRef,
@@ -18,7 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { useTranslation } from "react-i18next";
-import { Button } from "@/shared/ui/button";
+import { CanvasViewportControls } from "@/shared/ui/canvas-viewport-controls";
 import { Card } from "@/shared/ui/card";
 import { Badge } from "@/shared/ui/badge";
 import { Dialog, DialogTrigger } from "@/shared/ui/dialog";
@@ -128,9 +118,7 @@ export function WorkflowCanvas({
       }
     | undefined
   >(undefined);
-  const space = useRef(false);
   const [view, setView] = useState({ x: 24, y: 24, scale: 1 });
-  const [pan, setPan] = useState(false);
   const [measuredHeight, setMeasuredHeight] = useState(360);
   const [phaseHeights, setPhaseHeights] = useState<Record<string, number>>({});
   const phases = manifest.meta?.phases ?? [];
@@ -284,10 +272,11 @@ export function WorkflowCanvas({
   const down = (event: PointerEvent<HTMLDivElement>) => {
     if (
       event.target instanceof Element &&
-      event.target.closest("[data-workflow-canvas-details]")
+      event.target.closest(
+        "[data-workflow-canvas-details], [data-canvas-viewport-controls], button, input, textarea, select, a, [role=button], [contenteditable=true]",
+      )
     )
       return;
-    if (!pan && !space.current) return;
     if (event.button !== 0) return;
     userMoved.current = true;
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -682,7 +671,7 @@ export function WorkflowCanvas({
     );
   return (
     <div
-      className="bg-surface-canvas surface-pattern-dots surface-pattern-dots-canvas relative min-h-0 min-w-0 flex-1 overflow-clip"
+      className="bg-surface-canvas surface-pattern-dots surface-pattern-dots-canvas relative min-h-0 min-w-0 flex-1 cursor-grab overflow-clip active:cursor-grabbing"
       style={{
         backgroundPosition: `${view.x}px ${view.y}px`,
         backgroundSize: `${20 * view.scale}px ${20 * view.scale}px`,
@@ -709,10 +698,7 @@ export function WorkflowCanvas({
       }}
       onKeyDown={(event) => {
         if (event.target !== event.currentTarget) return;
-        if (event.key === " ") {
-          space.current = true;
-          event.preventDefault();
-        } else if (event.key === "+" || event.key === "=") {
+        if (event.key === "+" || event.key === "=") {
           zoom(0.1);
           event.preventDefault();
         } else if (event.key === "-") {
@@ -743,11 +729,7 @@ export function WorkflowCanvas({
           event.preventDefault();
         }
       }}
-      onKeyUp={(event) => {
-        if (event.key === " ") space.current = false;
-      }}
       onBlur={() => {
-        space.current = false;
         dragging.current = undefined;
       }}
     >
@@ -833,45 +815,13 @@ export function WorkflowCanvas({
         {content}
       </div>
       {detailsRegion}
-      <div className="bg-surface-raised rounded-control absolute bottom-4 left-4 flex flex-col items-center gap-1 p-2">
-        <Button
-          size="icon-sm"
-          variant="ghost"
-          aria-label={t("zoomOut")}
-          onClick={() => zoom(-0.1)}
-        >
-          <Minus />
-        </Button>
-        <span className="type-caption min-w-10 text-center tabular-nums">
-          {Math.round(view.scale * 100)}%
-        </span>
-        <Button
-          size="icon-sm"
-          variant="ghost"
-          aria-label={t("zoomIn")}
-          onClick={() => zoom(0.1)}
-        >
-          <Plus />
-        </Button>
-        <Button
-          size="icon-sm"
-          variant="ghost"
-          aria-label={t("fit")}
-          onClick={() => fit()}
-        >
-          <Maximize />
-        </Button>
-        <Button
-          size="icon-sm"
-          variant="ghost"
-          aria-label={t("pan")}
-          aria-pressed={pan}
-          className={cn(pan && "bg-accent-surface")}
-          onClick={() => setPan(!pan)}
-        >
-          <Hand />
-        </Button>
-      </div>
+      <CanvasViewportControls
+        scale={view.scale}
+        onZoomOut={() => zoom(-0.1)}
+        onZoomIn={() => zoom(0.1)}
+        onFit={() => fit()}
+        labels={{ zoomIn: t("zoomIn"), zoomOut: t("zoomOut"), fit: t("fit") }}
+      />
     </div>
   );
 }

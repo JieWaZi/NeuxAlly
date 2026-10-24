@@ -52,6 +52,9 @@ func (s *Service) saveConfiguration(ctx context.Context, wakerID, id string, rev
 	if config.TargetKind != "" && config.TargetKind != kind {
 		return SavedTask{}, status_error.BadRequest
 	}
+	if config.Knowledge != nil && kind != constants.AutomaticTaskTargetKindWaker {
+		return SavedTask{}, status_error.KnowledgeUnsupported
+	}
 	config.TargetKind = kind
 	if kind != constants.AutomaticTaskTargetKindWorkflow && (config.WorkflowRevisionPolicy != "" || config.WorkflowRevisionID != "" || len(config.WorkflowInputBindings) != 0 || config.WorkflowInputRevisionID != "") {
 		return SavedTask{}, status_error.BadRequest
@@ -181,7 +184,7 @@ func (s *Service) saveConfiguration(ctx context.Context, wakerID, id string, rev
 		task.CreatedAt = task.UpdatedAt
 		err = s.config.Tasks.Create(ctx, task)
 	} else {
-		err = s.config.Tasks.UpdateConfiguration(ctx, task, storedRevision)
+		err = s.WithAuthorizationWrite(ctx, func(ctx context.Context) error { return s.config.Tasks.UpdateConfiguration(ctx, task, storedRevision) })
 	}
 	if err != nil {
 		return SavedTask{}, err

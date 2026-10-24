@@ -22,6 +22,7 @@ server/**/*.log
 
 .agents
 .scratch/
+.superpowers/
 
 desktop/dist-electron/
 desktop/release/
@@ -35,3 +36,10 @@ generated_images/
 # 固定插件源生成的本地分发产物
 desktop/resources/plugins/
 server/plugins/
+
+# 本地跨仓库 Go 联合开发
+go.work
+go.work.sum
+
+# 从 Go 模块复制的许可分发文件
+desktop/resources/licenses/neux-knowledge/

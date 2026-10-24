@@ -80,7 +80,7 @@ func (s *Service) dispatchChild(ctx context.Context, run models.WorkflowRun, eff
 		revisionID, _ := options["revisionId"].(string)
 		mode, _ := options["mode"].(string)
 		joined := mode != "detached"
-		child, err = s.StartRun(ctx, StartRunCommand{DefinitionID: target, RequestID: effect.ID, RevisionID: revisionID, Args: options["args"], Defaults: run.Defaults, ParentRunID: run.ID, Joined: joined, Depth: run.Depth + 1, TriggerSource: "workflow"})
+		child, err = s.StartRun(ctx, StartRunCommand{AutomaticRunID: run.AutomaticRunID, DefinitionID: target, RequestID: effect.ID, RevisionID: revisionID, Args: options["args"], Defaults: run.Defaults, ParentRunID: run.ID, Joined: joined, Depth: run.Depth + 1, TriggerSource: "workflow"})
 	}
 	if err != nil {
 		s.finishEffect(ctx, effect, WorkerReceipt{}, err)

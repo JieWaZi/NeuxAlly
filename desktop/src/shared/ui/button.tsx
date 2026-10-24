@@ -19,6 +19,8 @@ export const buttonVariants = cva(
           "bg-surface-scene text-foreground hover:bg-action-quiet-hover active:bg-action-quiet-pressed",
         ghost:
           "text-action-quiet hover:bg-action-quiet-hover hover:text-foreground active:bg-action-quiet-pressed",
+        text: "text-action-quiet hover:text-foreground active:text-foreground",
+        link: "text-link hover:text-link-hover text-left whitespace-normal",
         // 说明性图标仅强调颜色，悬停与按下不增加背景表面。
         plain: "text-action-quiet hover:text-foreground active:text-foreground",
         choice:
@@ -30,6 +32,8 @@ export const buttonVariants = cva(
         danger:
           "bg-destructive text-destructive-foreground hover:bg-destructive/88",
         success: "bg-success text-success-foreground hover:bg-success/88",
+        accent:
+          "bg-accent-surface text-accent-content hover:bg-accent-surface-strong active:bg-accent-border",
       },
       size: {
         option:

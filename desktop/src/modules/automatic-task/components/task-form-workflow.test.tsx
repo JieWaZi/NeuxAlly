@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeAll, afterAll, expect, it, vi } from "vitest";
 import type * as SDK from "@/shared/api/generated/sdk.gen";
 import "@/shared/i18n";
-import { TaskFormDialog } from "./task-form-dialog";
+import { TaskFormDialog } from "./task-dialogs";
 
 vi.mock("@/shared/ui/execution-configuration-controls", () => ({
   ExecutionConfigurationControls: () => <span>执行配置控件</span>,
@@ -102,6 +102,8 @@ it("编辑工作流自动任务只保存当前任务，API 必填字段无需填
       />
     </QueryClientProvider>,
   );
+  await vi.dynamicImportSettled();
+  await screen.findByLabelText("任务名称");
   await screen.findByText("调用时必须提供 args.text，无需在此填写。");
   await user.click(screen.getByText("版本设置"));
   expect(

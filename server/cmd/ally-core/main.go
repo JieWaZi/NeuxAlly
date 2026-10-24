@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/JieWaZi/NeuxAlly/server/apis"
-	"github.com/JieWaZi/NeuxAlly/server/apis/automatic_tasks"
+	"github.com/JieWaZi/NeuxAlly/server/apis/integrations"
 	apiMiddleware "github.com/JieWaZi/NeuxAlly/server/apis/middleware"
 	"github.com/JieWaZi/NeuxAlly/server/constants"
 	"github.com/JieWaZi/NeuxAlly/server/global"
@@ -59,7 +59,7 @@ func main() {
 				}
 			}()
 		}
-		if err := global.Load(rootContext, global.Config, automatic_tasks.NewLocalHandler); err != nil {
+		if err := global.Load(rootContext, global.Config, integrations.NewPublishedHandler); err != nil {
 			cancel()
 			parentWaitGroup.Wait()
 			panic(err)

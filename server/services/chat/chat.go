@@ -302,7 +302,7 @@ func (m *service) ReadMessageHistory(
 	if len(window.Records) == 0 {
 		return MessageHistoryPage{Resources: []messageview.Message{}}, nil
 	}
-	messages, err := messageview.ReplayMessages(window.Records)
+	messages, err := messageview.ReplayPublicMessages(window.Records)
 	if err != nil {
 		logx.Errorf(
 			"project chat message window failed: chat_id=%s error=%v",
@@ -450,7 +450,7 @@ func replayChatState(records []eventlog.Record) (chatState, error) {
 			if err := json.Unmarshal(record.Data, &executionData); err != nil {
 				return chatState{}, status_error.ChatLogCorrupted
 			}
-			execution := models.Execution{
+			execution := models.Execution{AutomaticRunID: executionData.AutomaticRunID,
 				ID:                record.ExecutionID,
 				ChatID:            record.ChatID,
 				UserMessageID:     executionData.UserMessageID,

@@ -42,6 +42,7 @@ import {
   chatListInfiniteOptions,
   chatListKey,
   chatMessagesInfiniteOptions,
+  useChatHistoryVisibility,
   chatMessagesKey,
   getChatOptions,
   getChatQueryKey,
@@ -265,11 +266,12 @@ export function ChatPageContent({
     ...getChatOptions({
       path: { chatId: activeChatId ?? "pending" },
     }),
-    enabled: Boolean(activeChatId),
+    enabled: sceneActive && Boolean(activeChatId),
   });
+  useChatHistoryVisibility(activeChatId, sceneActive);
   const messagesQuery = useInfiniteQuery({
     ...chatMessagesInfiniteOptions(activeChatId ?? "pending"),
-    enabled: Boolean(activeChatId),
+    enabled: sceneActive && Boolean(activeChatId),
   });
   const runtimesQuery = useQuery(listRuntimesOptions());
   const accountsQuery = useQuery(listAiAccountsOptions());
@@ -1227,9 +1229,12 @@ export function ChatPageContent({
           reason: "recovery",
         });
       },
-      hasEarlierMessages: Boolean(messagesQuery.hasNextPage),
+      hasEarlierMessages: sceneActive && Boolean(messagesQuery.hasNextPage),
       isLoadingEarlier: messagesQuery.isFetchingNextPage,
-      onLoadEarlier: () => messagesQuery.fetchNextPage().then(() => {}),
+      onLoadEarlier: () =>
+        messagesQuery
+          .fetchNextPage({ cancelRefetch: false, throwOnError: true })
+          .then(() => {}),
       warning: workspaceWarning || undefined,
       requestedInteractionId: searchParams.get("request")?.split(":").at(-1),
       pendingApprovals: sceneActive ? chatRuntime.pendingApprovals : [],

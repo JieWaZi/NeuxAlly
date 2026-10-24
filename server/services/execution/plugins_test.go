@@ -16,6 +16,7 @@ import (
 
 	"github.com/JieWaZi/NeuxAlly/server/constants"
 	"github.com/JieWaZi/NeuxAlly/server/constants/status_error"
+	"github.com/JieWaZi/NeuxAlly/server/internal/packagefiles"
 	"github.com/JieWaZi/NeuxAlly/server/internal/plugins"
 	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/feishu"
 	"github.com/JieWaZi/NeuxAlly/server/internal/runtimes"
@@ -412,6 +413,71 @@ func TestSkippedProviderDoesNotLeaseIdentityUntilWorkEnds(t *testing.T) {
 				t.Fatalf("skipped provider remains busy for ordinary work: %v", err)
 			}
 		})
+	}
+}
+
+func TestPluginAdmissionPreservesLegacyNestedPackageRoot(t *testing.T) {
+	data := t.TempDir()
+	state := executionPlugin(t, data, "legacy", "legacy skill", true)
+	version := &state.Versions[0]
+	oldRoot := filepath.Join(data, version.ContentPath)
+	repository := t.TempDir()
+	packageRoot := filepath.Join(repository, "plugins", "office")
+	if err := os.MkdirAll(filepath.Dir(packageRoot), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Rename(oldRoot, packageRoot); err != nil {
+		t.Fatal(err)
+	}
+	archive := packagefiles.Archive{PreserveExecutable: true}
+	digest, err := archive.Digest(repository)
+	if err != nil {
+		t.Fatal(err)
+	}
+	content, err := plugins.CopyContent(filepath.Join(data, "plugins", "content"), repository, digest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	version.ContentPath, err = filepath.Rel(data, content)
+	if err != nil {
+		t.Fatal(err)
+	}
+	version.Digest = digest
+	raw, err := json.Marshal(version.Package)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var snapshot map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &snapshot); err != nil {
+		t.Fatal(err)
+	}
+	snapshot["sourcePath"] = json.RawMessage(`"plugins/office"`)
+	raw, err = json.Marshal(snapshot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal(raw, &version.Package); err != nil {
+		t.Fatal(err)
+	}
+	s := &service{pluginController: installedPluginFixture{states: []models.PluginState{state}}, skillDataDirectory: data, pluginLauncher: "/core"}
+	detection := runtimes.DetectionResult{State: runtimes.DetectionStateReady, Capabilities: runtimes.CapabilitySet{runtimes.CapabilitySkillDirectory: true}}
+	prepared, err := s.preparePlugins(context.Background(), "w1", pendingMessage{message: userMessage{PluginIDs: []string{"legacy"}}}, detection)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer prepared.release()
+	if len(prepared.skills) != 1 || len(prepared.connectors) != 1 {
+		t.Fatalf("components: %+v", prepared)
+	}
+	if _, err := os.Stat(filepath.Join(prepared.skills[0].Path, "SKILL.md")); err != nil {
+		t.Fatalf("legacy skill was delivered outside package root: %v", err)
+	}
+	actualRoot, err := filepath.EvalSymlinks(filepath.Join(content, "plugins", "office"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if prepared.connectors[0].Arguments[2] != actualRoot {
+		t.Fatalf("legacy MCP cwd = %q, want %q", prepared.connectors[0].Arguments[2], actualRoot)
 	}
 }
 

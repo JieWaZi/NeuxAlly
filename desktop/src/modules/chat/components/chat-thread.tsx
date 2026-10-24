@@ -1,4 +1,5 @@
 import { ChatMessagePluginReferences } from "./chat-plugin-reference";
+import { useChatHistoryScroll } from "./use-chat-history-scroll";
 import type { ChatResultSource } from "@/shared/api/notification-presentation";
 import { ChatWorkResultReader } from "@/shared/api/work-result-reading";
 import { ChatMessageContribution } from "./chat-contributions";
@@ -183,6 +184,7 @@ type ChatThreadProps = {
   isHistoryLoading?: boolean;
   historyError?: { message: string; onRetry: () => void; error?: unknown };
   composerSettings?: ReactNode;
+  composerActions?: ReactNode;
   composerEffects?: ReactNode;
   renderComposerContextStrip?: () => ReactNode;
   composerSkills?: ChatSkillOption[];
@@ -1597,6 +1599,7 @@ const Composer = memo(function Composer({
   disabled = false,
   activityStatus,
   settings,
+  actions,
   effects,
   renderContextStrip,
   skills,
@@ -1643,6 +1646,7 @@ const Composer = memo(function Composer({
   disabled?: boolean;
   activityStatus?: ReactNode;
   settings?: ReactNode;
+  actions?: ReactNode;
   effects?: ReactNode;
   renderContextStrip?: () => ReactNode;
   skills: ChatSkillOption[];
@@ -1716,7 +1720,7 @@ const Composer = memo(function Composer({
     isWorkRunning,
   });
   const prepareComposerSend = () => {
-    if (!aui.composer.getState().canSend) return false;
+    if (disabled || !aui.composer.getState().canSend) return false;
     setSubmissionState((current) => ({ ...current, pending: true }));
     return true;
   };
@@ -1906,6 +1910,7 @@ const Composer = memo(function Composer({
                     disabled={isWorkStopping || disabled}
                     onAttachmentsChange={refreshComposer}
                   />
+                  {actions}
                   <ComposerContextUsage
                     metrics={contextMetrics}
                     visible={showUsageMetrics}
@@ -1944,6 +1949,7 @@ const Composer = memo(function Composer({
                       <ComposerSendButton
                         aria-label={t("send")}
                         title={t("send")}
+                        disabled={disabled || !composerCanSend}
                         data-chat-primary-action="send"
                         onClickCapture={prepareComposerSend}
                       />
@@ -1955,7 +1961,9 @@ const Composer = memo(function Composer({
                         aria-label={t("addToQueue")}
                         title={t("addToQueue")}
                         data-chat-primary-action="send"
-                        disabled={isWorkStopping}
+                        disabled={
+                          isWorkStopping || disabled || !composerCanSend
+                        }
                         onClickCapture={prepareComposerSend}
                       />
                     </ComposerPrimitive.Send>
@@ -2015,6 +2023,7 @@ export function ChatThread({
   isHistoryLoading = false,
   historyError,
   composerSettings,
+  composerActions,
   composerEffects,
   renderComposerContextStrip,
   composerSkills = emptyList,
@@ -2084,33 +2093,29 @@ export function ChatThread({
     [animateComposerSize],
   );
   const viewportRef = useRef<HTMLDivElement>(null);
-  const [loadEarlierError, setLoadEarlierError] = useState("");
   useChatHistoryError(historyError, errorScopes.at(-1));
-  const loadEarlier = async () => {
-    const operation = `history-earlier:${errorScopes[0] ?? "global"}`;
-    const recovery = captureErrorNoticeRecovery(operation);
-    const viewport = viewportRef.current;
-    const previousHeight = viewport?.scrollHeight ?? 0;
-    const previousTop = viewport?.scrollTop ?? 0;
-    try {
+  const historyScroll = useChatHistoryScroll({
+    scope: fileScopeChatId ?? errorScopes[0] ?? wakerId ?? "global",
+    viewport: viewportRef,
+    hasMore: hasEarlierMessages,
+    loading: isLoadingEarlier,
+    load: async () => {
+      const operation = `history-earlier:${errorScopes[0] ?? "global"}`;
+      const recovery = captureErrorNoticeRecovery(operation);
       await onLoadEarlier();
       resolveErrorNoticeRecovery(recovery);
-      setLoadEarlierError("");
-      window.requestAnimationFrame(() => {
-        if (!viewport) return;
-        viewport.scrollTop =
-          previousTop + Math.max(0, viewport.scrollHeight - previousHeight);
-      });
-    } catch (error) {
+    },
+    onError: (error) => {
       reportChatError(
         error,
         errorScopes[0] ?? "global",
         t("loadEarlierFailed"),
-        operation,
+        `history-earlier:${errorScopes[0] ?? "global"}`,
       );
-      setLoadEarlierError(t("loadEarlierFailed"));
-    }
-  };
+    },
+  });
+  const loadEarlier = historyScroll.loadEarlier;
+  const loadEarlierError = historyScroll.error ? t("loadEarlierFailed") : "";
   // 外部 Runtime 在被动 Effect 中提交消息。订阅它的已提交快照，保证
   // Provider 与消息原语在同一快照上渲染，不依赖 SSE 或其他父级更新补帧。
   const messageSnapshot = useSyncExternalStore(
@@ -2215,7 +2220,7 @@ export function ChatThread({
                     owner={resultSource.owner}
                     viewport={viewportRef}
                     hasEarlierMessages={hasEarlierMessages}
-                    onLoadEarlier={onLoadEarlier}
+                    onLoadEarlier={loadEarlier}
                   />
                 ) : null}
                 {presentation === "thread" ? (
@@ -2244,7 +2249,8 @@ export function ChatThread({
                         <ThreadPrimitive.Viewport
                           ref={viewportRef}
                           data-chat-scroll-viewport
-                          className="scrollbar-hidden relative flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain"
+                          onScroll={historyScroll.onScroll}
+                          className="scrollbar-hidden relative flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain [overflow-anchor:none]"
                         >
                           <ThreadPrimitive.Empty>
                             {emptyState}
@@ -2277,7 +2283,7 @@ export function ChatThread({
                                     id={`earlier:${errorScopes.join(":")}`}
                                     message={loadEarlierError}
                                     onRetry={loadEarlier}
-                                    onDismiss={() => setLoadEarlierError("")}
+                                    onDismiss={historyScroll.clearError}
                                   />
                                 ) : null}
                               </div>
@@ -2356,6 +2362,7 @@ export function ChatThread({
                       disabled={composerDisabled}
                       activityStatus={activityStatus}
                       settings={composerSettings}
+                      actions={composerActions}
                       effects={composerEffects}
                       renderContextStrip={renderComposerContextStrip}
                       skills={composerSkills}

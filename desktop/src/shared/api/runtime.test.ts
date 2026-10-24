@@ -166,6 +166,45 @@ it("Core 地址修正保留请求正文、路径参数和取消信号", async ()
 });
 
 describe("API 错误展示入口", () => {
+  it("同一远端知识库的并行请求失败只生成一条通知", async () => {
+    const { result } = renderHook(useErrorNotices);
+    client.setConfig({
+      fetch: vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              key: "KnowledgeRemoteUnreachable",
+              message: "远端知识服务连接失败",
+            }),
+            { status: 502, headers: { "Content-Type": "application/json" } },
+          ),
+      ),
+    });
+    await act(async () => {
+      await Promise.allSettled([
+        client.get({
+          url: "/api/v1/knowledge/connections/connection-1/libraries/library-1",
+          throwOnError: true,
+        }),
+        client.get({
+          url: "/api/v1/knowledge/connections/connection-1/libraries/library-1/sources",
+          throwOnError: true,
+        }),
+        client.get({
+          url: "/api/v1/knowledge/connections/connection-1/libraries/library-1/capabilities",
+          throwOnError: true,
+        }),
+      ]);
+    });
+    expect(result.current).toEqual([
+      expect.objectContaining({
+        id: "api:knowledge:connection-1:library-1:KnowledgeRemoteUnreachable",
+        operation: "api:knowledge:connection-1:library-1",
+        message: "远端知识服务连接失败",
+      }),
+    ]);
+  });
+
   it("相同路径的其他方法、分页或其他 Chat 成功不会清除错误", async () => {
     const { result } = renderHook(useErrorNotices);
     let fails = true;

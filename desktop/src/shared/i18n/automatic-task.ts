@@ -1,11 +1,10 @@
 export const automaticTaskZh = {
+  apiIntegrationHint:
+    "在设置的「发布集成 → API 集成」创建 API Key，并明确授权本任务的调用或结果读取。示例中的 API_KEY 使用该集成密钥。",
+  taskID: "任务 ID",
   fileUploadExample: "上传文件示例",
   resultExample: "获取结果示例",
   fileDownloadExample: "下载文件示例",
-  apiReadResult:
-    "查询结果接口返回运行状态、result 和 files。完成后使用 files 中的 id 下载文件；运行标识使用触发返回的 runId。",
-  apiUploadFileHelp:
-    "文件参数先通过上传接口提交 file，随后将返回的 reference 填入对应 args 字段。文件数组逐个上传；单个文件最多 100 MB。",
   fixedValueFor: "{{name}}的固定值",
   workflowAdvanced: "版本设置",
   inputVersionChanged:
@@ -30,23 +29,6 @@ export const automaticTaskZh = {
   currentVersion: "跟随当前版本",
   versionHelp:
     "固定版本保持调用字段和类型稳定；跟随当前版本时，输入契约变化可能需要重新配置。",
-  apiParameters: "API 参数说明",
-  apiCallGuide: "如何调用",
-  requestBodyExample: "请求参数示例",
-  apiPrepareInputs:
-    "将下面示例中的值替换为实际业务值，保留 args、字段名和 JSON 类型。固定参数由任务自动带入，无需传入。",
-  apiPrepareNoInputs: "此任务无需填写输入参数，直接使用下面的请求参数。",
-  apiSendRequest:
-    "向下方调用地址发送 POST 请求，可复制触发示例在终端执行。任务密钥填在 Authorization 请求头；每次新运行将 <UNIQUE_REQUEST_KEY> 替换为新的唯一值，同一次请求重试时复用原值。",
-  apiReadRunState:
-    "触发成功后，从返回结果取得 runId，替换查询状态示例中的 <RUN_ID>，即可查看本次运行状态。",
-  advancedInputSchema: "高级：参数 JSON Schema",
-  noAPIParameters: "此任务无需传入参数，所有值由任务或工作流提供。",
-  apiParameterRequired: "必填",
-  apiParameterOptional: "可选",
-  exampleNeedsReplacement:
-    "示例中的部分占位值不满足字段约束，请按字段说明填写真实值后再调用。",
-  inputSchema: "参数 JSON Schema",
   manualInputTitle: "本次运行参数",
   manualInputHelp: "仅填写由调用方提供的参数，固定值沿用任务配置。",
   title: "自动任务",
@@ -163,9 +145,6 @@ export const automaticTaskZh = {
   noFuture: "暂无后续运行计划。",
   highFrequency: "未来 24 小时预计触发 {{count}} 次，请留意运行记录增长。",
   scheduleHint: "应用需要保持运行。关闭应用或设备休眠期间错过的计划不会补跑。",
-  apiHint: "保存后生成本机调用地址与任务密钥。",
-  apiEditHint: "通过本机脚本触发运行。任务密钥可在详情中重新生成。",
-  switchWarning: "从API 切换到定时后，旧密钥立即失效。已有运行继续使用原配置。",
   workspace: "工作范围",
   temporaryWorkspace: "会话临时目录",
   useTemporaryWorkspace: "使用会话临时目录",
@@ -193,29 +172,16 @@ export const automaticTaskZh = {
   deleteTitle: "删除自动任务",
   deleteWarning:
     "将删除“{{name}}”、{{runCount}} 条运行记录与 {{chatCount}} 个关联会话，无法恢复。从这些会话创建的分支会保留。",
-  rotate: "重新生成密钥",
-  rotateTitle: "重新生成任务密钥",
-  rotateWarning: "旧密钥将立即失效，已有脚本需要更新。",
-  tokenTitle: "保存任务密钥",
-  tokenHint: "密钥只在这里展示一次。关闭后只能重新生成。",
-  token: "任务密钥",
   endpoint: "调用地址",
   triggerExample: "触发示例",
   statusExample: "查询状态示例",
   copy: "复制",
   copied: "已复制",
-  done: "完成",
   apiAvailable: "API 已启动",
   apiUnavailable: "API 不可用，请检查 IP 和端口。",
   apiSettings: "设置",
-  portTitle: "自动任务 API 设置",
+  portTitle: "API 服务设置",
   portHint: "确认后立即生效。修改 IP 或端口后，请同步更新调用地址。",
-  apiIP: "IP 地址",
-  apiIPHint:
-    "127.0.0.1 仅供本机调用；填写设备 IP 可供其他设备调用。端口范围为 1–65535。",
-  apiConfirm: "确认",
-  apiSaving: "正在应用…",
-  port: "端口",
   pendingTitle: "待处理自动运行",
   attention: "{{name}} 需要处理",
   failureNotice: "{{name}} 的自动运行失败",
@@ -233,13 +199,12 @@ export const automaticTaskZh = {
 } as const;
 
 export const automaticTaskEn = {
+  apiIntegrationHint:
+    "Create an API Key in Settings → Publishing & integrations → API integration and grant this task invoke or result access. Use that key as API_KEY in the examples.",
+  taskID: "Task ID",
   fileUploadExample: "File upload example",
   resultExample: "Result query example",
   fileDownloadExample: "File download example",
-  apiReadResult:
-    "The result endpoint returns run state, result and files. Once complete, download files using their id. Use the runId returned by the trigger endpoint.",
-  apiUploadFileHelp:
-    "Upload each file using the file field, then put the returned reference in its args field. Upload array items separately. Maximum 100 MB per file.",
   fixedValueFor: "Fixed value for {{name}}",
   workflowAdvanced: "Version settings",
   inputVersionChanged:
@@ -268,25 +233,6 @@ export const automaticTaskEn = {
   currentVersion: "Follow current version",
   versionHelp:
     "Pinning keeps input fields and types stable. Following the current version may require reconfiguration when inputs change.",
-  apiParameters: "API parameters",
-  apiCallGuide: "How to call",
-  requestBodyExample: "Request body example",
-  apiPrepareInputs:
-    "Replace the example values with real business data. Keep args, field names and JSON types. The task supplies fixed inputs automatically; do not send them.",
-  apiPrepareNoInputs:
-    "This task needs no caller inputs. Use the request body below.",
-  apiSendRequest:
-    "Send a POST request to the endpoint below, or copy the trigger example into a terminal. Put the task token in the Authorization header. Replace <UNIQUE_REQUEST_KEY> with a new unique value for each new run; reuse it when retrying the same request.",
-  apiReadRunState:
-    "After the trigger succeeds, take runId from the response and replace <RUN_ID> in the status example to check this run.",
-  advancedInputSchema: "Advanced: input JSON Schema",
-  noAPIParameters:
-    "No API inputs are needed. The task and workflow supply all values.",
-  apiParameterRequired: "Required",
-  apiParameterOptional: "Optional",
-  exampleNeedsReplacement:
-    "Some placeholder values do not satisfy the field constraints. Follow the field descriptions and fill in real values before calling.",
-  inputSchema: "Input JSON Schema",
   manualInputTitle: "Inputs for this run",
   manualInputHelp:
     "Supply only caller inputs. Fixed values come from the task configuration.",
@@ -421,11 +367,6 @@ export const automaticTaskEn = {
     "About {{count}} triggers in the next 24 hours. Run history may grow quickly.",
   scheduleHint:
     "Keep the application running. Schedules missed while it is closed or the device is asleep will not run later.",
-  apiHint: "Saving generates a local endpoint and task token.",
-  apiEditHint:
-    "Trigger runs from a local script. Regenerate the task token from the task details.",
-  switchWarning:
-    "Switching from API to schedule immediately revokes the old token. Accepted runs retain their configuration.",
   workspace: "Workspace",
   temporaryWorkspace: "Conversation temporary directory",
   useTemporaryWorkspace: "Use a conversation temporary directory",
@@ -455,31 +396,17 @@ export const automaticTaskEn = {
   deleteTitle: "Delete automatic task",
   deleteWarning:
     "Permanently delete “{{name}}”, {{runCount}} run records and {{chatCount}} related conversations. Chat branches are kept.",
-  rotate: "Regenerate token",
-  rotateTitle: "Regenerate task token",
-  rotateWarning:
-    "The old token will immediately stop working. Update existing scripts.",
-  tokenTitle: "Save the task token",
-  tokenHint: "Shown once. After closing, you can only regenerate it.",
-  token: "Task token",
   endpoint: "Endpoint",
   triggerExample: "Trigger example",
   statusExample: "Status query example",
   copy: "Copy",
   copied: "Copied",
-  done: "Done",
   apiAvailable: "API is running",
   apiUnavailable: "API unavailable. Check the IP address and port.",
   apiSettings: "Settings",
-  portTitle: "Automatic task API settings",
+  portTitle: "API service settings",
   portHint:
     "Changes take effect on confirmation. Update the calling address after changing the IP or port.",
-  apiIP: "IP address",
-  apiIPHint:
-    "127.0.0.1 allows local calls only. Use the device IP for calls from other devices. Ports range from 1 to 65535.",
-  apiConfirm: "Confirm",
-  apiSaving: "Applying…",
-  port: "Port",
   pendingTitle: "Automatic runs needing attention",
   attention: "{{name}} needs your attention",
   failureNotice: "{{name}} automatic run failed",
