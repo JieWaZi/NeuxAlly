@@ -21,6 +21,7 @@ export default tseslint.config(
   {
     ignores: [
       "dist",
+      "dist-native",
       "release",
       "coverage",
       "src/shared/api/generated",
