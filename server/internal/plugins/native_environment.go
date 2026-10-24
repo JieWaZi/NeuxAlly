@@ -82,7 +82,7 @@ func PrepareNativeEnvironment(parent string, spec NativeEnvironmentSpec) (Native
 	} else if !os.IsNotExist(err) {
 		return result, storageFailure(err)
 	}
-	if spec.AccountHome != "" && (codexPathWithin(shared, spec.AccountHome) || codexPathWithin(spec.AccountHome, shared)) {
+	if spec.AccountHome != "" && ((codexPathWithin(shared, spec.AccountHome) && !nativeWorktreeDirectory(shared, spec.AccountHome)) || codexPathWithin(spec.AccountHome, shared)) {
 		return result, status_error.PluginContentInvalid
 	}
 	configuration := map[string]any{}
@@ -328,7 +328,11 @@ func PrepareNativeEnvironment(parent string, spec NativeEnvironmentSpec) (Native
 	}
 	if stateDirectory != "" {
 		if codexPathWithin(shared, stateDirectory) {
-			return result, status_error.PluginContentInvalid
+			workspaceScope := nativeWorktreeDirectory(shared, spec.Workspace) && filepath.Clean(stateDirectory) == filepath.Join(spec.Workspace, constants.RuntimeStateDirectoryName, constants.PluginNativeScopeDirectory)
+			isolatedHome := spec.StateDirectory == "" && stateDirectory == result.Home && result.Home != shared
+			if (!workspaceScope && !isolatedHome) || !nativeWorktreeDirectory(shared, stateDirectory) {
+				return result, status_error.PluginContentInvalid
+			}
 		}
 		if err := codexPrivateDir(stateDirectory); err != nil {
 			return result, err
@@ -350,6 +354,35 @@ func PrepareNativeEnvironment(parent string, spec NativeEnvironmentSpec) (Native
 		}
 	}
 	return result, nil
+}
+
+// nativeWorktreeDirectory 区分原生配置与其 worktrees 下的独立工作区，拒绝中间链接和工作区集合根。
+func nativeWorktreeDirectory(shared, directory string) bool {
+	if !filepath.IsAbs(directory) {
+		return false
+	}
+	worktrees := filepath.Join(shared, constants.NativeWorktreesDirectory)
+	directory = filepath.Clean(directory)
+	if directory == worktrees || !codexPathWithin(worktrees, directory) {
+		return false
+	}
+	relative, err := filepath.Rel(shared, directory)
+	if err != nil {
+		return false
+	}
+	current := shared
+	for _, part := range strings.Split(relative, string(filepath.Separator)) {
+		current = filepath.Join(current, part)
+		info, err := os.Lstat(current)
+		if os.IsNotExist(err) {
+			// 后续目录由私有目录创建器建立；已有父链必须全部是真实目录。
+			return true
+		}
+		if err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+			return false
+		}
+	}
+	return true
 }
 
 func nativeSubscriptionStorage(spec NativeEnvironmentSpec, source map[string]any, secret bool) (bool, string, bool) {

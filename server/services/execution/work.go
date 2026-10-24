@@ -602,7 +602,7 @@ func (m *service) startMessage(
 			RuntimeID: cliID, AccountHome: accountHome, SharedPluginHome: sharedHome, Executable: executable,
 			PrefixArgs: runtimeEnvironment.PrefixArgs, Targets: pluginResources.native,
 			AllowExternal:        request.allowedConnectorIDs == nil && request.allowedAgentDomains == nil,
-			ModelEnvironmentKeys: secretKeys, StateDirectory: filepath.Join(runRequest.Workspace.Path, constants.RuntimeStateDirectoryName, "native-plugins"), Workspace: runRequest.Workspace.Path,
+			ModelEnvironmentKeys: secretKeys, StateDirectory: filepath.Join(runRequest.Workspace.Path, constants.RuntimeStateDirectoryName, constants.PluginNativeScopeDirectory), Workspace: runRequest.Workspace.Path,
 		})
 		if prepareErr != nil {
 			return AcceptedExecution{}, prepareErr
