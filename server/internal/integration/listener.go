@@ -282,6 +282,10 @@ func (s *Listener) Configure(ctx context.Context, ip string, port int, enabled b
 		shutdown, cancel := context.WithTimeout(ctx, 5*time.Second)
 		_ = server.Shutdown(shutdown)
 		cancel()
+		// Shutdown 只释放已被 Serve 接管的监听；未调度的套接字也必须同步关闭。
+		if oldListener != nil {
+			_ = oldListener.Close()
+		}
 	}
 	return nil
 }
