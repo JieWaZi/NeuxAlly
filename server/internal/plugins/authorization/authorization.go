@@ -313,7 +313,7 @@ func (a *Authorizer) Login(ctx context.Context, requested ...string) (Session, e
 		defer a.workers.Done()
 		defer close(finished)
 		defer cancel(context.Canceled)
-		timeout := time.AfterFunc(30*time.Second, func() { cancel(context.DeadlineExceeded) })
+		timeout := time.AfterFunc(constants.PluginAuthPreparationTimeoutSeconds*time.Second, func() { cancel(context.DeadlineExceeded) })
 		defer timeout.Stop()
 		reportDevice := func(device Device) error {
 			expiry := device.ExpiresAt

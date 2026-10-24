@@ -154,18 +154,24 @@ export function AuthorizationCode({ code }: { code: string }) {
   );
 }
 
-/** 二维码保持原始官方 URL；浅色底保证暗色主题下仍可识别。 */
+/** 原始载荷生成二维码，受宿主校验的内联 PNG 原图直接展示；不加载远端图片。 */
 export function AuthorizationQRCode({ url }: { url: string }) {
   const { t } = useTranslation("plugin");
+  const isPNG = /^data:image\/png;base64,[A-Za-z0-9+/]+={0,2}$/.test(url);
+  if (/^data:/i.test(url) && !isPNG) return null;
   return (
     <div className="flex justify-center">
-      <QRCodeSVG
-        value={url}
-        size={192}
-        marginSize={4}
-        level="M"
-        title={t("scanTitle")}
-      />
+      {isPNG ? (
+        <img src={url} width={192} height={192} alt={t("scanTitle")} />
+      ) : (
+        <QRCodeSVG
+          value={url}
+          size={192}
+          marginSize={4}
+          level="M"
+          title={t("scanTitle")}
+        />
+      )}
     </div>
   );
 }

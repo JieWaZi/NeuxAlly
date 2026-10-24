@@ -667,6 +667,14 @@ const (
 	PluginAuthCommandStrategy = "plugin-command"
 	// PluginAuthProtocol 是逐行JSON-RPC授权扩展版本。
 	PluginAuthProtocol = "neuxally-auth/1"
+	// PluginAuthPreparationTimeoutSeconds 为首次挑战前的受管资产下载与启动保留有界准备时间。
+	PluginAuthPreparationTimeoutSeconds = 150
+	// PluginAuthQRPNGPrefix 标识桥接提供的内联 PNG 二维码原图。
+	PluginAuthQRPNGPrefix = "data:image/png;base64,"
+	// PluginAuthQRPNGMaxBytes 限制二维码原图解码后的字节数。
+	PluginAuthQRPNGMaxBytes = 256 * 1024
+	// PluginAuthQRPNGMaxDimension 限制二维码原图的单边像素数。
+	PluginAuthQRPNGMaxDimension = 1024
 	// PluginAuthEnvironmentPrefix 隔离原生插件桥接秘密的进程环境键。
 	PluginAuthEnvironmentPrefix = "ALLY_PLUGIN_AUTH_"
 	// AIAccountCodexAPIKeyEnvironment 仅在执行进程中传递所选 Codex API 账号凭据。

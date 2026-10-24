@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -66,12 +67,16 @@ for await (const line of readline.createInterface({input:process.stdin})) {
 	if shape.LegacySkillBridge {
 		write("logical/.neuxally/integration.json", `{"authentication":{"strategy":"plugin-command","protocol":"neuxally-auth/1","command":"node","args":["bridge.mjs"]}}`)
 		write("logical/skills/review/SKILL.md", "---\nname: review\ndescription: Review changes\n---\n# Legacy complete guide\n")
-		write("logical/bridge.mjs", `import readline from 'node:readline';
+		skillScript := `import readline from 'node:readline';
 for await(const line of readline.createInterface({input:process.stdin})){
 const r=JSON.parse(line);let result;
 if(r.method==='auth/status')result={state:'authorized',account:{configured:true,available:true,id:'legacy-user',scopes:[]}};
 else if(r.method==='auth/resolve')result={bindings:r.params.components.map(c=>{if(c.key!=='skills/review'||c.target!=='skill')throw Error('unexpected target');return {componentId:c.componentId,environment:{BUSINESS_TOKEN:'legacy-secret'}};})};
-console.log(JSON.stringify({jsonrpc:'2.0',id:r.id,result}));}`)
+console.log(JSON.stringify({jsonrpc:'2.0',id:r.id,result}));}`
+		if len(override) > 0 {
+			skillScript = strings.Replace(skillScript, "environment:{BUSINESS_TOKEN:'legacy-secret'}", override[0], 1)
+		}
+		write("logical/bridge.mjs", skillScript)
 	} else if shape.Canonical {
 		write("logical/.codex-plugin/plugin.json", `{"name":"github","version":"0.1.0"}`)
 		write("logical/.mcp.json", `{"mcpServers":{"github":{"type":"http","url":"https://api.githubcopilot.com/mcp/"}}}`)
@@ -183,6 +188,63 @@ func TestUnboundLegacySkillBridgeStillProjectsForOtherRuntime(t *testing.T) {
 	defer prepared.release()
 	if len(prepared.skills) != 1 || len(prepared.native) != 0 || len(prepared.connectors) != 0 || prepared.environment["BUSINESS_TOKEN"] != "legacy-secret" {
 		t.Fatal("target binding gate changed the unbound legacy skill bridge")
+	}
+}
+
+func TestSkillCommandBridgesMergePrivatePathsAndKeepOtherConflicts(t *testing.T) {
+	for _, conflict := range []bool{false, true} {
+		t.Run(fmt.Sprintf("conflict=%t", conflict), func(t *testing.T) {
+			binding := `environment:{PATH:r.params.dataDirectory+(process.env.PATH?process.platform==='win32'?';':':':'')+(process.env.PATH??''),BUSINESS_TOKEN:'shared'}`
+			manager, first, _ := authenticatedPluginSourceFixture(t, authenticationFixtureShape{LegacySkillBridge: true}, binding)
+			data, err := filepath.EvalSymlinks(manager.skillDataDirectory)
+			if err != nil {
+				t.Fatal(err)
+			}
+			manager.skillDataDirectory = data
+			if conflict {
+				binding = strings.Replace(binding, "BUSINESS_TOKEN:'shared'", "BUSINESS_TOKEN:'different'", 1)
+			}
+			_, second, secondRoot := authenticatedPluginSourceFixture(t, authenticationFixtureShape{LegacySkillBridge: true}, binding)
+			content, err := plugins.CopyContent(filepath.Join(manager.skillDataDirectory, "plugins/content"), secondRoot, second.Versions[0].Digest)
+			if err != nil {
+				t.Fatal(err)
+			}
+			second.Plugin.ID = "second"
+			second.Versions[0].PluginID = "second"
+			second.Versions[0].ID = "second-version"
+			second.Versions[0].ContentPath, err = filepath.Rel(manager.skillDataDirectory, content)
+			if err != nil {
+				t.Fatal(err)
+			}
+			second.Installations[0].PluginID = "second"
+			second.Installations[0].VersionID = "second-version"
+			manager.pluginController = installedPluginFixture{states: []models.PluginState{first, second}}
+			registry := commandbridge.NewRegistry(context.Background(), nil)
+			t.Cleanup(registry.Close)
+			manager.pluginInstallations = plugininstallation.New(plugininstallation.Config{DataDirectory: manager.skillDataDirectory, Bridges: registry, BridgeEnvironment: os.Environ()})
+			detection := runtimes.DetectionResult{Runtime: runtimes.RuntimeSummary{BaseRuntimeID: "pi"}, Capabilities: runtimes.CapabilitySet{runtimes.CapabilitySkillDirectory: true}}
+			prepared, err := manager.preparePlugins(context.Background(), "w", pendingMessage{message: userMessage{PluginIDs: []string{"p", "second"}}}, detection)
+			defer prepared.release()
+			if conflict {
+				if !errors.Is(err, status_error.PluginConfigurationConflict) {
+					t.Fatalf("non-PATH collision was relaxed: %v", err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			paths := filepath.SplitList(prepared.environment["PATH"])
+			wantPrivate := []string{filepath.Join(manager.skillDataDirectory, "plugins/data/p"), filepath.Join(manager.skillDataDirectory, "plugins/data/second")}
+			if len(paths) < 2 || !slices.Equal(paths[:2], wantPrivate) || len(prepared.skills) != 2 || len(prepared.snapshots) != 2 || prepared.environment["BUSINESS_TOKEN"] != "shared" {
+				t.Fatalf("shared execution lost a private CLI or skill: %q", paths)
+			}
+			for _, inherited := range filepath.SplitList(os.Getenv("PATH")) {
+				if !slices.Contains(paths[2:], inherited) {
+					t.Fatalf("trusted inherited path missing: %q", inherited)
+				}
+			}
+		})
 	}
 }
 
