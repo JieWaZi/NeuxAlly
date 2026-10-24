@@ -64,7 +64,8 @@ func TestDiscoverInstallationsProbesPathsConcurrently(t *testing.T) {
 	root := t.TempDir()
 	paths := []string{filepath.Join(root, "first"), filepath.Join(root, "second")}
 	for index, path := range paths {
-		script := fmt.Sprintf("#!/bin/sh\n/usr/bin/touch '%s/started-%d'\nwhile [ ! -f '%s/started-%d' ]; do /bin/sleep 0.01; done\nprintf '1.%d.0\\n'\n", root, index, root, 1-index, index)
+		// 启动屏障使用 shell 内建重定向，避免额外 touch 进程消耗版本命令自身的两秒预算。
+		script := fmt.Sprintf("#!/bin/sh\n: > '%s/started-%d'\nwhile [ ! -f '%s/started-%d' ]; do /bin/sleep 0.01; done\nprintf '1.%d.0\\n'\n", root, index, root, 1-index, index)
 		if err := os.WriteFile(path, []byte(script), 0700); err != nil {
 			t.Fatal(err)
 		}

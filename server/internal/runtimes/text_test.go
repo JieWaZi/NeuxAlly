@@ -263,9 +263,11 @@ type textProbeAgent struct {
 	*fakeCodexACPAgent      // 提供会话与配置目录。
 	rejectMode         bool // 决定临时会话是否拒绝配置。
 	cancelMode         bool // 模拟探测配置被取消，不能据此认定能力不支持。
+	modeCalls          int  // 记录真正进入会话隔离配置的次数。
 }
 
 func (agent *textProbeAgent) SetSessionMode(ctx context.Context, request acp.SetSessionModeRequest) (acp.SetSessionModeResponse, error) {
+	agent.modeCalls++
 	if agent.cancelMode {
 		return acp.SetSessionModeResponse{}, &acp.RequestError{Code: -32800, Message: "probe cancelled"}
 	}
@@ -319,6 +321,10 @@ func readyTextDetectionForRun(t *testing.T, sdk *SDK, runtimeID, binary string) 
 }
 
 func TestUnknownTextCapabilityVerifiesManagedSessionBeforePrompt(t *testing.T) {
+	// 受管账号必须显式提供 ConfigHome；宿主认证会被 Isolated 剥离，不能借用开发机账号。
+	systemHome := t.TempDir()
+	t.Setenv("HOME", systemHome)
+	t.Setenv("USERPROFILE", systemHome)
 	fixtureHome := t.TempDir()
 	t.Setenv("CODEX_HOME", fixtureHome)
 	if err := os.WriteFile(filepath.Join(fixtureHome, "auth.json"), []byte(`{"access_token":"fixture"}`), 0600); err != nil {
@@ -335,8 +341,15 @@ func TestUnknownTextCapabilityVerifiesManagedSessionBeforePrompt(t *testing.T) {
 	binary, _ := os.Executable()
 	detection := readyTextDetectionForRun(t, sdk, RuntimeIDCodex, binary)
 	delete(detection.Capabilities, CapabilityIsolatedTextGeneration)
-	result := sdk.GenerateText(context.Background(), TextRequest{Target: RuntimeTarget{RuntimeID: RuntimeIDCodex, AccountID: "managed-account", Isolated: true}, Detection: detection, Messages: []TextMessage{{Role: "user", Content: "source"}}})
-	if result.Failure == nil || agent.newCalls != 1 || agent.promptCalls != 0 || !agent.closed {
-		t.Fatalf("unverified managed session bypassed configuration: result=%+v new=%d prompt=%d closed=%v", result, agent.newCalls, agent.promptCalls, agent.closed)
+	request := TextRequest{Target: RuntimeTarget{RuntimeID: RuntimeIDCodex, AccountID: "managed-account", Isolated: true}, Detection: detection, Messages: []TextMessage{{Role: "user", Content: "source"}}}
+	// 系统 HOME 为空时，缺失受管配置必须拒绝，不能借用宿主 CODEX_HOME 中的 fixture。
+	missingHome := sdk.GenerateText(context.Background(), request)
+	if missingHome.Failure == nil || missingHome.Failure.Stage != "text_isolation" || agent.newCalls != 0 || agent.promptCalls != 0 {
+		t.Fatalf("isolated target borrowed host authentication: failure=%+v new=%d prompt=%d", missingHome.Failure, agent.newCalls, agent.promptCalls)
+	}
+	request.Target.ConfigHome = fixtureHome
+	result := sdk.GenerateText(context.Background(), request)
+	if result.Failure == nil || result.Failure.Code != FailureCodeProtocolIncompatible || agent.newCalls != 1 || agent.modeCalls != 1 || agent.promptCalls != 0 || agent.closeSessionCalls != 1 || !agent.closed {
+		t.Fatalf("unverified managed session bypassed configuration: failure=%+v new=%d modes=%d prompt=%d sessionCloses=%d closed=%v", result.Failure, agent.newCalls, agent.modeCalls, agent.promptCalls, agent.closeSessionCalls, agent.closed)
 	}
 }

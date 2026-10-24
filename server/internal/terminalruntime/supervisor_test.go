@@ -1,6 +1,7 @@
 package terminalruntime
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"os"
@@ -9,6 +10,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	ginxlogx "github.com/shrewx/ginx/pkg/logx"
 )
 
 func fakeSupervisor(t *testing.T) *Supervisor {
@@ -18,7 +21,7 @@ func fakeSupervisor(t *testing.T) *Supervisor {
 		t.Skip("Node 不可用")
 	}
 	worker := filepath.Join(t.TempDir(), "worker.cjs")
-	err = os.WriteFile(worker, []byte(`const readline=require('node:readline');let seq=0;let attach=0;const sessions=new Map();const owners=new Map();const send=o=>process.stdout.write(JSON.stringify(o)+'\n');send({event:'ready',payload:{protocolVersion:1}});readline.createInterface({input:process.stdin}).on('line',line=>{const {id,method,args}=JSON.parse(line);let result=null;let error;switch(method){case 'start':if(!args.createWhenMissing){error='missing';break};result={sessionId:'s'+(++seq),shell:'test-shell'};sessions.set(result.sessionId,result);owners.set(args.ownerKey,result.sessionId);break;case 'attach':if(!sessions.has(args.sessionId)){error='missing';break};result={...sessions.get(args.sessionId),attachmentId:'a'+(++attach),screen:'restored',sequence:0,state:'running'};break;case 'write':send({event:'terminal-output',payload:{sessionId:args.sessionId,sequence:1,data:args.data}});break;case 'close':sessions.delete(owners.get(args.ownerKey));owners.delete(args.ownerKey);result=true;break;case 'dispose':send({id,result:true});process.exit(0);return;}send(error?{id,error}:{id,result});});`), 0600)
+	err = os.WriteFile(worker, []byte(`process.stderr.write('worker startup diagnostic\n');const readline=require('node:readline');let seq=0;let attach=0;const sessions=new Map();const owners=new Map();const send=o=>process.stdout.write(JSON.stringify(o)+'\n');send({event:'ready',payload:{protocolVersion:1}});readline.createInterface({input:process.stdin}).on('line',line=>{const {id,method,args}=JSON.parse(line);let result=null;let error;switch(method){case 'start':if(!args.createWhenMissing){error='missing';break};result={sessionId:'s'+(++seq),shell:'test-shell'};sessions.set(result.sessionId,result);owners.set(args.ownerKey,result.sessionId);break;case 'attach':if(!sessions.has(args.sessionId)){error='missing';break};result={...sessions.get(args.sessionId),attachmentId:'a'+(++attach),screen:'restored',sequence:0,state:'running'};break;case 'write':send({event:'terminal-output',payload:{sessionId:args.sessionId,sequence:1,data:args.data}});break;case 'close':sessions.delete(owners.get(args.ownerKey));owners.delete(args.ownerKey);result=true;break;case 'dispose':send({id,result:true});process.exit(0);return;}send(error?{id,error}:{id,result});});`), 0600)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -28,6 +31,23 @@ func fakeSupervisor(t *testing.T) *Supervisor {
 	}
 	t.Cleanup(s.Close)
 	return s
+}
+
+func TestTerminalDiagnosticsKeepProtocolClean(t *testing.T) {
+	var logs bytes.Buffer
+	logger := ginxlogx.Instance()
+	original := logger.Out
+	logger.SetOutput(&logs)
+	t.Cleanup(func() { logger.SetOutput(original) })
+
+	s := fakeSupervisor(t)
+	if !s.Available() {
+		t.Fatal("worker diagnostics prevented the JSONL handshake")
+	}
+	s.Close()
+	if !strings.Contains(logs.String(), "worker startup diagnostic") {
+		t.Fatal("worker diagnostics bypassed the unified logger")
+	}
 }
 
 func TestTerminalOwnershipRefreshAndExplicitClose(t *testing.T) {

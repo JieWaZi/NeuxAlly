@@ -10,9 +10,12 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/JieWaZi/NeuxAlly/server/internal/logx"
 )
 
 // Started 是稳定终端身份。
@@ -122,13 +125,24 @@ type Supervisor struct {
 	stop sync.Once
 }
 
+// workerDiagnostics 将 worker 的诊断与标准输出 JSONL 协议分离。
+type workerDiagnostics struct{}
+
+// Write 将诊断交给统一日志入口；管道复制与回收由 exec 管理。
+func (workerDiagnostics) Write(data []byte) (int, error) {
+	if message := strings.TrimSpace(string(data)); message != "" {
+		logx.Errorf("terminal runtime worker diagnostic: message=%q", message)
+	}
+	return len(data), nil
+}
+
 // New 启动同版本 worker，并在握手成功后接纳终端。
 func New(node, worker string) (*Supervisor, error) {
 	if node == "" {
 		node = "node"
 	}
 	command := exec.Command(node, worker)
-	command.Stderr = os.Stderr
+	command.Stderr = workerDiagnostics{}
 	if os.Getenv("ALLY_TERMINAL_ELECTRON_NODE") == "1" {
 		command.Env = append(os.Environ(), "ELECTRON_RUN_AS_NODE=1")
 	}

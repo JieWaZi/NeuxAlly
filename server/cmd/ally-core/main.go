@@ -39,7 +39,7 @@ func main() {
 	if workflowfunction.IsChildMode() {
 		os.Exit(workflowfunction.RunChild(os.Stdin))
 	}
-	ginx.Launch(func(*cobra.Command, []string) {
+	ginx.Launch(func(command *cobra.Command, _ []string) {
 		ginx.Parse(global.Config)
 		ginx.SetCORSMiddleware(apiMiddleware.CORS())
 		if err := global.Prepare(global.Config); err != nil {
@@ -69,18 +69,19 @@ func main() {
 			emitPairing := func() {
 				code, err := global.LocalWeb.RotatePairing()
 				if err != nil {
-					fmt.Fprintln(os.Stderr, "无法签发配对码")
+					logx.Errorf("issue Web pairing code failed: %v", err)
 					return
 				}
 				origin := "http://" + host
 				if developmentOrigin != "" {
 					origin = developmentOrigin
 				}
-				fmt.Fprintf(os.Stdout, "NeuxAlly Web: %s\n一次性配对码（5 分钟有效）：%s\n在此终端输入 pair 并回车可重新签发。\n", origin, code)
+				// 配对凭据属于交互命令输出，不进入持久化服务日志。
+				fmt.Fprintf(command.OutOrStdout(), "NeuxAlly Web: %s\n一次性配对码（5 分钟有效）：%s\n在此终端输入 pair 并回车可重新签发。\n", origin, code)
 			}
 			emitPairing()
 			go func() {
-				scanner := bufio.NewScanner(os.Stdin)
+				scanner := bufio.NewScanner(command.InOrStdin())
 				for scanner.Scan() {
 					if strings.TrimSpace(scanner.Text()) == "pair" {
 						emitPairing()

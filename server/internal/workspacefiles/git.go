@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"io"
-	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -16,6 +15,7 @@ import (
 	"time"
 
 	"github.com/JieWaZi/NeuxAlly/server/constants/status_error"
+	"github.com/JieWaZi/NeuxAlly/server/internal/logx"
 )
 
 // GitEntry 保留暂存与未暂存的独立状态。
@@ -103,7 +103,7 @@ func gitCommandExit(ctx context.Context, root string, diffExit bool, args ...str
 		if diffExit && errors.As(err, &exit) && exit.ExitCode() == 1 && timeout.Err() == nil {
 			return output.buffer.String(), nil
 		}
-		slog.Error("workspace git operation failed", "operation", args[0], "error", err, "stderr", stderr.buffer.String())
+		logx.Errorf("workspace git operation failed: operation=%q error=%v stderr=%q", args[0], err, stderr.buffer.String())
 		return "", status_error.WorkspaceGitFailed
 	}
 	return output.buffer.String(), nil

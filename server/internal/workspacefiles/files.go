@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"io"
-	"log/slog"
 	"mime"
 	"os"
 	"path/filepath"
@@ -14,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/JieWaZi/NeuxAlly/server/constants/status_error"
+	"github.com/JieWaZi/NeuxAlly/server/internal/logx"
 )
 
 const readLimit = 64 * 1024 * 1024
@@ -62,7 +62,7 @@ func fileError(operation string, err error) error {
 	if os.IsPermission(err) {
 		return status_error.WorkspacePathInvalid
 	}
-	slog.Error("workspace file operation failed", "operation", operation, "error", err)
+	logx.Errorf("workspace file operation failed: operation=%q error=%v", operation, err)
 	return status_error.WorkspaceStorageFailed
 }
 
