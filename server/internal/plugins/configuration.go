@@ -57,7 +57,7 @@ type Extension struct {
 	RequiredComponents []string `json:"requiredComponents"`
 }
 
-// ClientExtension 读取已声明的本机扩展，并补齐 MCP 中未配置占位变量。
+// ClientExtension 读取本机配置和 MCP 占位变量，并汇总原生目标的可选共享配置。
 func ClientExtension(pkg Package) (Extension, error) {
 	result := Extension{Config: []ConfigurationField{}, Scopes: []string{}, Bindings: []ConfigurationBinding{}, RequiredComponents: []string{}}
 	if value, ok := pkg.Manifest.Extensions[constants.PluginExtensionNamespace]; ok {
@@ -109,15 +109,17 @@ func ClientExtension(pkg Package) (Extension, error) {
 			result.Config = append(result.Config, ConfigurationField{Key: key, Label: key, Secret: true, Required: true})
 		}
 	}
-	if pkg.Format == constants.PluginFormatClaude {
+	if pkg.compatibilityFormat() {
 		for _, server := range pkg.Servers {
 			values := []string{server.Command, server.Cwd, server.URL}
 			values = append(values, server.Args...)
 			for _, value := range server.Env {
 				values = append(values, value)
 			}
-			for _, value := range server.Headers {
-				values = append(values, value)
+			for name, value := range server.Headers {
+				if !selfHeaderAuthenticationCovered(pkg, server, name) {
+					values = append(values, value)
+				}
 			}
 			for _, value := range values {
 				for _, match := range placeholderPattern.FindAllStringSubmatch(value, -1) {
@@ -129,6 +131,35 @@ func ClientExtension(pkg Package) (Extension, error) {
 					result.Config = append(result.Config, ConfigurationField{Key: key, Label: key, Secret: true, Required: true})
 				}
 			}
+		}
+	}
+	fields := map[string]ConfigurationField{}
+	for _, field := range result.Config {
+		fields[field.Key] = field
+	}
+	targets := make([]string, 0, len(pkg.NativeImplementations))
+	for target := range pkg.NativeImplementations {
+		targets = append(targets, target)
+	}
+	sort.Strings(targets)
+	for _, target := range targets {
+		for _, field := range pkg.NativeImplementations[target].Config {
+			if !configurationKeyPattern.MatchString(field.Key) || field.Key == "PLUGIN_ROOT" || field.Key == "PLUGIN_DATA" || (field.Secret && field.Default != "") {
+				return result, status_error.PluginManifestInvalid
+			}
+			if previous, exists := fields[field.Key]; exists {
+				if previous.Secret != field.Secret || previous.Default != field.Default {
+					return result, status_error.PluginManifestInvalid
+				}
+				continue
+			}
+			// 不同目标各自校验必填项，逻辑资源只负责识别并受保护地保存共享值。
+			field.Required = false
+			if field.Label == "" {
+				field.Label = field.Key
+			}
+			fields[field.Key] = field
+			result.Config = append(result.Config, field)
 		}
 	}
 	sort.Slice(result.Config, func(i, j int) bool { return result.Config[i].Key < result.Config[j].Key })
@@ -245,4 +276,27 @@ func ValidateProviderServers(extension Extension, pkg Package) error {
 		}
 	}
 	return nil
+}
+
+// selfHeaderAuthenticationCovered 只豁免所有自身运行目标都由桥接接管的同一位置。
+// 引用其他包的目标不使用此处内容；同名变量在其他位置仍由正常配置扫描校验。
+func selfHeaderAuthenticationCovered(pkg Package, server Server, name string) bool {
+	covered := false
+	for _, cli := range []string{"codex", "claude"} {
+		if _, referenced := pkg.Integration.NativePlugins[cli]; referenced {
+			continue
+		}
+		found := false
+		for _, binding := range TargetAuthenticationBindings(pkg, cli) {
+			if binding.Server == server.Key && binding.URL == server.URL && server.Type != "stdio" && strings.EqualFold(binding.Header, name) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+		covered = true
+	}
+	return covered
 }

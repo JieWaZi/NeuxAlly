@@ -3,6 +3,7 @@ package plugins
 import (
 	packageplugin "github.com/JieWaZi/NeuxAlly/server/internal/plugins"
 	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/authorization"
+	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/catalog"
 	"github.com/JieWaZi/NeuxAlly/server/repositories/models"
 )
 
@@ -18,6 +19,8 @@ type PluginDetailResponse struct {
 	ComponentIDs map[string]string `json:"componentIds"`
 	// 安装伙伴名称
 	PartnerNames map[string]string `json:"partnerNames"`
+	// 伙伴头像
+	PartnerAvatars map[string]string `json:"partnerAvatars"`
 	// 安装关系
 	Installations []models.WakerPlugin `json:"installations"`
 	// 普通配置
@@ -34,10 +37,30 @@ type PluginDetailResponse struct {
 	Blockers []string `json:"blockers"`
 	// 共享身份
 	Account authorization.Account `json:"account"`
+	// 更新摘要
+	Update PluginUpdateResponse `json:"update"`
+	// 目录状态
+	CatalogSource catalog.SourceState `json:"catalogSource"`
+}
+
+// 插件更新摘要
+type PluginUpdateResponse struct {
+	// 存在更新
+	Available bool `json:"available"`
+	// 目录标识
+	CatalogKey string `json:"catalogKey"`
+	// 目标版本
+	Version string `json:"version"`
+	// 归档摘要
+	ArchiveSHA256 string `json:"archiveSHA256"`
+	// 落后伙伴
+	WakerIDs []string `json:"wakerIds"`
 }
 
 // 插件列表响应
 type ListPluginsResponse struct {
+	// 目录状态
+	CatalogSource catalog.SourceState `json:"catalogSource"`
 	// 资源列表
 	Resources []PluginDetailResponse `json:"resources"`
 	// 总数
@@ -46,24 +69,6 @@ type ListPluginsResponse struct {
 	PageNum int `json:"pageNum"`
 	// 每页数量
 	PageSize int `json:"pageSize"`
-}
-
-// 插件扫描请求
-type ScanPluginRequest struct {
-	// 本地路径
-	Location string `json:"location" validate:"required"`
-}
-
-// 插件准备请求
-type PreparePluginRequest struct {
-	// 运行确认
-	TrustConfirmed bool `json:"trustConfirmed"`
-	// 批次令牌
-	Token string `json:"token" validate:"required"`
-	// 所属伙伴
-	OwnerWakerID string `json:"ownerWakerId,omitempty"`
-	// 目标插件
-	PluginID string `json:"pluginId,omitempty"`
 }
 
 // 插件安装请求

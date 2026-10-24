@@ -2,12 +2,18 @@ package plugins
 
 import (
 	"context"
+	"encoding/hex"
 	"github.com/JieWaZi/NeuxAlly/server/constants/status_error"
 	"github.com/JieWaZi/NeuxAlly/server/global"
+	packageplugin "github.com/JieWaZi/NeuxAlly/server/internal/plugins"
+	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/catalog"
 	"github.com/JieWaZi/NeuxAlly/server/internal/util"
 	"github.com/JieWaZi/NeuxAlly/server/repositories/models"
 	"github.com/gin-gonic/gin"
 	"github.com/shrewx/ginx"
+	"os"
+	"path/filepath"
+	"strings"
 )
 
 // 安装插件
@@ -36,6 +42,9 @@ func (o *InstallPlugin) Output(ctx *gin.Context) (interface{}, error) {
 	if version.PluginID != resource.ID {
 		return nil, ginx.WithStack(status_error.PluginVersionConflict)
 	}
+	if err := validateCatalogInstallation(resource, version); err != nil {
+		return nil, ginx.WithStack(err)
+	}
 	config, err := store.Configuration(ctx, resource.ID)
 	if err != nil {
 		return nil, ginx.WithStack(err)
@@ -48,7 +57,7 @@ func (o *InstallPlugin) Output(ctx *gin.Context) (interface{}, error) {
 		return nil, ginx.WithStack(err)
 	}
 	defer release()
-	result := InstallPluginResponse{PluginID: resource.ID, Results: []PartnerInstallResult{}}
+	response := InstallPluginResponse{PluginID: o.PluginID, Results: []PartnerInstallResult{}}
 	seen := map[string]bool{}
 	for _, waker := range o.Body.WakerIDs {
 		if seen[waker] {
@@ -58,12 +67,12 @@ func (o *InstallPlugin) Output(ctx *gin.Context) (interface{}, error) {
 		item := PartnerInstallResult{WakerID: waker}
 		if resource.OwnerWakerID != "" && resource.OwnerWakerID != waker {
 			item.ErrorCode = status_error.PluginForbidden.Key()
-			result.Results = append(result.Results, item)
+			response.Results = append(response.Results, item)
 			continue
 		}
 		if _, err := global.WakerControllerManager.Get(ctx, waker); err != nil {
 			item.ErrorCode = errorKey(err)
-			result.Results = append(result.Results, item)
+			response.Results = append(response.Results, item)
 			continue
 		}
 		err := global.TransactionControllerManager.Transaction(ctx, func(txctx context.Context) error {
@@ -80,7 +89,42 @@ func (o *InstallPlugin) Output(ctx *gin.Context) (interface{}, error) {
 		if err != nil {
 			item.ErrorCode = errorKey(err)
 		}
-		result.Results = append(result.Results, item)
+		response.Results = append(response.Results, item)
 	}
-	return result, nil
+	return response, nil
+}
+
+// validateCatalogInstallation 用配置目录的真实固定归档核验内容，包内来源声明不能证明自有身份。
+func validateCatalogInstallation(resource models.Plugin, version models.PluginVersion) error {
+	parts := strings.Split(resource.SourceKey, ":")
+	key := parts[len(parts)-1]
+	if source := catalog.SourceKey(global.PluginCatalogSource(), key); source == "" || source != resource.SourceKey {
+		return status_error.PluginForbidden
+	}
+	for field, length := range map[string]int{"sourceCommit": 40, "archiveSHA256": 64} {
+		value, _ := version.Provenance[field].(string)
+		if len(value) != length {
+			return status_error.PluginForbidden
+		}
+		if _, err := hex.DecodeString(value); err != nil {
+			return status_error.PluginForbidden
+		}
+	}
+	entry, err := catalog.Find(global.PluginCatalogSource(), key)
+	if err != nil {
+		return err
+	}
+	location, err := catalog.ResolveEntry(global.PluginCatalogSource(), entry)
+	if err != nil {
+		return err
+	}
+	stage, err := packageplugin.StageSource(stagedRoot(), location, entry.PackagePath)
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(filepath.Join(stagedRoot(), stage.Token))
+	if stage.Digest != version.Digest {
+		return status_error.PluginVersionConflict
+	}
+	return nil
 }

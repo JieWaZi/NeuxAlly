@@ -1,9 +1,8 @@
+import { SkillResourceRow } from "./skill-resource-row";
 import { useQuery } from "@tanstack/react-query";
 import {
   Download,
   FilePlus2,
-  FileText,
-  Folder,
   FolderPlus,
   Move,
   Pencil,
@@ -20,10 +19,9 @@ import type {
   GithubComJieWaZiNeuxAllyServerApisSkillsSkillResourceOperation as SkillResourceOperation,
 } from "@/shared/api/generated/types.gen";
 import { saveBlob } from "@/shared/platform";
-import { cn } from "@/shared/lib/cn";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
-import { Skeleton } from "@/shared/ui/skeleton";
+import { ResourceLoadingState } from "@/shared/ui/resource-loading-state";
 import { Textarea } from "@/shared/ui/textarea";
 
 import { getSkillVersionFileOptions } from "../api/skill-queries";
@@ -435,7 +433,7 @@ export function SkillResourceBrowser({
         <div className="border-border border-r p-2">
           {tree.length ? (
             tree.map((resource) => (
-              <ResourceRow
+              <SkillResourceRow
                 key={resource.path}
                 resource={resource}
                 depth={0}
@@ -551,7 +549,7 @@ export function SkillResourceBrowser({
               {selectedEntry.type === "file" &&
               !fileReady &&
               fileQuery.isPending ? (
-                <Skeleton className="h-80 w-full" />
+                <ResourceLoadingState className="min-h-80" />
               ) : null}
               {fileQuery.isError ? (
                 <p
@@ -676,50 +674,6 @@ export function SkillResourceBrowser({
         onConfirm={deleteSelected}
       />
     </section>
-  );
-}
-
-function ResourceRow({
-  depth,
-  onSelect,
-  resource,
-  selected,
-}: {
-  depth: number;
-  onSelect: (path: string) => void;
-  resource: SkillResource;
-  selected: string | null;
-}) {
-  const Icon = resource.type === "directory" ? Folder : FileText;
-  return (
-    <div>
-      <button
-        type="button"
-        className={cn(
-          "type-body min-h-row-default flex w-full items-center gap-2 rounded-sm px-2 text-left",
-          selected === resource.path
-            ? "bg-muted text-foreground"
-            : "hover:bg-muted/60",
-        )}
-        style={{ paddingLeft: `${8 + depth * 16}px` }}
-        onClick={() => onSelect(resource.path)}
-      >
-        <Icon
-          className="text-muted-foreground size-icon-sm"
-          strokeWidth={1.5}
-        />
-        <span className="min-w-0 truncate">{resource.name}</span>
-      </button>
-      {resource.children?.map((child) => (
-        <ResourceRow
-          key={child.path}
-          resource={child}
-          depth={depth + 1}
-          selected={selected}
-          onSelect={onSelect}
-        />
-      ))}
-    </div>
   );
 }
 

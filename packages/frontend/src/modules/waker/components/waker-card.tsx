@@ -1,4 +1,4 @@
-import { Card, CardFooter } from "@/shared/ui/card";
+import { Card, CardBody, CardFooter } from "@/shared/ui/card";
 import {
   Clock3,
   MessageCircle,
@@ -36,7 +36,7 @@ export function WakerCard({ waker }: { waker: Waker }) {
     <>
       <Card asChild variant="resource">
         <article>
-          <div className="hover:bg-surface-subtle grid min-h-32 grid-cols-[auto_minmax(0,1fr)] gap-4 p-5 text-left transition-colors">
+          <CardBody className="grid min-h-32 grid-cols-[auto_minmax(0,1fr)] gap-4 p-5 text-left">
             <Avatar
               name={waker.name ?? "伙伴"}
               src={waker.avatar}
@@ -60,7 +60,7 @@ export function WakerCard({ waker }: { waker: Waker }) {
                 {waker.bio || "还没有填写介绍。"}
               </span>
             </Link>
-          </div>
+          </CardBody>
 
           <CardFooter className="grid grid-cols-[1fr_1fr_44px] gap-0 px-0">
             <Link

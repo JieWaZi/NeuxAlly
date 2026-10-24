@@ -15,7 +15,7 @@ import {
   ResourceSelectionActions,
 } from "@/shared/ui/resource-selection";
 import { ResourceBatchDeleteDialog } from "@/shared/ui/resource-batch-delete-dialog";
-import type { IMConnection } from "./types";
+import type { IMConnection, IMPlatform } from "./types";
 import {
   localApiErrorMessage,
   withLocalErrorSurface,
@@ -43,7 +43,7 @@ export function IMPage() {
   const query = useIMConnections();
   const bindings = useIMBindings();
   const [selectingPlatform, setSelectingPlatform] = useState(false);
-  const [platform, setPlatform] = useState<"weixin" | "feishu">();
+  const [platform, setPlatform] = useState<IMPlatform>();
   const [params, setParams] = useSearchParams();
   const [batchTargets, setBatchTargets] = useState<IMConnection[]>([]);
   const deletionDependencies = useQueries({
@@ -238,7 +238,7 @@ export function IMPage() {
           description={t("selectPlatform")}
         >
           <div className="grid gap-3 px-6 pb-6">
-            {(["weixin", "feishu"] as const).map((item) => (
+            {(["weixin", "feishu", "wecom"] as const).map((item) => (
               <div
                 key={item}
                 className="bg-surface-secondary flex items-center gap-4 rounded-xl p-4"

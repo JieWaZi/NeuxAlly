@@ -27,7 +27,7 @@ import {
   ResourceSelectionActions,
 } from "@/shared/ui/resource-selection";
 import { useResourceSelection } from "@/shared/hooks/use-resource-selection";
-import { Skeleton } from "@/shared/ui/skeleton";
+import { ResourceLoadingState } from "@/shared/ui/resource-loading-state";
 
 import {
   invalidateVisibleSkillQueries,
@@ -200,11 +200,7 @@ export function WakerSkillsPage() {
         />
 
         {skillsQuery.isPending ? (
-          <ResourceCardGrid className="mt-6">
-            {Array.from({ length: 6 }, (_, index) => (
-              <Skeleton key={index} className="h-44 rounded-lg" />
-            ))}
-          </ResourceCardGrid>
+          <ResourceLoadingState layout="cards" className="mt-6" />
         ) : skillsQuery.isError ? (
           <EmptyState
             className="mt-6"

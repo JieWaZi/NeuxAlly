@@ -1,6 +1,6 @@
 ---
 name: ally
-description: Use when factual or technical questions may be covered by available NeuxAlly knowledge bases, or a task needs knowledge research, organizing chat attachments and existing materials, message and file delivery, workflows, team coordination, memory, or structured user questions. Ordinary file editing or shell work alone does not require this skill.
+description: Use when factual or technical questions may be covered by available NeuxAlly knowledge bases, or a task needs knowledge research, organizing chat attachments and existing materials, message and file delivery, workflows, team coordination, memory, plugins, or structured user questions. Ordinary file editing or shell work alone does not require this skill.
 ---
 
 # NeuxAlly
@@ -78,3 +78,7 @@ Use real file references for requested artifacts. Submit the actual candidate
 or report through the advertised result operation; a final chat message is
 not a submission receipt. Tell the user what was actually saved, accepted,
 completed, or delivered, preserving failures and uncertainty.
+
+## Plugins
+
+For plugin requests in chat, use the current agent's native plugin and authentication mechanisms within the user's request. Native installation belongs to that agent's shared environment; describe its actual result without claiming a NeuxAlly system installation. NeuxAlly's maintained plugins are installed and authorized from the plugin library interface.

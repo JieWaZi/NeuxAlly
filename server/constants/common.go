@@ -42,6 +42,9 @@ const ChatForkDirectoryName = "forks"
 // WorkflowFileMaximumBytes 限制单次上传或下载的文件字节数。
 const WorkflowFileMaximumBytes int64 = 100 << 20
 
+// SkillPartnerPreviewLimit 是独立技能卡片最多返回的安装伙伴预览数。
+const SkillPartnerPreviewLimit = 4
+
 const (
 	// WorkflowInstanceBudget 标识整次工作流累计节点实例数的预算错误。
 	WorkflowInstanceBudget = "instances"
@@ -229,6 +232,8 @@ const (
 	MCPConnectorMinimumTimeoutMS = int64(100)
 	// MCPConnectorMaximumTimeoutMS 是 MCP 连接器允许的最大请求超时毫秒数。
 	MCPConnectorMaximumTimeoutMS = int64(300_000)
+	// PluginConnectorDiagnosticCacheLimit 是当前 Core 最多保留的插件连接诊断数量。
+	PluginConnectorDiagnosticCacheLimit = 256
 	// MCPConnectorMaximumToolCount 是单个连接器允许公开的最大工具数。
 	MCPConnectorMaximumToolCount = 200
 	// MCPConnectorMaximumSummaryLength 是连接器测试摘要允许的最大字符数。
@@ -479,6 +484,36 @@ const (
 	WorkflowControlPathItems = "items"
 )
 
+// 企业微信智能机器人使用官方长连接通道，不开放任意服务器地址。
+const (
+	// IMWecomQRExpirySeconds 是扫码等待上限，与官方 CLI 的五分钟窗口一致。
+	IMWecomQRExpirySeconds = 300
+	// IMWecomQRPollSeconds 是官方扫码状态查询间隔，取消或确认后退出。
+	IMWecomQRPollSeconds = 3
+	// IMWecomQRBaseURL 是官方 CLI 使用的扫码注册入口。
+	IMWecomQRBaseURL = "https://work.weixin.qq.com/ai/qc"
+	// IMWecomWebSocketURL 是企业微信公有云长连接入口。
+	IMWecomWebSocketURL = "wss://openws.work.weixin.qq.com"
+	// IMWecomSubscribe 是机器人凭据订阅命令。
+	IMWecomSubscribe = "aibot_subscribe"
+	// IMWecomHeartbeat 是应用层心跳命令。
+	IMWecomHeartbeat = "ping"
+	// IMWecomMessageCallback 是消息推送命令。
+	IMWecomMessageCallback = "aibot_msg_callback"
+	// IMWecomEventCallback 是事件推送命令。
+	IMWecomEventCallback = "aibot_event_callback"
+	// IMWecomSendMessage 是向已发现会话主动发送的命令。
+	IMWecomSendMessage = "aibot_send_msg"
+	// IMWecomUploadInit 初始化临时素材上传。
+	IMWecomUploadInit = "aibot_upload_media_init"
+	// IMWecomUploadChunk 上传素材分片。
+	IMWecomUploadChunk = "aibot_upload_media_chunk"
+	// IMWecomUploadFinish 完成临时素材上传。
+	IMWecomUploadFinish = "aibot_upload_media_finish"
+	// IMWecomDisconnected 表示同一机器人被其他连接替换。
+	IMWecomDisconnected = "disconnected_event"
+)
+
 // IMFileMaximumBytes 是单个 IM 文件允许上传或下载的最大字节数。
 const IMFileMaximumBytes int64 = 20 * 1024 * 1024
 
@@ -585,6 +620,8 @@ const (
 	PluginFormatPortable = "agent-plugins"
 	// PluginFormatClaude 表示仅导入可支持组件的 Claude 插件包。
 	PluginFormatClaude = "claude"
+	// PluginFormatCodex 表示仅导入可支持组件的 Codex 兼容插件包。
+	PluginFormatCodex = "codex"
 	// PluginExtensionNamespace 是客户端扩展空间。
 	PluginExtensionNamespace = "com.ally"
 )
@@ -619,3 +656,41 @@ const KnowledgeSourceStateProcessing = "processing"
 
 // KnowledgeChatOrganizeOperation 标识普通聊天整理请求的持久输入锚点。
 const KnowledgeChatOrganizeOperation = "chat.organize"
+const (
+	// PluginLocaleEnglish 是插件英文展示与默认文档语言。
+	PluginLocaleEnglish = "en"
+	// PluginLocaleChinese 是插件简体中文展示与文档语言。
+	PluginLocaleChinese = "zh-CN"
+	// PluginCatalogHTTPSource 是默认公开软件目录。
+	PluginCatalogHTTPSource = "https://github.com/JieWaZi/NeuxAlly-Plugins/releases/latest/download/catalog.json"
+	// PluginAuthCommandStrategy 是包内授权桥接策略。
+	PluginAuthCommandStrategy = "plugin-command"
+	// PluginAuthProtocol 是逐行JSON-RPC授权扩展版本。
+	PluginAuthProtocol = "neuxally-auth/1"
+	// PluginAuthEnvironmentPrefix 隔离原生插件桥接秘密的进程环境键。
+	PluginAuthEnvironmentPrefix = "ALLY_PLUGIN_AUTH_"
+	// AIAccountCodexAPIKeyEnvironment 仅在执行进程中传递所选 Codex API 账号凭据。
+	AIAccountCodexAPIKeyEnvironment = "ALLY_CODEX_MODEL_API_KEY"
+	// PluginNativeMarketplace 是应用私有Codex原生索引身份。
+	PluginNativeMarketplace = "neuxally-managed"
+	// PluginDeliveryNative 是完整原生包交付。
+	PluginDeliveryNative = "native"
+	// PluginDeliveryProjection 是Skill/MCP投射交付。
+	PluginDeliveryProjection = "skill-mcp"
+	// PluginLoadStagePrepared 表示固定产物已准备，尚不代表模型调用成功。
+	PluginLoadStagePrepared = "prepared"
+	// PluginAuthStartMethod 发起桥接授权。
+	PluginAuthStartMethod = "auth/start"
+	// PluginAuthStatusMethod 核验实际身份。
+	PluginAuthStatusMethod = "auth/status"
+	// PluginAuthCancelMethod 停止上游等待。
+	PluginAuthCancelMethod = "auth/cancel"
+	// PluginAuthResolveMethod 解析获准组件秘密。
+	PluginAuthResolveMethod = "auth/resolve"
+	// PluginAuthLogoutMethod 清理插件私有身份。
+	PluginAuthLogoutMethod = "auth/logout"
+	// PluginAuthChallengeNotification 交付当前临时挑战。
+	PluginAuthChallengeNotification = "auth/challenge"
+	// PluginAuthStateNotification 交付协议实际阶段。
+	PluginAuthStateNotification = "auth/state"
+)

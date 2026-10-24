@@ -41,7 +41,7 @@ export const imZh = {
   useConversation: "切换到此对话",
   preparingConversation: "等待首条工作接纳",
   title: "IM 集成",
-  description: "连接微信和飞书，在手机上与伙伴或团队协作。",
+  description: "连接微信、飞书和企业微信，在手机上与伙伴或团队协作。",
   connections: "连接",
   connectionCount: "{{count}} 个",
   viewConnection: "查看{{name}}连接详情",
@@ -88,6 +88,7 @@ export const imZh = {
   platformDescription: {
     weixin: "扫码连接微信机器人",
     feishu: "通过飞书机器人接收和回复消息",
+    wecom: "扫码创建或授权企业微信智能机器人",
   },
   connectionActions: "{{name}}连接操作",
   deleteConnection: "删除连接",
@@ -116,6 +117,21 @@ export const imZh = {
   platform: "平台",
   weixin: "微信",
   feishu: "飞书",
+  wecom: "企业微信",
+  manualWecom: "手工填写企业微信机器人凭据",
+  wecomBotId: "Bot ID",
+  wecomBotSecret: "机器人密钥",
+  wecomBotSecretPlaceholder: "输入智能机器人详情中的 Secret",
+  wecomReauthorizeHint:
+    "请重新授权当前机器人。更换机器人请添加新连接，以保留原聊天的授权边界。",
+  wecomBotIdPlaceholder: "输入智能机器人详情中的 Bot ID",
+  manualWecomHint:
+    "使用企业微信智能机器人的 API 模式，填写 Bot ID 和 Secret；保存后通过官方长连接接收和回复消息，无需公网回调地址。",
+  existingWecomHint:
+    "留空保留已保存的密钥。扫码只能重新授权当前机器人；更换机器人请添加新连接。",
+  wecomScanHint: "使用手机企业微信扫描二维码，按提示创建或授权智能机器人。",
+  wecomFirstMessage:
+    "在企业微信单聊机器人，或在群内 @ 机器人发送首条消息，再为发现的聊天配置伙伴、团队和工作范围。每个聊天需单独授权。",
   keepAwake: "连接开启时维持应用运行",
   awakeHint:
     "允许屏幕关闭。关闭窗口后托盘继续运行；退出 NeuxAlly、设备休眠或关机后停止处理。",
@@ -131,7 +147,7 @@ export const imZh = {
   code: "验证码",
   verify: "提交验证码",
   firstMessage:
-    "在微信私聊机器人，或在飞书私聊／群内 @ 机器人发送消息，对应聊天会自动显示在下方，直接配置接入。",
+    "在微信私聊机器人，或在飞书、企业微信单聊／群内 @ 机器人发送消息，再为发现的聊天配置响应目标和工作范围。每个聊天需单独授权。",
   done: "完成",
   cancel: "取消",
   save: "保存",
@@ -195,12 +211,14 @@ export const imZh = {
     rejected: "已撤销",
   },
   empty: {
-    connections: "添加微信或飞书连接",
+    connections: "添加微信、飞书或企业微信连接",
     search: "未找到匹配的机器人连接",
     bindings: "尚未发现聊天",
   },
   errors: {
     IMLoginRequired: "登录已失效，请重新扫码。",
+    IMConnectionReplaced:
+      "机器人已在其他应用或设备建立连接。请先关闭其他客户端连接，再保存连接设置以重连。",
     IMPlatformUnavailable: "平台暂不可用，请检查网络或连接配置。",
     IMDeliveryContextUnavailable:
       "微信发送上下文不可用，请先从微信发送一条新消息。",
@@ -258,7 +276,7 @@ export const imEn = {
   preparingConversation: "Awaiting first task admission",
   title: "IM integration",
   description:
-    "Connect WeChat and Feishu to work with partners or teams from your phone.",
+    "Connect WeChat, Feishu and WeCom to work with partners or teams from your phone.",
   connections: "Connections",
   connectionCount: "{{count}} connections",
   viewConnection: "View {{name}} connection",
@@ -310,6 +328,7 @@ export const imEn = {
   platformDescription: {
     weixin: "Scan to connect a WeChat bot",
     feishu: "Receive and reply through a Feishu bot",
+    wecom: "Scan to create or authorize a WeCom AI bot",
   },
   connectionActions: "{{name}} connection actions",
   deleteConnection: "Delete connection",
@@ -338,6 +357,22 @@ export const imEn = {
   platform: "Platform",
   weixin: "WeChat",
   feishu: "Feishu",
+  wecom: "WeCom",
+  manualWecom: "Use WeCom bot credentials",
+  wecomBotId: "Bot ID",
+  wecomBotSecret: "Bot secret",
+  wecomBotSecretPlaceholder: "Enter the Secret from the AI bot details",
+  wecomReauthorizeHint:
+    "Reauthorize the current bot. Add a new connection to use a different bot and preserve existing chat access boundaries.",
+  wecomBotIdPlaceholder: "Enter the Bot ID from the AI bot details",
+  manualWecomHint:
+    "Use API mode for your WeCom AI bot and enter its Bot ID and Secret. The official long connection receives and replies to messages without a public callback URL.",
+  existingWecomHint:
+    "Leave the secret blank to keep it. QR sign-in only reauthorizes this bot. Add a new connection to use a different bot.",
+  wecomScanHint:
+    "Scan with WeCom on your phone, then follow the steps to create or authorize an AI bot.",
+  wecomFirstMessage:
+    "Message the WeCom bot directly or @ it in a group. Then configure the discovered chat with a partner or team and workspace. Approve each chat separately.",
   keepAwake: "Keep the app running while enabled",
   awakeHint:
     "The screen can turn off. The tray keeps running after closing the window. Quitting, sleeping or shutdown stops processing.",
@@ -354,7 +389,7 @@ export const imEn = {
   code: "Verification code",
   verify: "Submit code",
   firstMessage:
-    "Message the WeChat bot directly, or message / @ the Feishu bot, then configure the chat here.",
+    "Message the WeChat bot directly, or message / @ the Feishu or WeCom bot, then configure and approve each discovered chat here.",
   done: "Done",
   cancel: "Cancel",
   save: "Save",
@@ -422,12 +457,14 @@ export const imEn = {
     rejected: "Revoked",
   },
   empty: {
-    connections: "Add a WeChat or Feishu connection",
+    connections: "Add a WeChat, Feishu or WeCom connection",
     search: "No matching bot connections",
     bindings: "No chats discovered yet",
   },
   errors: {
     IMLoginRequired: "Login expired. Scan again.",
+    IMConnectionReplaced:
+      "This bot connected from another app or device. Close the other client connection, then save this connection’s settings to reconnect.",
     IMPlatformUnavailable:
       "Platform unavailable. Check network or configuration.",
     IMDeliveryContextUnavailable:
@@ -437,5 +474,7 @@ export const imEn = {
     IMFileInvalid: "Attachment exceeds the allowed scope or size.",
     IMConfigurationInvalid:
       "Connection or execution configuration is incomplete.",
+    IMConfigurationConflict:
+      "Configuration changed or the bot identity differs. Reload, or add a new connection to use another bot.",
   },
 };

@@ -1,4 +1,3 @@
-import { pluginZh, pluginEn } from "./plugin";
 import { knowledgeZh, knowledgeEn } from "./knowledge-navigation";
 import i18n from "i18next";
 import { notificationZh, notificationEn } from "./notification";
@@ -13,7 +12,6 @@ import { workBoardZh, workBoardEn } from "./work-board";
 const resources = {
   "zh-CN": {
     knowledge: knowledgeZh,
-    plugin: pluginZh,
     notification: notificationZh,
     im: imZh,
     workBoard: workBoardZh,
@@ -241,6 +239,10 @@ const resources = {
         teamChat: "团队会话",
       },
       resourceSelection: {
+        refreshFailed: "刷新失败，当前显示上次加载的内容。",
+        loadMore: "加载更多",
+        loadingMore: "正在加载…",
+        loadMoreFailed: "加载失败，请重试。",
         select: "选择",
         count: "已选择 {{count}} 项",
         delete: "删除所选",
@@ -1228,6 +1230,7 @@ const resources = {
         builtInCannotUninstall: "内置技能不能卸载",
         overview: "概览",
         tabs: "技能详情内容",
+        content: "内容",
         explanation: "说明",
         resources: "资源文件",
         versions: "版本",
@@ -1242,6 +1245,7 @@ const resources = {
         versionHistory: "版本历史",
         versionHistoryDescription:
           "已保留 {{count}} 个版本。点击版本可查看与当前 v{{version}} 的差异。",
+        viewVersion: "查看 v{{version}}",
         viewVersionDiff: "查看 v{{version}} 与当前版本的差异",
         diffTitle: "版本差异",
         diffDescription:
@@ -2113,7 +2117,6 @@ const resources = {
   },
   "en-US": {
     knowledge: knowledgeEn,
-    plugin: pluginEn,
     notification: notificationEn,
     im: imEn,
     workBoard: workBoardEn,
@@ -2281,10 +2284,13 @@ const resources = {
         deleteFileConfirm:
           "Delete {{name}}? Chat-owned files will be deleted from disk; original project files will be kept.",
         deleteFileError: "Could not delete the file. Try again.",
-        deleteFileWarning: "This file will be permanently deleted. This cannot be undone.",
-        deleteDirectoryWarning: "This folder and all its contents will be permanently deleted. This cannot be undone.",
+        deleteFileWarning:
+          "This file will be permanently deleted. This cannot be undone.",
+        deleteDirectoryWarning:
+          "This folder and all its contents will be permanently deleted. This cannot be undone.",
         confirmDiscard: "Discard changes",
-        discardWarning: "Unstaged changes in this file will be lost. This cannot be undone.",
+        discardWarning:
+          "Unstaged changes in this file will be lost. This cannot be undone.",
         deleteDirectory: "Delete folder",
         deleteDirectoryError: "Could not delete the folder. Try again.",
         cancelDelete: "Cancel",

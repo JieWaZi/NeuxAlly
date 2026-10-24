@@ -6,7 +6,7 @@ import {
   companionReactions,
 } from "../../../../../vendor/companion/renderer";
 import styles from "../../../../../vendor/companion/styles.json";
-import backendConstants from "../../../../server/constants/common.go?raw";
+import backendConstants from "../../../../../server/constants/common.go?raw";
 import {
   companionAppearance,
   companionAvatar,
@@ -130,7 +130,7 @@ describe("静态身体风格", () => {
       const data = readFileSync(
         resolve(
           process.cwd(),
-          `../vendor/companion/assets/bodies/${style}-${size}.png`,
+          `../../vendor/companion/assets/bodies/${style}-${size}.png`,
         ),
       );
       expect(data.readUInt32BE(16)).toBe(size);

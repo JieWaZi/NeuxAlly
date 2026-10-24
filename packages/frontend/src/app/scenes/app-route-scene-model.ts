@@ -7,7 +7,7 @@ export type RouteSceneLocation = {
 
 export type RouteSceneLabels = {
   knowledge?: string;
-  resources?: string;
+  resources: string;
   workBoard?: string;
   im?: string;
   automaticTask?: string;
@@ -74,7 +74,7 @@ export function routeSceneForLocation(
     );
   }
   if (pathname === "/resources" || pathname.startsWith("/resources/"))
-    return routeTab("resources", labels.resources || labels.page, location);
+    return routeTab("resources", labels.resources, location);
   if (pathname === "/work-board")
     return routeTab("work-board", labels.workBoard || labels.page, location);
   const im = /^\/im(?:\/([^/]+))?$/.exec(pathname);

@@ -34,9 +34,31 @@ import {
   ResourceCardGrid,
   ResourcePageSearchField,
   ResourcePageSurface,
+  ResourcePageToolbar,
 } from "./resource-page";
 
 describe("共享界面模式", () => {
+  it("资源工具栏使用唯一行高并保留控件与分隔线的间距", () => {
+    render(
+      <ResourcePageToolbar
+        filters={<ResourcePageSearchField aria-label="搜索资源" />}
+      >
+        <span>全部技能</span>
+      </ResourcePageToolbar>,
+    );
+
+    const leading = screen.getByText("全部技能").parentElement;
+    const row = leading?.parentElement;
+    const toolbar = row?.parentElement;
+    for (const element of [leading, row]) {
+      expect(element).toHaveClass("min-h-control-md");
+      expect(element).not.toHaveClass("min-h-control-sm");
+    }
+    expect(toolbar).toHaveClass("pb-2", "border-b");
+    expect(toolbar).not.toHaveClass("pb-3");
+    expect(toolbar).not.toHaveClass("pb-0");
+  });
+
   it("PageAction 在窄 PageHeader 下折叠标签并保留 aria-label", () => {
     render(
       <div style={{ width: 320 }}>

@@ -443,6 +443,15 @@ button:disabled {
   }
 }
 
+/* 概览卡片的悬停光晕与右上角入口呼应，不改变内容布局与命中区域。 */
+.overview-card-glow {
+  background: radial-gradient(
+    ellipse at 100% 0%,
+    color-mix(in srgb, var(--control-highlight-background) 28%, transparent),
+    transparent 68%
+  );
+}
+
 [data-chat-composer-surface] {
   overflow: hidden;
 }

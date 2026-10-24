@@ -20,6 +20,7 @@ import { cliInstallation } from "./cli-installation";
 const api = vi.hoisted(() => ({
   read: vi.fn(),
   refresh: vi.fn(),
+  refreshOne: vi.fn(),
   update: vi.fn(),
 }));
 vi.mock("@/shared/api/runtime-queries", () => ({
@@ -27,6 +28,7 @@ vi.mock("@/shared/api/runtime-queries", () => ({
 }));
 vi.mock("@/shared/api/generated/@tanstack/react-query.gen", () => ({
   refreshRuntimesMutation: () => ({ mutationFn: api.refresh }),
+  refreshRuntimeMutation: () => ({ mutationFn: api.refreshOne }),
   updateRuntimeEnvironmentMutation: () => ({ mutationFn: api.update }),
 }));
 vi.mock("@/shared/api/use-query-events", () => ({ useQueryEvents: () => {} }));
@@ -63,6 +65,7 @@ const found: ListRuntimesResponse = {
       name: "OpenCode",
       installed: true,
       state: "ready",
+      detectedAt: 1,
       binary: "/usr/local/bin/opencode",
       prefixArgs: ["--debug"],
       configHome: "/custom/home",
@@ -120,6 +123,8 @@ beforeEach(() => {
   api.update.mockReset();
   api.read.mockResolvedValue(missing);
   api.refresh.mockResolvedValue(undefined);
+  api.refreshOne.mockReset();
+  api.refreshOne.mockResolvedValue(undefined);
   api.update.mockImplementation(
     async (variables: UpdateRuntimeEnvironmentData) => {
       if (variables.body?.isDefault) {
@@ -133,13 +138,42 @@ beforeEach(() => {
   );
 });
 
-it("本次探测未结束时只显示品牌，不把旧的无安装结果当作结论", async () => {
+it("首次探测时即可选择 CLI，各项保留检测中状态直到自身完成", async () => {
   api.read.mockResolvedValue({ ...missing, startupDetectionPending: true });
   const client = mount();
   await waitFor(() => expect(api.read).toHaveBeenCalledTimes(1));
   expect(screen.getByRole("img", { name: "NeuxAlly" })).toBeInTheDocument();
-  expect(screen.queryByRole("heading")).not.toBeInTheDocument();
+  expect(
+    await screen.findByRole("heading", { name: "设置智能体" }),
+  ).toBeVisible();
+  expect(
+    screen.getByRole("button", { name: "Codex" }),
+  ).toHaveAccessibleDescription("正在检测…");
+  fireEvent.click(screen.getByRole("button", { name: "Codex" }));
+  expect(screen.getByRole("button", { name: "Codex" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  expect(screen.getByText("npm install -g @openai/codex")).toBeVisible();
   expect(api.refresh).not.toHaveBeenCalled();
+  act(() =>
+    client.setQueryData(["runtimes"], {
+      ...missing,
+      startupDetectionPending: true,
+      resources: missing.resources?.map((runtime) =>
+        runtime.id === "codex" ? { ...runtime, detectedAt: 1 } : runtime,
+      ),
+    }),
+  );
+  await waitFor(() =>
+    expect(
+      screen.getByRole("button", { name: "Codex" }),
+    ).toHaveAccessibleDescription("未安装"),
+  );
+  expect(screen.getByRole("button", { name: "重新检测" })).toBeEnabled();
+  expect(
+    screen.getByRole("button", { name: "Grok Build" }),
+  ).toHaveAccessibleDescription("正在检测…");
   act(() => client.setQueryData(["runtimes"], missing));
   expect(
     await screen.findByRole("heading", { name: "设置智能体" }),
@@ -359,7 +393,7 @@ it("单个安装版本不增加选择字段，模型目录失败时禁止进入�
   expect(
     screen.getByRole("button", { name: "设为默认并进入 NeuxAlly" }),
   ).toBeDisabled();
-  api.refresh.mockImplementationOnce(async () =>
+  api.refreshOne.mockImplementationOnce(async () =>
     api.read.mockResolvedValue(found),
   );
   fireEvent.click(screen.getByRole("button", { name: "重新检测" }));
@@ -390,19 +424,92 @@ it.each([
   },
 );
 
-it("模型目录已出现但本次后台探测未结束时仍等待，不提前保存", async () => {
+it("所选 CLI 已就绪时可直接保存进入，无需等待其他 CLI 探测完成", async () => {
   api.read.mockResolvedValue({ ...found, startupDetectionPending: true });
-  const client = mount();
+  mount();
   expect(
     await screen.findByRole("button", { name: "设为默认并进入 NeuxAlly" }),
-  ).toBeDisabled();
-  expect(screen.getByRole("status")).toHaveTextContent("正在检测");
-  act(() => client.setQueryData(["runtimes"], found));
-  await waitFor(() =>
-    expect(
-      screen.getByRole("button", { name: "设为默认并进入 NeuxAlly" }),
-    ).toBeEnabled(),
+  ).toBeEnabled();
+  expect(screen.getByRole("status")).toHaveTextContent("已识别 1 个模型");
+  fireEvent.click(
+    screen.getByRole("button", { name: "设为默认并进入 NeuxAlly" }),
   );
+  expect(await screen.findByText("工作区")).toBeVisible();
+});
+
+it("切换 CLI 后只重检当前项，各项重检并发且不会锁住其他 CLI", async () => {
+  const snapshot: ListRuntimesResponse = {
+    ...found,
+    resources: [
+      { ...found.resources?.[0], models: [] },
+      {
+        ...found.resources?.[0],
+        id: "codex",
+        baseRuntimeId: "codex",
+        name: "Codex",
+        defaultModel: "codex-model",
+        models: [{ id: "codex-model", permissionLevels: ["auto"] }],
+      },
+    ],
+  };
+  api.read.mockResolvedValue(snapshot);
+  const completions = new Map<string, () => void>();
+  api.refreshOne.mockImplementation(
+    ({ path }: { path: { runtimeId: string } }) =>
+      new Promise<void>((resolve) => completions.set(path.runtimeId, resolve)),
+  );
+  mount();
+  fireEvent.click(await screen.findByRole("button", { name: "重新检测" }));
+  await waitFor(() => expect(completions.has("opencode")).toBe(true));
+  expect(screen.getByRole("button", { name: "OpenCode" })).toBeEnabled();
+  fireEvent.click(screen.getByRole("button", { name: "Codex" }));
+  expect(screen.getByRole("button", { name: "模型" })).toHaveTextContent(
+    "codex-model",
+  );
+  expect(
+    screen.getByRole("button", { name: "设为默认并进入 NeuxAlly" }),
+  ).toBeEnabled();
+  fireEvent.click(screen.getByRole("button", { name: "重新检测" }));
+  await waitFor(() => expect(completions.has("codex")).toBe(true));
+  expect(api.refreshOne).toHaveBeenNthCalledWith(
+    1,
+    { path: { runtimeId: "opencode" } },
+    expect.anything(),
+  );
+  expect(api.refreshOne).toHaveBeenNthCalledWith(
+    2,
+    { path: { runtimeId: "codex" } },
+    expect.anything(),
+  );
+  expect(api.refresh).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "OpenCode" }));
+  expect(screen.getByRole("button", { name: "正在检测…" })).toBeDisabled();
+  api.read.mockResolvedValue({
+    ...snapshot,
+    resources: [found.resources?.[0] ?? {}, snapshot.resources?.[1] ?? {}],
+  });
+  await act(async () => completions.get("opencode")?.());
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "重新检测" })).toBeEnabled(),
+  );
+  expect(
+    screen.getByRole("button", { name: "设为默认并进入 NeuxAlly" }),
+  ).toBeEnabled();
+  expect(screen.getByRole("button", { name: "模型" })).toHaveTextContent(
+    "free-model",
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Codex" }));
+  expect(screen.getByRole("button", { name: "正在检测…" })).toBeDisabled();
+  await act(async () => completions.get("codex")?.());
+});
+
+it("其他 CLI 探测失败时，已就绪的所选 CLI 仍可完成设置", async () => {
+  api.read.mockResolvedValue({ ...found, startupDetectionFailed: true });
+  mount();
+  fireEvent.click(
+    await screen.findByRole("button", { name: "设为默认并进入 NeuxAlly" }),
+  );
+  expect(await screen.findByText("工作区")).toBeVisible();
 });
 
 it("保存后对账发现模型目录失效时仍停留引导", async () => {
@@ -428,14 +535,18 @@ it("用户安装后手动重检，再设置默认进入", async () => {
   expect(
     await screen.findByText("curl -fsSL https://opencode.ai/v2/install | bash"),
   ).toBeVisible();
-  api.refresh.mockImplementation(async () => {
+  api.refreshOne.mockImplementation(async () => {
     api.read.mockResolvedValue(found);
   });
   fireEvent.click(screen.getByRole("button", { name: "重新检测" }));
   expect(
     await screen.findByRole("button", { name: "设为默认并进入 NeuxAlly" }),
   ).toBeVisible();
-  expect(api.refresh).toHaveBeenCalledTimes(1);
+  expect(api.refreshOne).toHaveBeenCalledWith(
+    { path: { runtimeId: "opencode" } },
+    expect.anything(),
+  );
+  expect(api.refresh).not.toHaveBeenCalled();
   fireEvent.click(
     screen.getByRole("button", { name: "设为默认并进入 NeuxAlly" }),
   );

@@ -172,3 +172,11 @@ func TestKnowledgeMaintenanceRequiresVersionsAndRejectsUnknownFields(t *testing.
 		t.Fatal("page ID and slug must be alternative locators")
 	}
 }
+
+func TestSystemPluginOperationsCannotBeDiscoveredOrGranted(t *testing.T) {
+	for _, id := range []string{"plugins.catalog.search", "plugins.catalog.get", "plugins.installations.install", "plugins.installations.get"} {
+		if _, ok := Find(id); ok {
+			t.Errorf("removed system plugin operation remains discoverable: %s", id)
+		}
+	}
+}

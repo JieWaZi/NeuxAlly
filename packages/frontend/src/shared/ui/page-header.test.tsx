@@ -117,22 +117,22 @@ describe("详情页标题与操作", () => {
             <PageAction intent="edit" label="编辑展示名称">
               <span aria-hidden>图标</span>
             </PageAction>
-            <PageAction intent="primary" label="立即运行">
+            <PageAction intent="revoke" label="撤销授权">
               <span aria-hidden>图标</span>
             </PageAction>
             <PageAction intent="secondary" label="更新">
               <span aria-hidden>图标</span>
             </PageAction>
-            <PageAction intent="revoke" label="撤销授权">
+            <PageAction intent="primary" label="立即运行">
               <span aria-hidden>图标</span>
             </PageAction>
           </>
         }
       />,
     );
-    expect(
-      screen.getByRole("button", { name: "编辑展示名称" }),
-    ).not.toHaveTextContent("编辑展示名称");
+    const edit = screen.getByRole("button", { name: "编辑展示名称" });
+    expect(edit).not.toHaveTextContent("编辑展示名称");
+    expect(edit).toHaveAttribute("data-variant", "ghost");
     for (const label of ["立即运行", "更新", "撤销授权"]) {
       expect(screen.getByRole("button", { name: label })).toHaveTextContent(
         label,

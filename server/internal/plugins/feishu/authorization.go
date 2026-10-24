@@ -2,6 +2,7 @@
 package feishu
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -28,6 +29,8 @@ type Config struct {
 	Scopes []string
 	// Run 是可替换的外部进程边界；空值使用受控真实 CLI。
 	Run func(context.Context, []string, string) ([]byte, error)
+	// Initialize 运行官方扫码创建应用流程；空值使用固定 CLI 的流式输出。
+	Initialize func(context.Context, func(authorization.Device) error) error
 	// Changed 发布安全状态投影，不能携带设备代码或 token。
 	Changed func(authorization.Session)
 }
@@ -42,6 +45,9 @@ type driver struct {
 func New(config Config) *authorization.Authorizer {
 	if config.Run == nil {
 		config.Run = commandRunner(config.Binary, config.ProfileDirectory)
+	}
+	if config.Initialize == nil {
+		config.Initialize = initializeRunner(config.Binary, config.ProfileDirectory)
 	}
 	return authorization.New(authorization.Config{Driver: &driver{config: config}, Scopes: append([]string{"offline_access"}, config.Scopes...), Changed: config.Changed})
 }
@@ -69,8 +75,23 @@ func (a *driver) Configure(ctx context.Context, appID, secret string) error {
 	return nil
 }
 
+// Initialize 使用官方应用扫码流程，应用凭据只由 CLI 写入私有 profile。
+func (a *driver) Initialize(ctx context.Context, ready func(authorization.Device) error) error {
+	if err := os.MkdirAll(a.config.ProfileDirectory, 0o700); err != nil {
+		logx.Errorf("create plugin provider profile failed: %v", err)
+		return status_error.PluginStorageError
+	}
+	return a.config.Initialize(ctx, ready)
+}
+
 // Logout 通过官方命令撤销本机共享身份，不复制或直接编辑 token。
 func (a *driver) Logout(ctx context.Context) error {
+	if _, err := os.Stat(filepath.Join(a.config.ProfileDirectory, "config.json")); os.IsNotExist(err) {
+		return nil
+	} else if err != nil {
+		logx.Errorf("read plugin provider profile before logout failed: %v", err)
+		return status_error.PluginStorageError
+	}
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 	_, err := a.config.Run(ctx, []string{"auth", "logout"}, "")
@@ -212,18 +233,7 @@ func commandRunner(binary, profile string) func(context.Context, []string, strin
 			logx.Errorf("inspect fixed plugin provider failed: %v", err)
 			return nil, status_error.PluginStorageError
 		}
-		command := exec.CommandContext(ctx, binary, args...)
-		command.Env = make([]string, 0, len(os.Environ())+1)
-		for _, value := range os.Environ() {
-			if !providerEnvironment(strings.SplitN(value, "=", 2)[0]) {
-				command.Env = append(command.Env, value)
-			}
-		}
-		for key, value := range ManagedEnvironment(profile, nil) {
-			if value != "" {
-				command.Env = append(command.Env, key+"="+value)
-			}
-		}
+		command := providerCommand(ctx, binary, profile, args)
 		command.Stdin = strings.NewReader(stdin)
 		command.Stderr = io.Discard
 		var output boundedOutput
@@ -237,4 +247,82 @@ func commandRunner(binary, profile string) func(context.Context, []string, strin
 		}
 		return output.buffer.Bytes(), nil
 	}
+}
+
+// providerCommand 为认证和首次扫码使用同一个受管环境，不启动 shell。
+func providerCommand(ctx context.Context, binary, profile string, args []string) *exec.Cmd {
+	command := exec.CommandContext(ctx, binary, args...)
+	command.Env = make([]string, 0, len(os.Environ())+1)
+	for _, value := range os.Environ() {
+		if !providerEnvironment(strings.SplitN(value, "=", 2)[0]) {
+			command.Env = append(command.Env, value)
+		}
+	}
+	for key, value := range ManagedEnvironment(profile, nil) {
+		if value != "" {
+			command.Env = append(command.Env, key+"="+value)
+		}
+	}
+
+	return command
+}
+
+// initializeRunner 只提取官方 stderr 中单独一行的扫码 URL，不保留其他输出与凭据。
+func initializeRunner(binary, profile string) func(context.Context, func(authorization.Device) error) error {
+	return func(ctx context.Context, ready func(authorization.Device) error) error {
+		if binary == "" {
+			return status_error.PluginNotReady
+		}
+		work, cancel := context.WithCancel(ctx)
+		defer cancel()
+		command := providerCommand(work, binary, profile, []string{"config", "init", "--new", "--brand", "feishu", "--lang", "zh_cn"})
+		command.Stdout = io.Discard
+		output, err := command.StderrPipe()
+		if err != nil {
+			return status_error.PluginAuthorizationFailed
+		}
+		if err := command.Start(); err != nil {
+			return status_error.PluginAuthorizationFailed
+		}
+		scanErr := readInitializationURL(output, ready)
+		if scanErr != nil {
+			cancel()
+		}
+		waitErr := command.Wait()
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+		if scanErr != nil {
+			return scanErr
+		}
+		if waitErr != nil {
+			return status_error.PluginAuthorizationFailed
+		}
+		return nil
+	}
+}
+
+func readInitializationURL(output io.Reader, ready func(authorization.Device) error) error {
+	limited := &io.LimitedReader{R: output, N: 1024 * 1024}
+	scanner := bufio.NewScanner(limited)
+	found := false
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		parsed, err := url.Parse(line)
+		if err != nil || parsed.Scheme != "https" || parsed.Host != "open.feishu.cn" || parsed.User != nil || parsed.Path != "/page/cli" || parsed.Query().Get("user_code") == "" || found {
+			continue
+		}
+		found = true
+		// CLI 不输出官方到期秒数；这里展示本机十分钟等待上限，官方进程仍拥有实际期限。
+		if err := ready(authorization.Device{VerificationURL: line, ExpiresAt: time.Now().Add(10 * time.Minute).UnixMilli()}); err != nil {
+			return err
+		}
+	}
+	if limited.N == 0 {
+		return status_error.PluginContentLimitExceeded
+	}
+	if scanner.Err() != nil || !found {
+		return status_error.PluginAuthorizationFailed
+	}
+	return nil
 }

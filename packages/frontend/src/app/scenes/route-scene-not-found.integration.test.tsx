@@ -7,6 +7,7 @@ import { act, render, renderHook, screen } from "@testing-library/react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 import "@/shared/i18n";
+import "@/app/workspace-i18n";
 import { client } from "@/shared/api/generated/client.gen";
 import { initializeApi } from "@/shared/api/runtime";
 import {
@@ -122,6 +123,23 @@ async function fetchRecord(
 }
 
 describe("页面主记录不存在时的 Scene 标签", () => {
+  it("资源库直接打开、切换分类和详情时始终保留资源库标题", () => {
+    const { rerender } = renderScene("/resources");
+    const tab = screen.getByRole("tab", { name: "资源库" });
+    for (const href of [
+      "/resources?category=skills",
+      "/resources/plugins/catalog/office",
+      "/resources/plugins/p/skills/guide?version=v1",
+      "/resources?view=mine",
+    ]) {
+      rerender(href);
+      expect(screen.getByRole("tab", { name: "资源库" })).toBe(tab);
+      expect(
+        screen.queryByRole("tab", { name: "页面" }),
+      ).not.toBeInTheDocument();
+      expect(screen.getAllByRole("tab")).toHaveLength(1);
+    }
+  });
   it("任务看板筛选后保留标签标题与同一 Scene", () => {
     const { rerender } = renderScene("/work-board");
     const tab = screen.getByRole("tab", { name: "任务看板" });

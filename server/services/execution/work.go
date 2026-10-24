@@ -2,10 +2,12 @@ package execution
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/JieWaZi/NeuxAlly/server/internal/plugins/authorization"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"slices"
@@ -124,6 +126,8 @@ type pendingMessage struct {
 	retry bool
 	// pluginSnapshots 在失败重试时限制为原执行冻结的插件资源。
 	pluginSnapshots []plugins.Snapshot
+	// nativePluginScope 是接纳前从原生环境读取并写入权威执行事实的能力摘要。
+	nativePluginScope string
 	// admission 决定首批事实在 Runtime 调度前还是接受后提交。
 	admission constants.ExecutionAdmission
 	// toolCapabilities 保存上层入口为本次执行签发的短期内部能力。
@@ -531,6 +535,155 @@ func (m *service) startMessage(
 		runRequest.Policy.Model = request.runtime.Model
 	}
 
+	cliID := runtimeEnvironment.Detection.Runtime.BaseRuntimeID
+	if cliID == "" {
+		cliID = runtimeEnvironment.Detection.Runtime.ID
+	}
+	if cliID == runtimes.RuntimeIDCodex {
+		if err := plugins.PrepareCodexWorkspace(runRequest.Workspace.Path, pluginResources.native); err != nil {
+			return AcceptedExecution{}, err
+		}
+	}
+	nativeCommands := ""
+	var nativeScopeCommit func() error
+	nativeScopeChanged := false
+	if cliID == runtimes.RuntimeIDCodex || cliID == runtimes.RuntimeIDClaude {
+		variable, defaultDirectory := "CODEX_HOME", ".codex"
+		if cliID == runtimes.RuntimeIDClaude {
+			variable, defaultDirectory = "CLAUDE_CONFIG_DIR", ".claude"
+		}
+		// 原生插件源来自智能体环境，不能从已经被模型账号替换的进程环境反推。
+		sharedHome := runtimeEnvironment.ConfigHome
+		if sharedHome == "" {
+			sharedHome = os.Getenv(variable)
+		}
+		if sharedHome == "" {
+			home, homeErr := os.UserHomeDir()
+			if homeErr != nil {
+				return AcceptedExecution{}, status_error.PluginStorageError
+			}
+			sharedHome = filepath.Join(home, defaultDirectory)
+		}
+		sharedHome, homeErr := filepath.Abs(sharedHome)
+		if homeErr != nil {
+			return AcceptedExecution{}, status_error.PluginStorageError
+		}
+		binary := runtimeEnvironment.Detection.ResolvedBinary
+		if binary == "" {
+			binary = runtimeEnvironment.Binary
+		}
+		if binary == "" {
+			binary = cliID
+		}
+		executable, binaryErr := exec.LookPath(binary)
+		if binaryErr == nil {
+			executable, binaryErr = filepath.Abs(executable)
+		}
+		if binaryErr != nil {
+			return AcceptedExecution{}, status_error.RuntimeUnavailable
+		}
+		accountHome := ""
+		secretKeys := []string{}
+		if runRequest.Target.AccountID != "" {
+			accountHome = runRequest.Target.Environment[variable]
+			for key := range runRequest.Target.Environment {
+				if key != "PATH" {
+					secretKeys = append(secretKeys, key)
+				}
+			}
+			secretKeys = append(secretKeys, "OPENAI_API_KEY", "CODEX_API_KEY", "CODEX_ACCESS_TOKEN", "ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_BASE_URL", "ANTHROPIC_MODEL")
+		}
+		for key := range pluginResources.environment {
+			if key != "PATH" {
+				secretKeys = append(secretKeys, key)
+			}
+		}
+		native, prepareErr := plugins.PrepareNativeEnvironment(filepath.Join(m.skillDataDirectory, "plugins", "native-homes"), plugins.NativeEnvironmentSpec{
+			RuntimeID: cliID, AccountHome: accountHome, SharedPluginHome: sharedHome, Executable: executable,
+			PrefixArgs: runtimeEnvironment.PrefixArgs, Targets: pluginResources.native,
+			AllowExternal:        request.allowedConnectorIDs == nil && request.allowedAgentDomains == nil,
+			ModelEnvironmentKeys: secretKeys, StateDirectory: filepath.Join(runRequest.Workspace.Path, constants.RuntimeStateDirectoryName, "native-plugins"), Workspace: runRequest.Workspace.Path,
+		})
+		if prepareErr != nil {
+			return AcceptedExecution{}, prepareErr
+		}
+		if runRequest.Target.Environment == nil {
+			runRequest.Target.Environment = map[string]string{}
+		}
+		runRequest.Target.Environment[variable] = native.Home
+		for key, value := range native.Environment {
+			runRequest.Target.Environment[key] = value
+		}
+		runRequest.Target.ConfigHome = native.Home
+		runRequest.Target.CodexPluginConfiguration = native.CodexConfiguration
+		runRequest.Target.NativePluginScope = native.Fingerprint
+		request.nativePluginScope = native.Fingerprint
+		runRequest.Target.ClaudeSettingsPath = native.ClaudeSettingsPath
+		nativeScopeCommit = native.CommitScope
+		if native.Marketplace != "" {
+			if err := plugins.PrepareCodexWorkspace(runRequest.Workspace.Path, pluginResources.native, native.Marketplace); err != nil {
+				return AcceptedExecution{}, err
+			}
+			for index := range pluginResources.snapshots {
+				if pluginResources.snapshots[index].Delivery != constants.PluginDeliveryNative {
+					continue
+				}
+				for _, target := range pluginResources.native {
+					if target.ID == pluginResources.snapshots[index].ID {
+						pluginResources.snapshots[index].NativePluginID = target.Name + "@" + native.Marketplace
+					}
+				}
+			}
+		}
+		nativeCommands = native.CommandDirectory
+		nativeScopeChanged = native.ScopeChanged
+		if cliID == runtimes.RuntimeIDClaude {
+			for _, target := range pluginResources.native {
+				runRequest.Target.NativePluginDirectories = append(runRequest.Target.NativePluginDirectories, target.Root)
+			}
+		}
+	}
+	if runRequest.Session.Mode == runtimes.SessionModeResume {
+		records, recordErr := m.journal.ReadRecords(state.chat.ID)
+		if recordErr != nil {
+			return AcceptedExecution{}, recordErr
+		}
+		previous := []plugins.Snapshot{}
+		previousNativeScope := ""
+		session := state.runtimeSessions[request.runtime.RuntimeID]
+		for _, record := range records {
+			if record.Type == constants.ChatEventTypeExecutionCreated && record.ExecutionID == session.LastExecutionID {
+				var data eventlog.ExecutionCreatedData
+				if json.Unmarshal(record.Data, &data) != nil {
+					return AcceptedExecution{}, status_error.ChatLogCorrupted
+				}
+				previous = data.PluginResources
+				previousNativeScope = data.NativePluginScope
+				break
+			}
+			if record.Type == constants.ChatEventTypeMessageInherited && record.MessageID == session.LastExecutionID {
+				var inherited messageview.InheritedMessage
+				if json.Unmarshal(record.Data, &inherited) != nil {
+					return AcceptedExecution{}, status_error.ChatLogCorrupted
+				}
+				if inherited.ForkConfiguration != nil {
+					previous = inherited.ForkConfiguration.PluginResources
+					previousNativeScope = inherited.ForkConfiguration.NativePluginScope
+				}
+				break
+			}
+		}
+		if state.chat.ForkSourceChatID != "" && request.nativePluginScope != "" {
+			// 分叉工作区没有来源缓存，必须比较分叉点的冻结事实；未知旧事实不能放行。
+			nativeScopeChanged = previousNativeScope == "" || previousNativeScope != request.nativePluginScope
+		}
+		if nativeScopeChanged || nativePluginScope(previous) != nativePluginScope(pluginResources.snapshots) {
+			if state.chat.ForkSourceChatID != "" {
+				return AcceptedExecution{}, status_error.PluginNotReady
+			}
+			runRequest.Session = runtimes.SessionDirective{Mode: runtimes.SessionModeNew}
+		}
+	}
 	runRequest.Skills, err = mergePluginSkills(runRequest.Skills, pluginResources.skills)
 	if err != nil {
 		return AcceptedExecution{}, err
@@ -549,6 +702,13 @@ func (m *service) startMessage(
 			}
 			runRequest.Target.Environment[key] = value
 		}
+	}
+	if nativeCommands != "" {
+		base := runRequest.Target.Environment["PATH"]
+		if base == "" {
+			base = os.Getenv("PATH")
+		}
+		runRequest.Target.Environment["PATH"] = nativeCommands + string(os.PathListSeparator) + base
 	}
 	if profile := pluginResources.environment["LARKSUITE_CLI_CONFIG_DIR"]; profile != "" {
 		runRequest.Target.Environment = feishu.ManagedEnvironment(profile, runRequest.Target.Environment)
@@ -601,6 +761,13 @@ func (m *service) startMessage(
 		),
 		started: started,
 	}
+	commitNativeScope := func() {
+		if nativeScopeCommit != nil {
+			if err := nativeScopeCommit(); err != nil {
+				logx.Errorf("commit native plugin execution scope failed: execution_id=%s error=%v", executionID, err)
+			}
+		}
+	}
 	if request.admission == constants.ExecutionAdmissionCommitBeforeDispatch {
 		accepted, commitErr := m.commitAcceptedExecution(plan)
 		if commitErr != nil {
@@ -613,6 +780,7 @@ func (m *service) startMessage(
 		plan.execution = execution
 		plan.started = nil
 		plan.precommitted = true
+		commitNativeScope()
 		releaseReservation = false
 		m.executions.launch(
 			state.chat.ID,
@@ -638,6 +806,7 @@ func (m *service) startMessage(
 		if result.err != nil {
 			return AcceptedExecution{}, result.err
 		}
+		commitNativeScope()
 		return AcceptedExecution{
 			Chat:      result.chat,
 			Execution: result.execution,
@@ -648,6 +817,7 @@ func (m *service) startMessage(
 		if result.err != nil {
 			return AcceptedExecution{}, result.err
 		}
+		commitNativeScope()
 		return AcceptedExecution{
 			Chat:      result.chat,
 			Execution: result.execution,
@@ -1407,6 +1577,7 @@ func startedMessageEvents(
 			Data: marshalData(eventlog.ExecutionCreatedData{
 				AutomaticRunID:    execution.AutomaticRunID,
 				PluginResources:   execution.PluginResources,
+				NativePluginScope: request.nativePluginScope,
 				UserMessageID:     execution.UserMessageID,
 				SubmissionID:      execution.SubmissionID,
 				SubmissionHash:    execution.SubmissionHash,

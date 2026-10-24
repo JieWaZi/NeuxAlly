@@ -1,6 +1,14 @@
 import { useQueryEvents } from "@/shared/api/use-query-events";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Clock3, Plus, Settings } from "lucide-react";
+import {
+  Clock3,
+  Plus,
+  Settings,
+  ListTodo,
+  CircleCheck,
+  CalendarClock,
+  Webhook,
+} from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -23,6 +31,7 @@ import {
   ResourcePageToolbar,
 } from "@/shared/ui/resource-page";
 import { Skeleton } from "@/shared/ui/skeleton";
+import { OverviewCard } from "@/shared/ui/overview-card";
 import { Switch } from "@/shared/ui/switch";
 import {
   TableBody,
@@ -166,24 +175,85 @@ export function AutomaticTaskListPage() {
         }
       />
       <section className="mb-6" aria-label={t("overview")}>
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,8rem),1fr))] gap-3">
-          {[
-            ["total", counts?.total],
-            ["enabledCount", counts?.enabled],
-            ["scheduledCount", counts?.scheduled],
-            ["apiCount", counts?.api],
-          ].map(([key, value]) => (
-            <div key={key} className="bg-surface-tertiary rounded-md p-3">
-              <p className="text-content-secondary type-caption">
-                {t(String(key))}
-              </p>
-              {query.isPending ? (
-                <Skeleton className="mt-2 h-6 w-12" />
-              ) : (
-                <p className="type-title mt-1 font-semibold">{value || 0}</p>
-              )}
-            </div>
-          ))}
+        <div className="grid grid-cols-1 gap-3 @[24rem]/resource-page:grid-cols-2 @[48rem]/resource-page:grid-cols-4">
+          {(
+            [
+              {
+                metric: "total",
+                value: counts?.total,
+                Icon: ListTodo,
+                description: t("totalHint"),
+              },
+              {
+                metric: "enabledCount",
+                value: counts?.enabled,
+                Icon: CircleCheck,
+                description: t("enabledHint"),
+              },
+              {
+                metric: "scheduledCount",
+                value: counts?.scheduled,
+                Icon: CalendarClock,
+                description: t("scheduleDescription"),
+              },
+              {
+                metric: "apiCount",
+                value: counts?.api,
+                Icon: Webhook,
+                description: t("apiDescription"),
+              },
+            ] as const
+          ).map(({ metric, value, Icon, description }) => {
+            const selected =
+              metric === "total"
+                ? trigger === "all" && enabled === "all"
+                : metric === "enabledCount"
+                  ? enabled === "enabled"
+                  : trigger ===
+                    (metric === "scheduledCount" ? "schedule" : "api");
+            return (
+              <OverviewCard
+                key={metric}
+                label={t(metric)}
+                description={description}
+                icon={<Icon aria-hidden="true" strokeWidth={1.5} />}
+                selected={selected}
+                onClick={() => {
+                  if (selected) return;
+                  if (metric === "total") {
+                    setParams(
+                      (previous) => {
+                        const next = new URLSearchParams(previous);
+                        next.delete("trigger");
+                        next.delete("status");
+                        next.delete("page");
+                        return next;
+                      },
+                      { replace: true },
+                    );
+                  } else if (metric === "enabledCount") {
+                    change("status", "enabled");
+                  } else {
+                    change(
+                      "trigger",
+                      metric === "scheduledCount" ? "schedule" : "api",
+                    );
+                  }
+                }}
+                value={
+                  query.isPending && value === undefined ? (
+                    <Skeleton className="h-control-md w-12" />
+                  ) : value === undefined ? (
+                    <span className="text-destructive type-ui">
+                      {t("loadFailed")}
+                    </span>
+                  ) : (
+                    value
+                  )
+                }
+              />
+            );
+          })}
         </div>
       </section>
       <ResourcePageToolbar

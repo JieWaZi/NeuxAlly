@@ -5,9 +5,11 @@ import "github.com/JieWaZi/NeuxAlly/server/constants"
 
 // Account 是可显示的共享身份摘要，不保存或返回登录 token。
 type Account struct {
+	// 核验时间
+	CheckedAt int64 `json:"checkedAt,omitempty"`
 	// Configured 表示官方 profile 已完成应用配置。
 	Configured bool `json:"configured"`
-	// Available 表示用户身份与所需权限当前可用。
+	// Available 表示最近核验的用户身份与所需权限可用。
 	Available bool `json:"available"`
 	// AppID 是当前应用身份。
 	AppID string `json:"appId,omitempty"`
@@ -19,8 +21,22 @@ type Account struct {
 	Scopes []string `json:"scopes"`
 }
 
+// 授权提醒
+type Notice struct {
+	// 提示文案
+	Messages map[string]string `json:"messages"`
+}
+
 // Session 是本机授权等待的安全投影。
 type Session struct {
+	// ChallengeID 是本次唯一挑战身份。
+	ChallengeID string `json:"challengeId,omitempty"`
+	// Actions 是本次协议明确允许的通用交互。
+	Actions []Action `json:"actions,omitempty"`
+	// 授权提醒
+	Notice *Notice `json:"notice,omitempty"`
+	// DeadlineAt 是本机等待上限，不表示上游有效期。
+	DeadlineAt int64 `json:"deadlineAt,omitempty"`
 	// ID 是本次等待身份。
 	ID string `json:"id"`
 	// State 是经过验证的授权阶段。
@@ -47,4 +63,14 @@ type Usage struct {
 	WakerID string `json:"wakerId"`
 	// Title 是接纳时的工作标题。
 	Title string `json:"title"`
+}
+
+// Action 是本次挑战提供的临时资料，不从插件名称推导。
+type Action struct {
+	// Type 是允许的交互动作。
+	Type string `json:"type"`
+	// URL 是实际授权页面。
+	URL string `json:"url,omitempty"`
+	// Value 是协议明确提供的二维码或验证码。
+	Value string `json:"value,omitempty"`
 }

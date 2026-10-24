@@ -317,6 +317,8 @@ func (v StatusError) Key() string {
 		return "IMConnectionHasWorkflowDependencies"
 	case IMConnectionDisabled:
 		return "IMConnectionDisabled"
+	case IMConnectionReplaced:
+		return "IMConnectionReplaced"
 	case PluginVersionConflict:
 		return "PluginVersionConflict"
 	case PluginConfigurationConflict:
@@ -499,6 +501,8 @@ func (v StatusError) Key() string {
 		return "IMProtocolInvalid"
 	case PluginAuthorizationFailed:
 		return "PluginAuthorizationFailed"
+	case PluginDistributionUnavailable:
+		return "PluginDistributionUnavailable"
 	case KnowledgeRemoteUnreachable:
 		return "KnowledgeRemoteUnreachable"
 	case KnowledgeRemoteIncompatible:
@@ -688,6 +692,7 @@ func GetStatusErrorMap() map[string]map[StatusError]string {
 			IMConnectionInUse:                    "connection is used by active workflows or pending deliveries; wait or stop the related work",
 			IMConnectionHasWorkflowDependencies:  "saved workflows reference this connection; review the affected workflows and confirm deletion again if dependencies change",
 			IMConnectionDisabled:                 "delivery connection is disabled; enable it in connection settings and retry",
+			IMConnectionReplaced:                 "wecom bot connected elsewhere; close the other connection and save settings to reconnect",
 			PluginVersionConflict:                "plugin version or content changed; confirm the operation again",
 			PluginConfigurationConflict:          "plugin shared configuration changed or is incompatible",
 			PluginNotReady:                       "complete required plugin configuration, authentication and dependencies first",
@@ -779,6 +784,7 @@ func GetStatusErrorMap() map[string]map[StatusError]string {
 			IMPlatformUnavailable:                "im platform is unavailable",
 			IMProtocolInvalid:                    "im platform returned an invalid protocol response",
 			PluginAuthorizationFailed:            "plugin authentication did not complete or external authorization expired",
+			PluginDistributionUnavailable:        "plugin catalog or archive could not be downloaded; check the network and retry",
 			KnowledgeRemoteUnreachable:           "remote knowledge service is unreachable",
 			KnowledgeRemoteIncompatible:          "remote knowledge service protocol is incompatible",
 			KnowledgeEmbeddingUnavailable:        "knowledge embedding service unavailable",
@@ -930,6 +936,7 @@ func GetStatusErrorMap() map[string]map[StatusError]string {
 			IMConnectionInUse:                    "连接仍被运行中的工作流或待发送消息使用，请等待完成或先停止相关任务",
 			IMConnectionHasWorkflowDependencies:  "连接被已保存工作流引用，请查看受影响流程并确认删除；依赖变化后需重新确认",
 			IMConnectionDisabled:                 "发送连接已停用，请在连接设置中启用后重试",
+			IMConnectionReplaced:                 "企业微信机器人已在其他客户端连接，请关闭其他连接后保存设置以重连",
 			PluginVersionConflict:                "插件版本或内容已变化，请重新确认",
 			PluginConfigurationConflict:          "插件共享配置已变化或不兼容，请重新确认",
 			PluginNotReady:                       "请先完成插件所需配置、认证和程序准备",
@@ -1021,6 +1028,7 @@ func GetStatusErrorMap() map[string]map[StatusError]string {
 			IMPlatformUnavailable:                "IM 平台暂时不可用",
 			IMProtocolInvalid:                    "IM 平台响应不符合当前协议",
 			PluginAuthorizationFailed:            "插件认证未完成或外部授权失效",
+			PluginDistributionUnavailable:        "插件目录或安装包暂时无法下载，请检查网络后重试",
 			KnowledgeRemoteUnreachable:           "远端知识服务连接失败",
 			KnowledgeRemoteIncompatible:          "远端知识服务响应不符合支持的协议",
 			KnowledgeEmbeddingUnavailable:        "知识库嵌入服务暂时不可用",

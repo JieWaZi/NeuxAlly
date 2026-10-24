@@ -30,7 +30,11 @@ func (o *DeletePlugin) Output(ctx *gin.Context) (interface{}, error) {
 	if !o.Body.Confirmed {
 		return nil, ginx.WithStack(status_error.BadRequest)
 	}
-	err := global.TransactionControllerManager.Transaction(ctx, func(txctx context.Context) error {
+	versions, err := global.PluginControllerManager.Versions(ctx, o.PluginID)
+	if err != nil {
+		return nil, ginx.WithStack(err)
+	}
+	validate := func(txctx context.Context) error {
 		relations, err := global.PluginControllerManager.Installations(txctx, o.PluginID, "")
 		if err != nil {
 			return err
@@ -47,6 +51,9 @@ func (o *DeletePlugin) Output(ctx *gin.Context) (interface{}, error) {
 				return status_error.PluginVersionConflict
 			}
 		}
+		return nil
+	}
+	err = removePluginReferences(ctx, o.PluginID, "", versions, validate, func(txctx context.Context) error {
 		return global.PluginControllerManager.Delete(txctx, o.PluginID)
 	})
 	if err != nil {

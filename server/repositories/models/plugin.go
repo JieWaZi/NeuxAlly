@@ -106,6 +106,8 @@ type PluginState struct {
 	Installations []WakerPlugin
 	// PartnerNames 是由真实伙伴记录批量补齐的展示名，不持久化。
 	PartnerNames map[string]string
+	// PartnerAvatars 是同批伙伴记录中的真实头像声明，不持久化。
+	PartnerAvatars map[string]string
 	// Configuration 是服务端可用共享设置。
 	Configuration PluginConfiguration
 }

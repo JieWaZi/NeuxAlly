@@ -38,6 +38,7 @@ export function AppSceneWorkspaceProvider({
   const labels = useMemo<RouteSceneLabels>(
     () => ({
       knowledge: t("knowledge:knowledge"),
+      resources: t("plugin:title"),
       workBoard: t("workBoard:title"),
       im: t("im:title"),
       automaticTask: t("automaticTask:title"),

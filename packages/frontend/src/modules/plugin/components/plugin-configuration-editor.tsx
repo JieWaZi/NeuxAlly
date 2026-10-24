@@ -31,6 +31,46 @@ export function PluginConfigurationEditor({
 }) {
   const { t } = useTranslation("plugin");
   const client = useQueryClient();
+  const draft = usePluginConfigurationDraft(detail);
+  const save = useMutation({
+    ...withLocalErrorMutation(updatePluginConfigurationMutation()),
+    onSuccess: async () => {
+      draft.setSecrets({});
+      draft.setClear([]);
+      await invalidatePluginQueries(client);
+      onSaved?.();
+    },
+  });
+  return (
+    <section className="space-y-4">
+      <PluginConfigurationFields detail={detail} draft={draft} />
+      {save.error && (
+        <p role="alert" className="type-body text-destructive">
+          {localApiErrorMessage(save.error, t("failed"))}
+        </p>
+      )}
+      <Button
+        disabled={save.isPending}
+        onClick={() =>
+          save.mutate({
+            path: { pluginId: detail.plugin?.id ?? "" },
+            query: { wakerId },
+            body: {
+              ...draft.body,
+              expectedRevision: detail.configurationRevision ?? 0,
+              switches,
+            },
+          })
+        }
+      >
+        {switches.length ? t("update") : t("save")}
+      </Button>
+    </section>
+  );
+}
+
+/** 未提交配置由调用表单持有，安装与编辑复用字段及密钥保留语义。 */
+export function usePluginConfigurationDraft(detail: PluginDetail) {
   const [values, setValues] = useState<Record<string, string>>({
     ...detail.values,
   });
@@ -44,15 +84,59 @@ export function PluginConfigurationEditor({
   const retiredSecrets = (detail.configuredSecrets ?? []).filter(
     (key) => !detail.fields?.some((field) => field.key === key && field.secret),
   );
-  const save = useMutation({
-    ...withLocalErrorMutation(updatePluginConfigurationMutation()),
-    onSuccess: async () => {
-      setSecrets({});
-      setClear([]);
-      await invalidatePluginQueries(client);
-      onSaved?.();
+  const [initialValues] = useState({ ...detail.values });
+  const [expectedRevision] = useState(detail.configurationRevision ?? 0);
+  return {
+    values,
+    setValues,
+    secrets,
+    setSecrets,
+    clear,
+    setClear,
+    removedValues,
+    setRemovedValues,
+    retiredValues,
+    retiredSecrets,
+    changed:
+      JSON.stringify(values) !== JSON.stringify(initialValues) ||
+      removedValues.length > 0 ||
+      clear.length > 0 ||
+      Object.values(secrets).some((value) => value !== ""),
+    body: {
+      expectedRevision,
+      values: Object.fromEntries(
+        Object.entries(values).filter(([key]) => !removedValues.includes(key)),
+      ),
+      secrets: [
+        ...Object.entries(secrets)
+          .filter(([key, value]) => value !== "" && !clear.includes(key))
+          .map(([key, value]) => ({ key, value })),
+        ...clear.map((key) => ({ key, clear: true })),
+      ],
     },
-  });
+  };
+}
+
+export function PluginConfigurationFields({
+  detail,
+  draft,
+}: {
+  detail: PluginDetail;
+  draft: ReturnType<typeof usePluginConfigurationDraft>;
+}) {
+  const { t } = useTranslation("plugin");
+  const {
+    values,
+    setValues,
+    secrets,
+    setSecrets,
+    clear,
+    setClear,
+    removedValues,
+    setRemovedValues,
+    retiredValues,
+    retiredSecrets,
+  } = draft;
   return (
     <section className="space-y-4">
       <div>
@@ -137,39 +221,6 @@ export function PluginConfigurationEditor({
           {t("retiredSetting", { key })}
         </label>
       ))}
-      {save.error && (
-        <p role="alert" className="type-body text-destructive">
-          {localApiErrorMessage(save.error, t("failed"))}
-        </p>
-      )}
-      <Button
-        disabled={save.isPending}
-        onClick={() =>
-          save.mutate({
-            path: { pluginId: detail.plugin?.id ?? "" },
-            query: { wakerId },
-            body: {
-              expectedRevision: detail.configurationRevision ?? 0,
-              values: Object.fromEntries(
-                Object.entries(values).filter(
-                  ([key]) => !removedValues.includes(key),
-                ),
-              ),
-              secrets: [
-                ...Object.entries(secrets)
-                  .filter(
-                    ([key, value]) => value !== "" && !clear.includes(key),
-                  )
-                  .map(([key, value]) => ({ key, value })),
-                ...clear.map((key) => ({ key, clear: true })),
-              ],
-              switches,
-            },
-          })
-        }
-      >
-        {switches.length ? t("update") : t("save")}
-      </Button>
     </section>
   );
 }

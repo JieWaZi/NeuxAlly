@@ -1,4 +1,5 @@
-import feishu from "../assets/feishu.png";
+import feishu from "@/shared/assets/brands/feishu.png";
+import wecom from "@/shared/assets/brands/wecom.png";
 import wechat from "../assets/wechat.svg";
 
 export function PlatformIcon({
@@ -18,7 +19,9 @@ export function PlatformIcon({
       aria-hidden="true"
     >
       <img
-        src={platform === "feishu" ? feishu : wechat}
+        src={
+          platform === "wecom" ? wecom : platform === "feishu" ? feishu : wechat
+        }
         alt=""
         className={
           compact

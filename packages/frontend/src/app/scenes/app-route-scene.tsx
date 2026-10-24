@@ -10,7 +10,12 @@ import {
 
 import { ResourcesPage } from "@/app/pages/resources-page";
 import { KnowledgeScene } from "./knowledge-scene";
-import { PluginDetailPage, PluginCatalogDetailPage } from "@/modules/plugin";
+import {
+  PluginDetailPage,
+  PluginCatalogDetailPage,
+  PluginSkillDetailPage,
+  PluginConnectorDetailPage,
+} from "@/modules/plugin";
 import { WorkBoardPage } from "@/modules/work-board";
 
 import { IMConnectionDetailPage, IMPage } from "@/modules/im";
@@ -92,7 +97,19 @@ export function AppRouteScene({ location, outletContext }: AppRouteSceneProps) {
           path="resources/plugins/:pluginId"
           element={<PluginDetailPage />}
         />
+        <Route
+          path="resources/plugins/:pluginId/connectors/:connectorKey"
+          element={<PluginConnectorDetailPage />}
+        />
+        <Route
+          path="wakers/:wakerId/plugins/:pluginId/connectors/:connectorKey"
+          element={<PluginConnectorDetailPage />}
+        />
         <Route path="resources/skills/:skillId" element={<SkillDetailPage />} />
+        <Route
+          path="resources/plugins/:pluginId/skills/:skillKey"
+          element={<PluginSkillDetailPage />}
+        />
         <Route
           path="resources/connectors/:connectorId"
           element={<ConnectorDetailPage />}
@@ -101,6 +118,10 @@ export function AppRouteScene({ location, outletContext }: AppRouteSceneProps) {
         <Route
           path="wakers/:wakerId/plugins/:pluginId"
           element={<PluginDetailPage />}
+        />
+        <Route
+          path="wakers/:wakerId/plugins/:pluginId/skills/:skillKey"
+          element={<PluginSkillDetailPage />}
         />
         <Route path="work-board" element={<WorkBoardPage />} />
         <Route path="wakers" element={<WakerListPage />} />

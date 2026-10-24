@@ -670,6 +670,9 @@ const (
 	// @errZH 发送连接已停用，请在连接设置中启用后重试
 	// @errEN delivery connection is disabled; enable it in connection settings and retry
 	IMConnectionDisabled StatusError = http.StatusConflict*1e8 + 4006
+	// @errZH 企业微信机器人已在其他客户端连接，请关闭其他连接后保存设置以重连
+	// @errEN wecom bot connected elsewhere; close the other connection and save settings to reconnect
+	IMConnectionReplaced StatusError = http.StatusConflict*1e8 + 4007
 )
 
 const (
@@ -703,6 +706,9 @@ const (
 	// @errZH 插件认证未完成或外部授权失效
 	// @errEN plugin authentication did not complete or external authorization expired
 	PluginAuthorizationFailed StatusError = http.StatusBadGateway*1e8 + 6501
+	// @errZH 插件目录或安装包暂时无法下载，请检查网络后重试
+	// @errEN plugin catalog or archive could not be downloaded; check the network and retry
+	PluginDistributionUnavailable StatusError = http.StatusBadGateway*1e8 + 6502
 	// @errZH 技能声明名称相同但内容不同，请调整已启用的技能或插件
 	// @errEN skills with the same declared name have different content
 	PluginSkillConflict StatusError = http.StatusConflict*1e8 + 6504

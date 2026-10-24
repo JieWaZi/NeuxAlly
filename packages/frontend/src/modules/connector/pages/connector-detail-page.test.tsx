@@ -285,3 +285,23 @@ it("冷加载在内容区显示状态，保留页头且禁用数据操作", () =
   expect(screen.getByRole("button", { name: "编辑" })).toBeDisabled();
   expect(screen.getByRole("button", { name: "删除连接器" })).toBeDisabled();
 });
+
+it("keeps tool names and descriptions on one line with complete hover text", async () => {
+  const name = "very_long_tool_name_".repeat(8);
+  const description =
+    "A complete tool description that should be available on hover. ".repeat(
+      12,
+    );
+  state.view.connector = {
+    ...state.view.connector,
+    testTools: [{ name, description }],
+  };
+  renderPage();
+  const heading = await screen.findByRole("heading", { name });
+  const text = screen.getByText(description.trim());
+  expect(heading).toHaveClass("truncate");
+  expect(heading).toHaveAttribute("title", name);
+  expect(text).toHaveClass("truncate");
+  expect(text).toHaveAttribute("title", description);
+  expect(text.className).not.toContain("max-w-");
+});

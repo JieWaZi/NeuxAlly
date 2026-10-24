@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-// 本地插件目录
+// 插件目录
 type ListPluginCatalog struct {
 	ginx.MethodGet
 	// 搜索关键字
@@ -19,11 +19,13 @@ type ListPluginCatalog struct {
 	PageSize int `in:"query" name:"pageSize"`
 }
 
-// Path 返回随应用交付的插件目录入口。
+// Path 返回插件分发目录入口。
 func (*ListPluginCatalog) Path() string { return "/catalog" }
 
 // 插件目录响应
 type ListPluginCatalogResponse struct {
+	// 来源状态
+	Source catalog.SourceState `json:"source"`
 	// 本地条目
 	Entries []catalog.Entry `json:"entries"`
 	// 准确总数
@@ -34,16 +36,23 @@ type ListPluginCatalogResponse struct {
 	PageSize int `json:"pageSize"`
 }
 
-// Output 从本地元数据筛选分页，不发起 Git 或网络请求。
+// Output 读取轻量目录元数据筛选分页，不下载插件归档。
 func (o *ListPluginCatalog) Output(ctx *gin.Context) (interface{}, error) {
-	entries, err := catalog.List(global.Config.PluginResourcesDirectory)
+	entries, err := catalog.List(global.PluginCatalogSource())
 	if err != nil {
 		return nil, ginx.WithStack(err)
 	}
 	filtered := []catalog.Entry{}
 	query := strings.ToLower(strings.TrimSpace(o.Query))
 	for _, entry := range entries {
-		if query == "" || strings.Contains(strings.ToLower(entry.Package.Manifest.Name+" "+entry.Package.Manifest.Description), query) {
+		searchable := entry.Package.Manifest.Name + " " + entry.Package.Manifest.Description
+		for _, value := range entry.Package.Presentation.DisplayNames {
+			searchable += " " + value
+		}
+		for _, value := range entry.Package.Presentation.LocalizedDescriptions {
+			searchable += " " + value
+		}
+		if query == "" || strings.Contains(strings.ToLower(searchable), query) {
 			filtered = append(filtered, entry)
 		}
 	}
@@ -54,5 +63,5 @@ func (o *ListPluginCatalog) Output(ctx *gin.Context) (interface{}, error) {
 	}
 	start := min((page-1)*size, len(filtered))
 	end := min(start+size, len(filtered))
-	return ListPluginCatalogResponse{Entries: filtered[start:end], TotalSize: len(filtered), PageNum: page, PageSize: size}, nil
+	return ListPluginCatalogResponse{Source: catalog.State(global.PluginCatalogSource()), Entries: filtered[start:end], TotalSize: len(filtered), PageNum: page, PageSize: size}, nil
 }

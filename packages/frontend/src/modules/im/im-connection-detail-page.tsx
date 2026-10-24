@@ -177,7 +177,11 @@ export function IMConnectionDetailPage() {
               <dl className="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(min(100%,18rem),1fr))] gap-x-8 gap-y-4">
                 <ReadOnlyField
                   label={t(
-                    connection.platform === "feishu" ? "appId" : "botAccount",
+                    connection.platform === "wecom"
+                      ? "wecomBotId"
+                      : connection.platform === "feishu"
+                        ? "appId"
+                        : "botAccount",
                   )}
                 >
                   {connection.appId || t("notConnected")}
@@ -250,7 +254,11 @@ export function IMConnectionDetailPage() {
                 ))
               ) : (
                 <p className="text-content-secondary type-body">
-                  {t("waitingForChat")}
+                  {t(
+                    connection.platform === "wecom"
+                      ? "wecomFirstMessage"
+                      : "waitingForChat",
+                  )}
                 </p>
               )}
             </section>

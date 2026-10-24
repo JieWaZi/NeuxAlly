@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useIsMutating,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { Check, Copy, ExternalLink } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
@@ -8,6 +13,7 @@ import type {
   UpdateRuntimeEnvironmentData,
 } from "@/shared/api/generated/types.gen";
 import {
+  refreshRuntimeMutation,
   refreshRuntimesMutation,
   updateRuntimeEnvironmentMutation,
 } from "@/shared/api/generated/@tanstack/react-query.gen";
@@ -104,13 +110,10 @@ export function StartupGate({ children }: { children: ReactNode }) {
   const installed = (snapshot.data?.resources ?? []).filter(
     (runtime) => runtime.installed,
   );
-  const pending = Boolean(
-    snapshot.data?.startupDetectionPending || refresh.isPending,
-  );
   const error = snapshot.error ?? refresh.error;
-  const failed = Boolean(error) || snapshot.data?.startupDetectionFailed;
-  const waiting =
-    !snapshot.data || (pending && installed.length === 0 && refresh.isIdle);
+  const failed =
+    Boolean(error) ||
+    (snapshot.data?.startupDetectionFailed && installed.length === 0);
   return (
     <WelcomeBrand intro={false}>
       {failed ? (
@@ -135,12 +138,13 @@ export function StartupGate({ children }: { children: ReactNode }) {
             </Button>
           </CardFooter>
         </Card>
-      ) : waiting ? undefined : (
+      ) : !snapshot.data ? undefined : (
         <CliSetup
           runtimes={snapshot.data?.resources ?? []}
           installed={installed}
-          refreshing={pending}
-          onRefresh={() => refresh.mutate({})}
+          startupDetectionPending={Boolean(
+            snapshot.data.startupDetectionPending,
+          )}
           onEnter={() => setEntered(true)}
         />
       )}
@@ -151,14 +155,12 @@ export function StartupGate({ children }: { children: ReactNode }) {
 function CliSetup({
   runtimes,
   installed,
-  refreshing,
-  onRefresh,
+  startupDetectionPending,
   onEnter,
 }: {
   runtimes: RuntimeOption[];
   installed: RuntimeOption[];
-  refreshing: boolean;
-  onRefresh: () => void;
+  startupDetectionPending: boolean;
   onEnter: () => void;
 }) {
   const { t } = useTranslation("common");
@@ -188,6 +190,13 @@ function CliSetup({
     choices.find((item) => item.id === selected) ??
     choices.find((item) => item.id === preferred?.id) ??
     choices[0];
+  // 按 CLI 从 Mutation Cache 读取忙碌状态，切换后返回也不会丢失仍在进行的探测。
+  const mutationKey = ["onboarding-runtime", runtime?.id];
+  const mutating = useIsMutating({ mutationKey }) > 0;
+  const refreshingSelected =
+    useIsMutating({ mutationKey: [...mutationKey, "refresh"] }) > 0;
+  const refreshing =
+    (startupDetectionPending && !runtime?.detectedAt) || refreshingSelected;
   const installations = (runtime?.installations ?? []).filter(
     (item): item is typeof item & { path: string } => Boolean(item.path),
   );
@@ -241,6 +250,7 @@ function CliSetup({
   );
   const save = useMutation({
     ...updateRuntimeEnvironmentMutation(),
+    mutationKey: [...mutationKey, "save"],
     onSuccess: async (_data, variables) => {
       await client.invalidateQueries({
         queryKey: listRuntimesOptions().queryKey,
@@ -253,8 +263,6 @@ function CliSetup({
       );
       if (
         snapshot?.startupSetupRequired === false &&
-        !snapshot.startupDetectionPending &&
-        !snapshot.startupDetectionFailed &&
         modelSelectionReady(confirmed)
       )
         onEnter();
@@ -263,6 +271,7 @@ function CliSetup({
   });
   const switchVersion = useMutation({
     ...updateRuntimeEnvironmentMutation(),
+    mutationKey: [...mutationKey, "version"],
     onSuccess: () =>
       client.invalidateQueries({ queryKey: listRuntimesOptions().queryKey }),
     onError: (_error, variables) =>
@@ -271,7 +280,13 @@ function CliSetup({
         [variables.path.runtimeId]: "",
       })),
   });
-  const busy = refreshing || save.isPending || switchVersion.isPending;
+  const refresh = useMutation({
+    ...refreshRuntimeMutation(),
+    mutationKey: [...mutationKey, "refresh"],
+    onSuccess: () =>
+      client.invalidateQueries({ queryKey: listRuntimesOptions().queryKey }),
+  });
+  const busy = refreshing || mutating;
   const chooseVersion = (binary: string) => {
     const runtimeID = runtime?.id;
     if (!runtimeID || busy) return;
@@ -343,7 +358,6 @@ function CliSetup({
               key={item.id}
               size="option"
               variant="choice"
-              disabled={busy}
               aria-pressed={item.id === runtime?.id}
               aria-label={item.name}
               aria-describedby={`onboarding-runtime-state-${item.id}`}
@@ -352,6 +366,7 @@ function CliSetup({
                 setCopied(false);
                 switchVersion.reset();
                 save.reset();
+                refresh.reset();
                 setOperationError(undefined);
               }}
             >
@@ -369,7 +384,7 @@ function CliSetup({
                   {t(
                     item.installed
                       ? "onboarding.detected"
-                      : refreshing
+                      : startupDetectionPending && !item.detectedAt
                         ? "onboarding.checking"
                         : "onboarding.notInstalled",
                   )}
@@ -596,16 +611,28 @@ function CliSetup({
             </Button>
           )}
         </section>
-        {(operationError || switchVersion.error || save.error) && (
+        {(operationError ||
+          switchVersion.error ||
+          save.error ||
+          refresh.error) && (
           <p className="type-body text-destructive break-words" role="alert">
             {operationError ??
               switchVersion.error?.message ??
-              save.error?.message}
+              save.error?.message ??
+              refresh.error?.message}
           </p>
         )}
       </CardContent>
       <CardFooter className="shrink-0 flex-wrap justify-end">
-        <Button variant="secondary" disabled={busy} onClick={onRefresh}>
+        <Button
+          variant="secondary"
+          disabled={busy || !runtime?.id}
+          onClick={() => {
+            if (!runtime?.id) return;
+            setOperationError(undefined);
+            refresh.mutate({ path: { runtimeId: runtime.id } });
+          }}
+        >
           {t(refreshing ? "onboarding.checking" : "onboarding.recheck")}
         </Button>
         {runtime?.installed && (
