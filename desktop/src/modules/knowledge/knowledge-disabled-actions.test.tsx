@@ -24,6 +24,22 @@ import { KnowledgeLibraryActivity } from "./knowledge-library-activity";
 import { KnowledgeWikiView } from "./knowledge-wiki-view";
 import { emptyLibrary } from "./knowledge-model";
 
+// 分页测试只验证内容保留；真实 Diff 与 Canvas 测量由共享组件测试覆盖。
+vi.mock("@/shared/ui/text-diff-view", () => ({
+  TextDiffView: ({
+    beforeContent,
+    afterContent,
+  }: {
+    beforeContent: string;
+    afterContent: string;
+  }) => (
+    <div>
+      <pre>{beforeContent}</pre>
+      <pre>{afterContent}</pre>
+    </div>
+  ),
+}));
+
 const server = setupServer();
 const resource = {
   backend: "local",
@@ -200,12 +216,20 @@ it.each(["index", "history", "activity"])(
     const more = await screen.findByRole("button", {
       name: kind === "activity" ? "加载更多记录" : "加载更多",
     });
+    if (kind === "history") {
+      expect(await screen.findByText("历史正文")).toBeVisible();
+      expect(await screen.findByText("当前正文")).toBeVisible();
+    }
     await userEvent.click(more);
     await waitFor(() => expect(failed).toBe(true));
     await waitFor(() => expect(more).toBeDisabled());
     expect(
       screen.queryByRole("button", { name: "重试" }),
     ).not.toBeInTheDocument();
+    if (kind === "history") {
+      expect(screen.getByText("历史正文")).toBeVisible();
+      expect(screen.getByText("当前正文")).toBeVisible();
+    }
     view.unmount();
     queryClient.clear();
   },
