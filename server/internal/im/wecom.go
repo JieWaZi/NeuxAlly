@@ -7,7 +7,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"unicode"
 
 	"github.com/JieWaZi/NeuxAlly/server/constants"
 	"github.com/JieWaZi/NeuxAlly/server/constants/status_error"
@@ -417,25 +416,5 @@ func normalizeWecom(raw json.RawMessage, botID string) (Message, bool, error) {
 		}
 	}
 	message.Content = strings.TrimSpace(strings.Join(texts, "\n"))
-	if message.Kind == constants.IMChatKindGroup && (input.Type == "text" || input.Type == "mixed") {
-		message.Content = stripWecomGroupInvocation(message.Content)
-	}
 	return message, message.Content != "" || len(message.Files) > 0, nil
-}
-
-// stripWecomGroupInvocation 只移除群回调开头的一个 @唤起词；正文内的提及和邮箱保持原样。
-// 官方回调不提供昵称或提及身份字段，按首个空白边界规范化；含空格昵称无法可靠区分。
-func stripWecomGroupInvocation(text string) string {
-	if !strings.HasPrefix(text, "@") {
-		return text
-	}
-	end := strings.IndexFunc(text, unicode.IsSpace)
-	if end < 0 {
-		end = len(text)
-	}
-	name := text[1:end]
-	if name == "" || strings.ContainsRune(name, '@') {
-		return text
-	}
-	return strings.TrimSpace(text[end:])
 }
