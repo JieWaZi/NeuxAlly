@@ -69,7 +69,7 @@ func prepareCodexHome(parent, accountHome string, targets []NativeTarget, useAcc
 		if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
 			return "", status_error.AIAccountConfigurationInvalid
 		}
-		if codexPathWithin(accountHome, parent) || codexPathWithin(parent, accountHome) {
+		if (codexPathWithin(accountHome, parent) && !nativeWorktreeDirectory(accountHome, parent)) || codexPathWithin(parent, accountHome) {
 			return "", status_error.PluginContentInvalid
 		}
 	}

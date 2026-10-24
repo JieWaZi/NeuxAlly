@@ -681,6 +681,10 @@ const (
 	AIAccountCodexAPIKeyEnvironment = "ALLY_CODEX_MODEL_API_KEY"
 	// PluginNativeMarketplace 是应用私有Codex原生索引身份。
 	PluginNativeMarketplace = "neuxally-managed"
+	// PluginNativeScopeDirectory 是工作区内原生插件能力摘要的独占目录。
+	PluginNativeScopeDirectory = "native-plugins"
+	// NativeWorktreesDirectory 是原生 CLI 配置根内存放独立 Git 工作区的目录。
+	NativeWorktreesDirectory = "worktrees"
 	// PluginDeliveryNative 是完整原生包交付。
 	PluginDeliveryNative = "native"
 	// PluginDeliveryProjection 是Skill/MCP投射交付。

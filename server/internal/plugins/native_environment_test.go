@@ -2,6 +2,7 @@ package plugins
 
 import (
 	"encoding/json"
+	"github.com/JieWaZi/NeuxAlly/server/constants"
 	"github.com/JieWaZi/NeuxAlly/server/constants/status_error"
 	"os"
 	"os/exec"
@@ -10,6 +11,159 @@ import (
 	"strings"
 	"testing"
 )
+
+func TestNativeEnvironmentWorktreeScope(t *testing.T) {
+	for _, cli := range []string{"codex", "claude"} {
+		t.Run(cli, func(t *testing.T) {
+			shared := t.TempDir()
+			workspace := filepath.Join(shared, "worktrees", "checkout", "project", "workspace")
+			if err := os.MkdirAll(workspace, 0700); err != nil {
+				t.Fatal(err)
+			}
+			original := "model = \"external-model\"\n"
+			codexHomeWrite(t, filepath.Join(shared, "config.toml"), original, 0600)
+			spec := NativeEnvironmentSpec{RuntimeID: cli, SharedPluginHome: shared, Executable: "/fixture/" + cli, AllowExternal: true, Workspace: workspace, StateDirectory: filepath.Join(workspace, constants.RuntimeStateDirectoryName, "native-plugins")}
+			parent := t.TempDir()
+			view, err := PrepareNativeEnvironment(parent, spec)
+			if err != nil {
+				t.Fatalf("managed worktree scope rejected: %v", err)
+			}
+			if view.CommitScope == nil || !view.ScopeChanged {
+				t.Fatal("first admission did not prepare its scope marker")
+			}
+			if err := view.CommitScope(); err != nil {
+				t.Fatal(err)
+			}
+			next, err := PrepareNativeEnvironment(parent, spec)
+			if err != nil || next.ScopeChanged {
+				t.Fatalf("unchanged worktree scope could not resume: %v", err)
+			}
+			if raw, _ := os.ReadFile(filepath.Join(shared, "config.toml")); string(raw) != original {
+				t.Fatal("worktree scope changed the global configuration")
+			}
+		})
+	}
+}
+
+func TestNativeEnvironmentWorktreeAccountModes(t *testing.T) {
+	for _, cli := range []string{"codex", "claude"} {
+		for _, mode := range []string{"native", "api", "subscription"} {
+			for _, external := range []bool{false, true} {
+				t.Run(cli+"/"+mode+"/"+map[bool]string{false: "restricted", true: "full"}[external], func(t *testing.T) {
+					shared := t.TempDir()
+					data := filepath.Join(shared, "worktrees", "checkout", "app-data")
+					workspace := filepath.Join(data, "chat", "workspace")
+					parent := filepath.Join(data, "plugins", "native-homes")
+					if err := os.MkdirAll(workspace, 0700); err != nil {
+						t.Fatal(err)
+					}
+					codexHomeWrite(t, filepath.Join(shared, "config.toml"), "mcp_oauth_credentials_store = \"file\"\n", 0600)
+					codexHomeWrite(t, filepath.Join(shared, "auth.json"), `{"token":"native-model"}`, 0600)
+					codexHomeWrite(t, filepath.Join(shared, "settings.json"), `{}`, 0600)
+					account := ""
+					if mode != "native" {
+						account = filepath.Join(data, "accounts", mode)
+						codexHomeWrite(t, filepath.Join(account, "config.toml"), "model = \"selected\"\n", 0600)
+						codexHomeWrite(t, filepath.Join(account, "auth.json"), `{"token":"selected-model"}`, 0600)
+						codexHomeWrite(t, filepath.Join(account, "settings.json"), `{"env":{"ANTHROPIC_AUTH_TOKEN":"selected-model"}}`, 0600)
+						if mode == "api" {
+							codexHomeWrite(t, filepath.Join(account, "auth.json"), `{"OPENAI_API_KEY":"selected-api-key"}`, 0600)
+							codexHomeWrite(t, filepath.Join(account, "config.toml"), "model = \"selected\"\nmodel_provider = \"custom\"\n[model_providers.custom]\nbase_url = \"https://fixture.invalid\"\nwire_api = \"responses\"\n", 0600)
+						}
+					}
+					spec := NativeEnvironmentSpec{RuntimeID: cli, AccountHome: account, SharedPluginHome: shared, Executable: "/fixture/" + cli, AllowExternal: external, Workspace: workspace, StateDirectory: filepath.Join(workspace, constants.RuntimeStateDirectoryName, constants.PluginNativeScopeDirectory)}
+					view, err := PrepareNativeEnvironment(parent, spec)
+					if err != nil {
+						t.Fatalf("worktree model environment rejected: %v", err)
+					}
+					if !external && view.Home == shared {
+						t.Fatal("restricted execution inherited the global model home")
+					}
+					if err := view.CommitScope(); err != nil {
+						t.Fatal(err)
+					}
+					if raw, _ := os.ReadFile(filepath.Join(shared, "auth.json")); string(raw) != `{"token":"native-model"}` {
+						t.Fatal("selected account overwrote the native model identity")
+					}
+				})
+			}
+		}
+	}
+}
+
+func TestNativeEnvironmentRejectsScopeInGlobalState(t *testing.T) {
+	for _, cli := range []string{"codex", "claude"} {
+		t.Run(cli, func(t *testing.T) {
+			for _, location := range []string{".", "plugins/cache", "worktrees"} {
+				t.Run(location, func(t *testing.T) {
+					shared := t.TempDir()
+					workspace := filepath.Join(shared, location)
+					if err := os.MkdirAll(workspace, 0700); err != nil {
+						t.Fatal(err)
+					}
+					spec := NativeEnvironmentSpec{RuntimeID: cli, SharedPluginHome: shared, Executable: "/fixture/" + cli, AllowExternal: true, Workspace: workspace, StateDirectory: filepath.Join(workspace, constants.RuntimeStateDirectoryName, "native-plugins")}
+					if _, err := PrepareNativeEnvironment(t.TempDir(), spec); err != status_error.PluginContentInvalid {
+						t.Fatalf("global state accepted as workspace: %v", err)
+					}
+				})
+			}
+		})
+	}
+}
+
+func TestNativeEnvironmentRejectsWorktreeScopeSymlink(t *testing.T) {
+	for _, cli := range []string{"codex", "claude"} {
+		t.Run(cli, func(t *testing.T) {
+			if runtime.GOOS == "windows" {
+				t.Skip("fixture requires symbolic links")
+			}
+			for _, redirect := range []string{"worktree", "runtime"} {
+				t.Run(redirect, func(t *testing.T) {
+					shared := t.TempDir()
+					workspace := filepath.Join(shared, "worktrees", "checkout")
+					if err := os.MkdirAll(filepath.Dir(workspace), 0700); err != nil {
+						t.Fatal(err)
+					}
+					link := workspace
+					if redirect == "runtime" {
+						if err := os.Mkdir(workspace, 0700); err != nil {
+							t.Fatal(err)
+						}
+						link = filepath.Join(workspace, constants.RuntimeStateDirectoryName)
+					}
+					if err := os.Symlink(shared, link); err != nil {
+						t.Fatal(err)
+					}
+					spec := NativeEnvironmentSpec{RuntimeID: cli, SharedPluginHome: shared, Executable: "/fixture/" + cli, AllowExternal: true, Workspace: workspace, StateDirectory: filepath.Join(workspace, constants.RuntimeStateDirectoryName, "native-plugins")}
+					if _, err := PrepareNativeEnvironment(t.TempDir(), spec); err != status_error.PluginContentInvalid {
+						t.Fatalf("redirected worktree scope accepted: %v", err)
+					}
+					if _, err := os.Stat(filepath.Join(shared, "native-plugins")); !os.IsNotExist(err) {
+						t.Fatal("rejected scope wrote to the global directory")
+					}
+				})
+			}
+		})
+	}
+}
+
+func TestNativeEnvironmentRejectsAccountInGlobalState(t *testing.T) {
+	for _, cli := range []string{"codex", "claude"} {
+		for _, location := range []string{".", "plugins/cache/account", "worktrees"} {
+			t.Run(cli+"/"+location, func(t *testing.T) {
+				shared := t.TempDir()
+				account := filepath.Join(shared, location)
+				if err := os.MkdirAll(account, 0700); err != nil {
+					t.Fatal(err)
+				}
+				spec := NativeEnvironmentSpec{RuntimeID: cli, AccountHome: account, SharedPluginHome: shared, Executable: "/fixture/" + cli, AllowExternal: true}
+				if _, err := PrepareNativeEnvironment(t.TempDir(), spec); err != status_error.PluginContentInvalid {
+					t.Fatalf("global state accepted as model account: %v", err)
+				}
+			})
+		}
+	}
+}
 
 func TestNativeEnvironmentSharesCodexPluginsWithoutChangingModelAccount(t *testing.T) {
 	parent, account, target := codexHomeFixture(t)

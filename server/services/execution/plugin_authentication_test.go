@@ -191,6 +191,34 @@ func TestUnboundLegacySkillBridgeStillProjectsForOtherRuntime(t *testing.T) {
 	}
 }
 
+func TestSkillCommandBridgeProjectsManagedCLIForOtherRuntimes(t *testing.T) {
+	for _, cli := range []string{"pi", "cursor", "gemini", "grok", "kimi", "opencode", "workbuddy"} {
+		t.Run(cli, func(t *testing.T) {
+			binding := `environment:{PATH:r.params.dataDirectory+(process.env.PATH?process.platform==='win32'?';':':':'')+(process.env.PATH??''),WECOM_CLI_CONFIG_DIR:r.params.dataDirectory}`
+			manager, _, _ := authenticatedPluginSourceFixture(t, authenticationFixtureShape{LegacySkillBridge: true}, binding)
+			data, err := filepath.EvalSymlinks(manager.skillDataDirectory)
+			if err != nil {
+				t.Fatal(err)
+			}
+			manager.skillDataDirectory = data
+			registry := commandbridge.NewRegistry(context.Background(), nil)
+			t.Cleanup(registry.Close)
+			manager.pluginInstallations = plugininstallation.New(plugininstallation.Config{DataDirectory: data, Bridges: registry, BridgeEnvironment: os.Environ()})
+			detection := runtimes.DetectionResult{Runtime: runtimes.RuntimeSummary{BaseRuntimeID: cli}, Capabilities: runtimes.CapabilitySet{runtimes.CapabilitySkillDirectory: true}}
+			prepared, err := manager.preparePlugins(context.Background(), "w", pendingMessage{message: userMessage{PluginIDs: []string{"p"}}}, detection)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer prepared.release()
+			private := filepath.Join(data, "plugins/data/p")
+			paths := filepath.SplitList(prepared.environment["PATH"])
+			if len(prepared.skills) != 1 || len(prepared.native) != 0 || len(prepared.connectors) != 0 || len(paths) == 0 || paths[0] != private || prepared.environment["WECOM_CLI_CONFIG_DIR"] != private {
+				t.Fatal("skill projection lost the managed CLI or its shared profile")
+			}
+		})
+	}
+}
+
 func TestSkillCommandBridgesMergePrivatePathsAndKeepOtherConflicts(t *testing.T) {
 	for _, conflict := range []bool{false, true} {
 		t.Run(fmt.Sprintf("conflict=%t", conflict), func(t *testing.T) {
