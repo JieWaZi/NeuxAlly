@@ -1,6 +1,6 @@
 import { StreamdownTextPrimitive } from "@assistant-ui/react-streamdown";
 import { code } from "@streamdown/code";
-import { mermaid } from "@streamdown/mermaid";
+import { mermaid } from "./chat-mermaid-plugin";
 import {
   CodeBlock,
   CodeBlockCopyButton,

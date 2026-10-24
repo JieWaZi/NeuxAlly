@@ -1,14 +1,9 @@
+import { lazy, Suspense } from "react";
 import { useTranslation } from "react-i18next";
 
-import { Button } from "@/shared/ui/button";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/shared/ui/card";
 import { WelcomeBrand } from "./welcome/welcome-brand";
+
+const StartupErrorPanel = lazy(() => import("./startup-error-panel"));
 
 export type StartupStage = "interface" | "connection" | "workspace";
 
@@ -30,22 +25,18 @@ export function StartupScreen({
     <>
       <WelcomeBrand intro={intro} onIntroComplete={onIntroComplete}>
         {error ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("startup.failed")}</CardTitle>
-            </CardHeader>
-            <CardContent>
+          <Suspense
+            fallback={
               <p
                 role="alert"
                 className="text-destructive type-body break-words"
               >
                 {error}
               </p>
-            </CardContent>
-            <CardFooter>
-              <Button onClick={onRetry}>{t("startup.retry")}</Button>
-            </CardFooter>
-          </Card>
+            }
+          >
+            <StartupErrorPanel error={error} onRetry={onRetry} />
+          </Suspense>
         ) : undefined}
       </WelcomeBrand>
       {!error && (

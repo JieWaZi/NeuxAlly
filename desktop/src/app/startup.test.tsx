@@ -127,7 +127,7 @@ it("等待服务时显示进度，失败显示原因，重试成功后自动进�
   await act(async () => connection.reject("等待本地服务超时"));
   expect(screen.getByRole("alert")).toHaveTextContent("等待本地服务超时");
   expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "重试启动" }));
+  fireEvent.click(await screen.findByRole("button", { name: "重试启动" }));
   expect(connection.connect).toHaveBeenCalledTimes(2);
   expect(screen.getByRole("status")).toBeVisible();
   await act(async () => connection.resolve());

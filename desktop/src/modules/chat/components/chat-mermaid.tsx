@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { useEffect, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { mermaid } from "@streamdown/mermaid";
+import { mermaid } from "./chat-mermaid-plugin";
 
 import { Button } from "@/shared/ui/button";
 import { SegmentedControl } from "@/shared/ui/segmented-control";
