@@ -110,6 +110,7 @@ func defaultACPRuntimeBindings() map[string]acpRuntimeBinding {
 		RuntimeIDGemini:    geminiACPRuntimeBinding(),
 		RuntimeIDGrok:      grokACPRuntimeBinding(),
 		RuntimeIDWorkBuddy: workBuddyACPRuntimeBinding(),
+		RuntimeIDQoder:     qoderACPRuntimeBinding(),
 		RuntimeIDCodex:     codexACPRuntimeBinding(),
 		RuntimeIDClaude:    claudeACPRuntimeBinding(),
 		RuntimeIDKimi:      kimiACPRuntimeBinding(),

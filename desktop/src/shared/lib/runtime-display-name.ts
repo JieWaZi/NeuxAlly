@@ -15,6 +15,8 @@ export function runtimeDisplayName(runtime?: { id?: string; name?: string }) {
       return "Gemini CLI";
     case "grok":
       return "Grok Build";
+    case "qoder":
+      return "Qoder";
     case "workbuddy":
       return "WorkBuddy";
     case "pi":

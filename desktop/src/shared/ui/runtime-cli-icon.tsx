@@ -8,6 +8,8 @@ import Kimi from "@lobehub/icons/es/Kimi/components/Mono";
 import OpenCode from "@lobehub/icons/es/OpenCode/components/Mono";
 import { Bot } from "lucide-react";
 
+import qoderIcon from "@/shared/assets/brands/qoder.svg";
+import workbuddyIcon from "@/shared/assets/brands/workbuddy.svg";
 import { cn } from "@/shared/lib/cn";
 
 type RuntimeCliIconProps = {
@@ -22,6 +24,19 @@ export function RuntimeCliIcon({
   size = 16,
 }: RuntimeCliIconProps) {
   const normalizedRuntimeId = runtimeId?.trim().toLowerCase();
+
+  if (normalizedRuntimeId === "qoder" || normalizedRuntimeId === "workbuddy") {
+    return (
+      <img
+        aria-hidden
+        alt=""
+        src={normalizedRuntimeId === "qoder" ? qoderIcon : workbuddyIcon}
+        className={cn("shrink-0 object-contain", className)}
+        width={size}
+        height={size}
+      />
+    );
+  }
 
   if (normalizedRuntimeId === "claude") {
     return (

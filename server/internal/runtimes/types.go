@@ -29,6 +29,8 @@ const (
 	RuntimeIDGrok = constants.RuntimeIDGrok
 	// RuntimeIDWorkBuddy 是 WorkBuddy 标准 ACP 运行时标识。
 	RuntimeIDWorkBuddy = constants.RuntimeIDWorkBuddy
+	// RuntimeIDQoder 是 Qoder CLI 标准 ACP 运行时标识。
+	RuntimeIDQoder = constants.RuntimeIDQoder
 )
 
 const (

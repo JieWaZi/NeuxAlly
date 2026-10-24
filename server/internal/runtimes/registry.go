@@ -42,6 +42,7 @@ func newRegistry(profiles []ProfileSpec) (map[string]runtimeDefinition, error) {
 		RuntimeIDGemini:    builtinGeminiDefinition(),
 		RuntimeIDGrok:      builtinNativeDefinition(RuntimeIDGrok, "Grok Build", []string{"grok"}, ".grok", "GROK_HOME"),
 		RuntimeIDWorkBuddy: builtinWorkBuddyDefinition(),
+		RuntimeIDQoder:     builtinNativeDefinition(RuntimeIDQoder, "Qoder", []string{"qoder", "qodercli"}, ".qoder", "QODER_CONFIG_DIR"),
 		RuntimeIDCodex:     builtinCodexDefinition(),
 		RuntimeIDClaude:    builtinClaudeDefinition(),
 		RuntimeIDKimi:      builtinNativeDefinition(RuntimeIDKimi, "Kimi", []string{"kimi"}, ".agents", ""),

@@ -6,7 +6,7 @@
 
 internal/runtimes 提供数据库无关的探测、能力与执行适配。它复用 acp-go 的公共适配器，将智能体事件、审批、问答、会话与错误归一给 Execution。增加智能体通过现有注册和能力边界完成，不向 Chat 暴露私有协议。
 
-界面支持 Codex、Claude Code、Cursor、Kimi、Pi、OpenCode、Gemini CLI、Grok Build、WorkBuddy。是否可用由本机安装、版本、登录、模型及真实 initialize 能力决定。
+界面支持 Codex、Claude Code、Cursor、Kimi、Pi、OpenCode、Gemini CLI、Grok Build、WorkBuddy、Qoder。是否可用由本机安装、版本、登录、模型及真实 initialize 能力决定。
 
 ACP initialize 不声明尚无请求合同的原生 Schema 输出能力；宿主能力接收结构化候选与原生 Schema 输出分别判断。
 
@@ -28,7 +28,7 @@ Codex 原生令牌刷新通过随机能力路径的回环端点交给宿主。�
 
 ## 权限与交互
 
-产品三级权限由 Runtime 映射到原生策略。自动审批仍受模型风险审查、原生规则和能力限制；完全访问也不能代替用户回答业务问题。
+产品三级权限由 Runtime 映射到原生策略。Qoder 通过官方 `--acp` stdio 入口接入，按会话实际声明的模式提供默认、自动审批与完全访问；旧版未声明自动审批时不展示，不提供只读模式。自动审批仍受模型风险审查、原生规则和能力限制；完全访问也不能代替用户回答业务问题。
 
 结构化审批和用户问答通过所属 Execution 的精确身份路由；取消、断线与会话结束必须释放等待。MCP 传输、附加目录、分叉和流式追加各自声明能力，不以运行时名称推断支持。
 

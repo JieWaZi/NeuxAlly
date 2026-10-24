@@ -27,3 +27,18 @@ it.each(["gemini", "opencode", "grok"])("为 %s 渲染品牌图标", (runtimeId)
   expect(container.querySelector("svg")).toBeTruthy();
   expect(container.querySelector("svg")).not.toHaveClass("size-icon-md");
 });
+
+it.each(["qoder", "workbuddy"])("为 %s 加载本地官方软件图标", (runtimeId) => {
+  const { container } = render(
+    <RuntimeCliIcon runtimeId={runtimeId} size={24} />,
+  );
+  const icon = container.querySelector("img");
+  expect(icon).toHaveAttribute(
+    "src",
+    expect.stringContaining(`/brands/${runtimeId}.svg`),
+  );
+  expect(icon).toHaveAttribute("width", "24");
+  expect(icon).toHaveAttribute("height", "24");
+  expect(icon).toHaveAttribute("aria-hidden", "true");
+  expect(container.querySelector("svg")).toBeNull();
+});
