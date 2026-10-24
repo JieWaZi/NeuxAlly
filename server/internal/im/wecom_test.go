@@ -563,3 +563,66 @@ func TestWecomUploadInterruptionCanRestartWithoutDuplicatingChatMessage(t *testi
 		}
 	}
 }
+
+func TestWecomGroupInvocationDoesNotPolluteMessageBody(t *testing.T) {
+	cases := []struct {
+		// name 是当前正文边界用例。
+		name string
+		// chatType 限定只有群消息参与唤起词规范化。
+		chatType string
+		// kind 区分文本、语音和混排。
+		kind string
+		// content 是真实平台正文。
+		content string
+		// want 是交给收件和执行入口的正文。
+		want string
+		// accepted 表示是否存在可处理正文。
+		accepted bool
+	}{
+		{"screenshot", "group", "text", "@吴俊杰的机器人 你好", "你好", true},
+		{"direct", "single", "text", "@吴俊杰的机器人 你好", "@吴俊杰的机器人 你好", true},
+		{"voice", "group", "voice", "@吴俊杰的机器人 你好", "@吴俊杰的机器人 你好", true},
+		{"mixed", "group", "mixed", "@吴俊杰的机器人 你好", "你好", true},
+		{"multiple_mentions", "group", "text", "@机器人 @同事 你好 @其他人", "@同事 你好 @其他人", true},
+		{"later_mention", "group", "text", "你好 @机器人", "你好 @机器人", true},
+		{"email", "group", "text", "@机器人 发给 me@example.com 并抄送 @同事", "发给 me@example.com 并抄送 @同事", true},
+		{"leading_email", "group", "text", "me@example.com 请联系", "me@example.com 请联系", true},
+		{"leading_invalid_email", "group", "text", "@me@example.com 请联系", "@me@example.com 请联系", true},
+		{"command", "group", "text", "@机器人 /new", "/new", true},
+		{"unicode_separator", "group", "text", "@机器人\u2005你好", "你好", true},
+		{"mention_only", "group", "text", "@机器人", "", false},
+		{"blank_mention", "group", "text", "@ 你好", "@ 你好", true},
+		// 协议没有昵称身份字段，含空格名称只能按第一个空白分隔词处理，不能伪称完整识别。
+		{"space_in_name_boundary", "group", "text", "@My Bot 你好", "Bot 你好", true},
+	}
+	for _, test := range cases {
+		t.Run(test.name, func(t *testing.T) {
+			body := map[string]any{"msgid": "message", "aibotid": "bot", "chatid": "room", "chattype": test.chatType, "from": map[string]string{"userid": "wo-private-sender"}, "msgtype": test.kind}
+			if test.kind == "mixed" {
+				body["mixed"] = map[string]any{"msg_item": []any{map[string]any{"msgtype": "text", "text": map[string]string{"content": test.content}}, map[string]any{"msgtype": "text", "text": map[string]string{"content": "后续 @保留"}}}}
+			} else {
+				body[test.kind] = map[string]string{"content": test.content}
+			}
+			raw, err := json.Marshal(body)
+			if err != nil {
+				t.Fatal(err)
+			}
+			message, accepted, err := normalizeWecom(raw, "bot")
+			want := test.want
+			if test.kind == "mixed" {
+				want += "\n后续 @保留"
+			}
+			if err != nil || accepted != test.accepted || message.Content != want || message.SenderID != "wo-private-sender" {
+				t.Fatalf("normalization changed body or identity: content=%q accepted=%v sender=%q error=%v", message.Content, accepted, message.SenderID, err)
+			}
+		})
+	}
+}
+
+func TestWecomGroupMentionOnlyMixedMessageKeepsAttachments(t *testing.T) {
+	raw := json.RawMessage(`{"msgid":"m","aibotid":"bot","chatid":"room","chattype":"group","from":{"userid":"member"},"msgtype":"mixed","mixed":{"msg_item":[{"msgtype":"text","text":{"content":"@机器人 "}},{"msgtype":"image","image":{"url":"https://wework.qpic.cn/image","aeskey":"key"}}]}}`)
+	message, accepted, err := normalizeWecom(raw, "bot")
+	if err != nil || !accepted || message.Content != "" || len(message.Files) != 1 {
+		t.Fatalf("mention-only text discarded mixed attachment: %+v accepted=%v error=%v", message, accepted, err)
+	}
+}
