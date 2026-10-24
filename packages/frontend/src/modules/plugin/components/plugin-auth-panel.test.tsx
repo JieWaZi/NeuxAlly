@@ -654,3 +654,37 @@ it.each(["session", "new-session"])(
       });
   },
 );
+
+it("shows an official inline PNG without encoding its data URL as a QR payload", async () => {
+  const value =
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
+  fixture.status.account.available = false;
+  fixture.status.session.actions = [{ type: "show-qr", value }];
+  show(true);
+  const image = await screen.findByRole("img");
+  expect(image).toHaveAttribute("src", value);
+  expect(image).toHaveAttribute("width", "192");
+  expect(image).toHaveAttribute("height", "192");
+  expect(image).toHaveAccessibleName();
+  expect(screen.queryByLabelText("二维码内容")).not.toBeInTheDocument();
+});
+
+it("keeps remote PNG URLs as QR payloads without loading remote images", async () => {
+  const value = "https://example.com/official.png";
+  fixture.status.account.available = false;
+  fixture.status.session.actions = [{ type: "show-qr", value }];
+  show(true);
+  expect(await screen.findByLabelText("二维码内容")).toHaveTextContent(value);
+  expect(screen.queryByRole("img")).not.toBeInTheDocument();
+});
+
+it("does not display unsupported inline image formats", async () => {
+  fixture.status.account.available = false;
+  fixture.status.session.actions = [
+    { type: "show-qr", value: "data:image/svg+xml;base64,PHN2Zy8+" },
+  ];
+  show(true);
+  await screen.findByRole("button", { name: "刷新二维码" });
+  expect(screen.queryByRole("img")).not.toBeInTheDocument();
+  expect(screen.queryByLabelText("二维码内容")).not.toBeInTheDocument();
+});

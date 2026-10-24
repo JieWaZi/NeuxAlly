@@ -3,8 +3,11 @@ package commandbridge
 
 import (
 	"bufio"
+	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
+	"image/png"
 	"io"
 	"net/url"
 	"os"
@@ -278,7 +281,11 @@ func (d *Driver) call(ctx context.Context, method, id string, scopes []string, c
 		_ = stdout.Close()
 		workers.Wait()
 	}()
-	timer := time.NewTimer(30 * time.Second)
+	wait := 30 * time.Second
+	if method == constants.PluginAuthStartMethod {
+		wait = constants.PluginAuthPreparationTimeoutSeconds * time.Second
+	}
+	timer := time.NewTimer(wait)
 	defer timer.Stop()
 	for {
 		select {
@@ -345,7 +352,7 @@ func (d *Driver) call(ctx context.Context, method, id string, scopes []string, c
 					return nil, status_error.PluginAuthorizationFailed
 				}
 				for _, action := range notice.Actions {
-					if (action.Type == "open-url" && !safeURL(action.URL)) || (action.Type == "show-qr" && action.Value == "") || (action.Type == "copy-code" && action.Value == "") || (action.Type != "open-url" && action.Type != "show-qr" && action.Type != "copy-code") {
+					if (action.Type == "open-url" && !safeURL(action.URL)) || (action.Type == "show-qr" && !safeQRValue(action.Value)) || (action.Type == "copy-code" && action.Value == "") || (action.Type != "open-url" && action.Type != "show-qr" && action.Type != "copy-code") {
 						return nil, status_error.PluginAuthorizationFailed
 					}
 				}
@@ -387,6 +394,29 @@ func (d *Driver) call(ctx context.Context, method, id string, scopes []string, c
 func safeURL(value string) bool {
 	parsed, err := url.Parse(value)
 	return err == nil && parsed.Scheme == "https" && parsed.Hostname() != "" && parsed.User == nil && !strings.ContainsAny(value, "\x00\r\n")
+}
+
+// safeQRValue 保留原始扫码载荷，仅内联 PNG 按受限图片验证，避免把官方原图再次编码成二维码。
+func safeQRValue(value string) bool {
+	if !strings.HasPrefix(strings.ToLower(value), "data:") {
+		return value != ""
+	}
+	encoded, ok := strings.CutPrefix(value, constants.PluginAuthQRPNGPrefix)
+	if !ok || len(encoded) > base64.StdEncoding.EncodedLen(constants.PluginAuthQRPNGMaxBytes) {
+		return false
+	}
+	data, err := base64.StdEncoding.Strict().DecodeString(encoded)
+	if err != nil || len(data) > constants.PluginAuthQRPNGMaxBytes || base64.StdEncoding.EncodeToString(data) != encoded {
+		return false
+	}
+	config, err := png.DecodeConfig(bytes.NewReader(data))
+	if err != nil || config.Width <= 0 || config.Height <= 0 || config.Width > constants.PluginAuthQRPNGMaxDimension || config.Height > constants.PluginAuthQRPNGMaxDimension {
+		return false
+	}
+	// 完整解码检查像素数据及校验和；先限定尺寸，防止压缩图片放大内存消耗。
+	reader := bytes.NewReader(data)
+	_, err = png.Decode(reader)
+	return err == nil && reader.Len() == 0
 }
 
 // ResolveEntry 只允许包内程序或受信Node执行固定包内脚本。
@@ -444,6 +474,34 @@ func (d *Driver) allowedPath(value string) bool {
 		}
 	}
 	return true
+}
+
+// MergePath 合并已接纳插件的程序目录，当前桥接仍只能追加自身私有目录与原受信 PATH。
+func (d *Driver) MergePath(current, incoming string) (string, error) {
+	if !d.allowedPath(incoming) {
+		return "", status_error.PluginForbidden
+	}
+	trusted := []string{}
+	for _, entry := range d.config.Environment {
+		if key, value, _ := strings.Cut(entry, "="); key == "PATH" {
+			trusted = filepath.SplitList(value)
+		}
+	}
+	private, inherited := []string{}, []string{}
+	seen := map[string]bool{}
+	for _, directory := range append(filepath.SplitList(current), filepath.SplitList(incoming)...) {
+		if seen[directory] {
+			continue
+		}
+		seen[directory] = true
+		if slices.Contains(trusted, directory) {
+			inherited = append(inherited, directory)
+		} else {
+			private = append(private, directory)
+		}
+	}
+	// 每个插件的受管程序都优先于系统同名程序；不能把后续插件目录追加到继承 PATH 之后。
+	return strings.Join(append(private, inherited...), string(os.PathListSeparator)), nil
 }
 
 func (d *Driver) privatePath(value string) bool {

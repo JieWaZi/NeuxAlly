@@ -441,6 +441,14 @@ func (m *service) preparePlugins(ctx context.Context, waker string, request pend
 					})
 					if isSkill {
 						for key, value := range binding.Environment {
+							if key == "PATH" {
+								value, bindErr = bridge.MergePath(candidateEnvironment[key], value)
+								if bindErr != nil {
+									return result, bindErr
+								}
+								candidateEnvironment[key] = value
+								continue
+							}
 							if old, ok := candidateEnvironment[key]; ok && old != value {
 								return result, status_error.PluginConfigurationConflict
 							}
@@ -572,6 +580,14 @@ func (m *service) preparePlugins(ctx context.Context, waker string, request pend
 			result.native = append(result.native, *candidateNative)
 		}
 		for key, value := range candidateEnvironment {
+			if key == "PATH" && bridge != nil {
+				merged, mergeErr := bridge.MergePath(result.environment[key], value)
+				if mergeErr != nil {
+					return result, mergeErr
+				}
+				result.environment[key] = merged
+				continue
+			}
 			if existing, ok := result.environment[key]; ok && existing != value {
 				return result, status_error.PluginConfigurationConflict
 			}
