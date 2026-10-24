@@ -11,8 +11,9 @@ const rendererImportPaths = [
 ];
 
 const nodeImportPattern = {
-  group: ["node:*", "electron", "**/desktop/**", "**/web/**"],
-  message: "渲染进程不得直接使用 Node.js 能力。",
+  regex:
+    "^(?:node:|electron(?:/|$)|@neuxally/(?:desktop|web)(?:/|$)|(?:\\.{1,2}/|@/)(?:[^/]+/)*(?:desktop|web)(?:/|$))",
+  message: "共享界面不得直接导入 Node、Electron 或 Web/Desktop 宿主实现。",
 };
 
 const testFiles = ["src/**/*.test.{ts,tsx}", "src/test/**/*.{ts,tsx}"];

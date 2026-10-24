@@ -96,7 +96,9 @@ vi.mock("./use-browser-surface", async () => {
     }) => {
       const hostRef = useRef<HTMLDivElement>(null);
       useEffect(() => {
-        const rect = hostRef.current!.getBoundingClientRect();
+        const host = hostRef.current;
+        if (!host) throw new Error("测试预览容器尚未挂载");
+        const rect = host.getBoundingClientRect();
         void nativeView.create(
           props.url,
           { x: rect.x, y: rect.y, width: rect.width, height: rect.height },

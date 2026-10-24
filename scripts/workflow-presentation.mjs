@@ -3,7 +3,9 @@ import { build } from "../packages/frontend/node_modules/esbuild/lib/main.js";
 import { readFile, writeFile, unlink } from "node:fs/promises";
 import { resolve } from "node:path";
 import { format } from "../packages/frontend/node_modules/prettier/index.mjs";
-const temporary = resolve("packages/frontend/.workflow-presentation-catalog.mjs");
+const temporary = resolve(
+  "packages/frontend/.workflow-presentation-catalog.mjs",
+);
 try {
   await build({
     entryPoints: ["packages/frontend/src/shared/presentation/catalog.ts"],

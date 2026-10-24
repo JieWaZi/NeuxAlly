@@ -31,6 +31,11 @@ class Socket {
     this.onmessage?.({ data: JSON.stringify({ event, payload }) });
   }
 }
+function socketAt(index: number): Socket {
+  const socket = Socket.instances[index];
+  if (!socket) throw new Error(`测试终端连接 ${index} 尚未创建`);
+  return socket;
+}
 const snapshot = (attachmentId = "a", sequence = 2) => ({
   sessionId: "s",
   attachmentId,
@@ -58,7 +63,7 @@ describe("Core 终端视图", () => {
     terminal.onTerminalSnapshot?.(recovered);
     const attached = terminal.terminal_attach({ sessionId: "s" });
     await Promise.resolve();
-    const first = Socket.instances[0]!;
+    const first = socketAt(0);
     expect(first.protocols).toEqual(["ally.terminal.v1"]);
     expect(first.url.search).toBe("");
     first.frame("snapshot", snapshot());
@@ -81,7 +86,7 @@ describe("Core 终端视图", () => {
     });
     first.close();
     await vi.advanceTimersByTimeAsync(1000);
-    const second = Socket.instances[1]!;
+    const second = socketAt(1);
     second.frame("snapshot", snapshot("b", 4));
     await Promise.resolve();
     expect(recovered).toHaveBeenCalledWith(snapshot("b", 4));
@@ -108,7 +113,7 @@ describe("Core 终端视图", () => {
     terminal.onTerminalOutput(output);
     const attached = terminal.terminal_attach({ sessionId: "s" });
     await Promise.resolve();
-    const first = Socket.instances[0]!;
+    const first = socketAt(0);
     first.frame("snapshot", snapshot());
     await attached;
     first.frame("terminal-output", {
