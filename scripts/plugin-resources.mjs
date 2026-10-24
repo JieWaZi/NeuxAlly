@@ -19,7 +19,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sourceRoot = path.join(root, "plugin-sources");
-const requireDesktop = createRequire(path.join(root, "desktop/package.json"));
+const requireTools = createRequire(path.join(root, "package.json"));
 const hash = (bytes) => createHash("sha256").update(bytes).digest("hex");
 
 // 固定来源和每个平台资产均需有完整身份，运行时不解析远端分支。
@@ -172,7 +172,7 @@ async function packageZIP(directory) {
     }
   }
   await collect();
-  return Buffer.from(requireDesktop("fflate").zipSync(files));
+  return Buffer.from(requireTools("fflate").zipSync(files));
 }
 
 // Git bundle 是独立源仓库的固定提交快照，只读取内容，不执行源仓库脚本。
@@ -312,7 +312,7 @@ export async function prepareProvider(output, target, options = {}) {
       binary = built.binary;
       license = built.license;
     } else if (asset.file.endsWith(".zip")) {
-      const { unzipSync } = requireDesktop("fflate");
+      const { unzipSync } = requireTools("fflate");
       const files = unzipSync(bytes);
       const names = Object.keys(files).filter(
         (name) => path.posix.basename(name) === binaryName,

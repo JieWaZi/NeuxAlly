@@ -22,9 +22,13 @@ import (
 	"github.com/JieWaZi/NeuxAlly/server/apis/runtime_options"
 	"github.com/JieWaZi/NeuxAlly/server/apis/skills"
 	"github.com/JieWaZi/NeuxAlly/server/apis/system"
+	"github.com/JieWaZi/NeuxAlly/server/apis/terminals"
+	"github.com/JieWaZi/NeuxAlly/server/apis/uploads"
 	"github.com/JieWaZi/NeuxAlly/server/apis/wakers"
+	"github.com/JieWaZi/NeuxAlly/server/apis/websession"
 	"github.com/JieWaZi/NeuxAlly/server/apis/work_board"
 	"github.com/JieWaZi/NeuxAlly/server/apis/workflows"
+	"github.com/JieWaZi/NeuxAlly/server/apis/workspace"
 	"github.com/shrewx/ginx"
 )
 
@@ -37,6 +41,8 @@ var desktopRouter = ginx.NewRouter(ginx.Group("/api/v1"))
 func init() {
 	desktopRouter.Register(&middleware.LocalTokenAuth{})
 	desktopRouter.Register(system.Router)
+	desktopRouter.Register(terminals.Router)
+	desktopRouter.Register(uploads.Router)
 	desktopRouter.Register(eventapi.Router)
 	desktopRouter.Register(memoryapi.Router)
 	desktopRouter.Register(knowledgeapi.Router)
@@ -59,8 +65,10 @@ func init() {
 	desktopRouter.Register(plugins.WakerRouter)
 	desktopRouter.Register(imapi.Router)
 	desktopRouter.Register(workflows.Router)
+	desktopRouter.Register(workspace.Router)
 	desktopRouter.Register(work_board.Router)
 	desktopRouter.Register(notifications.Router)
 	RootRouter.Register(desktopRouter)
 	RootRouter.Register(agent.Router)
+	RootRouter.Register(websession.Router)
 }

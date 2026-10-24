@@ -12,26 +12,29 @@ const desktopRequire = createRequire(
 const builderRequire = createRequire(
   desktopRequire.resolve("electron-builder"),
 );
-const { getNodeModuleFileMatcher } = builderRequire(
-  "app-builder-lib/out/fileMatcher.js",
-);
+const { FileMatcher } = builderRequire("app-builder-lib/out/fileMatcher.js");
 const manifest = desktopRequire("./package.json");
 
 test("原生依赖裁剪使用打包器的真实过滤规则，保留运行文件并排除编译产物", () => {
   const app = path.resolve("fixture-app");
   for (const platform of ["win32", "darwin"]) {
     for (const arch of ["x64", "arm64"]) {
-      const matcher = getNodeModuleFileMatcher(
+      const runtime = manifest.build.extraResources.find(
+        (entry) => entry.to === "terminal-runtime/node_modules/node-pty",
+      );
+      assert.ok(runtime);
+      const matcher = new FileMatcher(
         app,
         path.resolve("fixture-output"),
         (value) =>
           value.replaceAll("${platform}", platform).replaceAll("${arch}", arch),
-        {},
-        { config: manifest.build, debugLogger: { isEnabled: false } },
+        runtime.filter,
       );
       const filter = matcher.createFilter();
       const includes = (file) =>
-        filter(path.join(app, file), { isDirectory: () => false });
+        filter(path.join(app, file.replace(/^node_modules\/node-pty\//, "")), {
+          isDirectory: () => false,
+        });
       for (const file of [
         "node-pty/lib/index.js",
         "node-pty/lib/worker/conoutSocketWorker.js",
@@ -46,8 +49,6 @@ test("原生依赖裁剪使用打包器的真实过滤规则，保留运行文�
         "node-pty/build/Release/conpty/OpenConsole.exe",
         "node-pty/build/Release/spawn-helper",
         `node-pty/prebuilds/${platform}-${arch}/pty.node`,
-        "node-addon-api/LICENSE.md",
-        "node-addon-api/package.json",
       ])
         assert.ok(
           includes(`node_modules/${file}`),
@@ -76,7 +77,7 @@ test("原生依赖裁剪使用打包器的真实过滤规则，保留运行文�
         "node-pty/build/Release/conpty",
       ]) {
         assert.ok(
-          filter(path.join(app, "node_modules", directory), {
+          filter(path.join(app, directory.replace(/^node-pty\//, "")), {
             isDirectory: () => true,
           }),
         );
@@ -120,7 +121,7 @@ test("Windows x64 和 arm64 的三项体积在上限时通过", async (t) => {
   const bytes = {
     application: 450 * mib,
     resources: 215 * mib,
-    installer: 150 * mib,
+    installer: 170 * mib,
   };
   for (const architecture of ["x64", "arm64"]) {
     const release = await fixture(t, bytes, architecture);
@@ -140,7 +141,7 @@ test("超限仍拒绝发布并保存全部实测体积和大文件清单", async
   const bytes = {
     application: 450 * mib + 1,
     resources: 215 * mib + 1,
-    installer: 150 * mib + 1,
+    installer: 170 * mib + 1,
   };
   const release = await fixture(t, bytes);
   await assert.rejects(

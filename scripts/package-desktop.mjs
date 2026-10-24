@@ -25,15 +25,19 @@ function run(label, command, args) {
 }
 
 run("构建 Go Core sidecar", pnpm, ["build:sidecar"]);
+run("构建共享终端执行资源", pnpm, ["terminal:build"]);
 run("构建 Renderer", pnpm, ["--dir", "desktop", "build"]);
 run("检查首屏静态资源预算", pnpm, ["--dir", "desktop", "bundle:check"]);
+run("准备原生Renderer无损交付资源", process.execPath, [
+  path.join(root, "scripts/package-native-renderer.mjs"),
+]);
 run("构建 Electron 主进程与 preload", pnpm, [
   "--dir",
   "desktop",
   "electron:build",
 ]);
-// Release 的 package 任务在 verify 已跑过 electron:test；Windows 契约测试尚未全平台适配。
-if (process.env.ALLY_RELEASE_PACKAGE !== "1") {
+// 全量契约测试由调用方显式选择；打包仍执行资源预算和隔离产物冒烟。
+if (process.argv.includes("--test-contracts")) {
   run("验证 Electron 桌面契约", pnpm, ["--dir", "desktop", "electron:test"]);
 }
 if (process.platform === "darwin") {

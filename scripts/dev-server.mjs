@@ -28,7 +28,7 @@ const core = spawn(
       ALLY_PLUGIN_RESOURCES_DIR: pluginOutput,
       PI_MCP_MODULE_PATH: path.join(
         root,
-        "desktop/resources/pi-bridge/bridge.mjs",
+        "resources/pi-bridge/bridge.mjs",
       ),
     },
     stdio: "inherit",

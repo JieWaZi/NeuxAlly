@@ -1,6 +1,7 @@
 package skills
 
 import (
+	"github.com/JieWaZi/NeuxAlly/server/apis/uploads"
 	"path/filepath"
 
 	"github.com/JieWaZi/NeuxAlly/server/constants"
@@ -69,6 +70,15 @@ func scanSkillImport(ctx *gin.Context, s *ScanWakerSkillImport) (SkillImportBatc
 			return SkillImportBatch{}, ginx.WithStack(err)
 		}
 	}
+	accepted := false
+	if s.Body.Kind == constants.SkillSourceZip {
+		paths, release, err := uploads.Claim(ctx, []string{s.Body.Location})
+		if err != nil {
+			return SkillImportBatch{}, err
+		}
+		defer func() { release(accepted) }()
+		s.Body.Location = paths[0]
+	}
 	batch, err := internalSkills.StageImport(
 		ctx,
 		filepath.Join(global.Config.DataDirectory, "skills", "tmp"),
@@ -81,6 +91,7 @@ func scanSkillImport(ctx *gin.Context, s *ScanWakerSkillImport) (SkillImportBatc
 		logx.Errorf("scan skill source failed: kind=%s waker_id=%s error=%v", s.Body.Kind, s.WakerID, err)
 		return SkillImportBatch{}, ginx.WithStack(err)
 	}
+	accepted = true
 	installed := map[string]string{}
 	candidates := make([]SkillImportCandidate, 0, len(batch.Packages))
 	for _, candidate := range batch.Packages {

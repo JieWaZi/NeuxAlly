@@ -22,7 +22,7 @@ async function runSmoke(t, overrides = {}) {
   t.after(() => rm(resources, { recursive: true, force: true }));
   const moduleDirectory = path.join(
     resources,
-    "app.asar/node_modules/node-pty",
+    "terminal-runtime/node_modules/node-pty",
   );
   const record = path.join(resources, "pty-cwd.txt");
   await mkdir(moduleDirectory, { recursive: true });

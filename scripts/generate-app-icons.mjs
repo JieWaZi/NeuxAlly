@@ -11,7 +11,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const publicDir = path.join(root, "desktop/public");
+const publicDir = path.join(root, "packages/frontend/public");
 const resourceDir = path.join(root, "desktop/resources");
 const temporaryDir = mkdtempSync(path.join(tmpdir(), "neuxally-icons-"));
 const logo = readFileSync(path.join(publicDir, "ally-logo.svg"), "utf8");

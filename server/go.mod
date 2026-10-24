@@ -28,6 +28,7 @@ require (
 )
 
 require (
+	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/go-courier/codegen v1.1.2 // indirect
 	github.com/julienschmidt/httprouter v1.3.0 // indirect
 )

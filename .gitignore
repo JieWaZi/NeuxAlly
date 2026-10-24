@@ -43,3 +43,13 @@ go.work.sum
 
 # 从 Go 模块复制的许可分发文件
 desktop/resources/licenses/neux-knowledge/
+
+# Shared application and Web build outputs
+web/dist/
+web/coverage/
+web/release/
+packages/frontend/coverage/
+packages/frontend/dist/
+
+# Core-managed PTY runtime is rebuilt for each packaging target.
+resources/terminal-runtime/
