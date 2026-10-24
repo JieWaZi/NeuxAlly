@@ -2,12 +2,15 @@ package runtimes
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
 	"testing"
 	"time"
+
+	"github.com/JieWaZi/acp-go/pkg/nativeacp"
 )
 
 func TestDiscoverInstallationsKeepsMultipleVersionsAndMissingHistory(t *testing.T) {
@@ -56,37 +59,111 @@ func TestDiscoverInstallationsKeepsMultipleVersionsAndMissingHistory(t *testing.
 	}
 }
 
-// TestDiscoverInstallationsProbesPathsConcurrently 验证每个版本命令先启动后才等待其他安装路径。
-func TestDiscoverInstallationsProbesPathsConcurrently(t *testing.T) {
+// installationProbeFixture 复用同一测试二进制，屏障不再启动 shell、touch 或 sleep 子进程。
+func installationProbeFixture(t *testing.T) (string, []string, []string, []string) {
+	t.Helper()
 	if runtime.GOOS == "windows" {
-		t.Skip("fixture uses POSIX executable scripts")
+		t.Skip("fixture uses executable aliases through POSIX symlinks")
 	}
 	root := t.TempDir()
+	executable, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
 	paths := []string{filepath.Join(root, "first"), filepath.Join(root, "second")}
-	for index, path := range paths {
-		// 启动屏障使用 shell 内建重定向，避免额外 touch 进程消耗版本命令自身的两秒预算。
-		script := fmt.Sprintf("#!/bin/sh\n: > '%s/started-%d'\nwhile [ ! -f '%s/started-%d' ]; do /bin/sleep 0.01; done\nprintf '1.%d.0\\n'\n", root, index, root, 1-index, index)
-		if err := os.WriteFile(path, []byte(script), 0700); err != nil {
+	for _, path := range paths {
+		if err := os.Symlink(executable, path); err != nil {
 			t.Fatal(err)
 		}
 	}
+	args := []string{"-test.run=^TestInstallationVersionProbeProcess$", "--"}
+	environment := []string{"PATH=", "ALLY_INSTALLATION_PROBE_ROOT=" + root}
+	return root, paths, args, environment
+}
+
+// TestInstallationVersionProbeProcess 在两个真实版本进程中各自登记启动，等待对端进入后才输出版本。
+func TestInstallationVersionProbeProcess(t *testing.T) {
+	root := os.Getenv("ALLY_INSTALLATION_PROBE_ROOT")
+	if root == "" {
+		return
+	}
+	index := 0
+	switch filepath.Base(os.Args[0]) {
+	case "first":
+	case "second":
+		index = 1
+	default:
+		os.Exit(2)
+	}
+	marker := filepath.Join(root, fmt.Sprintf("started-%d", index))
+	if err := os.WriteFile(marker, []byte(time.Now().Format(time.RFC3339Nano)), 0600); err != nil {
+		os.Exit(2)
+	}
+	peer := filepath.Join(root, fmt.Sprintf("started-%d", 1-index))
+	for {
+		if _, err := os.Stat(peer); err == nil {
+			break
+		} else if !os.IsNotExist(err) {
+			os.Exit(2)
+		}
+		// 进程内等待避免外部 sleep 的启动成本，又不使用消耗 CPU 的忙循环。
+		time.Sleep(time.Millisecond)
+	}
+	fmt.Printf("1.%d.0\n", index)
+	os.Exit(0)
+}
+
+// TestDiscoverInstallationsProbesPathsConcurrently 验证两个真实版本进程必须同时启动才能通过屏障。
+func TestDiscoverInstallationsProbesPathsConcurrently(t *testing.T) {
+	root, paths, args, environment := installationProbeFixture(t)
 	sdk, err := New(Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
 	definition := sdk.definitions[RuntimeIDCodex]
 	definition.binaryCandidates = paths
+	definition.prefixArgs = args
 	sdk.definitions[RuntimeIDCodex] = definition
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	got := sdk.DiscoverInstallations(ctx, DetectRequest{RuntimeID: RuntimeIDCodex, HomeDirectory: root, BaseEnvironment: []string{"PATH="}}, []CLIInstallation{{Path: paths[0]}, {Path: paths[1]}})
+	got := sdk.DiscoverInstallations(ctx, DetectRequest{RuntimeID: RuntimeIDCodex, HomeDirectory: root, BaseEnvironment: environment}, []CLIInstallation{{Path: paths[0]}, {Path: paths[1]}})
+	for index := range paths {
+		marker, err := os.ReadFile(filepath.Join(root, fmt.Sprintf("started-%d", index)))
+		if err != nil {
+			t.Fatalf("probe %d did not enter its barrier: %v", index, err)
+		}
+		t.Logf("probe %d entered barrier at %s", index, marker)
+	}
 	if len(got) != 2 {
 		t.Fatalf("installations=%+v", got)
 	}
 	for index, installation := range got {
-		if installation.Version != fmt.Sprintf("1.%d.0", index) {
-			t.Fatalf("version probes were serialized: %+v", got)
+		if !installation.Available || installation.Version != fmt.Sprintf("1.%d.0", index) {
+			t.Fatalf("version probes failed to run concurrently: %+v", got)
 		}
+	}
+}
+
+// TestInstallationVersionProbeBarrierRejectsSequentialStart 证明顺序执行不能获得两个有效版本，防止屏障退化为空验证。
+func TestInstallationVersionProbeBarrierRejectsSequentialStart(t *testing.T) {
+	root, paths, args, environment := installationProbeFixture(t)
+	args = append(args, "--version")
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	first := nativeacp.RuntimeVersion(ctx, paths[0], args, environment, "")
+	if first != "" || !errors.Is(ctx.Err(), context.DeadlineExceeded) {
+		t.Fatalf("first probe crossed barrier without peer: version=%q context=%v", first, ctx.Err())
+	}
+	if _, err := os.Stat(filepath.Join(root, "started-0")); err != nil {
+		t.Fatalf("first probe did not enter barrier: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(root, "started-1")); !os.IsNotExist(err) {
+		t.Fatalf("second probe started before first completed: %v", err)
+	}
+	secondContext, stop := context.WithTimeout(context.Background(), 2*time.Second)
+	defer stop()
+	if second := nativeacp.RuntimeVersion(secondContext, paths[1], args, environment, ""); second != "1.1.0" {
+		t.Fatalf("second probe could not observe the completed first probe: %q", second)
 	}
 }
 
