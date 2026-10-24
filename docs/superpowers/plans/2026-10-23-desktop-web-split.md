@@ -1,6 +1,6 @@
 # Desktop / Web 拆分实施计划
 
-> 状态：功能重构完成，两个独立子代理 review 通过；最终发布包验证记录见验收清单。
+> 状态：功能重构、两个独立子代理 review 与 macOS x64 双端发布包验证完成。
 > 规格：[Desktop / Web 共享应用规格](../specs/2026-10-23-desktop-web-split-design.md)。
 > 基线：c49be4406a6b8cdb5451377d522b1f6f4d89793c；分支：codex/web-desktop-split。
 > 主工作区的未提交修改及合并冲突未带入此 worktree，集成回主分支前必须单独处理。
@@ -29,7 +29,7 @@
 | T9 Git              | Core 执行仓库发现、状态、历史、差异、暂存、提交、丢弃与分支操作；删除旧 Main Git IPC              | 真实临时 Git 仓库、路径字面量、冲突及错误传播测试通过                      |
 | T10 PTY 后端        | 复用 node-pty/xterm 到 packages/terminal-runtime；Core 管理 stdio worker，无新监听端口            | macOS 真实 shell 输出、附着、快照与父进程回收通过；Windows 真实运行未验证  |
 | T11 双端终端        | 两端使用共享 Core adapter；有序输出、恢复快照、60 秒断线窗口、注销回收                            | Cookie HTTP/WS 真实 PTY、旧 attachment 拒绝、缺口恢复、不重放输入通过      |
-| T12 发布与文档      | 旧资源/Git/终端 Main 执行代码移除；源码导航、启动指南和架构同步                                   | 最终 Native 安装包、类型/契约检查与交付记录收尾中                          |
+| T12 发布与文档      | 旧资源/Git/终端 Main 执行代码移除；源码导航、启动指南和架构同步                                   | Native DMG 与双端类型、契约、资源和退出回收验证通过                        |
 
 ## 3. 重要实施决定
 
@@ -83,7 +83,7 @@ pnpm build:native
 - [x] Native 实际 .app 资源预检、签名验证、Core 健康和终端输出通过。
 - [x] 文档链接与个人路径检查、UI 样式策略通过。
 - [x] 最终共享与宿主类型检查通过；OpenAPI 与 SDK 定向重复生成一致。
-- [ ] 最终 Web 发布包和 Native 安装包完成并记录产物。
+- [x] 最终 Web 发布包与 Native DMG 完成，目录分别为 web/release/darwin-x64 和 desktop/release；DMG 152.3 MiB / 170 MiB，应用 435.2 MiB / 450 MiB，Resources 190.2 MiB / 215 MiB。镜像校验、只读挂载后签名、527 个压缩资源字节一致、真实 PTY、Core 健康与关闭均通过。
 - [ ] 浏览器与 Native 视觉、真实模型聊天/审批/成果和复杂文档预览人工验收。
 - [ ] Windows 原机 PTY、安装和退出回收验收。
 
