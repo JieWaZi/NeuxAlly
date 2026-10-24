@@ -16,7 +16,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "api:generate": "openapi-ts",
-    "lint": "eslint . && node --test scripts/platform-import-boundary.test.mjs"
+    "lint": "eslint . && node --test scripts/platform-import-boundary.node-test.mjs"
   },
   "devDependencies": {
     "@aiden0z/pptx-renderer": "^1.3.0",

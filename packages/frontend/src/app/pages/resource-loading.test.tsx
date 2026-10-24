@@ -92,6 +92,9 @@ it("插件后台刷新保留已显示的内容和页签，不退回骨架", asyn
   mount("/resources/plugins/plugin-1");
   await screen.findByRole("heading", { name: "办公插件" });
   expect(screen.getAllByText("整理办公资料")[0]).toBeVisible();
+  await waitFor(() =>
+    expect(screen.queryByRole("status")).not.toBeInTheDocument(),
+  );
   server.resetHandlers();
   act(() => {
     void clients[0]?.invalidateQueries();

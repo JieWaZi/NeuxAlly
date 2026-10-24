@@ -36,6 +36,7 @@ import { TeamThreadPage } from "./team-thread-page";
 
 vi.mock("@/shared/platform", () => ({
   isDesktopRuntime: () => false,
+  hasPlatformService: () => false,
   subscribeFileDrop: () => () => undefined,
 }));
 vi.mock("@/shared/api/events", () => ({

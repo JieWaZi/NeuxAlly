@@ -341,7 +341,7 @@ vi.mock("@/modules/connector", () => ({
 
 vi.mock("@/shared/platform", () => ({
   isDesktopRuntime: () => false,
- hasPlatformService: () => false,
+  hasPlatformService: () => false,
   normalizeBrowserURL: (url: string) => url || null,
   resolveFileReferencePath: async (request: {
     path: string;
@@ -356,6 +356,17 @@ vi.mock("@/shared/platform", () => ({
     baseDirectory: request.baseDirectory,
     workspaceRoot: request.workspaceRoot,
     sourceRoots: request.sourceRoots,
+  }),
+  resolveWorkspaceResourceReference: async (
+    _chatId: string,
+    path: string,
+    baseDirectory: string,
+  ) => ({
+    status: "resolved",
+    canonicalPath: path.startsWith("/") ? path : `${baseDirectory}/${path}`,
+    baseDirectory,
+    workspaceRoot: "/tmp/ally",
+    sourceRoots: [],
   }),
   searchWorkspaceFiles: (
     root: string,
